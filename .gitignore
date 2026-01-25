@@ -1,0 +1,214 @@
+# ===================================
+# ComfyQ Project .gitignore
+# ===================================
+
+# ============ Dependencies ============
+# Node.js dependencies
+node_modules/
+package-lock.json
+client/node_modules/
+server/node_modules/
+
+# Python dependencies
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+
+# ============ Build Outputs ============
+# Client build artifacts
+client/dist/
+client/dist-ssr/
+client/build/
+
+# Server build artifacts (if any)
+server/dist/
+server/build/
+
+# ============ Logs ============
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+server.log
+error.log
+
+# ============ Environment & Config ============
+# DO NOT commit sensitive configuration
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+
+# Personal config overrides (keep config.json template but ignore local copies)
+config.local.json
+config.development.json
+config.production.json
+
+# ============ ComfyUI Generated Content ============
+# Image outputs (can be large)
+# Uncomment if you don't want to track generated images
+# output/
+# *.png
+# *.jpg
+# *.jpeg
+# *.webp
+
+# ComfyUI specific
+ComfyUI/output/
+ComfyUI/temp/
+ComfyUI/models/
+
+# ============ Operating System ============
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ============ IDEs & Editors ============
+# VS Code
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+.history/
+
+# JetBrains IDEs (WebStorm, PyCharm, etc.)
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Vim
+[._]*.s[a-v][a-z]
+[._]*.sw[a-p]
+[._]s[a-rt-v][a-z]
+[._]ss[a-gi-z]
+[._]sw[a-p]
+Session.vim
+Sessionx.vim
+
+# Emacs
+*~
+\#*\#
+.\#*
+
+# ============ Testing & Coverage ============
+coverage/
+*.lcov
+.nyc_output
+.jest/
+.coverage
+htmlcov/
+.tox/
+.hypothesis/
+
+# ============ Temporary Files ============
+*.tmp
+*.bak
+*.swp
+*.swo
+*~.nib
+*.cache
+*.local
+
+# Temporary directories
+tmp/
+temp/
+.temp/
+.cache/
+
+# ============ Misc ============
+# Lock files (keep package-lock.json but ignore others)
+yarn.lock
+pnpm-lock.yaml
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Diagnostic reports
+report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
+
+# Optional npm cache directory
+.npm
+
+# Optional REPL history
+.node_repl_history
+
+# Webpack
+.webpack/
+
+# Parcel
+.parcel-cache/
+
+# Next.js
+.next/
+
+# Nuxt
+.nuxt/
+
+# Gatsby
+.cache/
+
+# TypeScript
+*.tsbuildinfo
+
+# ============ Project Specific ============
+# Workflow backups
+workflows/backup/
+workflows/*.backup.json
+
+# User data (if you want to keep it local)
+# Uncomment if you have user-specific data
+# user_data/
+# uploads/
+
+# Database files (if using SQLite or similar)
+*.db
+*.sqlite
+*.sqlite3
+
+# ============ Documentation Build ============
+# Sphinx documentation
+docs/_build/
+docs/.doctrees/
+
+# MkDocs
+site/

@@ -1,0 +1,149 @@
+@import "tailwindcss";
+
+@theme {
+  --color-background: #09090b;
+  --color-surface: #18181b;
+  --color-border: #27272a;
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-secondary: #a855f7;
+  --color-success: #10b981;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+  --color-muted: #a1a1aa;
+}
+
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  color-scheme: dark;
+  background-color: #09090b;
+  /* Zinc-950 */
+  color: #e4e4e7;
+  /* Zinc-200 */
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  margin: 0;
+  display: flex;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+}
+
+/* Custom Styles for vis-timeline to match theme */
+.vis-timeline {
+  border: none !important;
+  border-right: 1px solid #27272a !important;
+  /* Zinc-800 */
+  background-color: #18181b !important;
+  /* Zinc-900 */
+  color: #e4e4e7 !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+.vis-time-axis .vis-text {
+  color: #a1a1aa !important;
+  /* Zinc-400 */
+}
+
+/* Custom Item Styles */
+.vis-item {
+  border-color: transparent !important;
+  border-radius: 6px !important;
+  font-size: 11px !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.vis-item-scheduled {
+  background-color: #6366f1 !important;
+  /* Indigo-500 */
+  border: 1px solid rgba(99, 102, 241, 0.5) !important;
+}
+
+.vis-item-processing {
+  background-color: #eab308 !important;
+  /* Yellow-500 */
+  border: 1px solid rgba(234, 179, 8, 0.5) !important;
+  color: #000 !important;
+}
+
+.vis-item-completed {
+  background-color: #10b981 !important;
+  /* Emerald-500 */
+  border: 1px solid rgba(16, 185, 129, 0.5) !important;
+}
+
+.vis-item-mine {
+  border: 2px solid #fff !important;
+  box-shadow: 0 0 15px rgba(99, 102, 241, 0.4) !important;
+}
+
+.vis-item.vis-selected {
+  border-color: #fff !important;
+  background-color: #8b5cf6 !important;
+  /* Violet-500 */
+  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.5) !important;
+  z-index: 2;
+}
+
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  50% {
+    transform: translateX(0);
+  }
+
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 2s infinite ease-in-out;
+}
+
+/* Custom Scrollbar */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
+
+.vis-time-axis .vis-grid.vis-minor {
+  border-color: #27272a !important;
+  /* Zinc-800 */
+}
+
+.vis-time-axis .vis-grid.vis-major {
+  border-color: #3f3f46 !important;
+  /* Zinc-700 */
+}
+
+.vis-labelset .vis-label {
+  border-bottom: 1px solid #27272a !important;
+  color: #e4e4e7;
+}

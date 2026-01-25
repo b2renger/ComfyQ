@@ -1,0 +1,145 @@
+{
+    "66": {
+        "inputs": {
+            "width": 1024,
+            "height": 1024,
+            "batch_size": 1
+        },
+        "class_type": "EmptyFlux2LatentImage"
+    },
+    "67": {
+        "inputs": {
+            "text": "",
+            "clip": [
+                "70",
+                0
+            ]
+        },
+        "class_type": "CLIPTextEncode"
+    },
+    "68": {
+        "inputs": {
+            "unet_name": "flux-2-klein-base-4b.safetensors",
+            "weight_dtype": "default"
+        },
+        "class_type": "UNETLoader"
+    },
+    "69": {
+        "inputs": {
+            "clip_name": "qwen_3_4b.safetensors",
+            "type": "flux2"
+        },
+        "class_type": "CLIPLoader"
+    },
+    "70": {
+        "inputs": {
+            "clip_name": "qwen_3_4b.safetensors",
+            "type": "flux2"
+        },
+        "class_type": "CLIPLoader"
+    },
+    "71": {
+        "inputs": {
+            "vae_name": "flux2-vae.safetensors"
+        },
+        "class_type": "VAELoader"
+    },
+    "72": {
+        "inputs": {
+            "text": "A futuristic cyberpunk cat wearing neon sunglasses, high detail, digital art.",
+            "clip": [
+                "69",
+                0
+            ]
+        },
+        "class_type": "CLIPTextEncode"
+    },
+    "73": {
+        "inputs": {
+            "noise_seed": 1032389365518174
+        },
+        "class_type": "RandomNoise"
+    },
+    "61": {
+        "inputs": {
+            "sampler_name": "euler"
+        },
+        "class_type": "KSamplerSelect"
+    },
+    "62": {
+        "inputs": {
+            "scheduler": "simple",
+            "steps": 20,
+            "denoise": 1,
+            "width": 1024,
+            "height": 1024
+        },
+        "class_type": "Flux2Scheduler"
+    },
+    "63": {
+        "inputs": {
+            "model": [
+                "68",
+                0
+            ],
+            "positive": [
+                "72",
+                0
+            ],
+            "negative": [
+                "67",
+                0
+            ],
+            "cfg": 5
+        },
+        "class_type": "CFGGuider"
+    },
+    "64": {
+        "inputs": {
+            "noise": [
+                "73",
+                0
+            ],
+            "guider": [
+                "63",
+                0
+            ],
+            "sampler": [
+                "61",
+                0
+            ],
+            "sigmas": [
+                "62",
+                0
+            ],
+            "latent_image": [
+                "66",
+                0
+            ]
+        },
+        "class_type": "SamplerCustomAdvanced"
+    },
+    "65": {
+        "inputs": {
+            "samples": [
+                "64",
+                0
+            ],
+            "vae": [
+                "71",
+                0
+            ]
+        },
+        "class_type": "VAEDecode"
+    },
+    "9": {
+        "inputs": {
+            "filename_prefix": "Flux2Full",
+            "images": [
+                "65",
+                0
+            ]
+        },
+        "class_type": "SaveImage"
+    }
+}

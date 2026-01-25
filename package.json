@@ -1,0 +1,15 @@
+{
+    "name": "comfy-scheduler",
+    "version": "1.0.0",
+    "description": "ComfyUI Scheduler and Dashboard",
+    "main": "server/index.js",
+    "scripts": {
+        "start": "node server/index.js",
+        "client": "npm run dev --prefix client",
+        "server": "node server/index.js",
+        "dev": "concurrently \"npm run server\" \"npm run client\""
+    },
+    "dependencies": {
+        "concurrently": "^8.2.2"
+    }
+}
