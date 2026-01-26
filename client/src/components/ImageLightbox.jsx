@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { X, Download, User, Clock, Sparkles } from 'lucide-react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
+import { getImageUrl, getDownloadUrl } from '../utils/api';
 
 const ImageLightbox = ({ isOpen, onClose, job }) => {
     if (!job) return null;
@@ -9,7 +10,7 @@ const ImageLightbox = ({ isOpen, onClose, job }) => {
     const downloadImage = (e) => {
         e.stopPropagation();
         const link = document.createElement('a');
-        link.href = `http://localhost:3000/download/${job.result_filename}`;
+        link.href = getDownloadUrl(job.result_filename);
         link.download = job.result_filename;
         document.body.appendChild(link);
         link.click();
@@ -23,7 +24,7 @@ const ImageLightbox = ({ isOpen, onClose, job }) => {
                 <div className="flex-1 relative group">
                     <div className="aspect-square bg-black rounded-xl overflow-hidden border border-white/10 shadow-2xl">
                         <img
-                            src={`http://localhost:3000/images/${job.result_filename}`}
+                            src={getImageUrl(job.result_filename)}
                             alt="Full Preview"
                             className="w-full h-full object-contain"
                         />

@@ -9,6 +9,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import MyJobsPanel from '../components/MyJobsPanel';
 import ImageLightbox from '../components/ImageLightbox';
+import { getImageUrl, getDownloadUrl } from '../utils/api';
 
 const SchedulerPage = () => {
     const { state, bookJob, username } = useSocket();
@@ -185,7 +186,7 @@ const SchedulerPage = () => {
                                             {job.status === 'completed' ? (
                                                 <div className="relative w-full h-full group/img">
                                                     <img
-                                                        src={`http://localhost:3000/images/${job.result_filename}`}
+                                                        src={getImageUrl(job.result_filename)}
                                                         alt="Preview"
                                                         className="w-full h-full object-cover"
                                                     />
@@ -193,7 +194,7 @@ const SchedulerPage = () => {
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             const link = document.createElement('a');
-                                                            link.href = `http://localhost:3000/download/${job.result_filename}`;
+                                                            link.href = getDownloadUrl(job.result_filename);
                                                             link.download = job.result_filename;
                                                             document.body.appendChild(link);
                                                             link.click();
@@ -264,18 +265,20 @@ const SchedulerPage = () => {
             </div>
 
             {/* My Jobs Sidebar - Mobile Overlay */}
-            {isMyJobsOpen && (
-                <div className="fixed inset-0 z-50 flex justify-end xl:hidden">
-                    <div
-                        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
-                        onClick={() => setIsMyJobsOpen(false)}
-                    />
-                    <div className="relative w-72 sm:w-80 h-full animate-in slide-in-from-right duration-300">
-                        <MyJobsPanel onClose={() => setIsMyJobsOpen(false)} />
+            {
+                isMyJobsOpen && (
+                    <div className="fixed inset-0 z-50 flex justify-end xl:hidden">
+                        <div
+                            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300"
+                            onClick={() => setIsMyJobsOpen(false)}
+                        />
+                        <div className="relative w-72 sm:w-80 h-full animate-in slide-in-from-right duration-300">
+                            <MyJobsPanel onClose={() => setIsMyJobsOpen(false)} />
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

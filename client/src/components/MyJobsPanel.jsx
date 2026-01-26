@@ -3,6 +3,7 @@ import { useSocket } from '../context/SocketContext';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import { Sparkles, Clock, CheckCircle2, AlertCircle, Image as ImageIcon, Search, X, Download } from 'lucide-react';
+import { getImageUrl, getDownloadUrl } from '../utils/api';
 
 const MyJobsPanel = ({ onClose }) => {
     const { state, username } = useSocket();
@@ -70,10 +71,10 @@ const MyJobsPanel = ({ onClose }) => {
                                     <div className="flex flex-col items-center space-y-2">
                                         <div
                                             className="w-12 h-12 rounded-lg overflow-hidden border border-border group-hover:border-primary/40 transition-colors bg-black cursor-pointer shadow-md"
-                                            onClick={() => window.open(`http://localhost:3000/images/${job.result_filename}`, '_blank')}
+                                            onClick={() => window.open(getImageUrl(job.result_filename), '_blank')}
                                         >
                                             <img
-                                                src={`http://localhost:3000/images/${job.result_filename}`}
+                                                src={getImageUrl(job.result_filename)}
                                                 alt="Preview"
                                                 className="w-full h-full object-cover transition-transform group-hover:scale-110"
                                             />
@@ -82,7 +83,7 @@ const MyJobsPanel = ({ onClose }) => {
                                             onClick={(e) => {
                                                 e.stopPropagation();
                                                 const link = document.createElement('a');
-                                                link.href = `http://localhost:3000/download/${job.result_filename}`;
+                                                link.href = getDownloadUrl(job.result_filename);
                                                 link.download = job.result_filename;
                                                 document.body.appendChild(link);
                                                 link.click();

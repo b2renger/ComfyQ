@@ -47,8 +47,9 @@ async function startServer() {
         const socketManager = new SocketManager(server, scheduler, bootManager);
 
         const port = config.server.port || 3000;
-        server.listen(port, () => {
-            console.log(`[Server] Web server running on http://localhost:${port}`);
+        const host = config.server.host || '0.0.0.0';
+        server.listen(port, host, () => {
+            console.log(`[Server] Web server running on http://${host}:${port}`);
         });
 
         // Start ComfyUI boot sequence

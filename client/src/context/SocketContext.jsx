@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import Toast from '../components/ui/Toast';
+import { SERVER_URL } from '../utils/api';
 
 const SocketContext = createContext();
 
@@ -20,7 +21,7 @@ export const SocketProvider = ({ children }) => {
     const [toasts, setToasts] = useState([]);
 
     useEffect(() => {
-        const newSocket = io('http://localhost:3000');
+        const newSocket = io(SERVER_URL);
         setSocket(newSocket);
 
         newSocket.on('connect', () => {

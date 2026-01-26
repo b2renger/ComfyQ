@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
+import { getImageUrl } from '../utils/api';
 
 const DashboardPage = () => {
     const { state } = useSocket();
@@ -75,8 +76,8 @@ const DashboardPage = () => {
             header: 'Result',
             accessorKey: 'result_filename',
             cell: info => info.getValue() ? (
-                <div className="w-10 h-10 rounded-lg overflow-hidden border border-border/50 cursor-pointer hover:border-primary transition-colors hover:scale-105 transform duration-200" onClick={() => window.open(`http://localhost:3000/images/${info.getValue()}`, '_blank')}>
-                    <img src={`http://localhost:3000/images/${info.getValue()}`} alt="Thumb" className="w-full h-full object-cover" />
+                <div className="w-10 h-10 rounded-lg overflow-hidden border border-border/50 cursor-pointer hover:border-primary transition-colors hover:scale-105 transform duration-200" onClick={() => window.open(getImageUrl(info.getValue()), '_blank')}>
+                    <img src={getImageUrl(info.getValue())} alt="Thumb" className="w-full h-full object-cover" />
                 </div>
             ) : <div className="w-10 h-10 bg-surface rounded-lg flex items-center justify-center text-[10px] text-muted decoration-dashed">---</div>
         }
