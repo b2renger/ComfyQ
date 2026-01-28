@@ -1,51 +1,56 @@
 {
+  "mode": "student",
   "server": {
     "port": 3000,
     "host": "0.0.0.0"
   },
   "comfy_ui": {
     "installation_type": "portable",
-    "root_path": "C:/Apps/AI/ComfyUI_windows_portable_nvidia/ComfyUI_windows_portable/ComfyUI",
+    "root_path": "D:/ComfyUI_windows_portable_nvidia/ComfyUI_windows_portable/ComfyUI",
     "python_executable": "../python_embeded/python.exe",
     "output_dir": "output",
     "api_host": "127.0.0.1",
     "api_port": 8188
   },
   "workflow": {
-    "template_file": "./workflows/flux_full_api.json",
-    "warmup_prompt": "A simple color gradient",
+    "template_file": "./workflows/video_wan2_2_14B_i2v.json",
+    "warmup_prompt": "A simple test generation",
     "parameter_map": {
-      "prompt": {
-        "node_id": "72",
-        "field": "text"
+      "cliptextencode_text_93": {
+        "node_id": "93",
+        "field": "text",
+        "type": "textarea",
+        "label": "Prompt (CLIP Text Encode (Positive Prompt))",
+        "default": "The white dragon warrior stands still, eyes full of determination and strength. The camera slowly moves closer or circles around the warrior, highlighting the powerful presence and heroic spirit of the character.",
+        "enabled": true,
+        "order": 10
       },
-      "steps": {
-        "node_id": "62",
-        "field": "steps"
+      "loadimage_image_97": {
+        "node_id": "97",
+        "field": "image",
+        "type": "image",
+        "label": "Image (Load Image)",
+        "default": "video_wan2_2_14B_i2v_input_image.jpg",
+        "enabled": true,
+        "order": 13
       },
-      "width": [
-        {
-          "node_id": "66",
-          "field": "width"
-        },
-        {
-          "node_id": "62",
-          "field": "width"
-        }
-      ],
-      "height": [
-        {
-          "node_id": "66",
-          "field": "height"
-        },
-        {
-          "node_id": "62",
-          "field": "height"
-        }
-      ],
-      "cfg": {
-        "node_id": "63",
-        "field": "cfg"
+      "wanimagetovideo_width_98": {
+        "node_id": "98",
+        "field": "width",
+        "type": "number",
+        "label": "Width (WanImageToVideo)",
+        "default": 640,
+        "enabled": true,
+        "order": 14
+      },
+      "wanimagetovideo_height_98": {
+        "node_id": "98",
+        "field": "height",
+        "type": "number",
+        "label": "Height (WanImageToVideo)",
+        "default": 640,
+        "enabled": true,
+        "order": 15
       }
     }
   }

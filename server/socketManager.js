@@ -72,11 +72,18 @@ class SocketManager {
     }
 
     broadcastState() {
+        const workflow = this.bootManager.config.workflow;
         const state = {
             system_status: this.bootManager.status,
             benchmark_ms: this.bootManager.globalJobDuration,
             connected_users: Array.from(this.connectedUsers.values()),
-            jobs: this.scheduler.getJobs()
+            jobs: this.scheduler.getJobs(),
+            workflow: workflow,
+            workflow_info: {
+                id: this.bootManager.config.id || 'unknown',
+                name: this.bootManager.config.name || 'Unnamed Workflow',
+                description: this.bootManager.config.description || ''
+            }
         };
         this.io.emit('state_update', state);
     }

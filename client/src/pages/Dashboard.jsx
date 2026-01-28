@@ -14,15 +14,33 @@ import {
     ChevronDown,
     Activity,
     Server,
-    CheckCircle2
+    CheckCircle2,
+    Settings
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
-import { getImageUrl } from '../utils/api';
+import { getImageUrl, SERVER_URL } from '../utils/api';
 
 const DashboardPage = () => {
     const { state } = useSocket();
     const [selectedUser, setSelectedUser] = React.useState(null);
+
+    const handleResetConfig = async () => {
+        if (!window.confirm('Are you sure you want to reset the server to Admin Configuration mode? This will stop all current jobs and restart the server.')) {
+            return;
+        }
+
+        try {
+            await fetch(`${SERVER_URL}/admin/reset-to-admin`, { method: 'POST' });
+            // Wait for restart
+            setTimeout(() => {
+                window.location.reload();
+            }, 3000);
+        } catch (e) {
+            console.error(e);
+            alert('Failed to reset server');
+        }
+    };
 
     // Filter jobs by selected user
     const filteredJobs = useMemo(() => {
@@ -95,9 +113,18 @@ const DashboardPage = () => {
 
     return (
         <div className="p-6 space-y-8 max-w-7xl mx-auto">
-            <div>
-                <h2 className="text-2xl font-bold tracking-tight">System Dashboard</h2>
-                <p className="text-muted mt-1">Real-time metrics and job history</p>
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">System Dashboard</h2>
+                    <p className="text-muted mt-1">Real-time metrics and job history</p>
+                </div>
+                <button
+                    onClick={handleResetConfig}
+                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg border border-white/10 transition-colors text-sm font-medium"
+                >
+                    <Settings size={16} />
+                    Reset Configuration
+                </button>
             </div>
 
             {/* Stats Cards */}

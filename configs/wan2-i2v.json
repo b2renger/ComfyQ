@@ -1,0 +1,38 @@
+{
+    "id": "wan2-i2v",
+    "name": "Wan2.2 Image-to-Video (14B)",
+    "description": "Generate videos from images using Wan2.2 14B model",
+    "server": {
+        "port": 3000,
+        "host": "0.0.0.0"
+    },
+    "comfy_ui": {
+        "installation_type": "portable",
+        "root_path": "D:/ComfyUI_windows_portable_nvidia/ComfyUI_windows_portable/ComfyUI",
+        "python_executable": "../python_embeded/python.exe",
+        "output_dir": "output",
+        "api_host": "127.0.0.1",
+        "api_port": 8188
+    },
+    "workflow": {
+        "template_file": "./workflows/video_wan2_2_14B_i2v_api.json",
+        "warmup_prompt": "A simple animation",
+        "job_duration_ms": 600000,
+        "parameter_map": {
+            "image": {
+                "node_id": "97",
+                "field": "image",
+                "type": "image",
+                "label": "Source Image",
+                "default": null
+            },
+            "prompt": {
+                "node_id": "93",
+                "field": "text",
+                "type": "textarea",
+                "label": "Motion Prompt",
+                "default": "The character moves slowly, camera pans around"
+            }
+        }
+    }
+}

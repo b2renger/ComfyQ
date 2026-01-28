@@ -1,0 +1,78 @@
+{
+    "id": "flux2-text-to-image",
+    "name": "Flux2 Klein Text-to-Image (9B)",
+    "description": "Generate images from text prompts using Flux2 Klein 9B model",
+    "server": {
+        "port": 3000,
+        "host": "0.0.0.0"
+    },
+    "comfy_ui": {
+        "installation_type": "portable",
+        "root_path": "D:/ComfyUI_windows_portable_nvidia/ComfyUI_windows_portable/ComfyUI",
+        "python_executable": "../python_embeded/python.exe",
+        "output_dir": "output",
+        "api_host": "127.0.0.1",
+        "api_port": 8188
+    },
+    "workflow": {
+        "template_file": "./workflows/image_flux2_klein_text_to_image_9b.json",
+        "warmup_prompt": "A simple color gradient",
+        "job_duration_ms": 30000,
+        "parameter_map": {
+            "prompt": {
+                "node_id": "76",
+                "field": "text",
+                "type": "textarea",
+                "label": "Prompt",
+                "default": "A vintage motorcycle parked in front of a retro diner at sunset, warm orange and pink sky, neon signs glowing, 80s vintage photo style, film grain, warm color cast"
+            },
+            "steps": {
+                "node_id": "62",
+                "field": "steps",
+                "type": "number",
+                "label": "Steps",
+                "default": 20,
+                "min": 1,
+                "max": 50
+            },
+            "cfg": {
+                "node_id": "63",
+                "field": "cfg",
+                "type": "number",
+                "label": "CFG Scale",
+                "default": 5,
+                "step": 0.1,
+                "min": 1,
+                "max": 10
+            },
+            "width": {
+                "node_id": "75",
+                "field": "value",
+                "type": "select",
+                "label": "Width",
+                "options": [
+                    1024,
+                    832,
+                    1216,
+                    768,
+                    1408
+                ],
+                "default": 1024
+            },
+            "height": {
+                "node_id": "75",
+                "field": "value_1",
+                "type": "select",
+                "label": "Height",
+                "options": [
+                    1024,
+                    1216,
+                    832,
+                    1344,
+                    768
+                ],
+                "default": 1024
+            }
+        }
+    }
+}

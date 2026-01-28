@@ -143,9 +143,9 @@ class Scheduler {
                     }
                 }
 
-                // Inject filename prefix into any SaveImage node found in template
+                // Inject filename prefix into any SaveImage or SaveVideo node found in template
                 for (const nodeId in template) {
-                    if (template[nodeId].class_type === 'SaveImage') {
+                    if (template[nodeId].class_type === 'SaveImage' || template[nodeId].class_type === 'SaveVideo') {
                         if (!template[nodeId].inputs) template[nodeId].inputs = {};
                         template[nodeId].inputs.filename_prefix = filePrefix;
                     }

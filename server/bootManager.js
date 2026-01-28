@@ -45,9 +45,11 @@ class BootManager {
     }
 
     validateConfig() {
+        console.log(`[BootManager] Checking Python executable: ${this.config.comfy_ui.python_executable}`);
         if (!fs.existsSync(this.config.comfy_ui.python_executable)) {
             throw new Error(`Python executable not found: ${this.config.comfy_ui.python_executable}`);
         }
+        console.log(`[BootManager] Checking ComfyUI root path: ${this.config.comfy_ui.root_path}`);
         if (!fs.existsSync(this.config.comfy_ui.root_path)) {
             throw new Error(`ComfyUI root path not found: ${this.config.comfy_ui.root_path}`);
         }
