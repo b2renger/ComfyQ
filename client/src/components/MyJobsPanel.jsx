@@ -9,9 +9,8 @@ import { getImageUrl, getDownloadUrl } from '../utils/api';
 const MyJobsPanel = ({ onClose }) => {
     const { state, username } = useSocket();
 
-    // Filter jobs for current user
-    const myJobs = state.jobs
-        .filter(job => job.user_id === username)
+    // Show all jobs sorted by time
+    const allJobs = state.jobs
         .sort((a, b) => b.time_slot - a.time_slot);
 
     return (
@@ -27,17 +26,17 @@ const MyJobsPanel = ({ onClose }) => {
                         </button>
                     )}
                     <div>
-                        <h3 className="font-bold text-base sm:text-lg tracking-tight text-white leading-none">My Generations</h3>
+                        <h3 className="font-bold text-base sm:text-lg tracking-tight text-white leading-none">All Generations</h3>
                         <p className="text-[10px] text-muted font-medium mt-1 uppercase tracking-widest leading-none">Job Queue</p>
                     </div>
                 </div>
                 <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
-                    <span className="text-xs font-bold text-primary">{myJobs.length}</span>
+                    <span className="text-xs font-bold text-primary">{allJobs.length}</span>
                 </div>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-black/20">
-                {myJobs.length === 0 ? (
+                {allJobs.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center space-y-4 opacity-30 py-12">
                         <div className="p-4 bg-muted/10 rounded-full">
                             <Search size={32} />
@@ -48,7 +47,7 @@ const MyJobsPanel = ({ onClose }) => {
                         </div>
                     </div>
                 ) : (
-                    myJobs.map((job) => (
+                    allJobs.map((job) => (
                         <div
                             key={job.id}
                             className="group relative bg-background/40 border border-border/40 rounded-xl p-4 hover:border-primary/20 transition-all duration-300 hover:shadow-lg hover:shadow-primary/5 active:scale-[0.98]"

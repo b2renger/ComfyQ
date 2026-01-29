@@ -27,7 +27,7 @@ const StudentLayout = () => {
         </div>
         <div className="flex items-center space-x-1 bg-surface border border-border rounded-lg p-1">
           <NavLink to="/user" icon={Calendar} label="Timeline" end />
-          <NavLink to="/user/dashboard" icon={LayoutDashboard} label="My Jobs" />
+          <NavLink to="/user/dashboard" icon={LayoutDashboard} label="All Jobs" />
         </div>
       </nav>
 
