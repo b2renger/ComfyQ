@@ -89,15 +89,18 @@ const AdminConfig = ({ currentMode }) => {
 
             setSaveStatus('Restarting server in Student Mode...');
 
+            setSaveStatus('Restarting systems... Please wait.');
+
             // Trigger server restart
             await fetch(`${SERVER_URL}/admin/restart-server`, { method: 'POST' });
 
-            // Wait for restart
+            // Wait for restart (Nodemon takes a moment)
             setTimeout(() => {
-                // Force full reload to ensure socket connection is re-established cleanly
-                // Redirect to root, which will redirect to /user based on new mode
-                window.location.href = '/';
-            }, 3000);
+                setSaveStatus('Connecting to Student Interface...');
+                setTimeout(() => {
+                    window.location.href = '/user'; // Go straight to user app
+                }, 1000);
+            }, 5000);
 
         } catch (error) {
             console.error('Save failed:', error);

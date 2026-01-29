@@ -9,6 +9,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import MyJobsPanel from '../components/MyJobsPanel';
 import ImageLightbox from '../components/ImageLightbox';
+import MediaPreview from '../components/ui/MediaPreview';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 
 const SchedulerPage = () => {
@@ -185,11 +186,7 @@ const SchedulerPage = () => {
                                         <div className="flex-1 aspect-video bg-background rounded-lg border border-border/50 flex items-center justify-center overflow-hidden relative shadow-inner">
                                             {job.status === 'completed' ? (
                                                 <div className="relative w-full h-full group/img">
-                                                    <img
-                                                        src={getImageUrl(job.result_filename)}
-                                                        alt="Preview"
-                                                        className="w-full h-full object-cover"
-                                                    />
+                                                    <MediaPreview filename={job.result_filename} />
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();

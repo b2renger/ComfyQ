@@ -2,12 +2,14 @@ import React, { useEffect } from 'react';
 import { X, Download, User, Clock, Sparkles } from 'lucide-react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
-import { getImageUrl, getDownloadUrl } from '../utils/api';
+import { getImageUrl, getDownloadUrl, isVideo } from '../utils/api';
 
 const ImageLightbox = ({ isOpen, onClose, job }) => {
     if (!job) return null;
 
-    const downloadImage = (e) => {
+    const isVid = isVideo(job.result_filename);
+
+    const downloadMedia = (e) => {
         e.stopPropagation();
         const link = document.createElement('a');
         link.href = getDownloadUrl(job.result_filename);
@@ -20,14 +22,24 @@ const ImageLightbox = ({ isOpen, onClose, job }) => {
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Generation Details" maxWidth="max-w-4xl">
             <div className="flex flex-col lg:flex-row gap-6">
-                {/* Image Section */}
+                {/* Media Section */}
                 <div className="flex-1 relative group">
-                    <div className="aspect-square bg-black rounded-xl overflow-hidden border border-white/10 shadow-2xl">
-                        <img
-                            src={getImageUrl(job.result_filename)}
-                            alt="Full Preview"
-                            className="w-full h-full object-contain"
-                        />
+                    <div className="aspect-square bg-black rounded-xl overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center">
+                        {isVid ? (
+                            <video
+                                src={getImageUrl(job.result_filename)}
+                                className="w-full h-full object-contain"
+                                controls
+                                autoPlay
+                                loop
+                            />
+                        ) : (
+                            <img
+                                src={getImageUrl(job.result_filename)}
+                                alt="Full Preview"
+                                className="w-full h-full object-contain"
+                            />
+                        )}
                     </div>
                 </div>
 
@@ -91,7 +103,7 @@ const ImageLightbox = ({ isOpen, onClose, job }) => {
                             variant="primary"
                             className="w-full"
                             icon={Download}
-                            onClick={downloadImage}
+                            onClick={downloadMedia}
                         >
                             Download Creation
                         </Button>

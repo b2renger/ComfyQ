@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useCallback } from 'react';
 import { useSocket } from '../context/SocketContext';
 import {
     useReactTable,
@@ -15,15 +15,35 @@ import {
     Activity,
     Server,
     CheckCircle2,
-    Settings
+    Settings,
+    Trash2
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
+import MediaPreview from '../components/ui/MediaPreview';
 import { getImageUrl, SERVER_URL } from '../utils/api';
 
+/**
+ * DashboardPage provides administrators with a comprehensive view of the system's state.
+ * Features include:
+ * - Real-time job monitoring and management (kill/reorder)
+ * - Active user tracking
+ * - System metrics (avg generation time)
+ * - Server mode switching (reset to admin)
+ */
 const DashboardPage = () => {
-    const { state } = useSocket();
+    const { state, deleteJob, reorderJob } = useSocket();
     const [selectedUser, setSelectedUser] = React.useState(null);
+
+    const handleDeleteJob = (jobId) => {
+        if (window.confirm('Are you sure you want to kill this job?')) {
+            deleteJob(jobId);
+        }
+    };
+
+    const handleMoveJob = (jobId, currentTime, delta) => {
+        reorderJob(jobId, currentTime + delta);
+    };
 
     const handleResetConfig = async () => {
         if (!window.confirm('Are you sure you want to reset the server to Admin Configuration mode? This will stop all current jobs and restart the server.')) {
@@ -95,11 +115,48 @@ const DashboardPage = () => {
             accessorKey: 'result_filename',
             cell: info => info.getValue() ? (
                 <div className="w-10 h-10 rounded-lg overflow-hidden border border-border/50 cursor-pointer hover:border-primary transition-colors hover:scale-105 transform duration-200" onClick={() => window.open(getImageUrl(info.getValue()), '_blank')}>
-                    <img src={getImageUrl(info.getValue())} alt="Thumb" className="w-full h-full object-cover" />
+                    <MediaPreview filename={info.getValue()} showPlayIcon={false} />
                 </div>
             ) : <div className="w-10 h-10 bg-surface rounded-lg flex items-center justify-center text-[10px] text-muted decoration-dashed">---</div>
+        },
+        {
+            header: 'Actions',
+            id: 'actions',
+            cell: info => {
+                const job = info.row.original;
+                const isScheduled = job.status === 'scheduled';
+                return (
+                    <div className="flex items-center gap-2">
+                        {isScheduled && (
+                            <>
+                                <button
+                                    onClick={() => handleMoveJob(job.id, job.time_slot, -state.benchmark_ms)}
+                                    className="p-1.5 hover:bg-white/10 rounded text-muted hover:text-white transition-colors"
+                                    title="Move Up"
+                                >
+                                    <ChevronUp size={14} />
+                                </button>
+                                <button
+                                    onClick={() => handleMoveJob(job.id, job.time_slot, state.benchmark_ms)}
+                                    className="p-1.5 hover:bg-white/10 rounded text-muted hover:text-white transition-colors"
+                                    title="Move Down"
+                                >
+                                    <ChevronDown size={14} />
+                                </button>
+                            </>
+                        )}
+                        <button
+                            onClick={() => handleDeleteJob(job.id)}
+                            className="p-1.5 hover:bg-danger/20 rounded text-muted hover:text-danger transition-colors"
+                            title="Kill Job"
+                        >
+                            <Trash2 size={14} />
+                        </button>
+                    </div>
+                );
+            }
         }
-    ], []);
+    ], [state.benchmark_ms]);
 
     const table = useReactTable({
         data: filteredJobs,

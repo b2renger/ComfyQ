@@ -10,7 +10,21 @@ class BootManager {
         this.comfyProcess = null;
         this.internalWs = null;
         this.globalJobDuration = 0;
-        this.status = 'booting';
+        this._status = 'booting';
+        this.onStatusChange = null;
+    }
+
+    get status() {
+        return this._status;
+    }
+
+    set status(value) {
+        this._status = value;
+        if (this.onStatusChange) this.onStatusChange(value);
+    }
+
+    setStatusListener(callback) {
+        this.onStatusChange = callback;
     }
 
     async boot() {

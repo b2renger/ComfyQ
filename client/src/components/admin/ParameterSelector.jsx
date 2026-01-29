@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Settings, Check, Type, Image as ImageIcon, Hash, List, AlignLeft, Info } from 'lucide-react';
+import { Settings, Check, Type, Image as ImageIcon, Video as VideoIcon, Hash, List, AlignLeft, Info } from 'lucide-react';
 
 const TYPE_ICONS = {
     text: Type,
     textarea: AlignLeft,
     number: Hash,
     image: ImageIcon,
+    video: VideoIcon,
     select: List,
     checkbox: Check
 };
@@ -111,6 +112,7 @@ const ParameterSelector = ({ parameters, onChange }) => {
                                                 <option value="textarea">Text Area</option>
                                                 <option value="number">Number</option>
                                                 <option value="image">Image Upload</option>
+                                                <option value="video">Video Upload</option>
                                                 <option value="select">Select Dropdown</option>
                                             </select>
                                         </div>

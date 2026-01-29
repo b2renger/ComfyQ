@@ -1,6 +1,15 @@
 const { Server } = require('socket.io');
 
+/**
+ * SocketManager handles real-time communication between the server and clients.
+ * It manages user connections, job bookings, and broadcasts the current system state.
+ */
 class SocketManager {
+    /**
+     * @param {Object} httpServer - The Express/HTTP server instance
+     * @param {Scheduler} scheduler - The job scheduler instance
+     * @param {BootManager} bootManager - The system boot manager instance
+     */
     constructor(httpServer, scheduler, bootManager) {
         this.io = new Server(httpServer, {
             cors: {
@@ -14,16 +23,23 @@ class SocketManager {
 
         this.init();
 
-        // Listen for scheduler updates and broadcast immediately
+        // Listen for internal scheduler updates and broadcast them globally
         this.scheduler.setUpdateListener(() => {
+            this.broadcastState();
+        });
+
+        // Listen for boot manager status changes
+        this.bootManager.setStatusListener(() => {
             this.broadcastState();
         });
     }
 
+    /**
+     * Initializes socket event listeners.
+     */
     init() {
         this.io.on('connection', (socket) => {
             let userId = `Guest-${socket.id.substring(0, 4)}`;
-            console.log(`[SocketManager] User connected: ${userId} (${socket.id})`);
 
             this.connectedUsers.set(socket.id, {
                 socketId: socket.id,
@@ -33,6 +49,7 @@ class SocketManager {
 
             this.broadcastState();
 
+            // Client identifies themselves with a username
             socket.on('register_user', (name) => {
                 if (name) {
                     userId = name;
@@ -40,16 +57,16 @@ class SocketManager {
                     if (userData) {
                         userData.userId = userId;
                         this.connectedUsers.set(socket.id, userData);
-                        console.log(`[SocketManager] ${socket.id} registered as ${userId}`);
+                        console.log(`[Socket] Registered User: ${userId}`);
                         this.broadcastState();
                     }
                 }
             });
 
+            // Client requests to book a new job
             socket.on('book_job', (data) => {
                 try {
                     const { scheduledTime, prompt, params, user_id } = data;
-                    // Use the user_id sent from client if available (for persistency), otherwise socket name
                     const bookerId = user_id || userId;
                     this.scheduler.addJob(bookerId, scheduledTime, prompt, params);
                     this.broadcastState();
@@ -58,31 +75,54 @@ class SocketManager {
                 }
             });
 
+            // Client (Admin) requests to delete a job
+            socket.on('delete_job', (jobId) => {
+                try {
+                    this.scheduler.deleteJob(jobId);
+                    this.broadcastState();
+                } catch (error) {
+                    socket.emit('error', { message: error.message });
+                }
+            });
+
+            // Client (Admin) requests to reorder a job
+            socket.on('reorder_job', (data) => {
+                try {
+                    const { jobId, newTimeSlot } = data;
+                    this.scheduler.reorderJob(jobId, newTimeSlot);
+                    this.broadcastState();
+                } catch (error) {
+                    socket.emit('error', { message: error.message });
+                }
+            });
+
             socket.on('disconnect', () => {
-                console.log(`[SocketManager] User disconnected: ${socket.id}`);
                 this.connectedUsers.delete(socket.id);
                 this.broadcastState();
             });
         });
 
-        // Periodic broadcast to ensure all clients are synced
+        // Periodic heartbeat broadcast
         setInterval(() => {
             this.broadcastState();
         }, 5000);
     }
 
+    /**
+     * Broadcasts the current system state, jobs, and connected users to all clients.
+     */
     broadcastState() {
-        const workflow = this.bootManager.config.workflow;
+        const config = this.bootManager.config;
         const state = {
             system_status: this.bootManager.status,
             benchmark_ms: this.bootManager.globalJobDuration,
             connected_users: Array.from(this.connectedUsers.values()),
             jobs: this.scheduler.getJobs(),
-            workflow: workflow,
+            workflow: config.workflow,
             workflow_info: {
-                id: this.bootManager.config.id || 'unknown',
-                name: this.bootManager.config.name || 'Unnamed Workflow',
-                description: this.bootManager.config.description || ''
+                id: config.id || 'unknown',
+                name: config.name || 'Unnamed Workflow',
+                description: config.description || ''
             }
         };
         this.io.emit('state_update', state);

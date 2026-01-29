@@ -3,6 +3,7 @@ import { useSocket } from '../context/SocketContext';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import { Sparkles, Clock, CheckCircle2, AlertCircle, Image as ImageIcon, Search, X, Download } from 'lucide-react';
+import MediaPreview from './ui/MediaPreview';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 
 const MyJobsPanel = ({ onClose }) => {
@@ -73,10 +74,10 @@ const MyJobsPanel = ({ onClose }) => {
                                             className="w-12 h-12 rounded-lg overflow-hidden border border-border group-hover:border-primary/40 transition-colors bg-black cursor-pointer shadow-md"
                                             onClick={() => window.open(getImageUrl(job.result_filename), '_blank')}
                                         >
-                                            <img
-                                                src={getImageUrl(job.result_filename)}
-                                                alt="Preview"
-                                                className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                                            <MediaPreview
+                                                filename={job.result_filename}
+                                                className="transition-transform group-hover:scale-110"
+                                                showPlayIcon={false}
                                             />
                                         </div>
                                         <button

@@ -1,12 +1,19 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import Toast from '../components/ui/Toast';
 import { SERVER_URL } from '../utils/api';
 
 const SocketContext = createContext();
 
+/**
+ * Custom hook to access the SocketContext.
+ */
 export const useSocket = () => useContext(SocketContext);
 
+/**
+ * SocketProvider manages the WebSocket connection, global application state,
+ * and notifications (toasts/browser notifications).
+ */
 export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
     const [username, setUsername] = useState(localStorage.getItem('comfyq_username') || '');
@@ -14,12 +21,14 @@ export const SocketProvider = ({ children }) => {
         system_status: 'booting',
         benchmark_ms: 0,
         connected_users: [],
-        jobs: []
+        jobs: [],
+        workflow: null
     });
 
     const [prevJobs, setPrevJobs] = useState([]);
     const [toasts, setToasts] = useState([]);
 
+    // Initialize socket connection
     useEffect(() => {
         const newSocket = io(SERVER_URL);
         setSocket(newSocket);
@@ -36,10 +45,10 @@ export const SocketProvider = ({ children }) => {
         });
 
         newSocket.on('error', (err) => {
-            alert(`Error: ${err.message}`);
+            console.error('[Socket] Server error:', err.message);
         });
 
-        // Request notification permission
+        // Request browser notification permission
         if ('Notification' in window && Notification.permission === 'default') {
             Notification.requestPermission();
         }
@@ -47,71 +56,69 @@ export const SocketProvider = ({ children }) => {
         return () => newSocket.close();
     }, []);
 
-    // Track job completion and show notifications
+    // Job completion notification logic
     useEffect(() => {
-        if (!username || prevJobs.length === 0) {
+        if (!username || state.jobs.length === 0) {
             setPrevJobs(state.jobs);
             return;
         }
 
-        // Check for newly completed jobs for the current user
         state.jobs.forEach(job => {
             const prevJob = prevJobs.find(j => j.id === job.id);
+            // Detect transition from non-completed to completed
             if (job.user_id === username &&
                 job.status === 'completed' &&
-                prevJob &&
-                prevJob.status !== 'completed') {
+                (!prevJob || prevJob.status !== 'completed')) {
 
-                // Show browser notification
+                // 1. Browser Notification
                 if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification('ComfyQ - Job Completed! 🎨', {
-                        body: `Your generation is ready: "${job.prompt.substring(0, 50)}..."`,
+                    new Notification('ComfyQ: Generation Ready! 🎨', {
+                        body: `Result for: "${job.prompt.substring(0, 50)}..."`,
                         icon: '/favicon.ico',
-                        badge: '/favicon.ico',
                         tag: job.id,
                     });
                 }
 
-                // Show in-app toast notification
+                // 2. In-App Toast
+                const toastId = `${job.id}-${Date.now()}`;
                 setToasts(prev => [...prev, {
-                    id: job.id,
-                    message: job.prompt.substring(0, 50) + (job.prompt.length > 50 ? '...' : '')
+                    id: toastId,
+                    message: `Finish! ${job.prompt.substring(0, 40)}...`
                 }]);
-
-                // Optional: Play sound or show visual feedback
-                console.log(`✅ Job completed for ${username}: ${job.prompt}`);
             }
         });
 
         setPrevJobs(state.jobs);
     }, [state.jobs, username, prevJobs]);
 
-    const removeToast = (id) => {
-        setToasts(prev => prev.filter(toast => toast.id !== id));
-    };
+    const removeToast = useCallback((id) => {
+        setToasts(prev => prev.filter(t => t.id !== id));
+    }, []);
 
     const registerUser = (name) => {
         if (!name) return;
         setUsername(name);
         localStorage.setItem('comfyq_username', name);
-        if (socket) {
-            socket.emit('register_user', name);
-        }
+        if (socket) socket.emit('register_user', name);
     };
 
+    /**
+     * Actions to interact with the scheduler
+     */
     const bookJob = (scheduledTime, prompt, params = {}) => {
-        if (socket) {
-            socket.emit('book_job', {
-                scheduledTime,
-                prompt,
-                params,
-                user_id: username // Attach username to booking
-            });
-        }
+        if (socket) socket.emit('book_job', { scheduledTime, prompt, params, user_id: username });
+    };
+
+    const deleteJob = (jobId) => {
+        if (socket) socket.emit('delete_job', jobId);
+    };
+
+    const reorderJob = (jobId, newTimeSlot) => {
+        if (socket) socket.emit('reorder_job', { jobId, newTimeSlot });
     };
 
     return (
-        <SocketContext.Provider value={{ socket, state, bookJob, username, registerUser }}>
+        <SocketContext.Provider value={{ socket, state, bookJob, deleteJob, reorderJob, username, registerUser }}>
             {children}
             {toasts.map(toast => (
                 <Toast

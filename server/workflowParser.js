@@ -4,6 +4,9 @@
  */
 
 // Node types that commonly have user-configurable parameters
+/**
+ * Supported node types and their configurable fields.
+ */
 const EDITABLE_NODE_TYPES = {
     'CLIPTextEncode': {
         fields: ['text'],
@@ -57,6 +60,11 @@ const EDITABLE_NODE_TYPES = {
             batch_size: 'Batch Size'
         }
     },
+    'FluxGuidance': {
+        fields: ['guidance'],
+        defaultType: 'number',
+        labels: { guidance: 'Guidance Scale' }
+    },
     'CheckpointLoaderSimple': {
         fields: ['ckpt_name'],
         defaultType: 'text',
@@ -90,6 +98,16 @@ const EDITABLE_NODE_TYPES = {
             length: 'Video Length (frames)',
             batch_size: 'Batch Size'
         }
+    },
+    'VHS_LoadVideo': {
+        fields: ['video'],
+        defaultType: 'video',
+        labels: { video: 'Video File' }
+    },
+    'LoadVideo': {
+        fields: ['video'],
+        defaultType: 'video',
+        labels: { video: 'Video File' }
     }
 };
 
@@ -113,7 +131,8 @@ function inferParameterType(fieldName, value, nodeType) {
         const config = EDITABLE_NODE_TYPES[nodeType];
         if (config.fields.includes(fieldName)) {
             // Special cases
-            if (fieldName.includes('image')) return 'image';
+            if (fieldName.toLowerCase().includes('video')) return 'video';
+            if (fieldName.toLowerCase().includes('image')) return 'image';
             if (fieldName === 'text' || fieldName.includes('prompt')) {
                 return typeof value === 'string' && value.length > 50 ? 'textarea' : 'text';
             }
@@ -125,7 +144,9 @@ function inferParameterType(fieldName, value, nodeType) {
     }
 
     // Generic inference
-    if (fieldName.toLowerCase().includes('image')) return 'image';
+    const lowerField = fieldName.toLowerCase();
+    if (lowerField.includes('video')) return 'video';
+    if (lowerField.includes('image')) return 'image';
     if (typeof value === 'number') return 'number';
     if (typeof value === 'boolean') return 'checkbox';
     if (typeof value === 'string') {

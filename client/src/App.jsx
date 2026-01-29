@@ -48,8 +48,8 @@ const NavLink = ({ to, icon: Icon, label, end = false }) => {
     <Link
       to={to}
       className={`flex items-center space-x-2 px-2 sm:px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${isActive
-          ? 'bg-primary/10 text-primary-light'
-          : 'text-muted hover:text-white hover:bg-white/5'
+        ? 'bg-primary/10 text-primary-light'
+        : 'text-muted hover:text-white hover:bg-white/5'
         }`}
     >
       <Icon size={16} />
@@ -62,18 +62,23 @@ const App = () => {
   const [mode, setMode] = useState(null); // 'admin' | 'student' | null
 
   useEffect(() => {
-    const checkMode = async () => {
+    const checkMode = async (retries = 3) => {
       try {
         const res = await fetch(`${SERVER_URL}/admin/mode`);
         if (res.ok) {
           const data = await res.json();
           setMode(data.mode);
         } else {
-          setMode('student');
+          throw new Error("Server response not OK");
         }
       } catch (error) {
-        console.error("Failed to check server mode", error);
-        setMode('student');
+        if (retries > 0) {
+          console.log(`[App] Retrying mode check... (${retries} left)`);
+          setTimeout(() => checkMode(retries - 1), 1500);
+        } else {
+          console.error("Failed to check server mode after retries", error);
+          setMode('student');
+        }
       }
     };
     checkMode();

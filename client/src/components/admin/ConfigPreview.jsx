@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, X, Image as ImageIcon, Sparkles, Clock, AlertTriangle } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Video as VideoIcon, Sparkles, Clock, AlertTriangle } from 'lucide-react';
 
 const ConfigPreview = ({ parameters }) => {
     // Only show enabled parameters
@@ -49,21 +49,24 @@ const ConfigPreview = ({ parameters }) => {
                 {/* Dynamic Fields */}
                 <div className="space-y-5">
                     {enabledParams.map((param) => {
+                        const isVideo = param.type === 'video';
+                        const isImage = param.type === 'image';
                         return (
                             <div key={param.key} className="space-y-2">
                                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                                    {param.type === 'image' && <ImageIcon size={14} className="text-primary" />}
+                                    {isImage && <ImageIcon size={14} className="text-primary" />}
+                                    {isVideo && <VideoIcon size={14} className="text-primary" />}
                                     {param.label}
                                 </label>
 
-                                {param.type === 'image' ? (
+                                {isImage || isVideo ? (
                                     <div className="relative group border-2 border-dashed border-border hover:border-primary/30 bg-surface/30 rounded-xl p-4 transition-all duration-300">
                                         <label className="flex flex-col items-center justify-center space-y-3 cursor-not-allowed py-4">
                                             <div className="p-3 rounded-full bg-surface border border-border">
                                                 <Upload size={24} className="text-muted" />
                                             </div>
                                             <div className="text-center">
-                                                <p className="text-sm font-medium text-slate-300">Upload Image</p>
+                                                <p className="text-sm font-medium text-slate-300">Upload {isVideo ? 'Video' : 'Image'}</p>
                                                 <p className="text-xs text-slate-500 mt-1">Preview only</p>
                                             </div>
                                         </label>

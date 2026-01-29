@@ -1,13 +1,15 @@
 
 # TODO
 
-bootsequence
 - do a test run on startup to estimate the time it takes to generate an image on the specific machine we are using. We should first run the warmup prompt to load the models, then run the benchmark prompt to estimate the time it takes to generate an image. We should keep the second value as the base time for the scheduler. 
 
+- Admin behind password in env or config file
+- cleanup everything not usefull in the project
+- eject users that are not active for a 30 minutes
+- save an admin config for workflow already created
+- admin launch a workflow that was already created
 
-
-Workflow pre-processing with python script
-- find the best way to integrate a custom workflow in the API
+-- admin can see all the jobs and can kill them or move them in the queue
 
 --
 

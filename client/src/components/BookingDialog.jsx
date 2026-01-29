@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
-import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronRight, Upload, X, Image as ImageIcon } from 'lucide-react';
+import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronRight, Upload, X, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { SERVER_URL } from '../utils/api';
 
@@ -10,8 +10,8 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
     const [scheduledTime, setScheduledTime] = useState(initialTime);
     const [isCollision, setIsCollision] = useState(false);
     const [formParams, setFormParams] = useState({});
-    const [imageFiles, setImageFiles] = useState({}); // { image: File, image1: File, image2: File }
-    const [imagePreviews, setImagePreviews] = useState({}); // { image: dataURL, image1: dataURL, image2: dataURL }
+    const [mediaFiles, setMediaFiles] = useState({}); // { paramKey: File }
+    const [mediaPreviews, setMediaPreviews] = useState({}); // { paramKey: dataURL }
     const [isUploading, setIsUploading] = useState(false);
 
     // Initialize form params from workflow config defaults
@@ -58,19 +58,20 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Check for required image uploads
-        const imageParams = Object.entries(state.workflow?.parameter_map || {}).filter(([k, v]) => v.type === 'image');
-        const missingImages = imageParams.filter(([key]) => !imageFiles[key]);
+        // Check for required media uploads (image or video)
+        const mediaParams = Object.entries(state.workflow?.parameter_map || {})
+            .filter(([k, v]) => v.type === 'image' || v.type === 'video');
+        const missingMedia = mediaParams.filter(([key]) => !mediaFiles[key]);
 
-        if (isCollision || isUploading || missingImages.length > 0) return;
+        if (isCollision || isUploading || missingMedia.length > 0) return;
 
         setIsUploading(true);
         const uploadedFilenames = {};
 
-        // Upload all images
-        for (const [key, file] of Object.entries(imageFiles)) {
+        // Upload all media files
+        for (const [key, file] of Object.entries(mediaFiles)) {
             const formData = new FormData();
-            formData.append('image', file);
+            formData.append('file', file); // Use 'file' as per updated server route
 
             try {
                 const response = await fetch(`${SERVER_URL}/upload`, {
@@ -96,30 +97,30 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
         });
         setIsUploading(false);
         onClose();
-        setImageFiles({});
-        setImagePreviews({});
+        setMediaFiles({});
+        setMediaPreviews({});
     };
 
-    const handleImageRemove = (paramKey) => () => {
-        setImageFiles(prev => {
+    const handleMediaRemove = (paramKey) => () => {
+        setMediaFiles(prev => {
             const newFiles = { ...prev };
             delete newFiles[paramKey];
             return newFiles;
         });
-        setImagePreviews(prev => {
+        setMediaPreviews(prev => {
             const newPreviews = { ...prev };
             delete newPreviews[paramKey];
             return newPreviews;
         });
     };
 
-    const handleImageChange = (paramKey) => (e) => {
+    const handleMediaChange = (paramKey) => (e) => {
         const file = e.target.files[0];
         if (file) {
-            setImageFiles(prev => ({ ...prev, [paramKey]: file }));
+            setMediaFiles(prev => ({ ...prev, [paramKey]: file }));
             const reader = new FileReader();
             reader.onloadend = () => {
-                setImagePreviews(prev => ({ ...prev, [paramKey]: reader.result }));
+                setMediaPreviews(prev => ({ ...prev, [paramKey]: reader.result }));
             };
             reader.readAsDataURL(file);
         }
@@ -141,12 +142,13 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
                     const label = config.label || key.charAt(0).toUpperCase() + key.slice(1);
                     const type = config.type || 'text';
 
-                    if (type === 'image') {
-                        const preview = imagePreviews[key];
+                    if (type === 'image' || type === 'video') {
+                        const preview = mediaPreviews[key];
+                        const isVideoType = type === 'video';
                         return (
                             <div key={key} className="space-y-2">
                                 <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                                    <ImageIcon size={14} className="text-primary" />
+                                    {isVideoType ? <VideoIcon size={14} className="text-primary" /> : <ImageIcon size={14} className="text-primary" />}
                                     {label}
                                 </label>
                                 <div
@@ -154,11 +156,15 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
                                 >
                                     {preview ? (
                                         <div className="relative aspect-video rounded-lg overflow-hidden group/preview">
-                                            <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                                            {isVideoType ? (
+                                                <video src={preview} className="w-full h-full object-cover" muted loop autoPlay />
+                                            ) : (
+                                                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                                            )}
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
                                                 <button
                                                     type="button"
-                                                    onClick={handleImageRemove(key)}
+                                                    onClick={handleMediaRemove(key)}
                                                     className="p-2 rounded-full bg-danger text-white hover:scale-110 transition-transform"
                                                 >
                                                     <X size={20} />
@@ -171,9 +177,9 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
                                                 <Upload size={24} className="text-muted group-hover:text-primary" />
                                             </div>
                                             <div className="text-center">
-                                                <p className="text-sm font-medium text-slate-300">Click or drag image to upload</p>
+                                                <p className="text-sm font-medium text-slate-300">Click or drag {type} to upload</p>
                                             </div>
-                                            <input type="file" className="hidden" accept="image/*" onChange={handleImageChange(key)} />
+                                            <input type="file" className="hidden" accept={isVideoType ? "video/*" : "image/*"} onChange={handleMediaChange(key)} />
                                         </label>
                                     )}
                                 </div>
