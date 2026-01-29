@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Timeline } from 'vis-timeline/standalone';
+import { Timeline, DataSet } from 'vis-timeline/standalone';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import { useSocket } from '../context/SocketContext';
-import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download } from 'lucide-react';
+import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X } from 'lucide-react';
 import BookingDialog from '../components/BookingDialog';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -13,27 +13,74 @@ import MediaPreview from '../components/ui/MediaPreview';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 
 const SchedulerPage = () => {
-    const { state, bookJob, username } = useSocket();
+    const { state, bookJob, deleteJob, reorderJob, username } = useSocket();
     const timelineRef = useRef(null);
     const containerRef = useRef(null);
+    const itemsRef = useRef(null); // vis-data DataSet
     const [selectedJob, setSelectedJob] = useState(null);
     const [isBookingOpen, setIsBookingOpen] = useState(false);
     const [bookingTime, setBookingTime] = useState(Date.now());
     const [isMyJobsOpen, setIsMyJobsOpen] = useState(false);
     const [lightboxJob, setLightboxJob] = useState(null);
 
+    // Use refs to keep track of latest state for timeline callbacks without recreating the timeline
+    const stateRef = useRef(state);
+    const usernameRef = useRef(username);
+
+    useEffect(() => {
+        stateRef.current = state;
+    }, [state]);
+
+    useEffect(() => {
+        usernameRef.current = username;
+    }, [username]);
+
     useEffect(() => {
         if (!containerRef.current) return;
+
+        // Initialize DataSet
+        const items = new DataSet([]);
+        itemsRef.current = items;
 
         const options = {
             stack: false,
             start: new Date(),
             end: new Date(Date.now() + 3600000), // 1 hour ahead
-            editable: true,
+            editable: {
+                add: true,
+                updateTime: true,
+                updateGroup: false,
+                remove: true,
+                overrideItems: false
+            },
             onAdd: (item, callback) => {
                 setBookingTime(item.start.getTime());
                 setIsBookingOpen(true);
-                callback(null);
+                callback(null); // Don't add directly, wait for server
+            },
+            onMove: (item, callback) => {
+                const job = stateRef.current.jobs.find(j => j.id === item.id);
+                if (job && job.user_id === usernameRef.current && job.status === 'scheduled') {
+                    reorderJob(item.id, item.start.getTime());
+                    callback(item);
+                } else {
+                    alert("You can only move your own scheduled jobs.");
+                    callback(null);
+                }
+            },
+            onRemove: (item, callback) => {
+                const job = stateRef.current.jobs.find(j => j.id === item.id);
+                if (job && job.user_id === usernameRef.current) {
+                    if (window.confirm("Remove this job from the queue?")) {
+                        deleteJob(item.id);
+                        callback(item);
+                    } else {
+                        callback(null);
+                    }
+                } else {
+                    alert("You can only remove your own jobs.");
+                    callback(null);
+                }
             },
             margin: { item: 10, axis: 5 },
             height: '100%',
@@ -41,12 +88,12 @@ const SchedulerPage = () => {
             zoomMax: 1000 * 60 * 60 * 24 // 24 hours
         };
 
-        const timeline = new Timeline(containerRef.current, [], options);
+        const timeline = new Timeline(containerRef.current, items, options);
         timelineRef.current = timeline;
 
         timeline.on('select', (properties) => {
             const jobId = properties.items[0];
-            const job = state.jobs.find(j => j.id === jobId);
+            const job = stateRef.current.jobs.find(j => j.id === jobId);
             setSelectedJob(job);
         });
 
@@ -57,24 +104,51 @@ const SchedulerPage = () => {
             }
         });
 
-        return () => timeline.destroy();
-    }, []);
+        return () => {
+            if (timelineRef.current) {
+                timelineRef.current.destroy();
+                timelineRef.current = null;
+            }
+        };
+    }, [reorderJob, deleteJob]); // Stable callbacks from SocketContext
 
+    // Effect to synchronization jobs into the DataSet
     useEffect(() => {
-        if (timelineRef.current) {
-            const items = state.jobs.map(job => ({
-                id: job.id,
-                content: `<div class="flex items-center space-x-2 w-full truncate">
-                            <span class="font-bold text-[10px] opacity-70">${job.user_id === username ? 'ME' : job.user_id.substring(0, 3).toUpperCase()}</span>
-                            <span class="font-medium text-xs truncate">${job.prompt}</span>
-                          </div>`,
-                start: new Date(job.time_slot),
-                end: new Date(job.time_slot + state.benchmark_ms),
-                className: `${job.user_id === username ? 'vis-item-mine' : ''} ${job.status === 'processing' ? 'vis-item-processing' :
-                    (job.status === 'completed' ? 'vis-item-completed' : 'vis-item-scheduled')}`,
-                title: `${job.user_id}: ${job.prompt}`
-            }));
-            timelineRef.current.setItems(items);
+        if (itemsRef.current) {
+            const itemsData = state.jobs.map(job => {
+                const isMine = job.user_id === username;
+                const shortId = (job.user_id || '???').substring(0, 3).toUpperCase();
+
+                return {
+                    id: job.id,
+                    content: `<div class="flex items-center space-x-2 w-full truncate">
+                                <span class="font-bold text-[10px] opacity-70">${isMine ? 'ME' : shortId}</span>
+                                <span class="font-medium text-xs truncate">${job.prompt}</span>
+                              </div>`,
+                    start: new Date(job.time_slot),
+                    end: new Date(job.time_slot + (state.benchmark_ms || 60000)), // Default to 1 min if benchmark not ready
+                    className: `${isMine ? 'vis-item-mine' : ''} ${job.status === 'processing' ? 'vis-item-processing' :
+                        (job.status === 'completed' ? 'vis-item-completed' : 'vis-item-scheduled')}`,
+                    title: `${job.user_id}: ${job.prompt}`,
+                    editable: isMine && job.status === 'scheduled'
+                };
+            });
+
+            // update existing items or add new ones, removing old ones
+            const existingIds = itemsRef.current.getIds();
+            const newIds = itemsData.map(i => i.id);
+
+            // Remove items not in the new list
+            const toRemove = existingIds.filter(id => !newIds.includes(id));
+            if (toRemove.length > 0) itemsRef.current.remove(toRemove);
+
+            // Update or add items
+            itemsRef.current.update(itemsData);
+
+            // Auto-fit if it's the first time we get jobs
+            if (state.jobs.length > 0 && existingIds.length === 0 && timelineRef.current) {
+                timelineRef.current.fit();
+            }
         }
     }, [state.jobs, state.benchmark_ms, username]);
 
@@ -117,6 +191,14 @@ const SchedulerPage = () => {
                                 System: {state.system_status}
                             </Badge>
                         </div>
+                        <Button
+                            variant="secondary"
+                            size="sm"
+                            onClick={() => timelineRef.current && timelineRef.current.fit()}
+                            title="Auto-fit timeline to show all jobs"
+                        >
+                            Fit View
+                        </Button>
                     </div>
                 </div>
 
@@ -164,8 +246,22 @@ const SchedulerPage = () => {
                                     }}
                                 >
                                     {job.user_id === username && (
-                                        <div className="absolute top-0 right-0 p-1 px-2 bg-primary/20 text-primary text-[8px] font-bold uppercase tracking-tighter rounded-bl-lg border-l border-b border-primary/20">
-                                            Yours
+                                        <div className="absolute top-0 right-0 flex items-center">
+                                            {job.status === 'scheduled' && (
+                                                <button
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        if (window.confirm("Cancel this job?")) deleteJob(job.id);
+                                                    }}
+                                                    className="p-1.5 bg-danger/10 text-danger hover:bg-danger hover:text-white transition-colors rounded-bl-lg border-l border-b border-danger/20"
+                                                    title="Cancel Job"
+                                                >
+                                                    <X size={12} />
+                                                </button>
+                                            )}
+                                            <div className="p-1 px-2 bg-primary/20 text-primary text-[8px] font-bold uppercase tracking-tighter rounded-bl-lg border-l border-b border-primary/20">
+                                                Yours
+                                            </div>
                                         </div>
                                     )}
 

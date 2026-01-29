@@ -105,17 +105,17 @@ export const SocketProvider = ({ children }) => {
     /**
      * Actions to interact with the scheduler
      */
-    const bookJob = (scheduledTime, prompt, params = {}) => {
+    const bookJob = useCallback((scheduledTime, prompt, params = {}) => {
         if (socket) socket.emit('book_job', { scheduledTime, prompt, params, user_id: username });
-    };
+    }, [socket, username]);
 
-    const deleteJob = (jobId) => {
+    const deleteJob = useCallback((jobId) => {
         if (socket) socket.emit('delete_job', jobId);
-    };
+    }, [socket]);
 
-    const reorderJob = (jobId, newTimeSlot) => {
+    const reorderJob = useCallback((jobId, newTimeSlot) => {
         if (socket) socket.emit('reorder_job', { jobId, newTimeSlot });
-    };
+    }, [socket]);
 
     return (
         <SocketContext.Provider value={{ socket, state, bookJob, deleteJob, reorderJob, username, registerUser }}>

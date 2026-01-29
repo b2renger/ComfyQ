@@ -68,6 +68,7 @@ class SocketManager {
                 try {
                     const { scheduledTime, prompt, params, user_id } = data;
                     const bookerId = user_id || userId;
+                    console.log(`[Socket] Booking job for ${bookerId}: "${prompt}" at ${new Date(scheduledTime).toLocaleTimeString()}`);
                     this.scheduler.addJob(bookerId, scheduledTime, prompt, params);
                     this.broadcastState();
                 } catch (error) {
