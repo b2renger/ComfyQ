@@ -5,11 +5,20 @@
 
 - Admin behind password in env or config file
 - cleanup everything not usefull in the project
-- eject users that are not active for a 30 minutes
+
 - save an admin config for workflow already created
-- admin launch a workflow that was already created
+- improve workflow handling from comfyUI templates
 
 -- admin can see all the jobs and can kill them or move them in the queue
+
+- check loading of models
+- check workflows
+  - t2i
+  - image edit
+  - i2v
+  - 3D ?
+  - text 2 audio 
+- add webcam support in load image (mobile firiedly
 
 --
 
