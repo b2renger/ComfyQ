@@ -17,7 +17,8 @@
   - image edit
   - i2v
   - 3D ?
-  - text 2 audio 
+  - text 2 audio
+  - qwen multiple angles
 - add webcam support in load image (mobile firiedly
 
 --
