@@ -214,6 +214,13 @@ Or use the "Reset to Admin Mode" button in the admin interface.
 
 ## Troubleshooting
 
+### Missing Dependencies (MODULE_NOT_FOUND)
+If you see `MODULE_NOT_FOUND` errors when starting the server:
+```bash
+npm install
+```
+This ensures all dependencies (including `multer` for file uploads) are installed.
+
 ### ComfyUI Doesn't Start
 - Check that the ComfyUI root path is correct
 - Verify Python executable path

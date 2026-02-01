@@ -5,12 +5,35 @@ import ParameterSelector from '../components/admin/ParameterSelector';
 import ConfigPreview from '../components/admin/ConfigPreview';
 import { SERVER_URL } from '../utils/api';
 
+/**
+ * Admin Configuration Page
+ * 
+ * Main interface for administrators to set up the ComfyQ server.
+ * Handles:
+ * 1. Uploading ComfyUI workflow files
+ * 2. Parsing and selecting editable parameters
+ * 3. Previewing the student interface
+ * 4. Saving configuration and switching server mode
+ * 
+ * State Flow:
+ * - Step 1: Upload Workflow (WorkflowUpload component)
+ * - Step 2: Configure Parameters (ParameterSelector component)
+ * - Save: Sends config to server and triggers restart
+ * 
+ * @param {Object} props
+ * @param {string} props.currentMode - 'admin' or 'student'
+ */
 const AdminConfig = ({ currentMode }) => {
-    const [step, setStep] = useState(1); // 1: Upload, 2: Configure
+    // Current configuration step (1: Upload, 2: Configure)
+    const [step, setStep] = useState(1);
+
+    // Workflow data and user selections
     const [workflowData, setWorkflowData] = useState(null);
     const [parameters, setParameters] = useState([]);
     const [filename, setFilename] = useState('');
     const [warmupPrompt, setWarmupPrompt] = useState('A simple test generation');
+
+    // UI state for saving process
     const [isSaving, setIsSaving] = useState(false);
     const [saveStatus, setSaveStatus] = useState(null);
     const [activeWorkflow, setActiveWorkflow] = useState(null);
@@ -41,6 +64,11 @@ const AdminConfig = ({ currentMode }) => {
         fetchConfig();
     }, []);
 
+    /**
+     * Handler for successful workflow upload.
+     * Transitions user to configuration step.
+     * @param {Object} data - Processed workflow data from server
+     */
     const handleUploadSuccess = (data) => {
         setWorkflowData(data.workflow);
         setParameters(data.parameters);
@@ -52,10 +80,23 @@ const AdminConfig = ({ currentMode }) => {
         }
     };
 
+    /**
+     * Handler for parameter updates (enable/disable, renaming).
+     * @param {Array} updatedParams - New credentials list
+     */
     const handleParametersChange = (updatedParams) => {
         setParameters(updatedParams);
     };
 
+    /**
+     * Saves the configuration and triggers server mode switch.
+     * 
+     * Process:
+     * 1. Validates at least one parameter is enabled
+     * 2. Sends configuration payload to /admin/save-config
+     * 3. Triggers /admin/restart-server
+     * 4. Polls/Redirects to the user interface
+     */
     const handleSaveAndServe = async () => {
         const enabledParams = parameters.filter(p => p.enabled);
 

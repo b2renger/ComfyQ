@@ -6,6 +6,21 @@ import { Sparkles, Clock, CheckCircle2, AlertCircle, Image as ImageIcon, Search,
 import MediaPreview from './ui/MediaPreview';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 
+/**
+ * My Jobs Panel Component
+ * 
+ * A sidebar/panel that displays a list of all jobs in the system, sorted by time.
+ * Provides a quick overview of job status, progress, and results.
+ * 
+ * Features:
+ * - List of all jobs (scheduled, processing, completed)
+ * - Real-time progress bars for processing jobs
+ * - Media previews and download buttons for completed jobs
+ * - Responsive design (sidebar on desktop, overlay on mobile)
+ * 
+ * @param {Object} props
+ * @param {Function} [props.onClose] - Handler to close panel (client-mobile only)
+ */
 const MyJobsPanel = ({ onClose }) => {
     const { state, username } = useSocket();
 

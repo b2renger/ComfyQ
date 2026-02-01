@@ -5,6 +5,23 @@ import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronR
 import { useSocket } from '../context/SocketContext';
 import { SERVER_URL } from '../utils/api';
 
+/**
+ * Booking Dialog Component
+ * 
+ * A modal form for users to schedule new jobs.
+ * 
+ * Features:
+ * - Dynamic form generation based on workflow configuration
+ * - Drag-and-drop media uploads (images, videos)
+ * - Time slot selection with collision detection
+ * - Client-side validation
+ * 
+ * @param {Object} props
+ * @param {boolean} props.isOpen - Visibility state
+ * @param {Function} props.onClose - Close handler
+ * @param {number} props.initialTime - Default start time for the job
+ * @param {Function} props.onConfirm - Submit handler ({ prompt, params, time })
+ */
 const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
     const { state } = useSocket();
     const [scheduledTime, setScheduledTime] = useState(initialTime);
@@ -32,6 +49,12 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
         setScheduledTime(initialTime);
     }, [initialTime]);
 
+    /**
+     * Collision Detection Effect
+     * 
+     * Checks if the selected time slot overlaps with any existing jobs.
+     * Uses the global job state and benchmark duration to calculate start/end times.
+     */
     useEffect(() => {
         if (!scheduledTime) return;
 
@@ -41,6 +64,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
         const collision = state.jobs.some(job => {
             const jobStart = job.time_slot;
             const jobEnd = jobStart + duration;
+            // Check for overlap: (StartA < EndB) and (EndA > StartB)
             return (scheduledTime < jobEnd) && (endTime > jobStart);
         });
 
@@ -130,6 +154,10 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
         setScheduledTime(prev => prev + minutes * 60000);
     };
 
+    /**
+     * Renders dynamic form fields based on the workflow configuration.
+     * Handles different input types: text, number, select, image, video.
+     */
     const renderDynamicFields = () => {
         if (!state.workflow || !state.workflow.parameter_map) return null;
 
@@ -142,6 +170,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
                     const label = config.label || key.charAt(0).toUpperCase() + key.slice(1);
                     const type = config.type || 'text';
 
+                    // Media Upload Input
                     if (type === 'image' || type === 'video') {
                         const preview = mediaPreviews[key];
                         const isVideoType = type === 'video';
@@ -187,6 +216,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
                         );
                     }
 
+                    // Select Input
                     if (type === 'select' && config.options) {
                         return (
                             <div key={key} className="space-y-1.5">
@@ -204,6 +234,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
                         );
                     }
 
+                    // Textarea Input
                     if (type === 'textarea' || key === 'prompt') {
                         return (
                             <div key={key} className="space-y-1.5">
@@ -218,6 +249,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
                         );
                     }
 
+                    // Default Input (Text/Number)
                     return (
                         <div key={key} className="space-y-1.5">
                             <label className="text-sm font-medium text-slate-300">{label}</label>

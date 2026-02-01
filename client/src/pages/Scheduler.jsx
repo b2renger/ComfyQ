@@ -12,6 +12,23 @@ import ImageLightbox from '../components/ImageLightbox';
 import MediaPreview from '../components/ui/MediaPreview';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 
+/**
+ * Scheduler Page Component
+ * 
+ * The main interface for students to view and schedule jobs.
+ * 
+ * Features:
+ * - Interactive Timeline (vis-timeline): Visualizes scheduled jobs
+ * - Real-time Updates: Listens to socket events for job status changes
+ * - Job Management: Create, delete, reorder jobs
+ * - Job Visualization: Progress bars, previews, and details
+ * 
+ * Key Components:
+ * - Timeline: Drag-and-drop interface for scheduling
+ * - BookingDialog: Form to create new jobs
+ * - Card/Grid: Display of recent generations
+ * - MyJobsPanel: Sidebar for managing user's own jobs
+ */
 const SchedulerPage = () => {
     const { state, bookJob, deleteJob, reorderJob, username } = useSocket();
     const timelineRef = useRef(null);
@@ -112,7 +129,16 @@ const SchedulerPage = () => {
         };
     }, [reorderJob, deleteJob]); // Stable callbacks from SocketContext
 
-    // Effect to synchronization jobs into the DataSet
+
+
+    /**
+     * Effect to synchronize server state with the Timeline DataSet.
+     * 
+     * Maps global job state to vis-timeline items:
+     * - Status determines color/class (scheduled, processing, completed)
+     * - Ownership determines editability (can only move own jobs)
+     * - Updates existing items to preserve animation state
+     */
     useEffect(() => {
         if (itemsRef.current) {
             const itemsData = state.jobs.map(job => {

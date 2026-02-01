@@ -187,6 +187,28 @@ Manual testing was not performed:
 
 **Recommendation**: Perform manual testing before deployment.
 
+## Setup and Testing Fixes
+
+During initial testing, the following issues were discovered and fixed:
+
+### Missing Dependency: `multer`
+**Issue**: Server crashed with `MODULE_NOT_FOUND` error for `multer` package.
+
+**Cause**: The `multer` package (used for file uploads in admin routes) was not listed in `package.json` dependencies.
+
+**Fix**: Added `multer` to dependencies:
+```json
+"multer": "^1.4.5-lts.1"
+```
+
+**Files Modified**:
+- `package.json` - Added multer to dependencies
+- `README.md` - Added troubleshooting section
+- `docs/SETUP_FIXES.md` - Created detailed fix documentation
+
+### Initial Configuration
+Created a default `config.json` in admin mode to allow the server to start on first run.
+
 ## Conclusion
 
 The ComfyQ codebase has undergone significant improvements:

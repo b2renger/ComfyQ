@@ -9,7 +9,13 @@ import UsernameModal from './components/UsernameModal';
 import { SERVER_URL } from './utils/api';
 import { Link, useLocation } from 'react-router-dom';
 
-// Layout for the Student/User View
+/**
+ * StudentLayout Component
+ * 
+ * Provides the main layout structure for student/user views.
+ * Includes the navigation bar, username modal, and a consistent background.
+ * Uses <Outlet> to render child routes (Scheduler, Dashboard).
+ */
 const StudentLayout = () => {
   return (
     <div className="h-screen bg-background text-white flex flex-col font-sans antialiased selection:bg-primary/20 selection:text-primary-light relative">
@@ -39,7 +45,18 @@ const StudentLayout = () => {
   );
 };
 
-// NavLink Component
+/**
+ * NavLink Component
+ * 
+ * A styled wrapper around React Router's Link component.
+ * Handles active state styling based on current location.
+ * 
+ * @param {Object} props
+ * @param {string} props.to - Target path
+ * @param {Object} props.icon - Icon component from lucide-react
+ * @param {string} props.label - Link text
+ * @param {boolean} [props.end] - If true, matches path strictly (exact alignment)
+ */
 const NavLink = ({ to, icon: Icon, label, end = false }) => {
   const location = useLocation();
   const isActive = end ? location.pathname === to : location.pathname.startsWith(to);
@@ -58,6 +75,23 @@ const NavLink = ({ to, icon: Icon, label, end = false }) => {
   );
 };
 
+/**
+ * Main Application Component
+ * 
+ * Handles initial server connection, mode detection, and routing.
+ * 
+ * Flow:
+ * 1. Checks server mode ('admin' or 'student') on mount via API.
+ * 2. Shows loading screen while connecting.
+ * 3. Renders appropriate routes based on mode:
+ *    - Admin Mode: Redirects root to /admin
+ *    - Student Mode: Redirects root to /user, wraps user routes in SocketProvider
+ * 
+ * Routes:
+ * - /admin: Configuration page (AdminConfig)
+ * - /user: Main user interface (Scheduler, Dashboard)
+ * - /: Smart redirect based on mode
+ */
 const App = () => {
   const [mode, setMode] = useState(null); // 'admin' | 'student' | null
 

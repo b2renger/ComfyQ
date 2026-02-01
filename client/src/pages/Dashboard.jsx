@@ -24,12 +24,20 @@ import MediaPreview from '../components/ui/MediaPreview';
 import { getImageUrl, SERVER_URL } from '../utils/api';
 
 /**
- * DashboardPage provides administrators with a comprehensive view of the system's state.
- * Features include:
- * - Real-time job monitoring and management (kill/reorder)
- * - Active user tracking
- * - System metrics (avg generation time)
- * - Server mode switching (reset to admin)
+ * Dashboard Page Component
+ * 
+ * Provides an administrative view of the system's current state.
+ * Allows managing the job queue, viewing active users, and monitoring system performance.
+ * 
+ * Key Features:
+ * - Real-time stats (Total jobs, Avg generation time, Active users)
+ * - User list with connection status (online/offline indication via Ping)
+ * - Sortable job history table (using @tanstack/react-table)
+ * - Admin Actions:
+ *   - Kill active jobs
+ *   - Reorder scheduled jobs
+ *   - Filter jobs by user
+ *   - Reset server to configuration mode
  */
 const DashboardPage = () => {
     const { state, deleteJob, reorderJob } = useSocket();
