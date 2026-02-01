@@ -18,16 +18,22 @@ on the user interface
 
 - review the code, cleanup everything, comment the code, remove unnecessary configuration files, all configuration should be done each time the server is launched for now.
 
+- Add user color coding for better visual tracking
+- Implement job search/filter by prompt text
+- Add date range filtering for historical analysis
+- Export job data to CSV or JSON
+- Real-time progress bars in notifications
+- add webcam support in load image (mobile firiedly)
 
 - check loading of models
   
-- check workflows
+- should be compatible with workflows
   - t2i
   - image edit
   - i2v
   - 3D ?
   - text 2 audio
   - qwen multiple angles
-- add webcam support in load image (mobile firiedly
+
 
 --
