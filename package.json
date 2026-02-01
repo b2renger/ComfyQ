@@ -6,11 +6,8 @@
     "scripts": {
         "start": "node server/index.js",
         "client": "npm run dev --prefix client",
-        "server": "nodemon server/index.js --watch server --watch config.json",
+        "server": "nodemon server/index.js --watch server",
         "dev": "concurrently --kill-others-on-fail \"npm run server\" \"npm run client\"",
-        "dev:t2i": "concurrently --kill-others-on-fail \"npm run server -- configs/flux2-text-to-image.json\" \"npm run client\"",
-        "dev:i2v": "concurrently --kill-others-on-fail \"npm run server -- configs/wan2-i2v.json\" \"npm run client\"",
-        "dev:edit": "concurrently --kill-others-on-fail \"npm run server -- configs/flux2-image-edit.json\" \"npm run client\"",
         "postinstall": "npm install --prefix client && npm install --prefix server"
     },
     "dependencies": {

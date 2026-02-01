@@ -1,41 +1,91 @@
+/**
+ * Scheduler - Job Queue Management and Execution
+ * 
+ * Manages the lifecycle of scheduled ComfyUI workflow jobs:
+ * - Validates time slots to prevent collisions
+ * - Executes jobs sequentially based on scheduled time
+ * - Maps user parameters into workflow templates
+ * - Tracks progress via ComfyUI WebSocket messages
+ * - Handles job completion and result extraction
+ * 
+ * Job State Machine:
+ * - 'scheduled' → Job added to queue, waiting for time slot
+ * - 'processing' → Job submitted to ComfyUI, actively generating
+ * - 'completed' → Generation finished, result available
+ * - 'failed' → Error during execution
+ * 
+ * @module server/scheduler
+ */
+
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const axios = require('axios');
 
 /**
- * Scheduler manages the job queue, time slots, and execution on ComfyUI.
- * It ensures jobs are executed sequentially based on their scheduled time.
+ * Manages job scheduling, collision detection, and execution on ComfyUI.
+ * 
+ * The scheduler ensures only one job runs at a time and prevents time slot
+ * overlaps by calculating job duration from the BootManager's benchmark.
  */
 class Scheduler {
     /**
-     * @param {BootManager} bootManager - Handles ComfyUI lifecycle and WS communication
+     * Creates a new Scheduler instance.
+     * 
+     * @param {BootManager} bootManager - BootManager instance for ComfyUI communication
      */
     constructor(bootManager) {
         this.bootManager = bootManager;
+
+        // Array of all jobs (scheduled, processing, completed, failed)
         this.jobs = [];
+
+        // Whether the scheduler is currently processing a job
         this.isWorkerIdle = true;
+
+        // ComfyUI prompt_id for the currently executing job
         this.currentJobPromptId = null;
+
+        // Reference to the job currently being processed
         this.currentExecutingJob = null;
+
+        // Last time progress was reported (for debugging)
         this.lastProgressTime = null;
+
+        // Callback for state updates (triggers broadcast to clients)
         this.onUpdate = null;
 
-        // Listen for internal ComfyUI events via BootManager
+        // Subscribe to ComfyUI WebSocket messages for progress updates
         this.bootManager.setWsMessageListener((msg) => {
             this.handleComfyWsMessage(msg);
         });
 
+        // Start the scheduling loop
         this.startLoop();
     }
 
     /**
-     * Registers a callback for when job states change (e.g., progress, status update).
+     * Registers a callback to be invoked when any job state changes.
+     * Used by SocketManager to broadcast updates to all connected clients.
+     * 
+     * @param {Function} callback - Function to call on state change
      */
     setUpdateListener(callback) {
         this.onUpdate = callback;
     }
 
     /**
-     * Handles progress and execution messages from ComfyUI WS.
+     * Processes WebSocket messages from ComfyUI.
+     * 
+     * Listens for two message types:
+     * - 'progress': Updates job progress bar (e.g., "15/20 steps complete")
+     * - 'executing': Updates which node is currently being processed
+     * 
+     * Only updates the currently executing job; ignores messages for
+     * other jobs or benchmarks.
+     * 
+     * @param {Object} msg - WebSocket message from ComfyUI
+     * @param {string} msg.type - Message type ('progress', 'executing', etc.)
+     * @param {Object} msg.data - Message payload
      */
     handleComfyWsMessage(msg) {
         if (!this.currentExecutingJob) return;
@@ -43,6 +93,7 @@ class Scheduler {
         const { type, data } = msg;
 
         if (type === 'progress') {
+            // Update progress bar if message is for current job
             const isMatch = data.prompt_id === this.currentJobPromptId;
             if (isMatch) {
                 this.currentExecutingJob.progress = {
@@ -52,6 +103,7 @@ class Scheduler {
                 if (this.onUpdate) this.onUpdate();
             }
         } else if (type === 'executing') {
+            // Track which node is currently being processed
             if (data.prompt_id === this.currentJobPromptId) {
                 this.currentExecutingJob.current_node = data.node;
                 if (this.onUpdate) this.onUpdate();
@@ -60,16 +112,32 @@ class Scheduler {
     }
 
     /**
-     * Adds a new job to the queue if no time-slot collisions occur.
+     * Adds a new job to the scheduling queue.
+     * 
+     * Performs collision detection to ensure the new job doesn't overlap
+     * with existing jobs. Jobs occupy a time slot from scheduledTime to
+     * scheduledTime + globalJobDuration.
+     * 
+     * Collision Detection:
+     * Two jobs collide if their time ranges overlap. For jobs A and B:
+     * - A.start < B.end AND A.end > B.start = collision
+     * 
+     * @param {string} userId - User who scheduled the job
+     * @param {number} scheduledTime - Timestamp when job should start (ms since epoch)
+     * @param {string} prompt - Text prompt for generation
+     * @param {Object} params - Additional workflow parameters (seed, steps, etc.)
+     * @returns {Object} The created job object
+     * @throws {Error} If time slot collision is detected
      */
     addJob(userId, scheduledTime, prompt, params = {}) {
         const duration = this.bootManager.globalJobDuration;
         const endTime = scheduledTime + duration;
 
+        // Check for overlapping time slots
         const hasCollision = this.jobs.some(job => {
             const jobStart = job.time_slot;
             const jobEnd = jobStart + duration;
-            // Overlapping range check
+            // Two ranges overlap if: (start1 < end2) AND (end1 > start2)
             return (scheduledTime < jobEnd) && (endTime > jobStart);
         });
 
@@ -77,6 +145,7 @@ class Scheduler {
             throw new Error('Time slot collision detected');
         }
 
+        // Create new job with unique ID
         const newJob = {
             id: uuidv4(),
             user_id: userId,
@@ -84,9 +153,9 @@ class Scheduler {
             time_slot: scheduledTime,
             prompt: prompt,
             params: params,
-            result_filename: null,
-            progress: null,
-            s_it: null
+            result_filename: null,  // Set after completion
+            progress: null,         // Set during execution
+            s_it: null              // Iteration timing (optional)
         };
 
         this.jobs.push(newJob);
@@ -95,6 +164,9 @@ class Scheduler {
 
     /**
      * Starts the main scheduler loop.
+     * 
+     * Checks every second for jobs that are ready to execute.
+     * This ensures jobs start promptly when their scheduled time arrives.
      */
     startLoop() {
         setInterval(() => {
@@ -103,15 +175,25 @@ class Scheduler {
     }
 
     /**
-     * Finds and executes the next pending job if time has passed.
+     * Checks for pending jobs and executes the next one if ready.
+     * 
+     * Execution Flow:
+     * 1. Skip if a job is already running (only one job at a time)
+     * 2. Find first job where: status='scheduled' AND scheduledTime <= now
+     * 3. Mark worker as busy and execute the job
+     * 4. Clean up state when job completes (success or failure)
+     * 
+     * @async
      */
     async checkAndExecute() {
+        // Only one job can run at a time
         if (!this.isWorkerIdle) return;
 
         const now = Date.now();
         const pendingJob = this.jobs.find(job => job.status === 'scheduled' && now >= job.time_slot);
 
         if (pendingJob) {
+            // Mark worker as busy and track current job
             this.isWorkerIdle = false;
             this.currentExecutingJob = pendingJob;
             this.lastProgressTime = null;
@@ -121,6 +203,7 @@ class Scheduler {
             } catch (err) {
                 console.error(`[Scheduler] Execution error:`, err);
             } finally {
+                // Clean up state when job finishes
                 this.isWorkerIdle = true;
                 this.currentJobPromptId = null;
                 this.currentExecutingJob = null;
@@ -129,7 +212,30 @@ class Scheduler {
     }
 
     /**
-     * Executes a job by mapping parameters into the ComfyUI workflow template.
+     * Executes a job by submitting it to ComfyUI.
+     * 
+     * Execution Steps:
+     * 1. Mark job as 'processing' and initialize progress
+     * 2. Load workflow template from config
+     * 3. Map user parameters into workflow nodes
+     * 4. Inject unique filename prefix for output files
+     * 5. Submit prompt to ComfyUI via /prompt endpoint
+     * 6. Poll /history endpoint until job completes
+     * 7. Extract result filename from outputs
+     * 8. Mark job as 'completed' or 'failed'
+     * 
+     * Parameter Mapping:
+     * The parameter_map in config defines how user inputs map to workflow nodes.
+     * Example: { "seed_123": { node_id: "3", field: "seed" } }
+     * This would set template["3"].inputs["seed"] = job.params["seed_123"]
+     * 
+     * Output Naming:
+     * Files are saved with format: USERNAME_YYYYMMDD_HHMMSS
+     * Examples: "Alice_20260201_143052.png", "Bob_20260201_150030_00001.png"
+     * 
+     * @async
+     * @param {Object} job - Job object to execute
+     * @throws {Error} If template loading fails or execution times out
      */
     async executeJob(job) {
         job.status = 'processing';
@@ -140,7 +246,7 @@ class Scheduler {
             const config = this.bootManager.config;
             const apiBase = `http://${config.comfy_ui.api_host}:${config.comfy_ui.api_port}`;
 
-            // Create unique filename: USERNAME_YYYYMMDD_HHMMSS
+            // Create unique filename prefix: USERNAME_YYYYMMDD_HHMMSS
             const scheduledDate = new Date(job.time_slot);
             const timestamp = scheduledDate.getFullYear().toString() +
                 (scheduledDate.getMonth() + 1).toString().padStart(2, '0') +
@@ -152,9 +258,11 @@ class Scheduler {
 
             let promptData = {};
             try {
+                // Load workflow template
                 const template = JSON.parse(fs.readFileSync(config.workflow.template_file, 'utf8'));
 
-                // Inject user parameters into nodes via the parameter map
+                // Inject user parameters into workflow nodes
+                // Iterates through parameter_map and replaces values in template
                 for (const [key, mappingOrMappings] of Object.entries(config.workflow.parameter_map)) {
                     let value = (key === 'prompt') ? job.prompt : job.params[key];
 

@@ -1,6 +1,17 @@
 /**
- * Configuration Manager
- * Handles reading, writing, and validating configuration
+ * Configuration Manager - Configuration File Handling
+ * 
+ * Manages reading, writing, and validating the application's config.json file.
+ * Handles mode switching (admin/student), workflow configuration saving,
+ * and path resolution for ComfyUI and workflow files.
+ * 
+ * Configuration Flow:
+ * 1. Admin mode: No workflow configured, admin uploads and configures
+ * 2. Configuration saved: saveAndSwitchToStudentMode() writes config.json
+ * 3. Student mode: Workflow configured, system ready for scheduling
+ * 4. Reset: resetToAdminMode() switches back for reconfiguration
+ * 
+ * @module server/configManager
  */
 
 const fs = require('fs');
@@ -10,7 +21,10 @@ const CONFIG_PATH = path.resolve(__dirname, '../config.json');
 const WORKFLOWS_DIR = path.resolve(__dirname, '../workflows');
 
 /**
- * Read current configuration
+ * Reads the current configuration from config.json.
+ * 
+ * @returns {Object} The parsed configuration object
+ * @throws {Error} If config.json doesn't exist or is invalid JSON
  */
 function readConfig() {
     if (!fs.existsSync(CONFIG_PATH)) {
@@ -22,7 +36,9 @@ function readConfig() {
 }
 
 /**
- * Write configuration to disk
+ * Writes configuration to disk as config.json.
+ * 
+ * @param {Object} config - Configuration object to save
  */
 function writeConfig(config) {
     const configJson = JSON.stringify(config, null, 2);
@@ -31,7 +47,9 @@ function writeConfig(config) {
 }
 
 /**
- * Get server mode (admin or student)
+ * Gets the current server mode from config.json.
+ * 
+ * @returns {string} Either 'admin' or 'student', defaults to 'student' on error
  */
 function getMode() {
     try {
@@ -83,9 +101,15 @@ function saveWorkflow(workflowData, filename) {
     return `./workflows/${sanitizedFilename}`;
 }
 
+
 /**
- * Update workflow configuration
+ * Updates the workflow section of the configuration.
+ * 
  * @param {Object} workflowConfig - New workflow configuration
+ * @param {string} workflowConfig.template_file - Path to workflow JSON file
+ * @param {Object} workflowConfig.parameter_map - Parameter mappings for the workflow
+ * @param {string} [workflowConfig.warmup_prompt] - Prompt for benchmark generation
+ * @throws {Error} If required fields are missing
  */
 function updateWorkflowConfig(workflowConfig) {
     const config = readConfig();
@@ -110,8 +134,11 @@ function updateWorkflowConfig(workflowConfig) {
     console.log('[ConfigManager] Workflow configuration updated');
 }
 
+
 /**
- * Get workflow configuration
+ * Gets the current workflow configuration from config.json.
+ * 
+ * @returns {Object|null} Workflow configuration or null if not set
  */
 function getWorkflowConfig() {
     const config = readConfig();
@@ -119,31 +146,38 @@ function getWorkflowConfig() {
 }
 
 /**
- * Switch to student mode with new workflow configuration
- * @param {Object} workflowData - Workflow JSON
- * @param {String} filename - Workflow filename
- * @param {Object} parameterMap - Selected parameter mappings
- * @param {String} warmupPrompt - Warmup prompt
+ * Saves a workflow and switches the server to student mode.
+ * 
+ * This is the main function called by the admin interface when configuration
+ * is complete. It performs all steps needed to transition to student mode:
+ * 1. Saves the workflow JSON file
+ * 2. Updates workflow configuration
+ * 3. Switches mode to 'student'
+ * 
+ * @param {Object} workflowData - Complete ComfyUI workflow JSON
+ * @param {string} filename - Filename for the workflow
+ * @param {Object} parameterMap - User-selected parameter mappings
+ * @param {string} warmupPrompt - Prompt for the benchmark generation
  */
 function saveAndSwitchToStudentMode(workflowData, filename, parameterMap, warmupPrompt) {
-    // Save workflow file
+    // Save workflow file to workflows directory
     const workflowPath = saveWorkflow(workflowData, filename);
 
-    // Update workflow configuration
+    // Update workflow configuration in config.json
     updateWorkflowConfig({
         template_file: workflowPath,
         warmup_prompt: warmupPrompt,
         parameter_map: parameterMap
     });
 
-    // Switch to student mode
+    // Switch mode to student
     setMode('student');
 
     console.log('[ConfigManager] Configuration complete. Ready for student mode.');
 }
 
 /**
- * Reset to admin mode (for re-configuration)
+ * Switches the server back to admin mode for reconfiguration.
  */
 function resetToAdminMode() {
     setMode('admin');

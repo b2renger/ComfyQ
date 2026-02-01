@@ -52,6 +52,11 @@ error.log
 .env.production.local
 *.env
 
+# Generated configuration files (configured via admin interface)
+config.json
+configs/
+workflows/
+
 # Personal config overrides (keep config.json template but ignore local copies)
 config.local.json
 config.development.json
