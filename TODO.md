@@ -1,17 +1,26 @@
 
 # TODO
 
-- do a test run on startup to estimate the time it takes to generate an image on the specific machine we are using. We should first run the warmup prompt to load the models, then run the benchmark prompt to estimate the time it takes to generate an image. We should keep the second value as the base time for the scheduler. 
+startup :
+- after npm run dev, the admin can upload a comfyUI workflow.
+- parameters are exposed and he can select which ones will be exposed to the user.
+- the admin should enter a password to enable him to reschedule or cancel users job when on the user interface.
+- after this selection the admin can launch the app for users with the workflow he uploaded and the parameters he decided to expose to users.
+- when system is ready, a first job is scheduled with default parameters from the workflow to estimate the average time of generation
+- each new generation from users helps to better approximate the generation time for a job, this data is dynamically used to do the scheduling.
 
-- Admin behind password in env or config file
-- cleanup everything not usefull in the project
+on the user interface
+- user can schedule a job.
+- the can move their scheduled jobs on the timeline and cancel them.
+- all jobs on the server and their results can be viewed by any user, but only the author can download, remove or reschdule their jobs
+- there is a dashboard with infomation : all users names, possibilty to filter jobs by user
+- if a user tries to cancel or reschedule a job that is not his, he should be prompted to enter the admin password that was set on startup -- admin can see all the jobs and can kill them or move them in the queue
 
-- save an admin config for workflow already created
-- improve workflow handling from comfyUI templates
+- review the code, cleanup everything, comment the code, remove unnecessary configuration files, all configuration should be done each time the server is launched for now.
 
--- admin can see all the jobs and can kill them or move them in the queue
 
 - check loading of models
+  
 - check workflows
   - t2i
   - image edit
@@ -22,28 +31,3 @@
 - add webcam support in load image (mobile firiedly
 
 --
-
-# Done
-
-image handling
-<del>- generation should be prefixed with the name of the user and a timestamp YYYYMMDD_HHMMSS to avoid collisions. The timestamp should be the time the job is scheduled, not the time it is executed. </del>
-
-<del>- fix the image download issue, it should download the image from the server, not from the browser.</del>
-
-
-diffusion engine
-- fix the rendering issue, something is wrong with image generation (vae ? clip ? wrong model ? cfg ?, resolution mismatch scheduler and empty latent image)
-
-
-feature dashboard
-- in the dashboard, when a user clicks on a user's name, it should only display all the jobs for that user.
-
-Expose
-- run server with host :  Network: use --host to expose
-
-Cleanup project structure
-- move python script to analyse worflow and do the mapping in a specific folder 'pyscripts'
-
-UX
-- subcribe to the job advancement from comyUI generation process
-- add notification when a job is finished
