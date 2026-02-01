@@ -16,7 +16,11 @@ on the user interface
 - there is a dashboard with infomation : all users names, possibilty to filter jobs by user
 - if a user tries to cancel or reschedule a job that is not his, he should be prompted to enter the admin password that was set on startup -- admin can see all the jobs and can kill them or move them in the queue
 
+- Prevent students from accessing admin routes
+- Add optional admin password in config
+
 - review the code, cleanup everything, comment the code, remove unnecessary configuration files, all configuration should be done each time the server is launched for now.
+
 
 - Add user color coding for better visual tracking
 - Implement job search/filter by prompt text
