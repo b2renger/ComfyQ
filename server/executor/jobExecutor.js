@@ -100,6 +100,8 @@ class JobExecutor {
         this._wsHasFired = false;
         this._historyStartedAt = null;
 
+        console.log(`[Executor] picking up job ${job.id.slice(0, 8)} user=${job.userId} workflow=${workflowEntry.id}`);
+
         try {
             this.queue.transitionStatus(job.id, sm.STATES.UPLOADING_INPUTS);
             // Inputs were already copied into ComfyUI/input by the upload route

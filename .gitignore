@@ -116,6 +116,9 @@ $RECYCLE.BIN/
 *.code-workspace
 .history/
 
+# Claude Code
+.claude/
+
 # JetBrains IDEs (WebStorm, PyCharm, etc.)
 .idea/
 *.iml

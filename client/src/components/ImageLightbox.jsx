@@ -1,11 +1,14 @@
 import React, { useEffect } from 'react';
-import { X, Download, User, Clock, Sparkles } from 'lucide-react';
+import { X, Download, User, Clock, Sparkles, RotateCw, Wand2 } from 'lucide-react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
+import { useSocket } from '../context/SocketContext';
 import { getImageUrl, getDownloadUrl, isVideo } from '../utils/api';
 
-const ImageLightbox = ({ isOpen, onClose, job }) => {
+const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
+    const { workflowsById } = useSocket();
     if (!job) return null;
+    const wf = workflowsById?.[job.workflow_id];
 
     const isVid = isVideo(job.result_filename);
 
@@ -72,6 +75,22 @@ const ImageLightbox = ({ isOpen, onClose, job }) => {
                                     <p className="text-sm font-mono text-white">{job.params?.width}x{job.params?.height}</p>
                                 </div>
                             </div>
+
+                            {job.workflow_id && (
+                                <div className="space-y-1 pt-3 border-t border-white/10">
+                                    <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Workflow</label>
+                                    <p className="text-sm font-medium text-primary-light flex items-center gap-2">
+                                        <Wand2 size={14} className="text-primary shrink-0" />
+                                        <span className="truncate" title={job.workflow_id}>{wf?.name || job.workflow_id}</span>
+                                    </p>
+                                    {wf && wf.category && wf.category !== 'other' && (
+                                        <p className="text-[10px] text-muted uppercase tracking-wider">{wf.category}</p>
+                                    )}
+                                    {!wf && (
+                                        <p className="text-[10px] text-warning">No longer in library</p>
+                                    )}
+                                </div>
+                            )}
                         </div>
 
                         <div className="flex flex-col space-y-3 pt-2">
@@ -98,7 +117,18 @@ const ImageLightbox = ({ isOpen, onClose, job }) => {
                         </div>
                     </div>
 
-                    <div className="pt-4 mt-auto">
+                    <div className="pt-4 mt-auto space-y-2">
+                        {onReuse && (
+                            <Button
+                                variant="secondary"
+                                className="w-full"
+                                icon={RotateCw}
+                                onClick={() => { onReuse(job); onClose(); }}
+                                title="Open the booking dialog pre-filled with this job's prompt and parameters"
+                            >
+                                Use these settings
+                            </Button>
+                        )}
                         <Button
                             variant="primary"
                             className="w-full"

@@ -27,6 +27,21 @@ export const SocketProvider = ({ children }) => {
 
     const [prevJobs, setPrevJobs] = useState([]);
     const [toasts, setToasts] = useState([]);
+    const [workflowsById, setWorkflowsById] = useState({});
+
+    // Fetch the workflow library once so jobs can resolve workflow_id → name.
+    // Past jobs may reference workflows that aren't currently active.
+    useEffect(() => {
+        fetch(`${SERVER_URL}/workflows`)
+            .then(r => r.ok ? r.json() : null)
+            .then(data => {
+                if (!data) return;
+                const map = {};
+                for (const w of data.workflows || []) map[w.id] = w;
+                setWorkflowsById(map);
+            })
+            .catch(() => { /* non-critical */ });
+    }, []);
 
     // Initialize socket connection
     useEffect(() => {
@@ -118,7 +133,7 @@ export const SocketProvider = ({ children }) => {
     }, [socket]);
 
     return (
-        <SocketContext.Provider value={{ socket, state, bookJob, deleteJob, reorderJob, username, registerUser }}>
+        <SocketContext.Provider value={{ socket, state, bookJob, deleteJob, reorderJob, username, registerUser, workflowsById }}>
             {children}
             {toasts.map(toast => (
                 <Toast

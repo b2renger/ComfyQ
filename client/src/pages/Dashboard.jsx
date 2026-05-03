@@ -21,6 +21,7 @@ import {
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import MediaPreview from '../components/ui/MediaPreview';
+import WorkflowChip from '../components/ui/WorkflowChip';
 import { getImageUrl, SERVER_URL } from '../utils/api';
 
 /**
@@ -40,7 +41,7 @@ import { getImageUrl, SERVER_URL } from '../utils/api';
  *   - Reset server to configuration mode
  */
 const DashboardPage = () => {
-    const { state, deleteJob, reorderJob } = useSocket();
+    const { state, deleteJob, reorderJob, workflowsById } = useSocket();
     const [selectedUser, setSelectedUser] = React.useState(null);
 
     const handleDeleteJob = (jobId) => {
@@ -114,6 +115,11 @@ const DashboardPage = () => {
             )
         },
         {
+            header: 'Workflow',
+            accessorKey: 'workflow_id',
+            cell: info => <WorkflowChip workflowId={info.getValue()} workflowsById={workflowsById} />
+        },
+        {
             header: 'Prompt',
             accessorKey: 'prompt',
             cell: info => <div className="max-w-xs truncate text-sm text-slate-400" title={info.getValue()}>{info.getValue()}</div>
@@ -164,7 +170,7 @@ const DashboardPage = () => {
                 );
             }
         }
-    ], [state.benchmark_ms]);
+    ], [state.benchmark_ms, workflowsById]);
 
     const table = useReactTable({
         data: filteredJobs,

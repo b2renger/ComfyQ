@@ -4,6 +4,7 @@ import Card from './ui/Card';
 import Badge from './ui/Badge';
 import { Sparkles, Clock, CheckCircle2, AlertCircle, Image as ImageIcon, Search, X, Download } from 'lucide-react';
 import MediaPreview from './ui/MediaPreview';
+import WorkflowChip from './ui/WorkflowChip';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 
 /**
@@ -22,7 +23,7 @@ import { getImageUrl, getDownloadUrl } from '../utils/api';
  * @param {Function} [props.onClose] - Handler to close panel (client-mobile only)
  */
 const MyJobsPanel = ({ onClose }) => {
-    const { state, username } = useSocket();
+    const { state, username, workflowsById } = useSocket();
 
     // Show all jobs sorted by time
     const allJobs = state.jobs
@@ -116,6 +117,9 @@ const MyJobsPanel = ({ onClose }) => {
                             <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed italic pr-2" title={job.prompt}>
                                 "{job.prompt}"
                             </p>
+                            <div className="mt-2">
+                                <WorkflowChip workflowId={job.workflow_id} workflowsById={workflowsById} />
+                            </div>
 
                             {job.status === 'processing' && (
                                 <div className="mt-3 space-y-2">

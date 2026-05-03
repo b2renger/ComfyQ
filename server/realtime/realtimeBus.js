@@ -1,6 +1,8 @@
+const fs = require('fs');
 const { Server } = require('socket.io');
 const sm = require('../queue/jobStateMachine');
 const { isAuthorizedForJob } = require('../auth/authGate');
+const { resolveOutputPath } = require('../executor/outputCollector');
 
 const HEARTBEAT_MS = 5000;
 
@@ -24,12 +26,13 @@ const HEARTBEAT_MS = 5000;
 //   reorder_job({ jobId, newTimeSlot })
 //   cancel_job(jobId)            with optional admin_password
 class RealtimeBus {
-    constructor({ httpServer, queue, executor, registry, configManager, worker }) {
+    constructor({ httpServer, queue, executor, registry, configManager, worker, comfyConfig }) {
         this.queue = queue;
         this.executor = executor;
         this.registry = registry;
         this.configManager = configManager;
         this.worker = worker;
+        this.comfyConfig = comfyConfig;
         this.connectedUsers = new Map();
 
         this.io = new Server(httpServer, {
@@ -119,6 +122,7 @@ class RealtimeBus {
                         if (sm.isInFlight(job.status)) this.executor.cancelJob(jobId);
                         else this.queue.transitionStatus(jobId, sm.STATES.CANCELLED);
                     }
+                    this._deleteOutputFiles(job);
                     this.queue.delete(jobId);
                 } catch (e) {
                     socket.emit('error', { message: e.message });
@@ -170,6 +174,20 @@ class RealtimeBus {
                 this.broadcast();
             });
         });
+    }
+
+    // Best-effort deletion of any output files this job produced. Missing files
+    // are ignored so a partially-cleaned-up job can still be removed.
+    _deleteOutputFiles(job) {
+        const outputs = job?.outputs || [];
+        for (const o of outputs) {
+            try {
+                const abs = resolveOutputPath(o, this.comfyConfig);
+                if (abs && fs.existsSync(abs)) fs.unlinkSync(abs);
+            } catch (e) {
+                console.warn(`[RealtimeBus] Could not delete output ${o.filename}:`, e.message);
+            }
+        }
     }
 
     _toWireJob(job) {

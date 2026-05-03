@@ -1,0 +1,122 @@
+{
+  "schemaVersion": 1,
+  "id": "flux2_klein_9b_image_edit_ref",
+  "name": "Flux2 Klein 9B — image edit (with reference)",
+  "description": "Edit a source image using a second reference image. Useful for transferring style, composition, or specific elements.",
+  "category": "image-edit",
+  "tags": ["flux2", "klein", "9b", "image-edit", "reference"],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "flux2_klein_9b_image_edit_ref.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 18,
+    "models": [
+      { "type": "unet", "file": "flux-2-klein-base-9b-fp8.safetensors" },
+      { "type": "vae",  "file": "flux2-vae.safetensors" },
+      { "type": "clip", "file": "qwen_3_8b_fp8mixed.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "maxRuntimeSec": 600,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_76",
+      "nodeId": "76",
+      "field": "image",
+      "type": "image",
+      "label": "Source image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_81",
+      "nodeId": "81",
+      "field": "image",
+      "type": "image",
+      "label": "Reference image",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "cliptextencode_text_92_113",
+      "nodeId": "92:113",
+      "field": "text",
+      "type": "textarea",
+      "label": "Prompt",
+      "default": "Apply the reference style/elements to the source image while keeping the lighting and composition consistent.",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "cliptextencode_text_92_87",
+      "nodeId": "92:87",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt",
+      "default": "",
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "randomnoise_noise_seed_92_105",
+      "nodeId": "92:105",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "flux2scheduler_steps_92_115",
+      "nodeId": "92:115",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps",
+      "default": 20,
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "cfgguider_cfg_92_114",
+      "nodeId": "92:114",
+      "field": "cfg",
+      "type": "number",
+      "label": "CFG",
+      "default": 5,
+      "min": 0,
+      "max": 20,
+      "step": 0.1,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "emptyflux2latentimage_batch_size_92_109",
+      "nodeId": "92:109",
+      "field": "batch_size",
+      "type": "number",
+      "label": "Batch size",
+      "default": 1,
+      "min": 1,
+      "max": 4,
+      "step": 1,
+      "required": false,
+      "order": 7
+    }
+  ],
+  "warmupParams": {
+    "cliptextencode_text_92_113": "calibration",
+    "flux2scheduler_steps_92_115": 8
+  },
+  "presets": {}
+}

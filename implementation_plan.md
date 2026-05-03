@@ -150,12 +150,14 @@ client/src/
 │   ├── Scheduler.jsx                    unchanged for M0; ETA/ProgressViz added in M2
 │   └── Dashboard.jsx                    unchanged for M0
 ├── components/
-│   ├── WorkflowSelector.jsx             ported from poc2, rewired to /workflows/*
-│   ├── BookingDialog.jsx                unchanged for M0
-│   ├── MyJobsPanel.jsx                  unchanged for M0
-│   ├── UsernameModal.jsx                unchanged for M0
-│   ├── ImageLightbox.jsx                unchanged
-│   └── admin/                           legacy v1 components, no longer imported
+│   ├── WorkflowSelector.jsx             ported from poc2, rewired to /workflows/*; per-card edit/calibrate/delete actions
+│   ├── BookingDialog.jsx                random-seed default + dice re-roll, image upload, recall of saved param sets
+│   ├── MyJobsPanel.jsx                  per-job WorkflowChip
+│   ├── UsernameModal.jsx                unchanged
+│   ├── ImageLightbox.jsx                "Use these settings" recall, workflow info panel
+│   ├── ui/WorkflowChip.jsx              renders workflow_id → display name in cards / lightbox
+│   └── admin/
+│       └── WorkflowMetaEditor.jsx       modal: edit metadata + parameter exposure for any workflow
 └── utils/api.js                         unchanged
 ```
 
@@ -171,9 +173,12 @@ workflows/<id>/
 └── <id>.runtime.json          BenchmarkService output (OPTIONAL, gitignored)
 ```
 
-Currently shipping:
-- `workflows/flux1_dev_t2i/` — ready-to-run smoke fixture
-- `workflows/flux2_klein_9b_t2i/` — meta.json + README placeholder; drop in your saved API workflow
+Currently shipping (validated on RTX 5090, 2026-05-03):
+- `workflows/flux2_klein_9b_t2i/` — text to image
+- `workflows/flux2_klein_9b_image_edit/` — single image edit
+- `workflows/flux2_klein_9b_image_edit_ref/` — image edit with a reference image
+
+All three reuse the same model set: `flux-2-klein-base-9b-fp8.safetensors` (UNET), `flux2-vae.safetensors` (VAE), `qwen_3_8b_fp8mixed.safetensors` (CLIP). Per-deployment runtime sidecars (`<id>.runtime.json`) and overrides (`<id>.config.meta.json`) are gitignored.
 
 ---
 
@@ -249,7 +254,7 @@ No workflow-specific fields in `config.json`; that lives in the registry now.
 
 ## Milestones
 
-### M0 — v2 skeleton runs Flux1 dev t2i (✅ COMPLETE)
+### M0 — v2 skeleton runs Flux1 dev t2i (✅ COMPLETE — VERIFIED ON RIG)
 
 Smallest functional v2 covering only t2i, on the new architecture.
 
@@ -257,28 +262,49 @@ Smallest functional v2 covering only t2i, on the new architecture.
 - [x] New deps installed: `better-sqlite3`, `zod`, `mime-types`, `bcryptjs`, `multer`, `form-data`.
 - [x] Implemented: `configManager`, `schemas`, `workflowRegistry`, `workflowParser` (primitive-fallback), `workflowValidator`, `jobQueue` (sqlite), `jobStateMachine`, `jobExecutor`, `outputCollector` (generic), `workerInterface`, `localComfyUIWorker` + helpers, `comfyWsClient` (reconnection), `mediaStore`, `realtimeBus`, `authGate`, `benchmarkService`.
 - [x] Routes: `admin`, `workflows`, `jobs`, `uploads`.
-- [x] Test fixtures: `workflows/flux1_dev_t2i/` + `workflows/flux2_klein_9b_t2i/` (placeholder).
+- [x] Starter fixtures: three Flux2 Klein 9B workflows (`flux2_klein_9b_t2i`, `flux2_klein_9b_image_edit`, `flux2_klein_9b_image_edit_ref`) — replaced earlier `flux1_dev_t2i` smoke fixture once the Flux2 set was validated on rig.
 - [x] Client: `WorkflowSelector` ported, `AdminConfig` rewired. `BookingDialog`, `Scheduler`, `Dashboard` kept wire-compatible.
 - [x] Jobs persist across server restart; queue reconciles in-flight jobs to `failed: server-restart` (smoke-test passing).
+- [x] **Rig acceptance (RTX 5090):** Flux2 Klein 9B text-to-image, image-edit, and image-edit with reference image all run end-to-end (booking → generation → output → download).
 
-**Verified locally (no ComfyUI):**
-- All 26 server modules pass `node --check`.
-- Server boots in admin mode, archives any v1 `config.json` to `.v1.bak`.
-- `GET /admin/mode`, `/admin/config`, `/workflows`, `/workflows/:id`, `/workflows/:id/parameters`, `/workflows/:id/presets/:name` respond correctly.
-- Unavailable workflow (missing `.api.json`) returns 409 with the reason.
-- `PUT /admin/comfy` persists ComfyUI paths to `config.json`.
-- Sqlite reconciliation: `executing` job → `failed: server-restart` after a simulated restart.
+### M1 — Real BenchmarkService + Flux2 image-edit (✅ COMPLETE)
 
-**Pending on RTX rig (M0 acceptance criteria):** Tracked in [manual_tests.md](manual_tests.md) — tests M0-1 through M0-10. Don't start M1 implementation until they all pass.
+- [x] `BenchmarkService` runs a real warmup and writes `<id>.runtime.json` with `estimatedDurationSec`, `samplesPerSec`, `coldDurationSec`, and `modelLoadSec`.
+- [x] `estimatedDurationSec` measures **generation only** — anchored on the first sampler progress event so model/VAE/CLIP load time is excluded. The recurring per-job cost (sampling + decode + save) is what the timeline shows.
+- [x] Calibration ships a built-in 512×512 reference PNG (`__comfyq_calibration.png`) so workflows with image inputs can be calibrated without admin-uploaded sample media. Video/audio inputs throw a clear error pointing the admin at `meta.warmupParams`.
+- [x] Scheduler timeline uses per-workflow estimate (no global 60 s).
+- [x] Flux2 image-edit (1-image and 2-image variants) registered and validated on rig.
+- [x] `BookingDialog` image upload: media-typed exposed parameters render as drag-and-drop upload widgets; uploaded files land in `<comfy_root>/input/` with a `comfyq_session__` prefix and TTL sweep.
+- [x] Worker `_materializeWorkflow` injects `paramValues` for image/video/audio fields into their nodes (was previously skipped, breaking image-edit submissions).
+- [ ] Depth preprocessor fixture + `MediaStore` validation against `temp/`. (Deferred to M3.)
 
-### M1 — Real BenchmarkService + Flux2 image-edit + Depth preprocessor
+### M1+ — Admin UX & operations (delivered alongside M1)
 
-- [ ] `BenchmarkService` runs real warmup; writes `<id>.runtime.json` with `estimatedDurationSec` + `samplesPerSec`.
-- [ ] Scheduler timeline uses per-workflow estimate (no global 60 s).
-- [ ] Add `flux2_klein_image_edit/` and `depth_preprocessor/` fixtures.
-- [ ] `inputUploader` namespaces inputs to `comfyq__<jobId>__<original>`; rewrites LoadImage nodes; cleanup keyed on `jobId` + 30-min TTL.
-- [ ] `BookingDialog` gains image upload field.
-- [ ] `MediaStore` reads from `output/` AND `temp/` (depth preprocessors).
+Beyond the original M0/M1 scope, the following has been built so a teacher / lab admin can onboard a new workflow in under a minute:
+
+- [x] **Workflow upload** (drag-and-drop API JSON) auto-scaffolds the meta.json by running the primitive-fallback parser and surfacing every detected widget.
+- [x] **Workflow metadata editor** (`WorkflowMetaEditor` modal) — opens automatically after upload, also reachable from a per-card pencil button.
+  - Edit name, description, category, author, version, estimatedDurationSec, maxRuntimeSec.
+  - Per-parameter: toggle exposed, edit label, change type (text / textarea / number / select / checkbox / image / video / audio), edit default. Selects show a comma-separated options editor; numbers show min/max/step.
+  - Bulk shortcuts: "Hide infrastructure" (auto-disables `unet_name`, `vae_name`, `clip_name*`, `weight_dtype`, `device`, `type`, `upscale_method`, `resolution_steps`, `megapixels`, `batch_size`), "Enable all", "Disable all", filter selector.
+  - `PUT /admin/workflows/:id/meta` endpoint validates with the existing `WorkflowMeta` zod schema and forces `id` / `apiFormat` / `workflowFile` to canonical values.
+  - `GET /admin/workflows/:id/edit-data` re-parses the api.json on read so the editor sees every primitive (including ones previously hidden) with their current enabled/label/default state merged in.
+- [x] **Per-workflow card actions** in `WorkflowSelector`: hover-revealed Calibrate (gauge), Edit (pencil), Delete (trash). Delete is disabled on the active workflow.
+- [x] **Delete workflow** (`DELETE /admin/workflows/:id`, gated, with confirmation modal). Refuses to delete the active workflow; rejects bad ids and path traversal.
+- [x] **Emergency stop** (`POST /admin/emergency-stop`, gated). Cancels every scheduled job, marks every in-flight job FAILED with reason `emergency-stop`, REST-interrupts ComfyUI, kills the process if ComfyQ spawned it (external attached ComfyUI is left alone), flips to admin mode and restarts.
+- [x] **Broken-workflow clutter hidden** — `GET /workflows` defaults to `includeUnavailable: false`; admin UI no longer renders a "Broken workflows" panel. Pass `?includeUnavailable=1` for diagnostics.
+- [x] **Verbose terminal logging** during student-mode bootstrap and workflow activation (`[Admin] activate-workflow: A → B`, ComfyUI attach vs. spawn, WS connect, executor pickup, etc.).
+- [x] **nodemon restart fix** — `exitForRestart()` bumps the mtime of `server/index.js` so nodemon's chokidar watcher triggers a restart instead of parking in "clean exit — waiting for changes" forever.
+
+### M1+ — Student UX (delivered alongside M1)
+
+- [x] **Random seed by default.** Any exposed parameter named `seed` (or whose `field` is `seed`) gets a fresh random value each time the BookingDialog opens. Re-roll button (`Dices`) lets the user reroll without retyping; manual entry still works.
+- [x] **Live-time timeline** — vis-timeline window is centered around `now()` with a sliding 10-min-before / 50-min-after window. "Following" toggle re-centers every 10 s. Auto-disables when the user pans manually; clicking "Now" re-engages.
+- [x] **Active-workflow indicator** in the Scheduler header (uses `state.workflow_info` already on the wire).
+- [x] **"Use these settings"** in the `ImageLightbox` — re-opens a fresh `BookingDialog` pre-filled with the job's prompt and parameters. Image/video/audio params are NOT recalled (the session-scoped filenames may have been swept by the input retention TTL); the user re-uploads.
+- [x] **Per-job workflow chip** — every recent-generations card, MyJobs row, and lightbox now shows which workflow produced the image. Resolves `workflow_id → name` via a fetch-once map in `SocketContext`. Deleted workflows surface as "no longer in library".
+- [x] **Delete completed images** — the delete button now also appears on completed/failed cards owned by the user. The server unlinks the actual output files on disk via `resolveOutputPath` before removing the DB row.
+- [x] **Path-fix robustness** — config.json `root_path` validation now requires `<root>/main.py`. The portable-ComfyUI gotcha (`...\ComfyUI_windows_portable` vs. `...\ComfyUI_windows_portable\ComfyUI`) is documented in the troubleshooting section.
 
 ### M2 — Phase 2 (job mgmt) + Phase 3 (real-time progress)
 

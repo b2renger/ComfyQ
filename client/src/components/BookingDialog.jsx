@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
-import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronRight, Upload, X, Image as ImageIcon, Video as VideoIcon } from 'lucide-react';
+import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronRight, Upload, X, Image as ImageIcon, Video as VideoIcon, Dices } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { SERVER_URL } from '../utils/api';
 
@@ -22,7 +22,18 @@ import { SERVER_URL } from '../utils/api';
  * @param {number} props.initialTime - Default start time for the job
  * @param {Function} props.onConfirm - Submit handler ({ prompt, params, time })
  */
-const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
+// A param qualifies as a "seed" if its key or field looks like one. Catches
+// both KSampler.seed (Flux1) and RandomNoise.noise_seed (Flux2), plus any
+// custom node that exposes a *_seed field.
+const isSeedParam = (key, config) => {
+    const k = String(key || '').toLowerCase();
+    const f = String(config?.field || '').toLowerCase();
+    return k === 'seed' || k.endsWith('_seed')
+        || f === 'seed' || f.endsWith('_seed');
+};
+const randomSeed = () => Math.floor(Math.random() * 4294967295);
+
+const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams }) => {
     const { state } = useSocket();
     const [scheduledTime, setScheduledTime] = useState(initialTime);
     const [isCollision, setIsCollision] = useState(false);
@@ -31,19 +42,34 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
     const [mediaPreviews, setMediaPreviews] = useState({}); // { paramKey: dataURL }
     const [isUploading, setIsUploading] = useState(false);
 
-    // Initialize form params from workflow config defaults
+    // Initialize form params once per dialog-open session. We deliberately do
+    // NOT depend on state.workflow — the server rebroadcasts state_update on a
+    // heartbeat (every 5s) with a fresh parameter_map object reference, which
+    // would otherwise wipe whatever the user has typed.
+    const stateRef = useRef(state);
+    useEffect(() => { stateRef.current = state; }, [state]);
+
     useEffect(() => {
-        if (state.workflow && state.workflow.parameter_map) {
-            const initialParams = {};
-            Object.entries(state.workflow.parameter_map).forEach(([key, config]) => {
-                // If config is array, take first or handle logic; here assumed object
-                // Handle simple vs extended definition
-                const defaultValue = config.default !== undefined ? config.default : '';
-                initialParams[key] = defaultValue;
-            });
-            setFormParams(initialParams);
-        }
-    }, [state.workflow]);
+        if (!isOpen) return;
+        const wf = stateRef.current.workflow;
+        if (!wf?.parameter_map) return;
+        const next = {};
+        Object.entries(wf.parameter_map).forEach(([key, config]) => {
+            // Recall path: an explicit initialParams takes precedence — except
+            // for image/video/audio inputs (those filenames are session-scoped
+            // and may have been swept; force the user to re-upload).
+            const recalled = initialParams?.[key];
+            const isMedia = ['image', 'video', 'audio'].includes(config.type);
+            if (recalled !== undefined && !isMedia) {
+                next[key] = recalled;
+            } else if (isSeedParam(key, config)) {
+                next[key] = randomSeed();
+            } else {
+                next[key] = config.default !== undefined ? config.default : '';
+            }
+        });
+        setFormParams(next);
+    }, [isOpen, initialParams]);
 
     useEffect(() => {
         setScheduledTime(initialTime);
@@ -249,6 +275,35 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
                         );
                     }
 
+                    // Seed Input — auto-randomized; re-roll button; user can type a specific value
+                    if (isSeedParam(key, config)) {
+                        return (
+                            <div key={key} className="space-y-1.5">
+                                <label className="text-sm font-medium text-slate-300">{label}</label>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="number"
+                                        className="flex-1 bg-background border border-border rounded-lg p-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                        value={formParams[key] ?? ''}
+                                        onChange={(e) => {
+                                            const v = e.target.value;
+                                            setFormParams({ ...formParams, [key]: v === '' ? '' : parseInt(v, 10) || 0 });
+                                        }}
+                                    />
+                                    <button
+                                        type="button"
+                                        onClick={() => setFormParams({ ...formParams, [key]: randomSeed() })}
+                                        className="p-2.5 rounded-lg bg-surface border border-border hover:bg-white/5 text-muted hover:text-primary transition-colors"
+                                        title="Randomize seed"
+                                    >
+                                        <Dices size={18} />
+                                    </button>
+                                </div>
+                                <p className="text-[10px] text-muted ml-1">Auto-randomized each time. Click the dice to re-roll, or type a specific value.</p>
+                            </div>
+                        );
+                    }
+
                     // Default Input (Text/Number)
                     return (
                         <div key={key} className="space-y-1.5">
@@ -256,7 +311,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
                             <input
                                 type={type === 'number' ? 'number' : 'text'}
                                 className="w-full bg-background border border-border rounded-lg p-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                                value={formParams[key] || ''}
+                                value={formParams[key] ?? ''}
                                 onChange={(e) => setFormParams({ ...formParams, [key]: type === 'number' ? parseFloat(e.target.value) : e.target.value })}
                             />
                         </div>

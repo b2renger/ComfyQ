@@ -54,10 +54,17 @@ class LocalComfyUIWorker extends Worker {
 
     async start() {
         try {
-            await this.process.start();
+            console.log(`[Worker] checking ComfyUI at ${this.host}:${this.port}…`);
+            const procStart = await this.process.start();
+            if (procStart?.external) {
+                console.log('[Worker] using external ComfyUI (already responding)');
+            } else {
+                console.log('[Worker] waiting for ComfyUI API to come up (this can take 30–90s on first launch)…');
+            }
             await this.process.waitForApi();
+            console.log('[Worker] ComfyUI API is responsive');
             this.ws = new ComfyWsClient({ host: this.host, port: this.port, clientId: this.clientId });
-            this.ws.on('open', () => console.log('[Worker] WS connected'));
+            this.ws.on('open', () => console.log(`[Worker] WS connected (clientId=${this.clientId})`));
             this.ws.on('close', () => console.log('[Worker] WS disconnected (will reconnect)'));
             this.ws.on('error', (e) => console.warn('[Worker] WS error:', e.message));
             this.ws.on('message', (msg) => this._handleWsMessage(msg));
@@ -72,7 +79,7 @@ class LocalComfyUIWorker extends Worker {
                 }
             });
             this._setState('idle');
-            return true;
+            return procStart;
         } catch (e) {
             this._setState('down', e.message);
             throw e;
@@ -123,13 +130,14 @@ class LocalComfyUIWorker extends Worker {
     _materializeWorkflow(apiWorkflow, { paramValues, exposedParameters, inputs, filenamePrefix }) {
         const wf = JSON.parse(JSON.stringify(apiWorkflow));
 
-        // 1) Apply scalar parameter values via exposedParameters mapping.
+        // 1) Apply parameter values via exposedParameters mapping. For
+        //    image/video/audio types the value is the comfy-side filename the
+        //    /upload endpoint returned; injecting it directly is equivalent to
+        //    going through the `inputs` array below.
         for (const p of exposedParameters) {
             if (paramValues == null) continue;
             const v = paramValues[p.key];
-            if (v === undefined || v === null) continue;
-            // image/video/audio inputs are handled in step 2 via `inputs` records
-            if (['image', 'video', 'audio'].includes(p.type)) continue;
+            if (v === undefined || v === null || v === '') continue;
             const node = wf[p.nodeId];
             if (!node) continue;
             node.inputs = node.inputs || {};

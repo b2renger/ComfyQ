@@ -5,7 +5,10 @@ function makeRouter({ registry, configManager, benchmarkService, adminGate }) {
 
     router.get('/', (req, res) => {
         try {
-            const summaries = registry.summaries({ includeUnavailable: true, includeHidden: false });
+            // Default to hiding broken bundles. Pass ?includeUnavailable=1 if a
+            // diagnostics view ever needs them.
+            const includeUnavailable = req.query.includeUnavailable === '1';
+            const summaries = registry.summaries({ includeUnavailable, includeHidden: false });
             const categories = {
                 't2i': 'Text to Image', 'image-edit': 'Image Editing',
                 'i2v': 'Image to Video', 'i2i': 'Image to Image',

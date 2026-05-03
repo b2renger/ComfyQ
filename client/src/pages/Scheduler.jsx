@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Timeline, DataSet } from 'vis-timeline/standalone';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import { useSocket } from '../context/SocketContext';
-import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X } from 'lucide-react';
+import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X, Crosshair } from 'lucide-react';
 import BookingDialog from '../components/BookingDialog';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -10,6 +10,7 @@ import Button from '../components/ui/Button';
 import MyJobsPanel from '../components/MyJobsPanel';
 import ImageLightbox from '../components/ImageLightbox';
 import MediaPreview from '../components/ui/MediaPreview';
+import WorkflowChip from '../components/ui/WorkflowChip';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 
 /**
@@ -29,8 +30,13 @@ import { getImageUrl, getDownloadUrl } from '../utils/api';
  * - Card/Grid: Display of recent generations
  * - MyJobsPanel: Sidebar for managing user's own jobs
  */
+// Visible timeline window: 10 minutes of past context, 50 minutes ahead.
+const WINDOW_BEFORE_MS = 10 * 60 * 1000;
+const WINDOW_AFTER_MS = 50 * 60 * 1000;
+const FOLLOW_TICK_MS = 10 * 1000;
+
 const SchedulerPage = () => {
-    const { state, bookJob, deleteJob, reorderJob, username } = useSocket();
+    const { state, bookJob, deleteJob, reorderJob, username, workflowsById } = useSocket();
     const timelineRef = useRef(null);
     const containerRef = useRef(null);
     const itemsRef = useRef(null); // vis-data DataSet
@@ -39,10 +45,20 @@ const SchedulerPage = () => {
     const [bookingTime, setBookingTime] = useState(Date.now());
     const [isMyJobsOpen, setIsMyJobsOpen] = useState(false);
     const [lightboxJob, setLightboxJob] = useState(null);
+    const [followNow, setFollowNow] = useState(true);
+    const [prefillParams, setPrefillParams] = useState(null);
+
+    const reuseJob = (job) => {
+        setPrefillParams(job.params || {});
+        // Find the next un-collided slot at or after now.
+        setBookingTime(Date.now());
+        setIsBookingOpen(true);
+    };
 
     // Use refs to keep track of latest state for timeline callbacks without recreating the timeline
     const stateRef = useRef(state);
     const usernameRef = useRef(username);
+    const followNowRef = useRef(followNow);
 
     useEffect(() => {
         stateRef.current = state;
@@ -53,6 +69,19 @@ const SchedulerPage = () => {
     }, [username]);
 
     useEffect(() => {
+        followNowRef.current = followNow;
+    }, [followNow]);
+
+    const slideToNow = () => {
+        if (!timelineRef.current) return;
+        timelineRef.current.setWindow(
+            new Date(Date.now() - WINDOW_BEFORE_MS),
+            new Date(Date.now() + WINDOW_AFTER_MS),
+            { animation: { duration: 400, easingFunction: 'easeInOutQuad' } }
+        );
+    };
+
+    useEffect(() => {
         if (!containerRef.current) return;
 
         // Initialize DataSet
@@ -61,8 +90,9 @@ const SchedulerPage = () => {
 
         const options = {
             stack: false,
-            start: new Date(),
-            end: new Date(Date.now() + 3600000), // 1 hour ahead
+            start: new Date(Date.now() - WINDOW_BEFORE_MS),
+            end: new Date(Date.now() + WINDOW_AFTER_MS),
+            showCurrentTime: true,
             editable: {
                 add: true,
                 updateTime: true,
@@ -121,7 +151,25 @@ const SchedulerPage = () => {
             }
         });
 
+        // Disable follow mode if the user manually pans/zooms.
+        timeline.on('rangechange', (props) => {
+            if (props.byUser && followNowRef.current) {
+                setFollowNow(false);
+            }
+        });
+
+        // Periodically slide the window so "now" stays in view while following.
+        const followInterval = setInterval(() => {
+            if (!followNowRef.current || !timelineRef.current) return;
+            timelineRef.current.setWindow(
+                new Date(Date.now() - WINDOW_BEFORE_MS),
+                new Date(Date.now() + WINDOW_AFTER_MS),
+                { animation: { duration: 400, easingFunction: 'easeInOutQuad' } }
+            );
+        }, FOLLOW_TICK_MS);
+
         return () => {
+            clearInterval(followInterval);
             if (timelineRef.current) {
                 timelineRef.current.destroy();
                 timelineRef.current = null;
@@ -170,11 +218,6 @@ const SchedulerPage = () => {
 
             // Update or add items
             itemsRef.current.update(itemsData);
-
-            // Auto-fit if it's the first time we get jobs
-            if (state.jobs.length > 0 && existingIds.length === 0 && timelineRef.current) {
-                timelineRef.current.fit();
-            }
         }
     }, [state.jobs, state.benchmark_ms, username]);
 
@@ -190,6 +233,16 @@ const SchedulerPage = () => {
                         </div>
                         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Timeline</h2>
                         <p className="text-muted text-sm sm:text-base mt-1">Hello, <span className="text-primary font-bold">{username}</span>. Plan your generations.</p>
+                        {state.workflow_info?.id && (
+                            <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/20">
+                                <Sparkles size={12} className="text-primary" />
+                                <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">Active workflow</span>
+                                <span className="text-xs font-medium text-primary-light">{state.workflow_info.name}</span>
+                                {state.workflow_info.category && state.workflow_info.category !== 'other' && (
+                                    <Badge variant="primary" className="text-[9px] py-0 h-4 uppercase">{state.workflow_info.category}</Badge>
+                                )}
+                            </div>
+                        )}
                     </div>
                     <div className="flex items-center space-x-2 sm:space-x-4">
                         <Button
@@ -218,9 +271,24 @@ const SchedulerPage = () => {
                             </Badge>
                         </div>
                         <Button
+                            variant={followNow ? 'primary' : 'secondary'}
+                            size="sm"
+                            icon={Crosshair}
+                            onClick={() => {
+                                setFollowNow(true);
+                                slideToNow();
+                            }}
+                            title={followNow ? 'Following current time — click to re-center' : 'Recenter on current time and follow'}
+                        >
+                            {followNow ? 'Following' : 'Now'}
+                        </Button>
+                        <Button
                             variant="secondary"
                             size="sm"
-                            onClick={() => timelineRef.current && timelineRef.current.fit()}
+                            onClick={() => {
+                                setFollowNow(false);
+                                if (timelineRef.current) timelineRef.current.fit();
+                            }}
                             title="Auto-fit timeline to show all jobs"
                         >
                             Fit View
@@ -237,8 +305,9 @@ const SchedulerPage = () => {
 
                 <BookingDialog
                     isOpen={isBookingOpen}
-                    onClose={() => setIsBookingOpen(false)}
+                    onClose={() => { setIsBookingOpen(false); setPrefillParams(null); }}
                     initialTime={bookingTime}
+                    initialParams={prefillParams}
                     onConfirm={({ prompt, params, time }) => bookJob(time || bookingTime, prompt, params)}
                 />
 
@@ -246,6 +315,7 @@ const SchedulerPage = () => {
                     isOpen={!!lightboxJob}
                     onClose={() => setLightboxJob(null)}
                     job={lightboxJob}
+                    onReuse={reuseJob}
                 />
 
                 <div className="space-y-6 pt-4">
@@ -272,19 +342,28 @@ const SchedulerPage = () => {
                                     }}
                                 >
                                     {job.user_id === username && (
-                                        <div className="absolute top-0 right-0 flex items-center">
-                                            {job.status === 'scheduled' && (
-                                                <button
-                                                    onClick={(e) => {
-                                                        e.stopPropagation();
-                                                        if (window.confirm("Cancel this job?")) deleteJob(job.id);
-                                                    }}
-                                                    className="p-1.5 bg-danger/10 text-danger hover:bg-danger hover:text-white transition-colors rounded-bl-lg border-l border-b border-danger/20"
-                                                    title="Cancel Job"
-                                                >
-                                                    <X size={12} />
-                                                </button>
-                                            )}
+                                        <div className="absolute top-0 right-0 flex items-center z-10">
+                                            {(() => {
+                                                const isScheduled = job.status === 'scheduled';
+                                                const isCompletedOrFailed = job.status === 'completed' || job.status === 'failed';
+                                                if (!isScheduled && !isCompletedOrFailed) return null;
+                                                const confirmMsg = isScheduled
+                                                    ? 'Cancel this job?'
+                                                    : 'Delete this image and its output file?';
+                                                const titleText = isScheduled ? 'Cancel Job' : 'Delete Image';
+                                                return (
+                                                    <button
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            if (window.confirm(confirmMsg)) deleteJob(job.id);
+                                                        }}
+                                                        className="p-1.5 bg-danger/10 text-danger hover:bg-danger hover:text-white transition-colors rounded-bl-lg border-l border-b border-danger/20"
+                                                        title={titleText}
+                                                    >
+                                                        <X size={12} />
+                                                    </button>
+                                                );
+                                            })()}
                                             <div className="p-1 px-2 bg-primary/20 text-primary text-[8px] font-bold uppercase tracking-tighter rounded-bl-lg border-l border-b border-primary/20">
                                                 Yours
                                             </div>
@@ -362,13 +441,14 @@ const SchedulerPage = () => {
                                             "{job.prompt}"
                                         </p>
 
-                                        <div className="flex items-center justify-between pt-2 border-t border-border/30">
+                                        <div className="flex items-center justify-between pt-2 border-t border-border/30 gap-2">
                                             <div className="flex items-center space-x-1.5 overflow-hidden">
                                                 <div className="w-5 h-5 rounded-full bg-surface border border-border flex items-center justify-center shrink-0">
                                                     <User size={10} className="text-muted" />
                                                 </div>
                                                 <span className="text-[10px] text-muted truncate">{job.user_id === username ? 'You' : job.user_id}</span>
                                             </div>
+                                            <WorkflowChip workflowId={job.workflow_id} workflowsById={workflowsById} />
                                         </div>
                                     </div>
                                 </Card>

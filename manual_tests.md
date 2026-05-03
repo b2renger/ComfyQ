@@ -22,17 +22,19 @@ If you have an existing ComfyUI process listening on the port, ComfyQ attaches t
 
 ---
 
-## M0 — v2 skeleton runs Flux1 dev t2i
+## M0 — v2 skeleton runs end-to-end (✅ VERIFIED — RTX 5090)
+
+End-to-end on rig: passed against the three Flux2 Klein 9B starters (text-to-image, image edit, image edit with reference). Flux1 dev was the original smoke fixture during early M0 development and has been retired in favour of the Flux2 set.
 
 Goal: end-to-end "book a t2i job in the timeline → watch progress → image renders → restart safely."
 
 Required on the rig:
 - Working ComfyUI install
-- Models for `flux1_dev_t2i`: `flux1-dev-fp8.safetensors`, `t5xxl_fp8_e4m3fn.safetensors`, `clip_l.safetensors`, `ae.safetensors`
+- Models for the three Flux2 starters: `flux-2-klein-base-9b-fp8.safetensors` (UNET), `flux2-vae.safetensors` (VAE), `qwen_3_8b_fp8mixed.safetensors` (CLIP)
 - C++ build tools available to npm (for `better-sqlite3`)
 
 ### M0-1 — First-run admin mode
-**Status:** [ ] · **Date:** · **Rig:**
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
 **Steps:**
 1. Fresh clone, `npm install`, `npm run dev`.
@@ -41,7 +43,7 @@ Required on the rig:
 **Expected:**
 - Auto-redirect to `/admin`.
 - "Server is in **admin** mode" badge.
-- Workflow library shows `flux1_dev_t2i` as available and `flux2_klein_9b_t2i` listed under "Broken workflows" with reason `Missing workflow file: flux2_klein_9b_t2i.api.json`.
+- Workflow library shows `flux2_klein_9b_t2i` as available. Broken bundles (e.g. `flux2_klein_9b_t2i` without an `.api.json`) are filtered out by default — pass `?includeUnavailable=1` on the `/workflows` route to see them.
 - Server log shows `[Config] Detected v1 config.json (or unversioned). Archiving to config.json.v1.bak and starting fresh.` (only on the first run after a v1 install).
 
 **If failed — capture:**
@@ -54,7 +56,7 @@ Required on the rig:
 ---
 
 ### M0-2 — Configure ComfyUI paths
-**Status:** [ ] · **Date:** · **Rig:**
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
 **Steps:**
 1. In **ComfyUI Settings**: enter `root_path`, `python_executable` (e.g. `../python_embeded/python.exe`), leave `output_dir` as `output`, set VRAM budget to your card's GB (24 for 3090/4090, 32 for 5090, 16 for 4080).
@@ -72,16 +74,16 @@ Required on the rig:
 
 ---
 
-### M0-3 — Activate Flux1 dev workflow → student mode
-**Status:** [ ] · **Date:** · **Rig:**
+### M0-3 — Activate flux2_klein_9b_t2i → student mode
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
 **Steps:**
-1. In **Workflow library**, click `flux1_dev_t2i`. Card highlights as selected.
+1. In **Workflow library**, click `flux2_klein_9b_t2i`. Card highlights as selected.
 2. Click **Activate & start student mode**. Toast: "Activating workflow…".
 3. Server exits and restarts (nodemon picks up). Browser auto-redirects to `/user`.
 
 **Expected:**
-- Server log: `[ComfyQ] mode=student`, then `[ComfyQ] active workflow: flux1_dev_t2i`.
+- Server log: `[ComfyQ] mode=student`, then `[ComfyQ] active workflow: flux2_klein_9b_t2i`.
 - ComfyUI either spawns (you'll see `[ComfyUI] ...` lines) or attaches to an existing instance (`External ComfyUI already responding; using it.`).
 - After ComfyUI finishes loading: `[Worker] WS connected`, status pill turns to `ready`.
 
@@ -93,8 +95,8 @@ Required on the rig:
 
 ---
 
-### M0-4 — Book a Flux1 dev t2i job
-**Status:** [ ] · **Date:** · **Rig:**
+### M0-4 — Book a flux2_klein_9b_t2i job
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
 **Steps:**
 1. Set username (e.g. `alice`) in the modal.
@@ -123,7 +125,7 @@ Required on the rig:
 ---
 
 ### M0-5 — Server restart reconciliation
-**Status:** [ ] · **Date:** · **Rig:**
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
 **Steps:**
 1. Book a fresh job at `now + 5 sec`.
@@ -145,7 +147,7 @@ Required on the rig:
 ---
 
 ### M0-6 — ComfyUI process crash mid-job
-**Status:** [ ] · **Date:** · **Rig:**
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
 **Steps:**
 1. Book a job at `now + 5 sec`.
@@ -162,7 +164,7 @@ Required on the rig:
 ---
 
 ### M0-7 — Litegraph rejection
-**Status:** [ ] · **Date:** · **Rig:**
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
 **Steps:**
 1. In ComfyUI, build any tiny workflow. Save it via the standard menu (NOT API format).
@@ -178,7 +180,7 @@ Required on the rig:
 ---
 
 ### M0-8 — Reset to admin
-**Status:** [ ] · **Date:** · **Rig:**
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
 **Steps:**
 1. From the timeline page, click **Reset to admin** (top right).
@@ -194,7 +196,7 @@ Required on the rig:
 ---
 
 ### M0-9 — Admin password gate
-**Status:** [ ] · **Date:** · **Rig:**
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
 **Steps:**
 1. Admin → **Admin password** → set a password.
@@ -214,7 +216,7 @@ Required on the rig:
 ---
 
 ### M0-10 — Output classification (sanity check before M3)
-**Status:** [ ] · **Date:** · **Rig:**
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
 **Steps:**
 1. Run a successful t2i job (M0-4).
@@ -236,14 +238,162 @@ Outstanding gaps surfaced during M0 acceptance go into **M1 prerequisites** belo
 
 ---
 
-## M1 — Real BenchmarkService + Flux2 image-edit + Depth preprocessor
+## M1 — Real BenchmarkService + Flux2 image-edit (✅ MOSTLY VERIFIED)
 
-Don't start M1 implementation until M0 fully passes. M1 manual tests will be added here when M1 implementation lands. Sketched scope:
+### M1-1 — Calibrate flux2_klein_9b_t2i, generation-only timing
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
-- M1-1 Calibrate `flux1_dev_t2i` → `runtime.json` written with realistic `estimatedDurationSec` and `samplesPerSec`. Timeline cell length matches actual run time.
-- M1-2 Add Flux2 Klein 9B image-edit. Two LoadImage nodes; both inputs upload + namespace cleanly; output renders.
-- M1-3 Add depth preprocessor. Output may be in `temp/`; verify `/media/image/<file>` resolves from temp.
-- M1-4 Input cleanup: book 5 quick jobs, wait `inputRetentionMinutes` + 1, confirm namespaced files are gone from `<ComfyUI>/input/`.
+**Steps:**
+1. Admin → hover the `flux2_klein_9b_t2i` card → click the gauge icon.
+2. Wait for the toast `Calibrated "flux2_klein_9b_t2i": ~Xs generation (+Ys first-load)`.
+3. Inspect `workflows/flux2_klein_9b_t2i/flux2_klein_9b_t2i.runtime.json`.
+
+**Expected:**
+- `estimatedDurationSec` reflects sampling + decode + save only (anchored on the first sampler progress event), NOT total wall-time.
+- `coldDurationSec` and `modelLoadSec` are also written.
+- `samplesPerSec` is a positive number (steps − 1) / sample-phase duration.
+- The card now shows `~Xs calibrated` instead of `~45s uncalibrated`.
+
+---
+
+### M1-2 — Calibrate Flux2 image-edit (built-in reference image)
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
+
+**Steps:**
+1. Admin → hover any image-edit workflow card → click the gauge icon.
+2. Watch the server log: `[Worker] using external ComfyUI` then sampler progress events.
+
+**Expected:**
+- No "Invalid image file" error — the calibration auto-substitutes `__comfyq_calibration.png` into every image-typed exposed parameter.
+- The PNG is created on first call at `<comfy_root>/input/__comfyq_calibration.png` (512×512 grey RGB).
+- `runtime.json` written with realistic timing.
+
+---
+
+### M1-3 — Flux2 Klein 9B text-to-image
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
+
+**Steps:**
+1. Activate the Flux2 t2i workflow.
+2. Schedule a job with a fresh prompt; leave seed on auto-randomize.
+3. Wait for completion.
+
+**Expected:**
+- Job lands `completed`, image renders in the Recent Generations card.
+- The card's WorkflowChip shows the Flux2 t2i name.
+- Re-opening the dialog re-rolls the seed automatically; the dice icon also re-rolls on demand.
+
+---
+
+### M1-4 — Flux2 Klein 9B image-edit (1 input image)
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
+
+**Steps:**
+1. Activate the Flux2 image-edit workflow.
+2. Schedule a job; drag-and-drop a source image into the upload field.
+3. Submit and wait.
+
+**Expected:**
+- The source uploads to `<comfy_root>/input/comfyq_session__<ts>__<rand>__<orig>` and that filename is injected into the LoadImage node's `image` field.
+- Generation completes; output renders.
+- Worker log: `[Executor] picking up job <id8> user=<name> workflow=<id>`.
+
+---
+
+### M1-5 — Flux2 Klein 9B image-edit with reference image (2 input images)
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
+
+**Steps:**
+1. Activate the 2-image Flux2 image-edit workflow.
+2. Schedule a job; upload both required images.
+3. Submit.
+
+**Expected:**
+- Both `LoadImage` nodes receive their respective uploaded filenames.
+- Generation completes; output renders.
+
+---
+
+### M1-6 — Live-time timeline
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
+
+**Steps:**
+1. Open the timeline. Note the visible window: 10 min back / 50 min ahead of "now".
+2. Wait at least 30 seconds without panning.
+3. Pan the timeline manually.
+
+**Expected:**
+- The window auto-slides to keep "now" in view (every 10 s).
+- The "Following" button is highlighted (primary variant).
+- Manual pan disables auto-follow; the button becomes "Now" (secondary). Click it to re-engage.
+
+---
+
+### M1-7 — Workflow upload + auto-scaffold + editor
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
+
+**Steps:**
+1. Admin → "Add Workflow" → drag in a fresh API JSON saved from ComfyUI's Dev mode.
+2. Toast confirms registration with the parameter count.
+3. The metadata editor opens automatically.
+4. Click **Hide infrastructure** (drops `unet_name` / `vae_name` / `clip_name*` / `weight_dtype` / `device` / `type` / `upscale_method` / `resolution_steps` / `megapixels` / `batch_size`).
+5. Tweak labels and defaults for the params students should see, then **Save metadata**.
+
+**Expected:**
+- `workflows/<id>/<id>.api.json` and `<id>.meta.json` created.
+- Re-opening the editor (pencil icon on the card) shows the saved subset enabled and the rest as toggleable-off rows.
+- Filter selector (`Show all` / `Only enabled` / `Only disabled`) works.
+
+---
+
+### M1-8 — Per-card actions: edit, calibrate, delete
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
+
+**Steps:**
+1. Admin → hover a workflow card. Three icons appear top-right.
+2. Pencil → editor opens.
+3. Gauge → calibration runs (spinner on the icon while in flight).
+4. Trash → confirmation modal lists what will be deleted; cancel and try again with confirm.
+
+**Expected:**
+- Delete is disabled on the active workflow with a tooltip explaining why.
+- Confirmation modal shows the workflow id and a summary of consequences.
+- After confirm: folder removed, library refreshes automatically, picked-workflow state clears if it was the deleted one.
+
+---
+
+### M1-9 — Emergency stop
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
+
+**Steps:**
+1. From a busy student session, navigate to admin (`/admin`).
+2. Click **Stop & kill all** (red button, top-right).
+3. Confirm in the modal.
+
+**Expected:**
+- Toast: `Emergency stop: N scheduled cancelled, M in-flight failed, ComfyUI killed — restarting in admin mode…`.
+- Server log shows the cancellation counts followed by `[ComfyProcess] Spawning…` or "killed" depending on whether ComfyQ launched ComfyUI.
+- After ~2.5s the page reloads in admin mode. Active workflow is unset.
+
+---
+
+### M1-10 — Per-job workflow chip
+**Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
+
+**Steps:**
+1. Run jobs across two different workflows.
+2. View Recent Generations cards, the MyJobs sidebar, and the lightbox.
+
+**Expected:**
+- Every entry shows a small workflow chip with the resolved name.
+- Hovering shows the full name. If a workflow has been deleted from the library, the chip falls back to the raw id and the lightbox annotates "No longer in library".
+
+---
+
+### Outstanding M1 work (deferred)
+
+- **M1-D1** Depth preprocessor fixture + `MediaStore` reads from `<comfy_root>/temp/`. Deferred to M3.
+- **M1-D2** Input cleanup TTL: book 5 quick jobs, wait `inputRetentionMinutes` + 1, confirm namespaced files swept.
 
 ## M2 — Phase 2 (job mgmt) + Phase 3 (real-time progress)
 

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import {
     Image, Video, Wand2, Music, Box, LayoutGrid, List,
-    RefreshCw, ChevronRight, Sparkles, Clock, Tag, AlertTriangle
+    RefreshCw, ChevronRight, Sparkles, Clock, Tag,
+    Pencil, Trash2, Gauge
 } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
@@ -13,7 +14,7 @@ import { SERVER_URL } from '../utils/api';
  * Calls onSelect(workflowDetails) when a workflow is chosen.
  * Calls onPresetSelect(name, values) when a preset chip is clicked.
  */
-const WorkflowSelector = ({ selectedWorkflowId, onSelect, onPresetSelect }) => {
+const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set() }) => {
     const [workflows, setWorkflows] = useState([]);
     const [categories, setCategories] = useState({});
     const [loading, setLoading] = useState(true);
@@ -83,7 +84,6 @@ const WorkflowSelector = ({ selectedWorkflowId, onSelect, onPresetSelect }) => {
     const usable = workflows.filter(w => !w.unavailable);
     const filtered = selectedCategory === 'all' ? usable : usable.filter(w => w.category === selectedCategory);
     const availableCategories = [...new Set(usable.map(w => w.category))];
-    const broken = workflows.filter(w => w.unavailable);
 
     if (loading) {
         return (
@@ -154,14 +154,54 @@ const WorkflowSelector = ({ selectedWorkflowId, onSelect, onPresetSelect }) => {
                 {filtered.map((w) => {
                     const IconComponent = categoryIcons[w.category] || LayoutGrid;
                     const isSelected = selectedWorkflow?.id === w.id;
+                    const isActive = activeWorkflowId === w.id;
+                    const isCalibrating = calibratingIds.has(w.id);
                     return (
                         <div
                             key={w.id}
                             onClick={() => handleClick(w)}
-                            className={`cursor-pointer rounded-xl border transition-all duration-200
+                            className={`group relative cursor-pointer rounded-xl border transition-all duration-200
                                 ${isSelected ? 'border-primary bg-primary/10 ring-2 ring-primary/30' : 'border-border bg-surface hover:border-primary/50 hover:bg-surface/80'}
                                 ${viewMode === 'grid' ? 'p-4' : 'p-3 flex items-center gap-4'}`}
                         >
+                            {/* Per-card action buttons (visible on hover; always visible if selected) */}
+                            {(onEdit || onDelete || onCalibrate) && (
+                                <div className={`absolute top-2 right-2 flex items-center gap-1 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                    {onCalibrate && (
+                                        <button
+                                            type="button"
+                                            disabled={isCalibrating}
+                                            onClick={(e) => { e.stopPropagation(); onCalibrate(w.id); }}
+                                            className="p-1.5 rounded-md bg-background/90 border border-border hover:border-primary/50 text-muted hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-wait"
+                                            title={isCalibrating ? 'Calibrating…' : 'Calibrate (measure generation time)'}
+                                        >
+                                            {isCalibrating ? <RefreshCw size={12} className="animate-spin" /> : <Gauge size={12} />}
+                                        </button>
+                                    )}
+                                    {onEdit && (
+                                        <button
+                                            type="button"
+                                            onClick={(e) => { e.stopPropagation(); onEdit(w.id); }}
+                                            className="p-1.5 rounded-md bg-background/90 border border-border hover:border-primary/50 text-muted hover:text-primary transition-colors"
+                                            title="Edit metadata & parameters"
+                                        >
+                                            <Pencil size={12} />
+                                        </button>
+                                    )}
+                                    {onDelete && (
+                                        <button
+                                            type="button"
+                                            disabled={isActive}
+                                            onClick={(e) => { e.stopPropagation(); onDelete(w.id); }}
+                                            className="p-1.5 rounded-md bg-background/90 border border-border hover:border-danger/50 text-muted hover:text-danger transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                                            title={isActive ? 'Cannot delete the active workflow' : 'Delete workflow'}
+                                        >
+                                            <Trash2 size={12} />
+                                        </button>
+                                    )}
+                                </div>
+                            )}
+
                             <div className={`rounded-lg bg-background flex items-center justify-center
                                 ${viewMode === 'grid' ? 'w-12 h-12 mb-3' : 'w-10 h-10 flex-shrink-0'}`}>
                                 <IconComponent size={viewMode === 'grid' ? 24 : 20}
@@ -188,18 +228,6 @@ const WorkflowSelector = ({ selectedWorkflowId, onSelect, onPresetSelect }) => {
                     );
                 })}
             </div>
-
-            {broken.length > 0 && (
-                <Card className="border-warning/40">
-                    <div className="flex items-center gap-2 mb-2 text-warning">
-                        <AlertTriangle size={16} />
-                        <span className="font-medium text-sm">Broken workflows</span>
-                    </div>
-                    <ul className="text-xs text-muted space-y-1">
-                        {broken.map(b => <li key={b.id}><code>{b.id}</code> — {b.reason}</li>)}
-                    </ul>
-                </Card>
-            )}
 
             {selectedWorkflow && selectedWorkflow.metadata?.presets && Object.keys(selectedWorkflow.metadata.presets).length > 0 && (
                 <Card className="mt-4 border-primary/30">

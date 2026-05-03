@@ -10,6 +10,7 @@ const express = require('express');
 const http = require('http');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 
 const configManager = require('./config/configManager');
 const { WorkflowRegistry } = require('./workflows/workflowRegistry');
@@ -27,7 +28,16 @@ const mediaStore = require('./media/mediaStore');
 
 function exitForRestart() {
     console.log('[ComfyQ] Exiting for restart');
-    setTimeout(() => process.exit(0), 100);
+    // nodemon does NOT auto-restart on a clean exit — it only restarts on a
+    // watched-file change. Bumping the mtime of this file makes nodemon's
+    // watcher pick up the "change" and re-spawn us. No content edit.
+    try {
+        const now = new Date();
+        fs.utimesSync(__filename, now, now);
+    } catch (e) {
+        console.warn('[ComfyQ] could not touch index.js to trigger nodemon restart:', e.message);
+    }
+    setTimeout(() => process.exit(0), 250);
 }
 
 async function main() {
@@ -47,9 +57,14 @@ async function main() {
 
     const gate = adminGate(configManager);
 
+    // Mutable runtime container — populated in student mode below. Lets the
+    // admin router expose student-only routes (emergency-stop) without a
+    // second router mount.
+    const runtime = {};
+
     // Routes available in both modes.
     app.use('/admin', adminRoutes.makeRouter({
-        configManager, registry, adminGate: gate, exitForRestart
+        configManager, registry, adminGate: gate, exitForRestart, runtime
     }));
 
     if (config.mode === 'admin') {
@@ -68,22 +83,33 @@ async function main() {
     }
 
     // ---- Student mode ----
+    console.log('[ComfyQ] === student-mode bootstrap ===');
+    console.log(`[ComfyQ]   active workflow: ${config.workflows.activeWorkflowId || '(none)'}`);
+    console.log(`[ComfyQ]   ComfyUI root:    ${config.comfy_ui.root_path}`);
+    console.log(`[ComfyQ]   ComfyUI api:     http://${config.comfy_ui.api_host}:${config.comfy_ui.api_port}`);
+    console.log(`[ComfyQ]   Python:          ${config.comfy_ui.python_executable}`);
+    console.log(`[ComfyQ]   VRAM budget:     ${config.comfy_ui.vramBudgetGb} GB`);
+
     if (!config.comfy_ui.root_path || !config.comfy_ui.python_executable) {
         console.error('[ComfyQ] ComfyUI paths are not configured. Switching to admin mode.');
         configManager.update(c => { c.mode = 'admin'; return c; });
         return exitForRestart();
     }
 
+    console.log('[ComfyQ] opening sqlite job queue…');
     const queue = new JobQueue(config.queue.dbPath);
     const reconciled = queue.reconcileOnBoot();
-    if (reconciled > 0) console.log(`[ComfyQ] reconciled ${reconciled} stale job(s)`);
+    if (reconciled > 0) console.log(`[ComfyQ] reconciled ${reconciled} stale job(s) → failed: server-restart`);
+    else console.log('[ComfyQ] no stale jobs to reconcile');
 
+    console.log('[ComfyQ] starting ComfyUI worker…');
     const worker = new LocalComfyUIWorker({
         comfyConfig: config.comfy_ui,
         queueConfig: config.queue
     });
     try {
-        await worker.start();
+        const started = await worker.start();
+        console.log(`[ComfyQ] worker ready (${started?.external ? 'attached to external ComfyUI' : 'spawned ComfyUI'})`);
     } catch (e) {
         console.error('[ComfyQ] failed to start ComfyUI worker:', e.message);
         console.error('[ComfyQ] reverting to admin mode');
@@ -93,10 +119,16 @@ async function main() {
 
     const executor = new JobExecutor({ queue, worker, registry, comfyConfig: config.comfy_ui });
     executor.start();
+    console.log('[ComfyQ] executor loop started');
 
     const benchmarkService = new BenchmarkService({ worker, registry, comfyConfig: config.comfy_ui });
 
-    const bus = new RealtimeBus({ httpServer: server, queue, executor, registry, configManager, worker });
+    const bus = new RealtimeBus({ httpServer: server, queue, executor, registry, configManager, worker, comfyConfig: config.comfy_ui });
+
+    // Expose student-mode runtime to the admin router (emergency-stop).
+    runtime.queue = queue;
+    runtime.executor = executor;
+    runtime.worker = worker;
 
     // Mount remaining routes.
     app.use('/workflows', workflowRoutes.makeRouter({
@@ -117,8 +149,17 @@ async function main() {
         if (!active) {
             console.warn('[ComfyQ] no active workflow set; clients will see an empty parameter map.');
         } else {
-            console.log(`[ComfyQ] active workflow: ${active}`);
+            const entry = registry.get(active);
+            if (entry && !entry.unavailable) {
+                const exposed = entry.effective?.exposedParameters?.length ?? 0;
+                const dur = entry.summary?.estimatedDurationSec ?? '?';
+                const cal = entry.summary?.hasCalibration ? 'calibrated' : 'uncalibrated';
+                console.log(`[ComfyQ] active workflow: ${active}  "${entry.summary?.name}"  (${exposed} params, ~${dur}s ${cal})`);
+            } else {
+                console.warn(`[ComfyQ] active workflow "${active}" is unavailable: ${entry?.reason || 'unknown'}`);
+            }
         }
+        console.log('[ComfyQ] === ready ===');
     });
 
     // Graceful shutdown

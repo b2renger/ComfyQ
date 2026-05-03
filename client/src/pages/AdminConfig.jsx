@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
+import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
+import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
@@ -24,6 +26,12 @@ const AdminConfig = ({ currentMode }) => {
     const [pwSaving, setPwSaving] = useState(false);
     const [toast, setToast] = useState(null);
     const [uploading, setUploading] = useState(false);
+    const [editingWorkflowId, setEditingWorkflowId] = useState(null);
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [deletingWorkflowId, setDeletingWorkflowId] = useState(null);
+    const [calibratingIds, setCalibratingIds] = useState(new Set());
+    const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
+    const [emergencyStopping, setEmergencyStopping] = useState(false);
 
     useEffect(() => { reloadConfig(); }, []);
 
@@ -108,6 +116,27 @@ const AdminConfig = ({ currentMode }) => {
         }
     };
 
+    const emergencyStop = async () => {
+        setEmergencyStopping(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/emergency-stop`, {
+                method: 'POST', headers: adminHeaders()
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Emergency stop failed');
+            const parts = [];
+            if (data.cancelledScheduled) parts.push(`${data.cancelledScheduled} scheduled cancelled`);
+            if (data.failedInFlight) parts.push(`${data.failedInFlight} in-flight failed`);
+            if (data.killedComfy) parts.push('ComfyUI killed');
+            showToast(`Emergency stop: ${parts.join(', ') || 'no active jobs'} — restarting in admin mode…`);
+            setTimeout(() => window.location.reload(), 2500);
+        } catch (e) {
+            showToast(e.message, 'err');
+            setEmergencyStopping(false);
+            setShowEmergencyConfirm(false);
+        }
+    };
+
     const resetToAdmin = async () => {
         try {
             const res = await fetch(`${SERVER_URL}/admin/reset-to-admin`, {
@@ -117,6 +146,41 @@ const AdminConfig = ({ currentMode }) => {
             showToast('Resetting to admin mode…');
             setTimeout(() => window.location.reload(), 2000);
         } catch (e) { showToast(e.message, 'err'); }
+    };
+
+    const calibrateWorkflow = async (id) => {
+        setCalibratingIds(prev => new Set(prev).add(id));
+        try {
+            const res = await fetch(`${SERVER_URL}/workflows/${id}/calibrate`, {
+                method: 'POST', headers: adminHeaders()
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Calibration failed');
+            const r = data.runtime || {};
+            showToast(`Calibrated "${id}": ~${r.estimatedDurationSec}s generation${r.modelLoadSec ? ` (+${r.modelLoadSec}s first-load)` : ''}`);
+            setRefreshKey(k => k + 1);
+        } catch (err) {
+            showToast(err.message, 'err');
+        } finally {
+            setCalibratingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+        }
+    };
+
+    const deleteWorkflow = async (id) => {
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/workflows/${id}`, {
+                method: 'DELETE', headers: adminHeaders()
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Delete failed');
+            showToast(`Workflow "${id}" deleted`);
+            setRefreshKey(k => k + 1);
+            setPickedWorkflow(prev => (prev?.id === id ? null : prev));
+        } catch (err) {
+            showToast(err.message, 'err');
+        } finally {
+            setDeletingWorkflowId(null);
+        }
     };
 
     const uploadWorkflow = async (e) => {
@@ -135,6 +199,7 @@ const AdminConfig = ({ currentMode }) => {
             if (!res.ok) throw new Error(data.error || 'Upload failed');
             showToast(`Workflow "${data.id}" registered (${data.parameterCount} parameters detected)`);
             await fetch(`${SERVER_URL}/workflows/refresh`, { method: 'POST' });
+            setEditingWorkflowId(data.id);
         } catch (err) { showToast(err.message, 'err'); }
         finally { setUploading(false); e.target.value = ''; }
     };
@@ -167,6 +232,11 @@ const AdminConfig = ({ currentMode }) => {
                     )}
                     {config.mode === 'student' && (
                         <Button variant="secondary" onClick={resetToAdmin} icon={Power}>Reset to admin</Button>
+                    )}
+                    {config.mode === 'student' && (
+                        <Button variant="danger" onClick={() => setShowEmergencyConfirm(true)} icon={OctagonAlert}>
+                            Stop &amp; kill all
+                        </Button>
                     )}
                 </div>
             </header>
@@ -254,11 +324,22 @@ const AdminConfig = ({ currentMode }) => {
                     )}
                 </div>
                 <WorkflowSelector
+                    key={refreshKey}
                     selectedWorkflowId={config.workflows.activeWorkflowId}
+                    activeWorkflowId={config.workflows.activeWorkflowId}
                     onSelect={(w) => setPickedWorkflow(w)}
+                    onEdit={(id) => setEditingWorkflowId(id)}
+                    onDelete={(id) => setDeletingWorkflowId(id)}
+                    onCalibrate={(id) => calibrateWorkflow(id)}
+                    calibratingIds={calibratingIds}
                 />
-                <div className="mt-6 flex items-center justify-end gap-2">
-                    {pickedWorkflow && <span className="text-xs text-muted">Selected: <code>{pickedWorkflow.id}</code></span>}
+                <div className="mt-6 flex items-center justify-end gap-2 flex-wrap">
+                    {pickedWorkflow && <span className="text-xs text-muted mr-auto">Selected: <code>{pickedWorkflow.id}</code></span>}
+                    <Button variant="secondary" icon={Pencil}
+                        disabled={!pickedWorkflow}
+                        onClick={() => pickedWorkflow && setEditingWorkflowId(pickedWorkflow.id)}>
+                        Edit metadata
+                    </Button>
                     <Button variant="primary" icon={Power}
                         disabled={!pickedWorkflow || isActivating || !pathsConfigured}
                         onClick={activate}>
@@ -266,6 +347,62 @@ const AdminConfig = ({ currentMode }) => {
                     </Button>
                 </div>
             </Card>
+
+            <WorkflowMetaEditor
+                workflowId={editingWorkflowId}
+                adminPassword={adminPassword}
+                onClose={() => setEditingWorkflowId(null)}
+                onSaved={() => {
+                    setRefreshKey(k => k + 1);
+                    showToast('Workflow metadata saved');
+                }}
+            />
+
+            <Modal isOpen={showEmergencyConfirm} onClose={() => !emergencyStopping && setShowEmergencyConfirm(false)}
+                title="Stop everything and kill ComfyUI?" maxWidth="max-w-md">
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-300">
+                        This will:
+                    </p>
+                    <ul className="text-sm text-slate-300 space-y-1.5 list-disc pl-5">
+                        <li>Cancel every scheduled job</li>
+                        <li>Mark every in-flight job as failed (<code className="text-xs">emergency-stop</code>)</li>
+                        <li>Kill the ComfyUI process if ComfyQ spawned it (external attached ComfyUI is left alone)</li>
+                        <li>Switch the server to admin mode and restart it</li>
+                    </ul>
+                    <p className="text-xs text-warning">
+                        Use this when something is stuck or generating something it shouldn't.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                        <Button variant="ghost" onClick={() => setShowEmergencyConfirm(false)}
+                            disabled={emergencyStopping}>Cancel</Button>
+                        <Button variant="danger" icon={OctagonAlert} onClick={emergencyStop}
+                            isLoading={emergencyStopping}>
+                            {emergencyStopping ? 'Stopping…' : 'Yes, stop everything'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal isOpen={!!deletingWorkflowId} onClose={() => setDeletingWorkflowId(null)}
+                title="Delete workflow?" maxWidth="max-w-md">
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-300">
+                        This will permanently delete the workflow folder
+                        <code className="mx-1 px-1.5 py-0.5 bg-surface rounded text-primary">{deletingWorkflowId}</code>
+                        including its <code>api.json</code>, <code>meta.json</code>, and any calibration data.
+                    </p>
+                    <p className="text-xs text-muted">
+                        Existing job records that reference this workflow will remain in the queue but won't be runnable.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                        <Button variant="ghost" onClick={() => setDeletingWorkflowId(null)}>Cancel</Button>
+                        <Button variant="danger" icon={Trash2} onClick={() => deleteWorkflow(deletingWorkflowId)}>
+                            Delete workflow
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
 
             <Card>
                 <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><KeyRound size={18} /> Admin password</h2>

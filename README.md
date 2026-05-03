@@ -13,16 +13,23 @@ This is the **v2 rebuild**. v1 lives on the `main` branch; v2 lives on the `v2` 
 - **Generic output detection** — classifies by file extension (image / video / audio / model3d / json), not by `class_type`. Works with any save node, including LTX video, depth preprocessor temp outputs, and audio-driven workflows
 - **Persistent job queue** (sqlite) — survives server restarts; in-flight jobs reconcile to `failed: server-restart` rather than hanging
 - **Auto-reconnecting ComfyUI WebSocket** — jobs no longer get stuck in `processing` if ComfyUI restarts mid-run
-- **Per-workflow timing** — BenchmarkService runs each workflow's warmup once and stores `estimatedDurationSec` for the timeline
+- **Real per-workflow timing** — `BenchmarkService` runs each workflow's warmup and stores `estimatedDurationSec` measured from the *first sampler step* (model/VAE load excluded), so the timeline reflects the recurring per-job cost. Built-in reference image lets image-edit workflows calibrate without prep
 - **Generic parameter detection** — surfaces every primitive widget on every node (no class_type whitelist), so new node types (Flux2, LTX, depth, custom LoRAs) can be exposed without code changes
+- **Admin workflow editor** — drag-and-drop API JSON → auto-scaffold meta → modal editor lets you toggle parameter exposure, rename labels, set defaults, change types (with bulk "Hide infrastructure" / "Enable all" / "Disable all"). Onboard a workflow in under a minute
+- **Per-workflow card actions** — Calibrate / Edit / Delete on each workflow in the admin library. Confirmation modal on delete; active workflow can't be deleted accidentally
+- **Emergency stop** — one button cancels every job, kills ComfyUI (only what we spawned), and restarts in admin mode
+- **Live-time timeline** — auto-follows current time with a sliding window; auto-disables when you pan
+- **Random seed by default** — every BookingDialog re-rolls the seed automatically; dice icon re-rolls; manual entry still works
+- **Recall settings** — "Use these settings" on any completed job re-opens a fresh dialog pre-filled with the job's prompt and parameters
+- **Per-job workflow chip** — every recent-generations card, sidebar row, and lightbox shows which workflow produced the image
 - **Wire-compatible client** — `Scheduler`, `Dashboard`, `BookingDialog`, `MyJobsPanel` from v1 work against v2 unchanged
 
 ## Status
 
-- ✅ **M0 (code complete)** — v2 skeleton, queue, executor, worker abstraction, registry, media store, realtime bus, auth gate. Smoke-tested locally.
-- ⏳ **M0 (rig acceptance)** — pending validation on a real ComfyUI box. See [manual_tests.md](manual_tests.md) for the M0-1..M0-10 checklist.
-- ⏳ **M1** — real benchmark, image-edit, depth preprocessor (don't start until M0 acceptance passes).
-- ⏳ **M2–M5** — see [implementation_plan.md](implementation_plan.md).
+- ✅ **M0 (verified on rig — RTX 5090)** — Flux1 dev t2i smoke fixture, plus Flux2 Klein 9B t2i, image-edit, and image-edit-with-reference all run end-to-end.
+- ✅ **M1 (mostly complete)** — real benchmark (with cold/warm split), Flux2 image-edit (1- and 2-image variants), image upload pipeline, admin workflow editor, calibrate/delete/edit per-card actions, emergency stop. Depth preprocessor + temp/ media routing deferred to M3.
+- ⏳ **M2** — Phase 2 (job mgmt: colors, prompt search, CSV export) + Phase 3 (real-time progress visualization, ETA badge).
+- ⏳ **M3–M5** — LTX video, audio I/O, mobile capture. See [implementation_plan.md](implementation_plan.md).
 
 ---
 
@@ -47,26 +54,46 @@ Open `http://<host>:3000`. On first boot the server starts in **admin mode** (no
 ## First-run setup (admin)
 
 1. **ComfyUI Settings** — set the ComfyUI root path, Python executable, output dir, ComfyUI API port, and VRAM budget for your GPU.
-2. **Add Workflow** — upload an API-format JSON. To get one:
-   - Open your workflow in ComfyUI.
+
+   For a Windows portable ComfyUI install, the `root_path` must point at the directory containing `main.py`, **not** the wrapper folder. With a typical install that's `...\ComfyUI_windows_portable\ComfyUI` (and `python_executable: ../python_embeded/python.exe`).
+2. **Add Workflow** — drag-and-drop an API-format JSON into the upload box. To get one from ComfyUI:
+   - Open your workflow.
    - Enable **Settings → Dev mode Options**.
    - Click **Save (API Format)**.
-   - Drop the file into the upload box, or place it manually as `workflows/<id>/<id>.api.json`.
 
-   v2 ships with two starter folders:
-   - `workflows/flux1_dev_t2i/` — ready to run if you have `flux1-dev-fp8.safetensors`, `t5xxl_fp8_e4m3fn.safetensors`, `clip_l.safetensors`, `ae.safetensors`.
-   - `workflows/flux2_klein_9b_t2i/` — placeholder slot; drop your saved Flux2 Klein 9B API workflow into it.
+   On upload the server runs the primitive-fallback parser and auto-creates `workflows/<id>/<id>.api.json` + `<id>.meta.json` exposing every detected widget. A modal editor opens immediately so you can:
+   - Click **Hide infrastructure** to drop model-path / weight-dtype / device fields.
+   - Tweak labels and defaults for the params students should see.
+   - Pick a category (`t2i`, `image-edit`, …).
+
+   You can re-open the editor any time via the pencil icon on the workflow card.
+
+   v2 ships with three Flux2 Klein 9B starter workflows (validated on RTX 5090):
+   - `workflows/flux2_klein_9b_t2i/` — text to image
+   - `workflows/flux2_klein_9b_image_edit/` — single image edit
+   - `workflows/flux2_klein_9b_image_edit_ref/` — image edit with reference image
+
+   All three need: `flux-2-klein-base-9b-fp8.safetensors` (UNET), `flux2-vae.safetensors` (VAE), `qwen_3_8b_fp8mixed.safetensors` (CLIP) in the corresponding `<comfy_root>/models/` subfolders.
 3. **Workflow library** — pick one → **Activate & start student mode**. The server restarts into student mode and launches (or attaches to) ComfyUI.
-4. **(Optional) Admin password** — gate destructive cross-user actions (deleting / cancelling other users' jobs, restarting, resetting). Without one, anyone can do anything; fine for solo dev / trusted LAN, not for shared deployments.
+4. **Calibrate** (optional but recommended) — click the gauge icon on a workflow card. ComfyQ runs one warmup, measures generation time *excluding* model loading, and writes `<id>.runtime.json`. The timeline cell length will then reflect actual run time. For workflows with image inputs, ComfyQ supplies a built-in reference image — no setup needed.
+5. **(Optional) Admin password** — gate destructive cross-user actions (deleting / cancelling other users' jobs, restarting, resetting). Without one, anyone can do anything; fine for solo dev / trusted LAN, not for shared deployments.
+
+### Operational controls (admin header)
+
+- **Reset to admin** — flips back to admin mode without killing ComfyUI; useful when you want to swap workflows without disturbing the GPU process.
+- **Stop & kill all** — emergency stop. Cancels every scheduled job, marks every in-flight job FAILED, REST-interrupts ComfyUI, kills the process if ComfyQ spawned it, and restarts in admin mode. Confirmation modal lists exactly what will happen.
 
 ## Daily use (student mode)
 
-1. Open `http://<host>:3000` — you're routed to the timeline.
+1. Open `http://<host>:3000` — you're routed to the timeline. The active workflow's name appears in the header.
 2. Set your username (stored in `localStorage`).
-3. Click an empty timeline slot or **Schedule a job**, fill in the exposed parameters, **Book Slot**.
-4. Watch progress in real time. Download the result from the recent generations grid or the timeline cell.
+3. The timeline auto-follows current time (10 min back / 50 min ahead). Click an empty slot or **Schedule a job**, fill in the exposed parameters, **Book Slot**.
+   - The seed field auto-randomizes each time the dialog opens; click the dice icon to re-roll, or type a specific value to pin it.
+4. Watch progress in real time. Each card / sidebar entry / lightbox shows which workflow produced it.
+5. Click any completed card to open the lightbox. **Use these settings** re-opens the booking dialog pre-filled with that job's prompt and parameters (image inputs must be re-uploaded — session uploads are TTL-cleaned).
+6. Delete your own scheduled jobs (cancels the job) or completed images (also unlinks the file from disk) via the X on each card.
 
-You can only move / cancel your own scheduled jobs. Cross-user actions require the admin password.
+You can only move / cancel / delete your own jobs. Cross-user actions require the admin password.
 
 ---
 
@@ -74,11 +101,11 @@ You can only move / cancel your own scheduled jobs. Cross-user actions require t
 
 ```
 workflows/
-└── flux1_dev_t2i/
-    ├── flux1_dev_t2i.api.json         the workflow (API format, REQUIRED)
-    ├── flux1_dev_t2i.meta.json        the metadata (REQUIRED for v2)
-    ├── flux1_dev_t2i.config.meta.json (optional, per-deployment overrides — gitignored)
-    └── flux1_dev_t2i.runtime.json     (optional, written by BenchmarkService — gitignored)
+└── flux2_klein_9b_t2i/
+    ├── flux2_klein_9b_t2i.api.json         the workflow (API format, REQUIRED)
+    ├── flux2_klein_9b_t2i.meta.json        the metadata (REQUIRED for v2)
+    ├── flux2_klein_9b_t2i.config.meta.json (optional, per-deployment overrides — gitignored)
+    └── flux2_klein_9b_t2i.runtime.json     (optional, written by BenchmarkService — gitignored)
 ```
 
 The `meta.json` is treated as read-only by the server. The admin UI never writes it; it only writes `config.meta.json` (overrides) and `runtime.json` (calibration). This keeps the original workflow export distinct from class-deployment tweaks.
@@ -117,8 +144,20 @@ The folder `workflows/<id>/` has a `meta.json` but no API workflow. Drop your `<
 ### Server starts in admin mode unexpectedly
 v2 archives v1 `config.json` files to `config.json.v1.bak` on first boot. If `comfy_ui.root_path` or `comfy_ui.python_executable` is empty, v2 won't start ComfyUI and falls back to admin mode. Set them in **Admin → ComfyUI Settings**.
 
+### `Python executable not found: ...\python_embeded\python.exe` (or similar)
+The portable ComfyUI bundle nests `main.py` inside a `ComfyUI/` subdirectory. Set `root_path` to the inner folder (e.g. `F:\ComfyUI_windows_portable_nvidia\ComfyUI_windows_portable\ComfyUI`), **not** the wrapper. With that root, `python_executable: ../python_embeded/python.exe` resolves correctly.
+
+### Activating a workflow does nothing / server stuck after "Exiting for restart"
+Make sure you're running with `npm run dev` (which uses nodemon). v2's `exitForRestart()` bumps the mtime of `server/index.js` so nodemon's watcher picks it up; if you've replaced nodemon with a different supervisor, point it at `server/` and trigger restart on file change.
+
 ### Job stuck in `processing` forever
-v2 reconciles in-flight jobs to `failed: server-restart` on every server boot. If a job is genuinely stuck during a run, kill ComfyUI; the worker emits a failure event and the job moves to `failed: comfyui-process-exited`.
+v2 reconciles in-flight jobs to `failed: server-restart` on every server boot. If a job is genuinely stuck during a run, click **Stop & kill all** in admin (cancels every job + kills ComfyUI + restarts in admin mode), or kill ComfyUI manually — the worker emits a failure event and the job moves to `failed: comfyui-process-exited`.
+
+### Workflow validation: `Invalid image file: <filename>`
+ComfyUI couldn't find that filename in its `input/` directory. Two common causes: (1) the workflow's hardcoded default doesn't exist on this rig — re-upload an image via the BookingDialog before submitting, or (2) the file was swept by the input-retention TTL (default 30 min). Re-upload to refresh.
+
+### Calibration: `Cannot calibrate: video|audio input "<key>" has no warmupParams entry`
+Calibration auto-substitutes a built-in reference PNG for image inputs but can't ship sample video/audio. Add a representative filename to `meta.warmupParams` for that key (the file must exist in `<comfy_root>/input/`).
 
 ---
 
