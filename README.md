@@ -28,6 +28,34 @@
 - Job queue management (cancel, reorder any job)
 - Mode switching (reset back to admin for reconfiguration)
 
+## v2 Roadmap
+
+The following features are planned for ComfyQ v2:
+
+### Multi-Workflow Support
+- **Workflow Registry**: Drop-in workflow support with `.meta.json` metadata files
+- **Workflow Selector UI**: Choose between different workflows (t2i, image-edit, i2v, etc.)
+- **Preset Parameters**: Quick-select presets for common settings (Quick/Balanced/Quality)
+
+### Enhanced Job Management
+- **User Color Coding**: Visual tracking of jobs by user with distinct colors
+- **Search & Filter**: Full-text search on prompts, date range filtering
+- **Export Data**: Download job history as CSV or JSON
+
+### Real-Time Improvements
+- **Progress Notifications**: Toast-style notifications with animated progress bars
+- **Node State Tracking**: See which workflow node is currently executing
+- **ETA Display**: Estimated time remaining during generation
+
+### Media Input Enhancements
+- **Webcam Support**: Capture images directly from camera (mobile-friendly)
+- **Front/Back Camera Toggle**: Switch cameras on mobile devices
+
+### Future: Multi-Node Support
+- **Node Manager**: Connect multiple ComfyUI backends
+- **Parallel Rendering**: Distribute jobs across nodes
+- **Health Monitoring**: Track node status, VRAM usage, queue depth
+
 ## Installation
 
 ### Prerequisites
@@ -169,6 +197,7 @@ The generated `config.json` includes:
   },
   "workflow": {
     "template_file": "./workflows/your_workflow.json",
+    "config_meta_file": "./workflows/your_workflow.config.meta.json",
     "warmup_prompt": "Test generation",
     "parameter_map": {
       "prompt_param_id": {
@@ -184,6 +213,20 @@ The generated `config.json` includes:
   }
 }
 ```
+
+### Workflow Configuration Metadata
+
+ComfyQ saves workflow parameter configurations to separate `.config.meta.json` files. This approach:
+
+- **Preserves Original Workflows**: The original `.json` workflow files remain untouched and usable in ComfyUI
+- **Separates Concerns**: Your parameter selections are stored separately from the workflow definition
+- **Enables Multiple Configurations**: You can create different parameter configurations for the same workflow
+
+**File Structure:**
+- `workflows/your_workflow.json` - Original ComfyUI workflow (unchanged)
+- `workflows/your_workflow.config.meta.json` - Your parameter configuration
+
+See [docs/workflow-config-metadata.md](docs/workflow-config-metadata.md) for detailed information.
 
 ### Resetting Configuration
 

@@ -6,7 +6,7 @@
     "scripts": {
         "start": "node server/index.js",
         "client": "npm run dev --prefix client",
-        "server": "nodemon server/index.js --watch server",
+        "server": "nodemon server/index.js --watch server --watch config.json",
         "dev": "concurrently --kill-others-on-fail \"npm run server\" \"npm run client\"",
         "postinstall": "npm install --prefix client && npm install --prefix server"
     },

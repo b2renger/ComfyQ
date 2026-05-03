@@ -81,25 +81,120 @@ function setMode(mode) {
  * @param {String} filename - Filename to save as
  * @returns {String} - Relative path to saved file
  */
+// Helper to find file recursively in workflows dir
+function findFileInWorkflows(filename) {
+    if (!fs.existsSync(WORKFLOWS_DIR)) return null;
+
+    // Check root first
+    if (fs.existsSync(path.join(WORKFLOWS_DIR, filename))) {
+        return path.join(WORKFLOWS_DIR, filename);
+    }
+
+    // Check subdirectories
+    const entries = fs.readdirSync(WORKFLOWS_DIR, { withFileTypes: true });
+    for (const entry of entries) {
+        if (entry.isDirectory()) {
+            const subPath = path.join(WORKFLOWS_DIR, entry.name, filename);
+            if (fs.existsSync(subPath)) {
+                return subPath;
+            }
+        }
+    }
+    return null;
+}
+
+/**
+ * Saves a workflow file.
+ * Checks for existing file in subdirectories to preserve organization.
+ * 
+ * @param {Object} workflowData - Workflow JSON object
+ * @param {String} filename - Filename to save as (can include relative path)
+ * @returns {String} - Relative path to saved file
+ */
 function saveWorkflow(workflowData, filename) {
     // Ensure workflows directory exists
     if (!fs.existsSync(WORKFLOWS_DIR)) {
         fs.mkdirSync(WORKFLOWS_DIR, { recursive: true });
     }
 
-    // Sanitize filename
-    const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._-]/g, '_');
-    const workflowPath = path.join(WORKFLOWS_DIR, sanitizedFilename);
+    // Sanitize filename but allow slashes for subfolders, block traversal
+    const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._\-\/]/g, '_').replace(/\.\./g, '');
 
-    // Write workflow file
+    // Determine path: use existing location if found, else root
+    let workflowPath = findFileInWorkflows(sanitizedFilename);
+    const isNewFile = !workflowPath;
+
+    if (isNewFile) {
+        workflowPath = path.join(WORKFLOWS_DIR, sanitizedFilename);
+
+        // Ensure subfolder exists if sanitizedFilename has path
+        const dir = path.dirname(workflowPath);
+        if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    }
+
+    // Calculate relative path for config (e.g., ./workflows/Sub/file.json)
+    const relativePath = `./workflows/${path.relative(WORKFLOWS_DIR, workflowPath).replace(/\\/g, '/')}`;
+
+    if (!isNewFile) {
+        console.log(`[ConfigManager] Workflow file exists, skipping overwrite: ${workflowPath}`);
+        return relativePath;
+    }
+
     const workflowJson = JSON.stringify(workflowData, null, 2);
     fs.writeFileSync(workflowPath, workflowJson, 'utf8');
 
     console.log(`[ConfigManager] Workflow saved to: ${workflowPath}`);
 
     // Return relative path for config.json
-    return `./workflows/${sanitizedFilename}`;
+    return relativePath;
 }
+
+/**
+ * Save parameter configuration to a separate .config.meta.json file
+ * This keeps the original workflow file intact and usable in ComfyUI
+ * @param {String} filename - Base workflow filename (can include path)
+ * @param {Object} parameterMap - User-selected parameter mappings
+ * @param {String} warmupPrompt - Warmup prompt for benchmarking
+ * @returns {String} - Relative path to saved config metadata file
+ */
+function saveParameterConfig(filename, parameterMap, warmupPrompt) {
+    // Ensure workflows directory exists
+    if (!fs.existsSync(WORKFLOWS_DIR)) {
+        fs.mkdirSync(WORKFLOWS_DIR, { recursive: true });
+    }
+
+    // Sanitize filename 
+    const sanitizedFilename = filename.replace(/[^a-zA-Z0-9._\-\/]/g, '_').replace(/\.\./g, '');
+
+    // Use basename for meta file to avoid path duplication
+    const configMetaFilename = `${path.basename(sanitizedFilename, '.json')}.config.meta.json`;
+
+    // Determine directory: matches workflow file, or root
+    const existingWorkflowPath = findFileInWorkflows(sanitizedFilename);
+    const targetDir = existingWorkflowPath ? path.dirname(existingWorkflowPath) : WORKFLOWS_DIR;
+
+    const configMetaPath = path.join(targetDir, configMetaFilename);
+
+    // Build configuration metadata
+    const configMetadata = {
+        version: '1.0',
+        createdAt: new Date().toISOString(),
+        workflowFile: sanitizedFilename,
+        warmupPrompt: warmupPrompt || 'Test prompt',
+        parameterMap: parameterMap,
+        description: 'Parameter configuration for ComfyQ workflow'
+    };
+
+    // Write configuration metadata file
+    const configMetaJson = JSON.stringify(configMetadata, null, 2);
+    fs.writeFileSync(configMetaPath, configMetaJson, 'utf8');
+
+    console.log(`[ConfigManager] Parameter config saved to: ${configMetaPath}`);
+
+    // Return relative path for config.json
+    return `./workflows/${path.relative(WORKFLOWS_DIR, configMetaPath).replace(/\\/g, '/')}`;
+}
+
 
 
 /**
@@ -107,6 +202,7 @@ function saveWorkflow(workflowData, filename) {
  * 
  * @param {Object} workflowConfig - New workflow configuration
  * @param {string} workflowConfig.template_file - Path to workflow JSON file
+ * @param {string} [workflowConfig.config_meta_file] - Path to parameter config metadata file
  * @param {Object} workflowConfig.parameter_map - Parameter mappings for the workflow
  * @param {string} [workflowConfig.warmup_prompt] - Prompt for benchmark generation
  * @throws {Error} If required fields are missing
@@ -126,6 +222,7 @@ function updateWorkflowConfig(workflowConfig) {
     // Update workflow section
     config.workflow = {
         template_file: workflowConfig.template_file,
+        config_meta_file: workflowConfig.config_meta_file,
         warmup_prompt: workflowConfig.warmup_prompt || 'Test prompt',
         parameter_map: workflowConfig.parameter_map
     };
@@ -150,9 +247,10 @@ function getWorkflowConfig() {
  * 
  * This is the main function called by the admin interface when configuration
  * is complete. It performs all steps needed to transition to student mode:
- * 1. Saves the workflow JSON file
- * 2. Updates workflow configuration
- * 3. Switches mode to 'student'
+ * 1. Saves the workflow JSON file (keeps original intact)
+ * 2. Saves parameter configuration to a separate .config.meta.json file
+ * 3. Updates workflow configuration in config.json
+ * 4. Switches mode to 'student'
  * 
  * @param {Object} workflowData - Complete ComfyUI workflow JSON
  * @param {string} filename - Filename for the workflow
@@ -160,12 +258,16 @@ function getWorkflowConfig() {
  * @param {string} warmupPrompt - Prompt for the benchmark generation
  */
 function saveAndSwitchToStudentMode(workflowData, filename, parameterMap, warmupPrompt) {
-    // Save workflow file to workflows directory
+    // Save workflow file to workflows directory (original format, untouched)
     const workflowPath = saveWorkflow(workflowData, filename);
+
+    // Save parameter configuration to a separate .config.meta.json file
+    const configMetaPath = saveParameterConfig(filename, parameterMap, warmupPrompt);
 
     // Update workflow configuration in config.json
     updateWorkflowConfig({
         template_file: workflowPath,
+        config_meta_file: configMetaPath,
         warmup_prompt: warmupPrompt,
         parameter_map: parameterMap
     });
@@ -174,6 +276,8 @@ function saveAndSwitchToStudentMode(workflowData, filename, parameterMap, warmup
     setMode('student');
 
     console.log('[ConfigManager] Configuration complete. Ready for student mode.');
+    console.log(`[ConfigManager] Workflow: ${workflowPath}`);
+    console.log(`[ConfigManager] Config metadata: ${configMetaPath}`);
 }
 
 /**
@@ -249,6 +353,12 @@ function resolveConfigPaths(config) {
         resolvedConfig.workflow.template_file = path.resolve(projectRoot, resolvedConfig.workflow.template_file);
     }
 
+    // Resolve workflow config metadata path
+    if (resolvedConfig.workflow && resolvedConfig.workflow.config_meta_file) {
+        const projectRoot = path.resolve(__dirname, '..');
+        resolvedConfig.workflow.config_meta_file = path.resolve(projectRoot, resolvedConfig.workflow.config_meta_file);
+    }
+
     return resolvedConfig;
 }
 
@@ -258,6 +368,7 @@ module.exports = {
     getMode,
     setMode,
     saveWorkflow,
+    saveParameterConfig,
     updateWorkflowConfig,
     getWorkflowConfig,
     saveAndSwitchToStudentMode,

@@ -20,6 +20,7 @@
 const { v4: uuidv4 } = require('uuid');
 const fs = require('fs');
 const axios = require('axios');
+const { convertLitegraphToApi } = require('./workflowParser');
 
 /**
  * Manages job scheduling, collision detection, and execution on ComfyUI.
@@ -259,7 +260,13 @@ class Scheduler {
             let promptData = {};
             try {
                 // Load workflow template
-                const template = JSON.parse(fs.readFileSync(config.workflow.template_file, 'utf8'));
+                let template = JSON.parse(fs.readFileSync(config.workflow.template_file, 'utf8'));
+
+                // Auto-convert Litegraph format if detected
+                if (template.nodes && Array.isArray(template.nodes)) {
+                    console.log('[Scheduler] Converting Litegraph format for execution...');
+                    template = convertLitegraphToApi(template);
+                }
 
                 // Inject user parameters into workflow nodes
                 // Iterates through parameter_map and replaces values in template

@@ -32,8 +32,9 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
     const [isUploading, setIsUploading] = useState(false);
 
     // Initialize form params from workflow config defaults
+    // Initialize form params from workflow config defaults
     useEffect(() => {
-        if (state.workflow && state.workflow.parameter_map) {
+        if (isOpen && state.workflow && state.workflow.parameter_map) {
             const initialParams = {};
             Object.entries(state.workflow.parameter_map).forEach(([key, config]) => {
                 // If config is array, take first or handle logic; here assumed object
@@ -43,7 +44,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm }) => {
             });
             setFormParams(initialParams);
         }
-    }, [state.workflow]);
+    }, [isOpen, state.workflow?.template_file]);
 
     useEffect(() => {
         setScheduledTime(initialTime);
