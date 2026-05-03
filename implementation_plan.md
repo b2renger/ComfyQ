@@ -269,10 +269,7 @@ Smallest functional v2 covering only t2i, on the new architecture.
 - `PUT /admin/comfy` persists ComfyUI paths to `config.json`.
 - Sqlite reconciliation: `executing` job → `failed: server-restart` after a simulated restart.
 
-**Pending on RTX rig (M0 acceptance criteria):**
-- Book a Flux1 dev t2i job in the timeline → progress visible → output renders.
-- Restart ComfyQ mid-job → confirms reconciliation in production.
-- Submit non-API workflow → expect a clear "Save (API Format)" error.
+**Pending on RTX rig (M0 acceptance criteria):** Tracked in [manual_tests.md](manual_tests.md) — tests M0-1 through M0-10. Don't start M1 implementation until they all pass.
 
 ### M1 — Real BenchmarkService + Flux2 image-edit + Depth preprocessor
 

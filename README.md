@@ -19,8 +19,9 @@ This is the **v2 rebuild**. v1 lives on the `main` branch; v2 lives on the `v2` 
 
 ## Status
 
-- ✅ **M0** — v2 skeleton runs Flux1 dev t2i. All architecture in place (queue, executor, worker abstraction, registry, media store, realtime bus, auth gate). End-to-end ComfyUI verification pending on the lab rig.
-- ⏳ **M1** — real benchmark, image-edit, depth preprocessor.
+- ✅ **M0 (code complete)** — v2 skeleton, queue, executor, worker abstraction, registry, media store, realtime bus, auth gate. Smoke-tested locally.
+- ⏳ **M0 (rig acceptance)** — pending validation on a real ComfyUI box. See [manual_tests.md](manual_tests.md) for the M0-1..M0-10 checklist.
+- ⏳ **M1** — real benchmark, image-edit, depth preprocessor (don't start until M0 acceptance passes).
 - ⏳ **M2–M5** — see [implementation_plan.md](implementation_plan.md).
 
 ---
