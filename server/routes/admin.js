@@ -1,240 +1,154 @@
-/**
- * Admin API Routes
- * Endpoints for workflow configuration and server management
- */
-
 const express = require('express');
-const multer = require('multer');
-const path = require('path');
 const fs = require('fs');
-const { parseWorkflow, validateWorkflow, buildParameterMap } = require('../workflowParser');
-const configManager = require('../configManager');
+const path = require('path');
+const multer = require('multer');
+const { setAdminPassword, checkAdminPassword } = require('../auth/authGate');
+const { WorkflowMeta } = require('../config/schemas');
+const { validateApiWorkflow } = require('../workflows/workflowValidator');
+const { parseWorkflow } = require('../workflows/workflowParser');
 
-const router = express.Router();
+function sanitizeId(s) {
+    return String(s).toLowerCase().replace(/[^a-z0-9_-]/g, '_').replace(/^_+|_+$/g, '');
+}
 
-// Configure multer for workflow file uploads
-const storage = multer.memoryStorage();
-const upload = multer({
-    storage: storage,
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
-    fileFilter: (req, file, cb) => {
-        if (file.mimetype === 'application/json' || file.originalname.endsWith('.json')) {
-            cb(null, true);
-        } else {
-            cb(new Error('Only JSON files are allowed'));
-        }
-    }
-});
+function makeRouter({ configManager, registry, adminGate, exitForRestart }) {
+    const router = express.Router();
+    const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
-/**
- * POST /admin/upload-workflow
- * Upload and parse a ComfyUI workflow file
- */
-router.post('/upload-workflow', upload.single('workflow'), (req, res) => {
-    try {
-        if (!req.file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-
-        // Parse JSON
-        const workflowJson = JSON.parse(req.file.buffer.toString('utf8'));
-
-        // Validate workflow structure
-        const validation = validateWorkflow(workflowJson);
-        if (!validation.valid) {
-            return res.status(400).json({ error: validation.error });
-        }
-
-        // Parse workflow and extract parameters
-        const parsed = parseWorkflow(workflowJson);
-
-        console.log(`[Admin] Workflow uploaded: ${req.file.originalname}`);
-        console.log(`[Admin] Found ${parsed.editableCount} editable parameters in ${parsed.nodeCount} nodes`);
-
-        res.json({
-            success: true,
-            filename: req.file.originalname,
-            nodeCount: parsed.nodeCount,
-            editableCount: parsed.editableCount,
-            parameters: parsed.parameters,
-            workflow: workflowJson // Send back for storage in frontend
-        });
-
-    } catch (error) {
-        console.error('[Admin] Error parsing workflow:', error);
-        res.status(400).json({
-            error: 'Invalid workflow file',
-            details: error.message
-        });
-    }
-});
-
-/**
- * POST /admin/save-config
- * Save workflow configuration and prepare to switch modes
- */
-router.post('/save-config', express.json({ limit: '10mb' }), (req, res) => {
-    try {
-        const { workflow, filename, selectedParameters, warmupPrompt } = req.body;
-
-        if (!workflow || !filename || !selectedParameters) {
-            return res.status(400).json({
-                error: 'Missing required fields: workflow, filename, selectedParameters'
-            });
-        }
-
-        // Filter only enabled parameters
-        const enabledParams = selectedParameters.filter(p => p.enabled);
-
-        if (enabledParams.length === 0) {
-            return res.status(400).json({
-                error: 'At least one parameter must be enabled'
-            });
-        }
-
-        // Build parameter map
-        const parameterMap = buildParameterMap(enabledParams);
-
-        // Save workflow and update config
-        configManager.saveAndSwitchToStudentMode(
-            workflow,
-            filename,
-            parameterMap,
-            warmupPrompt || 'Test prompt'
-        );
-
-        console.log(`[Admin] Configuration saved with ${enabledParams.length} parameters`);
-
-        res.json({
-            success: true,
-            message: 'Configuration saved successfully',
-            parametersEnabled: enabledParams.length,
-            mode: 'student'
-        });
-
-    } catch (error) {
-        console.error('[Admin] Error saving config:', error);
-        res.status(500).json({
-            error: 'Failed to save configuration',
-            details: error.message
-        });
-    }
-});
-
-/**
- * POST /admin/restart-server
- * Trigger server restart (process exit, assuming pm2 or nodemon is managing)
- */
-router.post('/restart-server', (req, res) => {
-    console.log('[Admin] Server restart requested');
-
-    res.json({
-        success: true,
-        message: 'Server restarting...'
+    router.get('/mode', (req, res) => {
+        const { config } = configManager.load();
+        res.json({ mode: config.mode });
     });
 
-    // Exit process after short delay to allow response to send
-    setTimeout(() => {
-        console.log('[Admin] Exiting process for restart');
-        process.exit(0);
-    }, 500);
-});
+    router.get('/config', (req, res) => {
+        const { config } = configManager.load();
+        // Never leak the password hash.
+        const safe = JSON.parse(JSON.stringify(config));
+        if (safe.auth) delete safe.auth.adminPasswordHash;
+        const hasAdminPassword = !!config.auth.adminPasswordHash;
+        res.json({ config: safe, hasAdminPassword });
+    });
 
-/**
- * GET /admin/current-config
- * Get current workflow configuration
- */
-router.get('/current-config', (req, res) => {
-    try {
-        const mode = configManager.getMode();
-        const workflowConfig = configManager.getWorkflowConfig();
+    // First-run / admin: set ComfyUI paths and server settings.
+    router.put('/comfy', express.json(), (req, res) => {
+        try {
+            const { root_path, python_executable, output_dir, api_host, api_port, autoStart, vramBudgetGb, installation_type } = req.body || {};
+            configManager.update(c => {
+                if (root_path !== undefined) c.comfy_ui.root_path = root_path;
+                if (python_executable !== undefined) c.comfy_ui.python_executable = python_executable;
+                if (output_dir !== undefined) c.comfy_ui.output_dir = output_dir;
+                if (api_host !== undefined) c.comfy_ui.api_host = api_host;
+                if (api_port !== undefined) c.comfy_ui.api_port = api_port;
+                if (autoStart !== undefined) c.comfy_ui.autoStart = autoStart;
+                if (vramBudgetGb !== undefined) c.comfy_ui.vramBudgetGb = vramBudgetGb;
+                if (installation_type !== undefined) c.comfy_ui.installation_type = installation_type;
+                return c;
+            });
+            res.json({ ok: true });
+        } catch (e) { res.status(400).json({ error: e.message }); }
+    });
 
-        res.json({
-            mode,
-            workflow: workflowConfig
-        });
-    } catch (error) {
-        console.error('[Admin] Error getting config:', error);
-        res.status(500).json({
-            error: 'Failed to read configuration',
-            details: error.message
-        });
-    }
-});
+    // Set / clear the admin password. Allowed without auth ONLY when no
+    // password is currently set (first-run). Otherwise requires the current
+    // password via X-Admin-Password header.
+    router.put('/admin-password', express.json(), (req, res) => {
+        try {
+            const { config } = configManager.load();
+            const hasExisting = !!config.auth.adminPasswordHash;
+            if (hasExisting) {
+                const provided = req.headers['x-admin-password'];
+                if (!checkAdminPassword(provided, configManager)) {
+                    return res.status(401).json({ error: 'admin password required' });
+                }
+            }
+            const { password } = req.body || {};
+            setAdminPassword(password || '', configManager);
+            res.json({ ok: true });
+        } catch (e) { res.status(400).json({ error: e.message }); }
+    });
 
-/**
- * POST /admin/reset-to-admin
- * Reset server back to admin mode for reconfiguration
- */
-router.post('/reset-to-admin', (req, res) => {
-    try {
-        configManager.resetToAdminMode();
+    // Activate a workflow and switch to student mode.
+    router.post('/activate-workflow', express.json(), (req, res) => {
+        try {
+            const { workflowId } = req.body || {};
+            if (!workflowId) return res.status(400).json({ error: 'workflowId required' });
+            const entry = registry.get(workflowId);
+            if (!entry || entry.unavailable) {
+                return res.status(409).json({ error: entry?.reason || 'workflow unavailable' });
+            }
+            configManager.update(c => {
+                c.workflows.activeWorkflowId = workflowId;
+                c.mode = 'student';
+                return c;
+            });
+            res.json({ ok: true, mode: 'student', workflowId });
+            if (exitForRestart) setTimeout(() => exitForRestart(), 250);
+        } catch (e) { res.status(400).json({ error: e.message }); }
+    });
 
-        res.json({
-            success: true,
-            message: 'Server reset to admin mode. Restart required.',
-            mode: 'admin'
-        });
+    router.post('/reset-to-admin', adminGate, (req, res) => {
+        configManager.update(c => { c.mode = 'admin'; return c; });
+        res.json({ ok: true, mode: 'admin' });
+        if (exitForRestart) setTimeout(() => exitForRestart(), 250);
+    });
 
-        // Trigger restart
-        setTimeout(() => {
-            console.log('[Admin] Exiting process for restart to admin mode');
-            process.exit(0);
-        }, 500);
+    router.post('/restart-server', adminGate, (req, res) => {
+        res.json({ ok: true });
+        if (exitForRestart) setTimeout(() => exitForRestart(), 250);
+    });
 
-    } catch (error) {
-        console.error('[Admin] Error resetting to admin mode:', error);
-        res.status(500).json({
-            error: 'Failed to reset mode',
-            details: error.message
-        });
-    }
-});
+    // Upload an API-format workflow JSON + auto-generate a meta.json scaffold.
+    // Saves into <workflowsDir>/<id>/<id>.api.json + <id>.meta.json.
+    // Admin can then click "Activate" to start using it.
+    router.post('/upload-workflow', adminGate, memUpload.single('workflow'), (req, res) => {
+        try {
+            if (!req.file) return res.status(400).json({ error: 'no file uploaded' });
+            const json = JSON.parse(req.file.buffer.toString('utf8'));
+            const validation = validateApiWorkflow(json);
+            if (!validation.valid) return res.status(400).json({ error: validation.error, format: validation.format });
 
-/**
- * GET /admin/mode
- * Get current server mode
- */
-router.get('/mode', (req, res) => {
-    try {
-        const mode = configManager.getMode();
-        res.json({ mode });
-    } catch (error) {
-        console.error('[Admin] Error getting mode:', error);
-        res.status(500).json({
-            error: 'Failed to get mode',
-            details: error.message
-        });
-    }
-});
+            const cfg = configManager.load().config;
+            const baseName = path.basename(req.file.originalname, '.json');
+            const id = sanitizeId(req.body.id || baseName);
+            if (!id) return res.status(400).json({ error: 'cannot derive workflow id from filename' });
 
-/**
- * GET /admin/workflow-file
- * Get the content of the currently configured workflow file
- */
-router.get('/workflow-file', (req, res) => {
-    try {
-        let config = configManager.readConfig();
-        // Resolve paths to find the file
-        config = configManager.resolveConfigPaths(config);
+            const dir = path.resolve(cfg.workflows.dir.startsWith('.')
+                ? path.resolve(__dirname, '../..', cfg.workflows.dir)
+                : cfg.workflows.dir, id);
+            if (fs.existsSync(dir) && !req.body.force) {
+                return res.status(409).json({ error: `workflow folder already exists: ${id}`, hint: 'pass force=true to overwrite' });
+            }
+            fs.mkdirSync(dir, { recursive: true });
 
-        const workflowPath = config.workflow?.template_file;
+            const apiFilename = `${id}.api.json`;
+            fs.writeFileSync(path.join(dir, apiFilename), JSON.stringify(json, null, 2), 'utf8');
 
-        if (!workflowPath || !fs.existsSync(workflowPath)) {
-            return res.status(404).json({ error: 'No workflow file configured or file not found' });
-        }
+            const parsed = parseWorkflow(json);
+            const meta = WorkflowMeta.parse({
+                schemaVersion: 1,
+                id,
+                name: req.body.name || baseName.replace(/[_-]+/g, ' '),
+                description: req.body.description || '',
+                category: req.body.category || 'other',
+                tags: [],
+                author: req.body.author || 'Unknown',
+                version: '1.0.0',
+                workflowFile: apiFilename,
+                apiFormat: true,
+                requirements: { minVRAM: 0, models: [] },
+                estimatedDurationSec: 60,
+                maxRuntimeSec: 600,
+                exposedParameters: parsed.parameters,
+                warmupParams: {},
+                presets: {}
+            });
+            fs.writeFileSync(path.join(dir, `${id}.meta.json`), JSON.stringify(meta, null, 2), 'utf8');
+            registry.discover();
+            res.json({ ok: true, id, parameterCount: parsed.parameters.length });
+        } catch (e) { res.status(400).json({ error: e.message }); }
+    });
 
-        const workflowData = fs.readFileSync(workflowPath, 'utf8');
-        const workflowJson = JSON.parse(workflowData);
+    return router;
+}
 
-        res.json(workflowJson);
-    } catch (error) {
-        console.error('[Admin] Error reading workflow file:', error);
-        res.status(500).json({
-            error: 'Failed to read workflow file',
-            details: error.message
-        });
-    }
-});
-
-module.exports = router;
+module.exports = { makeRouter };

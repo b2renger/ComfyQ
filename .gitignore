@@ -54,8 +54,17 @@ error.log
 
 # Generated configuration files (configured via admin interface)
 config.json
+config.json.*.bak
 configs/
-workflows/
+
+# Per-workflow runtime sidecars (created by BenchmarkService) and
+# per-deployment overrides (created by admin UI) are local state.
+# The workflow folders themselves (with .api.json + .meta.json) ARE tracked.
+workflows/*/*.runtime.json
+workflows/*/*.config.meta.json
+
+# Sqlite job queue and per-deployment state.
+server/data/
 
 # Personal config overrides (keep config.json template but ignore local copies)
 config.local.json

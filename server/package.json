@@ -1,20 +1,25 @@
 {
-    "name": "comfy-scheduler-server",
-    "version": "1.0.0",
-    "description": "Backend for ComfyScheduler",
+    "name": "comfyq-server",
+    "version": "2.0.0",
+    "description": "ComfyQ v2 — multi-workflow scheduler over ComfyUI",
     "main": "index.js",
     "scripts": {
         "start": "node index.js",
         "dev": "nodemon index.js"
     },
     "dependencies": {
-        "express": "^4.18.2",
-        "socket.io": "^4.7.2",
-        "chokidar": "^3.5.3",
         "axios": "^1.6.2",
-        "ws": "^8.14.2",
+        "bcryptjs": "^2.4.3",
+        "better-sqlite3": "^11.3.0",
+        "form-data": "^4.0.0",
+        "cors": "^2.8.5",
+        "express": "^4.18.2",
+        "mime-types": "^2.1.35",
+        "multer": "^2.0.2",
+        "socket.io": "^4.7.2",
         "uuid": "^9.0.1",
-        "cors": "^2.8.5"
+        "ws": "^8.14.2",
+        "zod": "^3.23.8"
     },
     "devDependencies": {
         "nodemon": "^3.0.1"

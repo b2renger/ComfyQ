@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "id": "flux1_dev_t2i",
+  "name": "Flux.1 dev — text to image",
+  "description": "Minimal Flux.1 dev fp8 text-to-image workflow. Smoke-test fixture for ComfyQ v2. Requires flux1-dev-fp8.safetensors, t5xxl_fp8_e4m3fn.safetensors, clip_l.safetensors, ae.safetensors.",
+  "category": "t2i",
+  "tags": ["flux", "text2image"],
+  "thumbnail": null,
+  "author": "ComfyQ",
+  "version": "1.0.0",
+  "workflowFile": "flux1_dev_t2i.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 12,
+    "models": [
+      { "type": "unet", "file": "flux1-dev-fp8.safetensors" },
+      { "type": "vae",  "file": "ae.safetensors" },
+      { "type": "clip", "file": "t5xxl_fp8_e4m3fn.safetensors" },
+      { "type": "clip", "file": "clip_l.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 45,
+  "maxRuntimeSec": 600,
+  "exposedParameters": [
+    {
+      "key": "prompt",
+      "nodeId": "6",
+      "field": "text",
+      "type": "textarea",
+      "label": "Prompt",
+      "default": "a vibrant city skyline at golden hour, ultra detailed",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "seed",
+      "nodeId": "13",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "steps",
+      "nodeId": "13",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps",
+      "default": 20,
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "guidance",
+      "nodeId": "14",
+      "field": "guidance",
+      "type": "number",
+      "label": "Guidance",
+      "default": 3.5,
+      "min": 0,
+      "max": 10,
+      "step": 0.1,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "width",
+      "nodeId": "5",
+      "field": "width",
+      "type": "number",
+      "label": "Width",
+      "default": 1024,
+      "min": 256,
+      "max": 2048,
+      "step": 8,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "height",
+      "nodeId": "5",
+      "field": "height",
+      "type": "number",
+      "label": "Height",
+      "default": 1024,
+      "min": 256,
+      "max": 2048,
+      "step": 8,
+      "required": false,
+      "order": 5
+    }
+  ],
+  "warmupParams": {
+    "prompt": "calibration",
+    "seed": 1,
+    "steps": 8,
+    "guidance": 3.5,
+    "width": 512,
+    "height": 512
+  },
+  "presets": {
+    "quick": {
+      "label": "Quick (8 steps)",
+      "description": "Faster, lower quality",
+      "values": { "steps": 8, "guidance": 3.0 }
+    },
+    "quality": {
+      "label": "Quality (30 steps)",
+      "description": "Slower, higher quality",
+      "values": { "steps": 30, "guidance": 3.5 }
+    }
+  }
+}

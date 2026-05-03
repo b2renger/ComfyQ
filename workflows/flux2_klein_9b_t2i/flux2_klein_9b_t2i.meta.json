@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "id": "flux2_klein_9b_t2i",
+  "name": "Flux2 Klein 9B — text to image",
+  "description": "Drop your saved (API Format) Flux2 Klein 9B t2i workflow into this folder as flux2_klein_9b_t2i.api.json. Until then this workflow shows as unavailable.",
+  "category": "t2i",
+  "tags": ["flux2", "klein", "9b", "text2image"],
+  "thumbnail": null,
+  "author": "ComfyQ",
+  "version": "0.1.0",
+  "workflowFile": "flux2_klein_9b_t2i.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 18,
+    "models": [
+      { "type": "unet", "file": "flux2-klein-9b.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 90,
+  "maxRuntimeSec": 900,
+  "exposedParameters": [],
+  "warmupParams": {},
+  "presets": {}
+}
