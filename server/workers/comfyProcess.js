@@ -46,7 +46,12 @@ class ComfyProcess extends EventEmitter {
             return { external: true };
         }
         const mainPy = path.join(this.rootPath, 'main.py');
-        const args = [mainPy, '--listen', this.host, '--port', String(this.port)];
+        // --highvram keeps weights resident on GPU and disables ComfyUI's
+        // staged offload prefetch path. Required on workshop rigs (RTX 5090,
+        // 24+ GB) because the prefetcher hits an upstream NoneType crash on
+        // LTX-AV / similar models. Workshop hardware has plenty of VRAM, so
+        // there is no downside.
+        const args = [mainPy, '--listen', this.host, '--port', String(this.port), '--highvram'];
         console.log(`[ComfyProcess] Spawning: ${this.pythonExecutable} ${args.join(' ')}`);
         this.proc = spawn(this.pythonExecutable, args, {
             cwd: this.rootPath,

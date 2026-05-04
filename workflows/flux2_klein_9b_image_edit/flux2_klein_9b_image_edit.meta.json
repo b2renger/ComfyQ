@@ -4,7 +4,12 @@
   "name": "Flux2 Klein 9B — image edit",
   "description": "Upload an image and ask for changes. Works with photos, drawings, or screenshots.",
   "category": "image-edit",
-  "tags": ["flux2", "klein", "9b", "image-edit"],
+  "tags": [
+    "flux2",
+    "klein",
+    "9b",
+    "image-edit"
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",
@@ -13,9 +18,18 @@
   "requirements": {
     "minVRAM": 18,
     "models": [
-      { "type": "unet", "file": "flux-2-klein-base-9b-fp8.safetensors" },
-      { "type": "vae",  "file": "flux2-vae.safetensors" },
-      { "type": "clip", "file": "qwen_3_8b_fp8mixed.safetensors" }
+      {
+        "type": "unet",
+        "file": "flux-2-klein-base-9b-fp8.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "flux2-vae.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen_3_8b_fp8mixed.safetensors"
+      }
     ]
   },
   "estimatedDurationSec": 26,
@@ -32,24 +46,17 @@
       "order": 0
     },
     {
-      "key": "cliptextencode_text_75_74",
-      "nodeId": "75:74",
-      "field": "text",
-      "type": "textarea",
-      "label": "Prompt",
-      "default": "Change the camera angle to a first-person driver's perspective looking through the steering wheel at the dashboard and windshield, maintaining the same minimalist style and lighting",
-      "required": true,
-      "order": 1
-    },
-    {
-      "key": "cliptextencode_text_75_67",
-      "nodeId": "75:67",
-      "field": "text",
-      "type": "textarea",
-      "label": "Negative prompt",
-      "default": "",
+      "key": "flux2scheduler_steps_75_62",
+      "nodeId": "75:62",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps",
+      "default": 20,
+      "min": 1,
+      "max": 60,
+      "step": 1,
       "required": false,
-      "order": 2
+      "order": 1
     },
     {
       "key": "randomnoise_noise_seed_75_73",
@@ -62,18 +69,25 @@
       "max": 4294967295,
       "step": 1,
       "required": false,
+      "order": 2
+    },
+    {
+      "key": "cliptextencode_text_75_74",
+      "nodeId": "75:74",
+      "field": "text",
+      "type": "textarea",
+      "label": "Prompt",
+      "default": "Change the camera angle to a first-person driver's perspective looking through the steering wheel at the dashboard and windshield, maintaining the same minimalist style and lighting",
+      "required": true,
       "order": 3
     },
     {
-      "key": "flux2scheduler_steps_75_62",
-      "nodeId": "75:62",
-      "field": "steps",
-      "type": "number",
-      "label": "Steps",
-      "default": 20,
-      "min": 1,
-      "max": 60,
-      "step": 1,
+      "key": "cliptextencode_text_75_67",
+      "nodeId": "75:67",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt",
+      "default": "",
       "required": false,
       "order": 4
     },

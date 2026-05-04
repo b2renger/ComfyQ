@@ -5,6 +5,12 @@ const { AppConfig } = require('./schemas');
 const PROJECT_ROOT = path.resolve(__dirname, '../..');
 const CONFIG_PATH = path.resolve(PROJECT_ROOT, 'config.json');
 
+// Hardcoded defaults for the workshop-rig layout. Every classroom machine is
+// cloned from the same image: portable ComfyUI lives at
+// D:\ComfyUI_windows_portable_nvidia\ComfyUI_windows_portable\... so first-run
+// admins land with all three paths pre-filled and only need to click Save.
+const WORKSHOP_PORTABLE_BASE = 'D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable';
+
 function defaultConfig() {
     return {
         schemaVersion: 2,
@@ -12,9 +18,9 @@ function defaultConfig() {
         server: { port: 3000, host: '0.0.0.0' },
         comfy_ui: {
             installation_type: 'portable',
-            root_path: '',
-            python_executable: '',
-            output_dir: 'output',
+            root_path: `${WORKSHOP_PORTABLE_BASE}\\ComfyUI`,
+            python_executable: `${WORKSHOP_PORTABLE_BASE}\\python_embeded\\python.exe`,
+            output_dir: `${WORKSHOP_PORTABLE_BASE}\\ComfyUI\\output`,
             api_host: '127.0.0.1',
             api_port: 8188,
             autoStart: true,

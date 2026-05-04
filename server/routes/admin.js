@@ -1,8 +1,10 @@
 const express = require('express');
 const fs = require('fs');
 const path = require('path');
+const { spawn } = require('child_process');
 const multer = require('multer');
 const { setAdminPassword, checkAdminPassword } = require('../auth/authGate');
+const { defaultConfig } = require('../config/configManager');
 const { WorkflowMeta } = require('../config/schemas');
 const { validateApiWorkflow } = require('../workflows/workflowValidator');
 const { parseWorkflow } = require('../workflows/workflowParser');
@@ -47,6 +49,105 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             });
             res.json({ ok: true });
         } catch (e) { res.status(400).json({ error: e.message }); }
+    });
+
+    // Return the hardcoded workshop-rig path defaults so the admin UI can
+    // offer a "Reset to defaults" action without duplicating the constants.
+    router.get('/default-paths', (req, res) => {
+        const d = defaultConfig().comfy_ui;
+        res.json({
+            root_path: d.root_path,
+            python_executable: d.python_executable,
+            output_dir: d.output_dir,
+            api_host: d.api_host,
+            api_port: d.api_port,
+            installation_type: d.installation_type,
+            vramBudgetGb: d.vramBudgetGb
+        });
+    });
+
+    // Validate a draft set of ComfyUI paths *before* the admin saves them.
+    // Read-only — runs filesystem checks and tries `python --version` with a
+    // 5s timeout. Returns a per-check breakdown so the UI can show exactly
+    // which path is wrong.
+    router.post('/check-paths', express.json(), async (req, res) => {
+        const { root_path, python_executable, output_dir } = req.body || {};
+        const checks = [];
+
+        let rootOk = false;
+        if (!root_path) {
+            checks.push({ label: 'ComfyUI root path', ok: false, detail: 'not set' });
+        } else if (!fs.existsSync(root_path)) {
+            checks.push({ label: 'ComfyUI root path', ok: false, detail: `not found: ${root_path}` });
+        } else if (!fs.statSync(root_path).isDirectory()) {
+            checks.push({ label: 'ComfyUI root path', ok: false, detail: `not a directory: ${root_path}` });
+        } else {
+            checks.push({ label: 'ComfyUI root path', ok: true, detail: root_path });
+            rootOk = true;
+            const mainPy = path.join(root_path, 'main.py');
+            if (fs.existsSync(mainPy)) {
+                checks.push({ label: 'ComfyUI main.py', ok: true, detail: mainPy });
+            } else {
+                checks.push({ label: 'ComfyUI main.py', ok: false, detail: `not found at ${mainPy} — is this really a ComfyUI directory?` });
+            }
+        }
+
+        if (!python_executable) {
+            checks.push({ label: 'Python executable', ok: false, detail: 'not set' });
+        } else {
+            // ComfyProcess uses fs.existsSync(python_executable) directly,
+            // which resolves relative paths against the server's cwd. That
+            // works when the server is launched from the project root with
+            // a path like `../python_embeded/python.exe` next to a portable
+            // ComfyUI. As a helpful fallback, also try resolving relative to
+            // root_path so the admin gets a clear pass when the layout is
+            // standard but the server cwd happens to differ.
+            let resolved = python_executable;
+            let exists = fs.existsSync(resolved);
+            if (!exists && !path.isAbsolute(python_executable) && rootOk) {
+                const rel = path.resolve(root_path, python_executable);
+                if (fs.existsSync(rel)) { resolved = rel; exists = true; }
+            }
+            if (!exists) {
+                checks.push({ label: 'Python executable', ok: false, detail: `not found: ${python_executable}` });
+            } else {
+                try {
+                    const version = await new Promise((resolve, reject) => {
+                        const proc = spawn(resolved, ['--version'], { windowsHide: true });
+                        let out = '', err = '';
+                        proc.stdout.on('data', d => { out += d.toString(); });
+                        proc.stderr.on('data', d => { err += d.toString(); });
+                        const timer = setTimeout(() => { try { proc.kill(); } catch { /* ignore */ } reject(new Error('timed out after 5s')); }, 5000);
+                        proc.on('error', e => { clearTimeout(timer); reject(e); });
+                        proc.on('exit', (code) => {
+                            clearTimeout(timer);
+                            if (code === 0) resolve((out || err).trim() || 'ran (no version output)');
+                            else reject(new Error(`exited with code ${code}${err ? ': ' + err.trim() : ''}`));
+                        });
+                    });
+                    checks.push({ label: 'Python executable', ok: true, detail: `${resolved} → ${version}` });
+                } catch (e) {
+                    checks.push({ label: 'Python executable', ok: false, detail: `${resolved}: ${e.message}` });
+                }
+            }
+        }
+
+        if (output_dir) {
+            if (!fs.existsSync(output_dir)) {
+                checks.push({ label: 'Output directory', ok: false, detail: `does not exist: ${output_dir}` });
+            } else if (!fs.statSync(output_dir).isDirectory()) {
+                checks.push({ label: 'Output directory', ok: false, detail: `not a directory: ${output_dir}` });
+            } else {
+                try {
+                    fs.accessSync(output_dir, fs.constants.W_OK);
+                    checks.push({ label: 'Output directory', ok: true, detail: `${output_dir} (writable)` });
+                } catch {
+                    checks.push({ label: 'Output directory', ok: false, detail: `${output_dir} is not writable` });
+                }
+            }
+        }
+
+        res.json({ ok: checks.every(c => c.ok), checks });
     });
 
     // Set / clear the admin password. Allowed without auth ONLY when no

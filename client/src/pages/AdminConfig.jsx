@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import Modal from '../components/ui/Modal';
@@ -32,6 +32,8 @@ const AdminConfig = ({ currentMode }) => {
     const [calibratingIds, setCalibratingIds] = useState(new Set());
     const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
     const [emergencyStopping, setEmergencyStopping] = useState(false);
+    const [pathChecks, setPathChecks] = useState(null);
+    const [checkingPaths, setCheckingPaths] = useState(false);
 
     useEffect(() => { reloadConfig(); }, []);
 
@@ -78,6 +80,35 @@ const AdminConfig = ({ currentMode }) => {
             showToast('ComfyUI paths saved');
             await reloadConfig();
         } catch (e) { showToast(e.message, 'err'); }
+    };
+
+    const resetPathsToDefaults = async () => {
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/default-paths`);
+            if (!res.ok) throw new Error('Failed to load defaults');
+            const defaults = await res.json();
+            setPathDraft(prev => ({ ...prev, ...defaults }));
+            setPathChecks(null);
+            showToast('Form reset to workshop defaults — click Save settings to apply');
+        } catch (e) { showToast(e.message, 'err'); }
+    };
+
+    const checkPaths = async () => {
+        setCheckingPaths(true);
+        setPathChecks(null);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/check-paths`, {
+                method: 'POST', headers: adminHeaders(), body: JSON.stringify(pathDraft)
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Check failed');
+            setPathChecks(data);
+            showToast(data.ok ? 'All paths look good' : 'Some paths failed validation', data.ok ? 'ok' : 'err');
+        } catch (e) {
+            showToast(e.message, 'err');
+        } finally {
+            setCheckingPaths(false);
+        }
     };
 
     const setPassword = async () => {
@@ -296,7 +327,35 @@ const AdminConfig = ({ currentMode }) => {
                     <Field label="ComfyUI API port" type="number" value={pathDraft.api_port || 8188}
                         onChange={v => setPathDraft({ ...pathDraft, api_port: parseInt(v, 10) })} />
                 </div>
-                <div className="mt-4 flex justify-end">
+                {pathChecks && (
+                    <div className="mt-4 rounded-lg border border-border bg-surface/50 p-3 text-sm">
+                        <div className={`mb-2 font-medium ${pathChecks.ok ? 'text-success' : 'text-danger'}`}>
+                            {pathChecks.ok ? 'All checks passed' : 'Some checks failed'}
+                        </div>
+                        <ul className="space-y-1">
+                            {pathChecks.checks.map((c, i) => (
+                                <li key={i} className="flex items-start gap-2">
+                                    {c.ok
+                                        ? <CheckCircle2 size={16} className="text-success mt-0.5 shrink-0" />
+                                        : <XCircle size={16} className="text-danger mt-0.5 shrink-0" />}
+                                    <div className="min-w-0">
+                                        <div className="text-white">{c.label}</div>
+                                        <div className="text-xs text-muted break-all">{c.detail}</div>
+                                    </div>
+                                </li>
+                            ))}
+                        </ul>
+                    </div>
+                )}
+                <div className="mt-4 flex justify-end gap-2">
+                    <Button variant="ghost" icon={RotateCcw} onClick={resetPathsToDefaults}>
+                        Reset to defaults
+                    </Button>
+                    <Button variant="secondary" icon={ShieldCheck}
+                        disabled={checkingPaths}
+                        onClick={checkPaths}>
+                        {checkingPaths ? 'Checking…' : 'Check paths'}
+                    </Button>
                     <Button variant="primary" icon={Save} onClick={savePaths}>Save settings</Button>
                 </div>
             </Card>
