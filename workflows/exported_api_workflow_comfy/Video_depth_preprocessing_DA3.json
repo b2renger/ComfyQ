@@ -1,0 +1,76 @@
+{
+  "3": {
+    "inputs": {
+      "model": "da3_base.safetensors",
+      "precision": "auto"
+    },
+    "class_type": "DownloadAndLoadDepthAnythingV3Model",
+    "_meta": {
+      "title": "(down)Load Depth Anything V3 Model"
+    }
+  },
+  "52": {
+    "inputs": {
+      "fps": 30,
+      "images": [
+        "62",
+        0
+      ]
+    },
+    "class_type": "CreateVideo",
+    "_meta": {
+      "title": "Create Video"
+    }
+  },
+  "54": {
+    "inputs": {
+      "filename_prefix": "video/ComfyUI",
+      "format": "auto",
+      "codec": "auto",
+      "video": [
+        "52",
+        0
+      ]
+    },
+    "class_type": "SaveVideo",
+    "_meta": {
+      "title": "Save Video"
+    }
+  },
+  "59": {
+    "inputs": {
+      "video": "input/robot_unitree.mp4",
+      "force_rate": 0,
+      "custom_width": 0,
+      "custom_height": 0,
+      "frame_load_cap": 0,
+      "skip_first_frames": 0,
+      "select_every_nth": 4,
+      "format": "AnimateDiff"
+    },
+    "class_type": "VHS_LoadVideoPath",
+    "_meta": {
+      "title": "Load Video (Path) 🎥🅥🅗🅢"
+    }
+  },
+  "62": {
+    "inputs": {
+      "normalization_mode": "Standard",
+      "resize_method": "resize",
+      "invert_depth": false,
+      "keep_model_size": false,
+      "da3_model": [
+        "3",
+        0
+      ],
+      "images": [
+        "59",
+        0
+      ]
+    },
+    "class_type": "DepthAnythingV3_MultiView",
+    "_meta": {
+      "title": "Depth Anything V3 (Multi-View)"
+    }
+  }
+}
