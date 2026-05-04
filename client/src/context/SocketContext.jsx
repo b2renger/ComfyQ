@@ -128,12 +128,16 @@ export const SocketProvider = ({ children }) => {
         if (socket) socket.emit('delete_job', jobId);
     }, [socket]);
 
+    const cancelJob = useCallback((jobId) => {
+        if (socket) socket.emit('cancel_job', jobId);
+    }, [socket]);
+
     const reorderJob = useCallback((jobId, newTimeSlot) => {
         if (socket) socket.emit('reorder_job', { jobId, newTimeSlot });
     }, [socket]);
 
     return (
-        <SocketContext.Provider value={{ socket, state, bookJob, deleteJob, reorderJob, username, registerUser, workflowsById }}>
+        <SocketContext.Provider value={{ socket, state, bookJob, deleteJob, cancelJob, reorderJob, username, registerUser, workflowsById }}>
             {children}
             {toasts.map(toast => (
                 <Toast

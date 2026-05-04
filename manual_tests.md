@@ -59,14 +59,16 @@ Required on the rig:
 **Status:** [x] · **Date:** 2026-05-03 · **Rig:** RTX 5090
 
 **Steps:**
-1. In **ComfyUI Settings**: enter `root_path`, `python_executable` (e.g. `../python_embeded/python.exe`), leave `output_dir` as `output`, set VRAM budget to your card's GB (24 for 3090/4090, 32 for 5090, 16 for 4080).
-2. Click **Save settings**. Toast should confirm.
-3. Refresh the page; values should persist.
-4. Inspect `config.json` at the project root: `comfy_ui.root_path` and `comfy_ui.python_executable` should be present.
+1. On a fresh clone with no `config.json` present, the **ComfyUI Settings** card should already show the workshop-default paths pre-filled (`D:\ComfyUI_windows_portable_nvidia\ComfyUI_windows_portable\ComfyUI` etc.). If your rig differs, edit the fields or click **Reset to defaults** to repopulate.
+2. Click **Check paths**. Verify the inline panel shows green checks for: `ComfyUI root path`, `ComfyUI main.py`, `Python executable` (with a `Python 3.x.y` version string), and `Output directory (writable)`.
+3. Click **Save settings**. Toast should confirm.
+4. Refresh the page; values should persist and the **Configured** badge appears in the header.
+5. Inspect `config.json` at the project root: `comfy_ui.root_path` and `comfy_ui.python_executable` should be present.
 
-**Expected:** All paths persisted; values reload on refresh.
+**Expected:** All paths persisted; values reload on refresh; Check paths returns `ok: true` for every row.
 
 **If failed — capture:**
+- The `POST /admin/check-paths` response (per-row `ok`/`detail`)
 - The `PUT /admin/comfy` response in browser devtools network tab
 - The current `config.json`
 
@@ -230,9 +232,55 @@ Required on the rig:
 
 ---
 
+### M0-11 — Cancel a running job
+**Status:** [x] · **Date:** 2026-05-04 · **Rig:** RTX 5090
+
+**Steps:**
+1. Book a long-running job (LTX i2v or any workflow with `maxRuntimeSec` ≥ 300).
+2. Once the card status flips to `processing`, click the X icon on the card.
+3. Confirm "Stop this running job? ComfyUI will be interrupted." in the prompt.
+
+**Expected:**
+- Server log: `[ComfyUI!] Global interrupt (no prompt_id specified)` then `[Executor] job <id8> FAILED after Xs — executing: cancelled` then `[ComfyUI!] Processing interrupted`.
+- Card status flips to `cancelled` (NOT deleted — the record is preserved for review).
+- ComfyUI process is left alive; the next booking proceeds normally without a respawn.
+- Cancel button is hidden on a job belonging to another user.
+
+**If failed — capture:**
+- Server log around the cancel
+- Whether `worker.cancel()` returned (look for `[Worker]` logs)
+- Network frame for the `cancel_job` socket event
+
+**Notes:** Verifies the cancel-only flow (`cancel_job` socket event → `executor.cancelJob` → `rest.interrupt`). Distinct from `delete_job` which would cancel + delete.
+
+---
+
+### M0-12 — Conda-env scrub on spawn
+**Status:** [x] · **Date:** 2026-05-04 · **Rig:** RTX 5090 (with active `(base)` conda)
+
+**Steps:**
+1. From a shell where `conda activate base` has run (verify with `echo $env:CONDA_PREFIX`), launch ComfyQ via `npm run dev`.
+2. Activate any workflow so ComfyQ spawns ComfyUI itself.
+3. Watch the server log near the spawn line.
+
+**Expected:**
+- A line like: `[ComfyProcess] Stripped env vars: CONDA_PREFIX=… CONDA_DEFAULT_ENV=… …`.
+- A line like: `[ComfyProcess] Removed N env-prefix entries from PATH`.
+- The spawn command line itself includes `-s` (Python flag) and `--windows-standalone-build --disable-auto-launch` (when `installation_type === 'portable'`).
+- Sampling proceeds at the same s/iter as standalone ComfyUI (no CPU-mode fallback).
+
+**If failed — capture:**
+- The `[ComfyProcess] Spawning:` line in full
+- The output of `python_embeded\python.exe -s -c "import torch; print(torch.cuda.is_available(), torch.version.cuda)"` from PowerShell
+- The contents of `$env:PATH` before and after `conda activate`
+
+**Notes:** Without the scrub, an active conda env's `site-packages` can shadow the portable's CUDA torch and force CPU-only sampling (800+ s/iter symptoms). This test is only meaningful on a rig where conda auto-activates; skip otherwise.
+
+---
+
 ### M0 acceptance summary
 
-When all of M0-1 through M0-10 are `[x]`, M0 is shipped. Update [implementation_plan.md](implementation_plan.md) to mark M0 as **VERIFIED ON RIG** with the date.
+When all of M0-1 through M0-12 are `[x]`, M0 is shipped. Update [implementation_plan.md](implementation_plan.md) to mark M0 as **VERIFIED ON RIG** with the date.
 
 Outstanding gaps surfaced during M0 acceptance go into **M1 prerequisites** below.
 

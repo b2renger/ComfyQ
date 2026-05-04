@@ -20,17 +20,27 @@ class JobExecutor {
         this._historyDeadline = null;
         this._historyStartedAt = null;
         this._wsHasFired = false;
+        this._jobStartedAt = null;
+        this._lastProgressLogAt = 0;
+        this._lastLoggedNodeId = null;
 
         // Wire worker events.
         this.worker.on('submitted', ({ jobId, promptId }) => {
             try { this.queue.transitionStatus(jobId, sm.STATES.EXECUTING, { payload: { promptId } }); }
             catch (e) { console.warn('[Executor] submitted transition err:', e.message); }
+            console.log(`[Executor] job ${jobId.slice(0, 8)} → prompt ${promptId.slice(0, 8)} (executing)`);
         });
         this.worker.on('progress', ({ jobId, stepsDone, stepsTotal, currentNodeId }) => {
             this.queue.updateProgress(jobId, { stepsDone, stepsTotal, currentNode: currentNodeId });
+            this._logProgress(jobId, stepsDone, stepsTotal, currentNodeId);
         });
         this.worker.on('node-executing', ({ jobId, nodeId }) => {
             this.queue.updateProgress(jobId, { currentNode: nodeId });
+            if (nodeId !== this._lastLoggedNodeId) {
+                this._lastLoggedNodeId = nodeId;
+                const elapsed = this._jobStartedAt ? ((Date.now() - this._jobStartedAt) / 1000).toFixed(1) : '?';
+                console.log(`[Executor] job ${jobId.slice(0, 8)} node ${nodeId} executing (t=${elapsed}s)`);
+            }
         });
         this.worker.on('execution-finished', async ({ jobId, promptId }) => {
             this._wsHasFired = true;
@@ -43,11 +53,43 @@ class JobExecutor {
         });
         this.worker.on('failed', ({ jobId, errorReason, errorPhase }) => {
             try { this.queue.transitionStatus(jobId, sm.STATES.FAILED, { payload: { errorReason, errorPhase } }); } catch { /* already terminal */ }
+            const dur = this._jobStartedAt ? ((Date.now() - this._jobStartedAt) / 1000).toFixed(1) : '?';
+            const truncReason = String(errorReason).split('\n')[0].slice(0, 200);
+            console.warn(`[Executor] job ${jobId.slice(0, 8)} FAILED after ${dur}s — ${errorPhase}: ${truncReason}`);
             this._currentJobId = null;
             this._historyDeadline = null;
             this._wsHasFired = false;
+            this._jobStartedAt = null;
+            this._lastLoggedNodeId = null;
             this._notify();
         });
+    }
+
+    _logProgress(jobId, stepsDone, stepsTotal, currentNodeId) {
+        const now = Date.now();
+        const isFirst = stepsDone <= 1;
+        const isLast = stepsTotal && stepsDone === stepsTotal;
+        // Throttle to once every 2s — but always log first/last step so the
+        // user sees sampling start and finish.
+        if (!isFirst && !isLast && (now - this._lastProgressLogAt) < 2000) return;
+        this._lastProgressLogAt = now;
+        const pct = stepsTotal ? `${Math.round((stepsDone / stepsTotal) * 100)}%` : '';
+        const elapsed = this._jobStartedAt ? `${((now - this._jobStartedAt) / 1000).toFixed(1)}s` : '?';
+        const tail = currentNodeId ? ` node=${currentNodeId}` : '';
+        console.log(`[Executor] job ${jobId.slice(0, 8)} step ${stepsDone}/${stepsTotal || '?'} ${pct} t=${elapsed}${tail}`);
+    }
+
+    _summarizeParams(paramValues, exposed) {
+        if (!paramValues) return '';
+        const parts = [];
+        for (const p of (exposed || [])) {
+            const v = paramValues[p.key];
+            if (v === undefined || v === null || v === '') continue;
+            let display = v;
+            if (typeof v === 'string' && v.length > 60) display = v.slice(0, 57) + '…';
+            parts.push(`${p.key}=${typeof display === 'string' ? JSON.stringify(display) : display}`);
+        }
+        return parts.join(' ');
     }
 
     onChange(cb) { this._listeners.add(cb); return () => this._listeners.delete(cb); }
@@ -99,8 +141,17 @@ class JobExecutor {
         this._currentJobId = job.id;
         this._wsHasFired = false;
         this._historyStartedAt = null;
+        this._jobStartedAt = Date.now();
+        this._lastProgressLogAt = 0;
+        this._lastLoggedNodeId = null;
 
-        console.log(`[Executor] picking up job ${job.id.slice(0, 8)} user=${job.userId} workflow=${workflowEntry.id}`);
+        const wfName = workflowEntry.summary?.name || workflowEntry.id;
+        console.log(`[Executor] picking up job ${job.id.slice(0, 8)} user=${job.userId} workflow=${workflowEntry.id} (${wfName})`);
+        const paramSummary = this._summarizeParams(job.paramValues, workflowEntry.effective?.exposedParameters);
+        if (paramSummary) console.log(`[Executor]   params: ${paramSummary}`);
+        if (job.inputFiles?.length) {
+            console.log(`[Executor]   inputs: ${job.inputFiles.map(f => `${f.field}=${f.comfyFilename}`).join(' ')}`);
+        }
 
         try {
             this.queue.transitionStatus(job.id, sm.STATES.UPLOADING_INPUTS);
@@ -199,11 +250,20 @@ class JobExecutor {
         } catch (e) {
             console.warn('[Executor] complete transition err:', e.message);
         }
+        const dur = this._jobStartedAt ? ((Date.now() - this._jobStartedAt) / 1000).toFixed(1) : '?';
+        console.log(`[Executor] job ${jobId.slice(0, 8)} COMPLETED in ${dur}s — ${wireOutputs.length} output(s)`);
+        for (const o of wireOutputs) {
+            const sizeKb = o.sizeBytes ? `${Math.round(o.sizeBytes / 1024)} KB` : '?';
+            const sub = o.subfolder ? `${o.subfolder}/` : '';
+            console.log(`[Executor]   → ${sub}${o.filename} (${o.kind}, ${sizeKb})`);
+        }
         this.worker.finalize({ success: true });
         this._currentJobId = null;
         this._historyDeadline = null;
         this._historyStartedAt = null;
         this._wsHasFired = false;
+        this._jobStartedAt = null;
+        this._lastLoggedNodeId = null;
         this._notify();
     }
 
@@ -215,11 +275,16 @@ class JobExecutor {
                 payload: { errorReason: reason, errorPhase: phase }
             });
         } catch { /* may already be terminal */ }
+        const dur = this._jobStartedAt ? ((Date.now() - this._jobStartedAt) / 1000).toFixed(1) : '?';
+        const truncReason = String(reason).split('\n')[0].slice(0, 200);
+        console.warn(`[Executor] job ${id.slice(0, 8)} FAILED after ${dur}s — ${phase}: ${truncReason}`);
         try { this.worker.finalize({ success: false }); } catch { /* ignore */ }
         this._currentJobId = null;
         this._historyDeadline = null;
         this._historyStartedAt = null;
         this._wsHasFired = false;
+        this._jobStartedAt = null;
+        this._lastLoggedNodeId = null;
         this._notify();
     }
 

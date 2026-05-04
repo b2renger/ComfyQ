@@ -22,7 +22,8 @@ class LocalComfyUIWorker extends Worker {
             rootPath: comfyConfig.root_path,
             pythonExecutable: comfyConfig.python_executable,
             host: this.host,
-            port: this.port
+            port: this.port,
+            installationType: comfyConfig.installation_type
         });
         this.rest = new ComfyRestClient({ host: this.host, port: this.port });
         this.uploader = new InputUploader({
@@ -203,6 +204,8 @@ class LocalComfyUIWorker extends Worker {
         }
 
         this.currentPromptId = resp.prompt_id;
+        const queueAhead = (resp.number != null) ? resp.number : '?';
+        console.log(`[Worker] job ${jobId.slice(0, 8)} accepted by ComfyUI — prompt=${this.currentPromptId.slice(0, 8)} queue#=${queueAhead}`);
         this.emit('submitted', { jobId, promptId: this.currentPromptId });
         return { promptId: this.currentPromptId };
     }

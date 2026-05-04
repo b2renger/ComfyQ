@@ -36,7 +36,7 @@ const WINDOW_AFTER_MS = 50 * 60 * 1000;
 const FOLLOW_TICK_MS = 10 * 1000;
 
 const SchedulerPage = () => {
-    const { state, bookJob, deleteJob, reorderJob, username, workflowsById } = useSocket();
+    const { state, bookJob, deleteJob, cancelJob, reorderJob, username, workflowsById } = useSocket();
     const timelineRef = useRef(null);
     const containerRef = useRef(null);
     const itemsRef = useRef(null); // vis-data DataSet
@@ -345,17 +345,28 @@ const SchedulerPage = () => {
                                         <div className="absolute top-0 right-0 flex items-center z-10">
                                             {(() => {
                                                 const isScheduled = job.status === 'scheduled';
+                                                const isProcessing = job.status === 'processing';
                                                 const isCompletedOrFailed = job.status === 'completed' || job.status === 'failed';
-                                                if (!isScheduled && !isCompletedOrFailed) return null;
-                                                const confirmMsg = isScheduled
-                                                    ? 'Cancel this job?'
-                                                    : 'Delete this image and its output file?';
-                                                const titleText = isScheduled ? 'Cancel Job' : 'Delete Image';
+                                                if (!isScheduled && !isProcessing && !isCompletedOrFailed) return null;
+                                                let confirmMsg, titleText, action;
+                                                if (isProcessing) {
+                                                    confirmMsg = 'Stop this running job? ComfyUI will be interrupted.';
+                                                    titleText = 'Cancel Running Job';
+                                                    action = () => cancelJob(job.id);
+                                                } else if (isScheduled) {
+                                                    confirmMsg = 'Cancel this job?';
+                                                    titleText = 'Cancel Job';
+                                                    action = () => deleteJob(job.id);
+                                                } else {
+                                                    confirmMsg = 'Delete this image and its output file?';
+                                                    titleText = 'Delete Image';
+                                                    action = () => deleteJob(job.id);
+                                                }
                                                 return (
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
-                                                            if (window.confirm(confirmMsg)) deleteJob(job.id);
+                                                            if (window.confirm(confirmMsg)) action();
                                                         }}
                                                         className="p-1.5 bg-danger/10 text-danger hover:bg-danger hover:text-white transition-colors rounded-bl-lg border-l border-b border-danger/20"
                                                         title={titleText}

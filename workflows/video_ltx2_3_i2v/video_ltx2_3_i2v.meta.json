@@ -58,26 +58,6 @@
       "order": 3
     },
     {
-      "key": "resizeimagesbylongeredge_longer_edge_267_235",
-      "nodeId": "267:235",
-      "field": "longer_edge",
-      "type": "number",
-      "label": "Longer Edge (Resize Images by Longer Edge)",
-      "default": 1536,
-      "required": false,
-      "order": 4
-    },
-    {
-      "key": "emptyltxvlatentvideo_batch_size_267_228",
-      "nodeId": "267:228",
-      "field": "batch_size",
-      "type": "number",
-      "label": "Batch Size (EmptyLTXVLatentVideo)",
-      "default": 1,
-      "required": false,
-      "order": 5
-    },
-    {
       "key": "ltxvimgtovideoinplace_strength_267_249",
       "nodeId": "267:249",
       "field": "strength",
@@ -85,7 +65,7 @@
       "label": "Strength (LTXVImgToVideoInplace)",
       "default": 0.7,
       "required": false,
-      "order": 6
+      "order": 4
     },
     {
       "key": "primitiveint_value_267_258",
@@ -95,7 +75,7 @@
       "label": "Value (Height)",
       "default": 720,
       "required": false,
-      "order": 7
+      "order": 5
     },
     {
       "key": "primitiveint_value_267_260",
@@ -105,7 +85,7 @@
       "label": "Value (Frame Rate)",
       "default": 25,
       "required": false,
-      "order": 8
+      "order": 6
     },
     {
       "key": "primitiveint_value_267_225",
@@ -115,17 +95,7 @@
       "label": "Value (Length)",
       "default": 121,
       "required": false,
-      "order": 9
-    },
-    {
-      "key": "ltxvemptylatentaudio_batch_size_267_214",
-      "nodeId": "267:214",
-      "field": "batch_size",
-      "type": "number",
-      "label": "Batch Size (LTXV Empty Latent Audio)",
-      "default": 1,
-      "required": false,
-      "order": 10
+      "order": 7
     },
     {
       "key": "primitiveint_value_267_257",
@@ -135,7 +105,7 @@
       "label": "Value (Width)",
       "default": 1280,
       "required": false,
-      "order": 11
+      "order": 8
     },
     {
       "key": "cliptextencode_text_267_247",
@@ -145,27 +115,7 @@
       "label": "Text (CLIP Text Encode (Prompt))",
       "default": "pc game, console game, video game, cartoon, childish, ugly",
       "required": false,
-      "order": 12
-    },
-    {
-      "key": "cfgguider_cfg_267_231",
-      "nodeId": "267:231",
-      "field": "cfg",
-      "type": "number",
-      "label": "Cfg (CFGGuider)",
-      "default": 1,
-      "required": false,
-      "order": 13
-    },
-    {
-      "key": "ltxavtextencoderloader_device_267_243",
-      "nodeId": "267:243",
-      "field": "device",
-      "type": "text",
-      "label": "Device (LTXV Audio Text Encoder Loader)",
-      "default": "default",
-      "required": false,
-      "order": 14
+      "order": 9
     },
     {
       "key": "primitivestringmultiline_value_267_266",
@@ -175,7 +125,7 @@
       "label": "Value (Prompt)",
       "default": "Egyptian royal in blue-and-gold headdress and high collar, white dress with golden embroidery and armbands, desert, robot soldiers in formation left and right. She walks steadily forward, head held level and gaze fixed ahead—no dipping or lowering of the head. The camera performs a single, smooth push-in only: starting in a wider shot of her, the robots, and the desert, it moves steadily forward until she is in a medium or medium-close frame, then holds. She stops, posture and head still upright, and says: “The old gods are silent. I am not.” Robot soldiers shift or march in place; sand and fabric move with the wind. No pull-back; the only camera move is the continuous push-in.",
       "required": false,
-      "order": 15
+      "order": 10
     }
   ],
   "warmupParams": {},
