@@ -52,10 +52,7 @@ error.log
 .env.production.local
 *.env
 
-# Generated configuration files (configured via admin interface)
-config.json
-config.json.*.bak
-configs/
+
 
 # Per-workflow runtime sidecars (created by BenchmarkService) and
 # per-deployment overrides (created by admin UI) are local state.

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": 2,
+  "mode": "student",
+  "server": {
+    "port": 3000,
+    "host": "0.0.0.0"
+  },
+  "comfy_ui": {
+    "installation_type": "portable",
+    "root_path": "D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI",
+    "python_executable": "D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\python_embeded\\python.exe",
+    "output_dir": "D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI\\output",
+    "api_host": "127.0.0.1",
+    "api_port": 8188,
+    "autoStart": true,
+    "vramBudgetGb": 24
+  },
+  "auth": {
+    "adminPasswordHash": "$2a$10$l0wwB6uOAEKn5S5wkrXmXesG92LfdPhX8GWOU0KXbmEpwGG5kRwby"
+  },
+  "queue": {
+    "dbPath": "./server/data/comfyq.sqlite",
+    "inputRetentionMinutes": 30,
+    "outputRetentionDays": 30
+  },
+  "workflows": {
+    "dir": "./workflows",
+    "activeWorkflowId": "video_ltx2_3_i2v"
+  }
+}
