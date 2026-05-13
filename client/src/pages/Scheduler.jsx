@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Timeline, DataSet } from 'vis-timeline/standalone';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import { useSocket } from '../context/SocketContext';
-import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X, Crosshair } from 'lucide-react';
+import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X, Crosshair, Users } from 'lucide-react';
 import BookingDialog from '../components/BookingDialog';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -11,6 +11,7 @@ import MyJobsPanel from '../components/MyJobsPanel';
 import ImageLightbox from '../components/ImageLightbox';
 import MediaPreview from '../components/ui/MediaPreview';
 import WorkflowChip from '../components/ui/WorkflowChip';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 
 /**
@@ -47,6 +48,12 @@ const SchedulerPage = () => {
     const [lightboxJob, setLightboxJob] = useState(null);
     const [followNow, setFollowNow] = useState(true);
     const [prefillParams, setPrefillParams] = useState(null);
+    // 'mine' (default — students only see their own results) or 'all' (everyone).
+    const [activeTab, setActiveTab] = useState('mine');
+    // User-filter dropdown in the "All" tab. 'all' shows everyone.
+    const [userFilter, setUserFilter] = useState('all');
+    // Pending delete/cancel; populated by the X button. Drives ConfirmDialog.
+    const [pendingAction, setPendingAction] = useState(null);
 
     const reuseJob = (job) => {
         setPrefillParams(job.params || {});
@@ -319,20 +326,60 @@ const SchedulerPage = () => {
                 />
 
                 <div className="space-y-6 pt-4">
-                    <div className="flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-muted uppercase tracking-widest ml-1">Recent Generations</h3>
-                        <span className="text-xs text-muted">{state.jobs.length} total jobs</span>
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex items-center gap-1 bg-surface rounded-lg p-1 border border-border">
+                            <button
+                                onClick={() => setActiveTab('mine')}
+                                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'mine' ? 'bg-primary text-white shadow' : 'text-muted hover:text-white'}`}
+                            >
+                                My Generations
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('all')}
+                                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'all' ? 'bg-primary text-white shadow' : 'text-muted hover:text-white'}`}
+                            >
+                                All Jobs
+                            </button>
+                        </div>
+                        {activeTab === 'all' && (() => {
+                            const users = Array.from(new Set(state.jobs.map(j => j.user_id))).sort();
+                            return (
+                                <div className="flex items-center gap-2">
+                                    <Users size={14} className="text-muted" />
+                                    <select
+                                        value={userFilter}
+                                        onChange={(e) => setUserFilter(e.target.value)}
+                                        className="bg-surface border border-border rounded-md px-2 py-1.5 text-xs text-white"
+                                    >
+                                        <option value="all">All users ({state.jobs.length})</option>
+                                        {users.map(u => {
+                                            const count = state.jobs.filter(j => j.user_id === u).length;
+                                            return <option key={u} value={u}>{u === username ? `${u} (you)` : u} — {count}</option>;
+                                        })}
+                                    </select>
+                                </div>
+                            );
+                        })()}
                     </div>
 
+                    {(() => {
+                        const filtered = state.jobs.filter(job => {
+                            if (activeTab === 'mine') return job.user_id === username;
+                            if (userFilter === 'all') return true;
+                            return job.user_id === userFilter;
+                        });
+                        return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                        {state.jobs.length === 0 ? (
+                        {filtered.length === 0 ? (
                             <div className="col-span-full py-12 flex flex-col items-center justify-center text-center space-y-4 opacity-30">
                                 <Clock size={48} />
-                                <p className="text-lg font-medium">No jobs scheduled yet</p>
-                                <Button variant="ghost" onClick={() => setIsBookingOpen(true)}>Book the first slot</Button>
+                                <p className="text-lg font-medium">
+                                    {activeTab === 'mine' ? "You haven't generated anything yet" : 'No jobs match this filter'}
+                                </p>
+                                {activeTab === 'mine' && <Button variant="ghost" onClick={() => setIsBookingOpen(true)}>Book your first slot</Button>}
                             </div>
                         ) : (
-                            state.jobs.sort((a, b) => b.time_slot - a.time_slot).map((job) => (
+                            filtered.sort((a, b) => b.time_slot - a.time_slot).map((job) => (
                                 <Card
                                     key={job.id}
                                     className={`group relative overflow-hidden transition-all duration-300 hover:scale-[1.02] cursor-pointer ${selectedJob?.id === job.id ? 'ring-2 ring-primary border-primary/50' : 'hover:border-primary/30'}`}
@@ -341,45 +388,57 @@ const SchedulerPage = () => {
                                         if (job.status === 'completed') setLightboxJob(job);
                                     }}
                                 >
-                                    {job.user_id === username && (
-                                        <div className="absolute top-0 right-0 flex items-center z-10">
-                                            {(() => {
-                                                const isScheduled = job.status === 'scheduled';
-                                                const isProcessing = job.status === 'processing';
-                                                const isCompletedOrFailed = job.status === 'completed' || job.status === 'failed';
-                                                if (!isScheduled && !isProcessing && !isCompletedOrFailed) return null;
-                                                let confirmMsg, titleText, action;
-                                                if (isProcessing) {
-                                                    confirmMsg = 'Stop this running job? ComfyUI will be interrupted.';
-                                                    titleText = 'Cancel Running Job';
-                                                    action = () => cancelJob(job.id);
-                                                } else if (isScheduled) {
-                                                    confirmMsg = 'Cancel this job?';
-                                                    titleText = 'Cancel Job';
-                                                    action = () => deleteJob(job.id);
-                                                } else {
-                                                    confirmMsg = 'Delete this image and its output file?';
-                                                    titleText = 'Delete Image';
-                                                    action = () => deleteJob(job.id);
-                                                }
-                                                return (
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            if (window.confirm(confirmMsg)) action();
-                                                        }}
-                                                        className="p-1.5 bg-danger/10 text-danger hover:bg-danger hover:text-white transition-colors rounded-bl-lg border-l border-b border-danger/20"
-                                                        title={titleText}
-                                                    >
-                                                        <X size={12} />
-                                                    </button>
-                                                );
-                                            })()}
-                                            <div className="p-1 px-2 bg-primary/20 text-primary text-[8px] font-bold uppercase tracking-tighter rounded-bl-lg border-l border-b border-primary/20">
-                                                Yours
+                                    {(() => {
+                                        const isMine = job.user_id === username;
+                                        const isScheduled = job.status === 'scheduled';
+                                        const isProcessing = job.status === 'processing';
+                                        const isCompletedOrFailed = job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled';
+                                        const hasAction = isScheduled || isProcessing || isCompletedOrFailed;
+                                        if (!hasAction && !isMine) return null;
+                                        return (
+                                            <div className="absolute top-0 right-0 flex items-center z-10">
+                                                {hasAction && (() => {
+                                                    let title, message, kind;
+                                                    if (isProcessing) {
+                                                        title = 'Cancel running job?';
+                                                        message = isMine
+                                                            ? 'This will interrupt ComfyUI for your job. The job will be marked as cancelled.'
+                                                            : `Cancel ${job.user_id}'s running job? ComfyUI will be interrupted.`;
+                                                        kind = 'cancel';
+                                                    } else if (isScheduled) {
+                                                        title = 'Cancel scheduled job?';
+                                                        message = isMine
+                                                            ? 'Remove this scheduled job from the timeline?'
+                                                            : `Remove ${job.user_id}'s scheduled job from the timeline?`;
+                                                        kind = 'delete';
+                                                    } else {
+                                                        title = 'Delete this result?';
+                                                        message = isMine
+                                                            ? 'Delete this job record and its output file from disk? This cannot be undone.'
+                                                            : `Delete ${job.user_id}'s job record and output file from disk? This cannot be undone.`;
+                                                        kind = 'delete';
+                                                    }
+                                                    return (
+                                                        <button
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                setPendingAction({ jobId: job.id, kind, isMine, title, message, userId: job.user_id });
+                                                            }}
+                                                            className="p-1.5 bg-danger/10 text-danger hover:bg-danger hover:text-white transition-colors rounded-bl-lg border-l border-b border-danger/20"
+                                                            title={isMine ? title : `${title} (admin password required)`}
+                                                        >
+                                                            <X size={12} />
+                                                        </button>
+                                                    );
+                                                })()}
+                                                {isMine && (
+                                                    <div className="p-1 px-2 bg-primary/20 text-primary text-[8px] font-bold uppercase tracking-tighter rounded-bl-lg border-l border-b border-primary/20">
+                                                        Yours
+                                                    </div>
+                                                )}
                                             </div>
-                                        </div>
-                                    )}
+                                        );
+                                    })()}
 
                                     <div className="flex flex-col h-full space-y-4">
                                         <div className="flex justify-between items-start">
@@ -466,6 +525,8 @@ const SchedulerPage = () => {
                             ))
                         )}
                     </div>
+                    );
+                    })()}
                 </div>
             </div>
 
@@ -473,6 +534,25 @@ const SchedulerPage = () => {
             <div className="w-80 border-l border-border hidden xl:block shrink-0">
                 <MyJobsPanel />
             </div>
+
+            <ConfirmDialog
+                isOpen={!!pendingAction}
+                title={pendingAction?.title || ''}
+                message={pendingAction?.message || ''}
+                confirmLabel={pendingAction?.kind === 'cancel' ? 'Yes, cancel job' : 'Yes, delete'}
+                requirePassword={pendingAction && !pendingAction.isMine}
+                passwordHint={pendingAction && !pendingAction.isMine
+                    ? `${pendingAction.userId}'s job — admin password required. If no password is set, this action is disabled.`
+                    : null}
+                onClose={() => setPendingAction(null)}
+                onConfirm={(pw) => {
+                    if (!pendingAction) return;
+                    const { jobId, kind } = pendingAction;
+                    if (kind === 'cancel') cancelJob(jobId, pw);
+                    else deleteJob(jobId, pw);
+                    setPendingAction(null);
+                }}
+            />
 
             {/* My Jobs Sidebar - Mobile Overlay */}
             {

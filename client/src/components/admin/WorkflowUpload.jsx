@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { Upload, FileJson, AlertCircle, CheckCircle, FileUp } from 'lucide-react';
+import { SERVER_URL } from '../../utils/api';
 
 const WorkflowUpload = ({ onUploadSuccess }) => {
     const [isDragging, setIsDragging] = useState(false);
@@ -29,9 +30,6 @@ const WorkflowUpload = ({ onUploadSuccess }) => {
         formData.append('workflow', file);
 
         try {
-            // Import SERVER_URL dynamically or assume relative path if checking locally
-            const SERVER_URL = import.meta.env.VITE_SERVER_URL || 'http://localhost:3000';
-
             const response = await fetch(`${SERVER_URL}/admin/upload-workflow`, {
                 method: 'POST',
                 body: formData,

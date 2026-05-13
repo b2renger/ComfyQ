@@ -8,10 +8,26 @@ const { defaultConfig } = require('../config/configManager');
 const { WorkflowMeta } = require('../config/schemas');
 const { validateApiWorkflow } = require('../workflows/workflowValidator');
 const { parseWorkflow } = require('../workflows/workflowParser');
+const { resolveOutputPath } = require('../executor/outputCollector');
 const sm = require('../queue/jobStateMachine');
 
 function sanitizeId(s) {
     return String(s).toLowerCase().replace(/[^a-z0-9_-]/g, '_').replace(/^_+|_+$/g, '');
+}
+
+// Opens the persistent JobQueue on demand for admin-mode operations (where
+// the student-mode runtime.queue isn't wired up). Caller is responsible for
+// calling _closeAdHoc() when done.
+function _openQueueAdHoc(resolvedConfig) {
+    try {
+        const { JobQueue } = require('../queue/jobQueue');
+        const q = new JobQueue(resolvedConfig.queue.dbPath);
+        q._closeAdHoc = () => { try { q.db && q.db.close(); } catch { /* ignore */ } };
+        return q;
+    } catch (e) {
+        console.error('[Admin] could not open queue ad-hoc:', e.message);
+        return null;
+    }
 }
 
 function makeRouter({ configManager, registry, adminGate, exitForRestart, runtime }) {
@@ -203,6 +219,49 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             res.json({ ok: true, mode: 'student', workflowId });
             if (exitForRestart) setTimeout(() => exitForRestart(), 250);
         } catch (e) { res.status(400).json({ error: e.message }); }
+    });
+
+    // Clean every output file referenced by any completed job, then clear
+    // the outputs field on each so the UI no longer offers broken downloads.
+    // Job records themselves are preserved (history). Gated by admin password
+    // because it deletes everyone's results. Available in both admin and
+    // student mode (uses runtime.queue when present, otherwise opens the
+    // configured sqlite file directly).
+    router.post('/cleanup-outputs', adminGate, (req, res) => {
+        try {
+            const cfg = configManager.resolvePaths(configManager.load().config);
+            const queue = runtime?.queue || _openQueueAdHoc(cfg);
+            if (!queue) return res.status(500).json({ error: 'queue unavailable' });
+            let filesDeleted = 0;
+            let jobsCleared = 0;
+            let skippedInFlight = 0;
+            const errors = [];
+            const jobs = queue.list({ limit: 100000 });
+            for (const job of jobs) {
+                const outputs = job.outputs || [];
+                if (outputs.length === 0) continue;
+                // Don't yank files out from under a currently-running job — its
+                // output collector is about to need them. Only act on terminal jobs.
+                if (sm.isInFlight(job.status)) { skippedInFlight++; continue; }
+                for (const o of outputs) {
+                    try {
+                        const abs = resolveOutputPath(o, cfg.comfy_ui);
+                        if (abs && fs.existsSync(abs)) { fs.unlinkSync(abs); filesDeleted++; }
+                    } catch (e) {
+                        errors.push(`${o.filename}: ${e.message}`);
+                    }
+                }
+                queue.setOutputs(job.id, []);
+                jobsCleared++;
+            }
+            // If we opened our own queue handle, close it.
+            if (!runtime?.queue && queue._closeAdHoc) queue._closeAdHoc();
+            console.log(`[Admin] cleanup-outputs: ${filesDeleted} file(s) deleted, ${jobsCleared} job(s) cleared, ${skippedInFlight} in-flight skipped, ${errors.length} error(s)`);
+            res.json({ ok: true, filesDeleted, jobsCleared, skippedInFlight, errors });
+        } catch (e) {
+            console.error('[Admin] cleanup-outputs err:', e);
+            res.status(500).json({ error: e.message });
+        }
     });
 
     router.post('/reset-to-admin', adminGate, (req, res) => {

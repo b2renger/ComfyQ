@@ -61,6 +61,11 @@ export const SocketProvider = ({ children }) => {
 
         newSocket.on('error', (err) => {
             console.error('[Socket] Server error:', err.message);
+            // Surface server-side rejections (e.g. "wrong admin password",
+            // "foreign job — admin password required") as a toast so the
+            // user knows why their action did nothing.
+            const toastId = `err-${Date.now()}`;
+            setToasts(prev => [...prev, { id: toastId, message: `⚠️ ${err.message}`, kind: 'err' }]);
         });
 
         // Request browser notification permission
@@ -124,12 +129,19 @@ export const SocketProvider = ({ children }) => {
         if (socket) socket.emit('book_job', { scheduledTime, prompt, params, user_id: username });
     }, [socket, username]);
 
-    const deleteJob = useCallback((jobId) => {
-        if (socket) socket.emit('delete_job', jobId);
+    // Both deleteJob and cancelJob accept an optional admin_password used
+    // when acting on another user's job. The server refuses foreign actions
+    // without a valid password (and refuses entirely if no password is set).
+    const deleteJob = useCallback((jobId, adminPassword) => {
+        if (!socket) return;
+        if (adminPassword) socket.emit('delete_job', { jobId, admin_password: adminPassword });
+        else socket.emit('delete_job', jobId);
     }, [socket]);
 
-    const cancelJob = useCallback((jobId) => {
-        if (socket) socket.emit('cancel_job', jobId);
+    const cancelJob = useCallback((jobId, adminPassword) => {
+        if (!socket) return;
+        if (adminPassword) socket.emit('cancel_job', { jobId, admin_password: adminPassword });
+        else socket.emit('cancel_job', jobId);
     }, [socket]);
 
     const reorderJob = useCallback((jobId, newTimeSlot) => {
@@ -143,6 +155,7 @@ export const SocketProvider = ({ children }) => {
                 <Toast
                     key={toast.id}
                     message={toast.message}
+                    kind={toast.kind || 'ok'}
                     onClose={() => removeToast(toast.id)}
                 />
             ))}

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import Modal from '../components/ui/Modal';
@@ -34,6 +34,8 @@ const AdminConfig = ({ currentMode }) => {
     const [emergencyStopping, setEmergencyStopping] = useState(false);
     const [pathChecks, setPathChecks] = useState(null);
     const [checkingPaths, setCheckingPaths] = useState(false);
+    const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
+    const [cleaningOutputs, setCleaningOutputs] = useState(false);
 
     useEffect(() => { reloadConfig(); }, []);
 
@@ -165,6 +167,25 @@ const AdminConfig = ({ currentMode }) => {
             showToast(e.message, 'err');
             setEmergencyStopping(false);
             setShowEmergencyConfirm(false);
+        }
+    };
+
+    const cleanupOutputs = async () => {
+        setCleaningOutputs(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/cleanup-outputs`, {
+                method: 'POST', headers: adminHeaders()
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Cleanup failed');
+            const errs = data.errors?.length ? `, ${data.errors.length} error(s)` : '';
+            const skipped = data.skippedInFlight ? `, ${data.skippedInFlight} in-flight skipped` : '';
+            showToast(`Cleaned ${data.filesDeleted} file(s) across ${data.jobsCleared} job(s)${skipped}${errs}`);
+            setShowCleanupConfirm(false);
+        } catch (e) {
+            showToast(e.message, 'err');
+        } finally {
+            setCleaningOutputs(false);
         }
     };
 
@@ -458,6 +479,42 @@ const AdminConfig = ({ currentMode }) => {
                         <Button variant="ghost" onClick={() => setDeletingWorkflowId(null)}>Cancel</Button>
                         <Button variant="danger" icon={Trash2} onClick={() => deleteWorkflow(deletingWorkflowId)}>
                             Delete workflow
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Card>
+                <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><Eraser size={18} /> Cleanup</h2>
+                <p className="text-xs text-muted mb-3">
+                    Delete every output file referenced by completed jobs and clear the outputs from each job record.
+                    Job history (prompts, timestamps, users) is preserved — only the rendered images / videos are removed from disk.
+                </p>
+                <div className="flex justify-end">
+                    <Button variant="danger" icon={Eraser} onClick={() => setShowCleanupConfirm(true)}>
+                        Clean all outputs
+                    </Button>
+                </div>
+            </Card>
+
+            <Modal isOpen={showCleanupConfirm} onClose={() => !cleaningOutputs && setShowCleanupConfirm(false)}
+                title="Delete all output files?" maxWidth="max-w-md">
+                <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                        <AlertTriangle size={20} className="text-danger shrink-0 mt-0.5" />
+                        <p className="text-sm text-slate-300">
+                            This permanently deletes every output file (images, videos, audio) referenced by completed jobs in this deployment, across all users. Job records are kept for history but their <code>outputs</code> field is cleared.
+                        </p>
+                    </div>
+                    <p className="text-xs text-warning">
+                        This action cannot be undone. Make sure students have downloaded anything they want to keep.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                        <Button variant="ghost" onClick={() => setShowCleanupConfirm(false)}
+                            disabled={cleaningOutputs}>Cancel</Button>
+                        <Button variant="danger" icon={Eraser} onClick={cleanupOutputs}
+                            isLoading={cleaningOutputs}>
+                            {cleaningOutputs ? 'Cleaning…' : 'Yes, delete all outputs'}
                         </Button>
                     </div>
                 </div>

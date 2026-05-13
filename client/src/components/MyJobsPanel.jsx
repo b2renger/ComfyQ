@@ -25,8 +25,11 @@ import { getImageUrl, getDownloadUrl } from '../utils/api';
 const MyJobsPanel = ({ onClose }) => {
     const { state, username, workflowsById } = useSocket();
 
-    // Show all jobs sorted by time
+    // Sidebar shows ONLY the current user's jobs — the main grid has tabs
+    // (My / All) for cross-user views. Anonymous users (no username) see
+    // nothing in the sidebar.
     const allJobs = state.jobs
+        .filter(j => username && j.user_id === username)
         .sort((a, b) => b.time_slot - a.time_slot);
 
     return (
@@ -42,8 +45,8 @@ const MyJobsPanel = ({ onClose }) => {
                         </button>
                     )}
                     <div>
-                        <h3 className="font-bold text-base sm:text-lg tracking-tight text-white leading-none">All Generations</h3>
-                        <p className="text-[10px] text-muted font-medium mt-1 uppercase tracking-widest leading-none">Job Queue</p>
+                        <h3 className="font-bold text-base sm:text-lg tracking-tight text-white leading-none">My Generations</h3>
+                        <p className="text-[10px] text-muted font-medium mt-1 uppercase tracking-widest leading-none">{username || 'Anonymous'}</p>
                     </div>
                 </div>
                 <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">

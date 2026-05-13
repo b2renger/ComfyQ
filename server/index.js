@@ -11,6 +11,21 @@ const http = require('http');
 const cors = require('cors');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
+
+// Returns every non-internal IPv4 the server is reachable on (e.g.
+// ['192.168.1.10', '10.0.0.5']). Used at boot to print URLs the admin
+// can hand to students on the same LAN.
+function lanAddresses() {
+    const out = [];
+    const ifs = os.networkInterfaces();
+    for (const name of Object.keys(ifs)) {
+        for (const i of ifs[name] || []) {
+            if (i.family === 'IPv4' && !i.internal) out.push(i.address);
+        }
+    }
+    return out;
+}
 
 const configManager = require('./config/configManager');
 const { WorkflowRegistry } = require('./workflows/workflowRegistry');
@@ -25,6 +40,22 @@ const workflowRoutes = require('./routes/workflows');
 const jobRoutes = require('./routes/jobs');
 const uploadRoutes = require('./routes/uploads');
 const mediaStore = require('./media/mediaStore');
+
+// Prints the URLs students should use from another machine on the LAN.
+// They open Vite (5173) in their browser; the client auto-targets the
+// server (3000) at the same hostname (see client/src/utils/api.js).
+function logLanUrls(serverPort) {
+    const ips = lanAddresses();
+    if (ips.length === 0) {
+        console.log('[ComfyQ] no external network interfaces detected — LAN access unavailable.');
+        return;
+    }
+    console.log('[ComfyQ] LAN access — share one of these URLs with students:');
+    for (const ip of ips) {
+        console.log(`[ComfyQ]   http://${ip}:5173   (Vite client; API auto-targets http://${ip}:${serverPort})`);
+    }
+    console.log('[ComfyQ] If a student gets a connection error, allow Node.js through Windows Firewall for "Private" networks.');
+}
 
 function exitForRestart() {
     console.log('[ComfyQ] Exiting for restart');
@@ -77,6 +108,7 @@ async function main() {
         const host = config.server.host;
         server.listen(port, host, () => {
             console.log(`[ComfyQ] admin mode listening on http://${host}:${port}`);
+            logLanUrls(port);
             console.log('[ComfyQ] open the admin UI to configure ComfyUI and pick a workflow.');
         });
         return;
@@ -145,6 +177,7 @@ async function main() {
     const host = config.server.host;
     server.listen(port, host, () => {
         console.log(`[ComfyQ] student mode listening on http://${host}:${port}`);
+        logLanUrls(port);
         const active = config.workflows.activeWorkflowId;
         if (!active) {
             console.warn('[ComfyQ] no active workflow set; clients will see an empty parameter map.');

@@ -36,10 +36,17 @@ function adminGate(configManager) {
 }
 
 // Helper for socket events: returns { allowed, reason }.
+// Acting on your OWN job is always allowed. Foreign actions REQUIRE an admin
+// password — and if no password is configured the foreign action is refused
+// (no silent "everyone is admin" mode for cross-user deletes).
 function isAuthorizedForJob({ socketUserId, providedPassword, job, configManager }) {
     if (job.userId === socketUserId) return { allowed: true };
-    if (checkAdminPassword(providedPassword, configManager)) return { allowed: true, asAdmin: true };
-    return { allowed: false, reason: 'foreign job — admin password required' };
+    const { config } = configManager.load();
+    const hash = config.auth.adminPasswordHash || '';
+    if (!hash) return { allowed: false, reason: 'admin password not set — cross-user actions are disabled' };
+    if (!providedPassword) return { allowed: false, reason: 'admin password required for this action' };
+    if (!bcrypt.compareSync(providedPassword, hash)) return { allowed: false, reason: 'wrong admin password' };
+    return { allowed: true, asAdmin: true };
 }
 
 module.exports = { setAdminPassword, checkAdminPassword, adminGate, isAuthorizedForJob };
