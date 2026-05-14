@@ -18,7 +18,7 @@ const Toast = ({ message, onClose, duration = 5000, kind = 'ok' }) => {
         ? 'from-danger/90 to-danger/80 border-danger/30'
         : 'from-success/90 to-success/80 border-success/30';
     const Icon = isErr ? AlertTriangle : CheckCircle2;
-    const title = isErr ? 'Action refused' : 'Job Completed! 🎨';
+    const title = isErr ? 'Action refused' : 'Notice';
 
     return (
         <div

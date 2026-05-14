@@ -160,6 +160,22 @@ class BenchmarkService {
                 ? (stepsDone - 1) / (samplePhaseMs / 1000)
                 : null;
 
+            // Capture the GPU that achieved this number so the result is
+            // attributable. /system_stats is the same endpoint ping() hits;
+            // best-effort — if it fails the runtime.json still gets written
+            // without the gpu field.
+            let gpu = null;
+            try {
+                const stats = await this.worker.rest.ping();
+                const dev = (stats?.devices || []).find(d => d?.type === 'cuda') || stats?.devices?.[0];
+                if (dev?.name) {
+                    // Normalize "cuda:0 NVIDIA GeForce RTX 5090" → "NVIDIA GeForce RTX 5090"
+                    gpu = String(dev.name).replace(/^cuda:\d+\s+/i, '').trim();
+                }
+            } catch (e) {
+                console.warn(`[Benchmark] could not capture GPU info: ${e.message}`);
+            }
+
             const runtime = {
                 schemaVersion: 1,
                 calibratedAt: new Date().toISOString(),
@@ -169,6 +185,7 @@ class BenchmarkService {
                 samplesPerSec,
                 steps: stepsTotal,
                 durationMs,
+                gpu,
                 source: 'benchmark'
             };
             this.registry.writeRuntime(workflowId, runtime);

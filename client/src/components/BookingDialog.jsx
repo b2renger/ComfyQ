@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
-import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronRight, Upload, X, Image as ImageIcon, Video as VideoIcon, Dices } from 'lucide-react';
+import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronRight, Upload, X, Image as ImageIcon, Video as VideoIcon, Dices, Info } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { SERVER_URL } from '../utils/api';
 
@@ -336,6 +336,25 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Book Generation Slot" maxWidth="max-w-lg">
             <form onSubmit={handleSubmit} className="space-y-6">
+                {state.workflow_info?.id && (state.workflow_info.description || state.workflow_info.name) && (
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
+                        <div className="flex items-center gap-2">
+                            <Info size={14} className="text-primary shrink-0" />
+                            <span className="text-[10px] uppercase tracking-widest font-bold text-muted">Active workflow</span>
+                            <span className="text-sm font-semibold text-primary-light">{state.workflow_info.name}</span>
+                            {state.workflow_info.category && state.workflow_info.category !== 'other' && (
+                                <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
+                                    {state.workflow_info.category}
+                                </span>
+                            )}
+                        </div>
+                        {state.workflow_info.description && (
+                            <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                {state.workflow_info.description}
+                            </p>
+                        )}
+                    </div>
+                )}
                 <div className="space-y-4 border-b border-border pb-6">
                     <div className="flex flex-col space-y-3">
                         <label className="text-sm font-medium text-slate-300 flex items-center gap-2">

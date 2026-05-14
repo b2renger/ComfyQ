@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Save, X, Eye, EyeOff, AlertTriangle, RefreshCw, CheckCircle2, Filter } from 'lucide-react';
+import { Save, X, Eye, EyeOff, AlertTriangle, RefreshCw, CheckCircle2, Filter, ArrowUp, ArrowDown } from 'lucide-react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { SERVER_URL } from '../../utils/api';
@@ -69,6 +69,27 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
 
     const setAllEnabled = (enabled) => {
         setParams(prev => prev.map(p => ({ ...p, enabled })));
+    };
+
+    // Reorder a parameter relative to the *visible* list. "up" / "down"
+    // swap with the previous / next param in the same filtered view, but
+    // we mutate the underlying `params` array directly so the persisted
+    // `order` field (set at save time from the array index) matches the
+    // admin's intended ordering. Disabled (hidden) items keep their
+    // relative positions and are not skipped over here — that mirrors what
+    // students will see when the filter is "all".
+    const moveParam = (visibleIdx, direction) => {
+        const current = visibleParams[visibleIdx];
+        const swapWith = visibleParams[visibleIdx + (direction === 'up' ? -1 : 1)];
+        if (!current || !swapWith) return;
+        const a = params.indexOf(current);
+        const b = params.indexOf(swapWith);
+        if (a < 0 || b < 0) return;
+        setParams(prev => {
+            const next = prev.slice();
+            [next[a], next[b]] = [next[b], next[a]];
+            return next;
+        });
     };
 
     const hideInfrastructure = () => {
@@ -202,27 +223,48 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                             </div>
                         </div>
 
+                        <p className="text-[10px] text-muted">
+                            Drag-equivalent: use the ▲/▼ buttons to reorder. The order set here is exactly the order students see in the booking dialog.
+                        </p>
                         <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
-                            {visibleParams.map((p) => {
+                            {visibleParams.map((p, visibleIdx) => {
                                 const idx = params.indexOf(p);
+                                const isFirst = visibleIdx === 0;
+                                const isLast = visibleIdx === visibleParams.length - 1;
                                 return (
                                     <div key={p.key}
                                         className={`p-3 rounded-lg border transition-colors ${p.enabled ? 'bg-surface border-primary/30' : 'bg-surface/40 border-border opacity-70'}`}>
                                         <div className="flex items-start gap-3">
-                                            <button onClick={() => updateParam(idx, { enabled: !p.enabled })}
-                                                className={`mt-1 w-5 h-5 rounded border flex items-center justify-center shrink-0 transition-colors ${p.enabled ? 'bg-primary border-primary text-white' : 'border-slate-500 hover:border-slate-300'}`}
-                                                title={p.enabled ? 'Disable parameter' : 'Enable parameter'}>
-                                                {p.enabled ? <Eye size={12} /> : <EyeOff size={12} />}
-                                            </button>
+                                            <div className="flex flex-col items-center gap-1 shrink-0">
+                                                <button onClick={() => updateParam(idx, { enabled: !p.enabled })}
+                                                    className={`w-5 h-5 rounded border flex items-center justify-center transition-colors ${p.enabled ? 'bg-primary border-primary text-white' : 'border-slate-500 hover:border-slate-300'}`}
+                                                    title={p.enabled ? 'Hide from students' : 'Show to students'}>
+                                                    {p.enabled ? <Eye size={12} /> : <EyeOff size={12} />}
+                                                </button>
+                                                <button onClick={() => moveParam(visibleIdx, 'up')}
+                                                    disabled={isFirst}
+                                                    className="w-5 h-5 rounded border border-border text-muted hover:text-white hover:border-primary/40 disabled:opacity-30 disabled:hover:text-muted disabled:hover:border-border flex items-center justify-center transition-colors"
+                                                    title="Move up">
+                                                    <ArrowUp size={12} />
+                                                </button>
+                                                <button onClick={() => moveParam(visibleIdx, 'down')}
+                                                    disabled={isLast}
+                                                    className="w-5 h-5 rounded border border-border text-muted hover:text-white hover:border-primary/40 disabled:opacity-30 disabled:hover:text-muted disabled:hover:border-border flex items-center justify-center transition-colors"
+                                                    title="Move down">
+                                                    <ArrowDown size={12} />
+                                                </button>
+                                            </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-2 text-[10px] text-muted mb-2 font-mono">
+                                                    <span className="bg-black/30 px-1.5 py-0.5 rounded">#{visibleIdx + 1}</span>
+                                                    <span>·</span>
                                                     <span className="bg-black/30 px-1.5 py-0.5 rounded">node {p.nodeId}</span>
                                                     <span>·</span>
                                                     <span className="opacity-70 truncate">{p.field}</span>
                                                 </div>
                                                 <div className="grid grid-cols-1 md:grid-cols-12 gap-2 items-start">
                                                     <div className="md:col-span-5 space-y-1">
-                                                        <label className="text-[10px] uppercase tracking-wider text-muted font-semibold">Label</label>
+                                                        <label className="text-[10px] uppercase tracking-wider text-muted font-semibold">Display name (shown to students)</label>
                                                         <input type="text" value={p.label || ''}
                                                             disabled={!p.enabled}
                                                             onChange={e => updateParam(idx, { label: e.target.value })}

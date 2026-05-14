@@ -161,6 +161,13 @@ class WorkflowRegistry {
                 estimatedDurationSec: runtime?.estimatedDurationSec ?? merged.estimatedDurationSec,
                 samplesPerSec: runtime?.samplesPerSec ?? null,
                 hasCalibration: !!runtime,
+                calibration: runtime ? {
+                    durationSec: runtime.estimatedDurationSec,
+                    coldDurationSec: runtime.coldDurationSec,
+                    modelLoadSec: runtime.modelLoadSec,
+                    gpu: runtime.gpu || null,
+                    calibratedAt: runtime.calibratedAt || null
+                } : null,
                 presets: Object.keys(merged.presets || {}),
                 parameterCount: merged.exposedParameters.filter(p => p.enabled !== false).length,
                 hidden: merged.hidden === true

@@ -241,12 +241,19 @@ const SchedulerPage = () => {
                         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Timeline</h2>
                         <p className="text-muted text-sm sm:text-base mt-1">Hello, <span className="text-primary font-bold">{username}</span>. Plan your generations.</p>
                         {state.workflow_info?.id && (
-                            <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-primary/5 border border-primary/20">
-                                <Sparkles size={12} className="text-primary" />
-                                <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">Active workflow</span>
-                                <span className="text-xs font-medium text-primary-light">{state.workflow_info.name}</span>
-                                {state.workflow_info.category && state.workflow_info.category !== 'other' && (
-                                    <Badge variant="primary" className="text-[9px] py-0 h-4 uppercase">{state.workflow_info.category}</Badge>
+                            <div className="mt-2 rounded-lg bg-primary/5 border border-primary/20 p-3 max-w-2xl space-y-1.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                    <Sparkles size={12} className="text-primary" />
+                                    <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">Active workflow</span>
+                                    <span className="text-xs font-medium text-primary-light">{state.workflow_info.name}</span>
+                                    {state.workflow_info.category && state.workflow_info.category !== 'other' && (
+                                        <Badge variant="primary" className="text-[9px] py-0 h-4 uppercase">{state.workflow_info.category}</Badge>
+                                    )}
+                                </div>
+                                {state.workflow_info.description && (
+                                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
+                                        {state.workflow_info.description}
+                                    </p>
                                 )}
                             </div>
                         )}
@@ -303,10 +310,10 @@ const SchedulerPage = () => {
                     </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 px-4 sm:px-12 lg:px-20">
                     <h3 className="text-sm font-semibold text-muted uppercase tracking-widest ml-1">Live Schedule</h3>
                     <Card className="flex-none border-slate-700/50 bg-background/50 shadow-inner" noPadding>
-                        <div ref={containerRef} className="h-[300px] sm:h-[400px] w-full" />
+                        <div ref={containerRef} className="h-[180px] sm:h-[220px] w-full" />
                     </Card>
                 </div>
 

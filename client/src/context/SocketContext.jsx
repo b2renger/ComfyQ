@@ -11,8 +11,9 @@ const SocketContext = createContext();
 export const useSocket = () => useContext(SocketContext);
 
 /**
- * SocketProvider manages the WebSocket connection, global application state,
- * and notifications (toasts/browser notifications).
+ * SocketProvider manages the WebSocket connection and global application
+ * state. Toasts are limited to error feedback (e.g. "wrong admin password");
+ * job completion notifications were removed.
  */
 export const SocketProvider = ({ children }) => {
     const [socket, setSocket] = useState(null);
@@ -25,7 +26,6 @@ export const SocketProvider = ({ children }) => {
         workflow: null
     });
 
-    const [prevJobs, setPrevJobs] = useState([]);
     const [toasts, setToasts] = useState([]);
     const [workflowsById, setWorkflowsById] = useState({});
 
@@ -68,48 +68,8 @@ export const SocketProvider = ({ children }) => {
             setToasts(prev => [...prev, { id: toastId, message: `⚠️ ${err.message}`, kind: 'err' }]);
         });
 
-        // Request browser notification permission
-        if ('Notification' in window && Notification.permission === 'default') {
-            Notification.requestPermission();
-        }
-
         return () => newSocket.close();
     }, []);
-
-    // Job completion notification logic
-    useEffect(() => {
-        if (!username || state.jobs.length === 0) {
-            setPrevJobs(state.jobs);
-            return;
-        }
-
-        state.jobs.forEach(job => {
-            const prevJob = prevJobs.find(j => j.id === job.id);
-            // Detect transition from non-completed to completed
-            if (job.user_id === username &&
-                job.status === 'completed' &&
-                (!prevJob || prevJob.status !== 'completed')) {
-
-                // 1. Browser Notification
-                if ('Notification' in window && Notification.permission === 'granted') {
-                    new Notification('ComfyQ: Generation Ready! 🎨', {
-                        body: `Result for: "${job.prompt.substring(0, 50)}..."`,
-                        icon: '/favicon.ico',
-                        tag: job.id,
-                    });
-                }
-
-                // 2. In-App Toast
-                const toastId = `${job.id}-${Date.now()}`;
-                setToasts(prev => [...prev, {
-                    id: toastId,
-                    message: `Finish! ${job.prompt.substring(0, 40)}...`
-                }]);
-            }
-        });
-
-        setPrevJobs(state.jobs);
-    }, [state.jobs, username, prevJobs]);
 
     const removeToast = useCallback((id) => {
         setToasts(prev => prev.filter(t => t.id !== id));

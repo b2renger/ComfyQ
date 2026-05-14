@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Image, Video, Wand2, Music, Box, LayoutGrid, List,
     RefreshCw, ChevronRight, Sparkles, Clock, Tag,
-    Pencil, Trash2, Gauge
+    Pencil, Trash2, Gauge, Cpu
 } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
@@ -213,10 +213,18 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                     {isSelected && <ChevronRight size={16} className="text-primary flex-shrink-0" />}
                                 </div>
                                 <p className="text-sm text-muted mt-1 line-clamp-2">{w.description}</p>
-                                <div className="flex items-center gap-3 mt-2 text-xs text-muted">
-                                    <span className="flex items-center gap-1">
+                                <div className="flex items-center gap-3 mt-2 text-xs text-muted flex-wrap">
+                                    <span className="flex items-center gap-1" title={w.hasCalibration && w.calibration?.calibratedAt
+                                        ? `Calibrated ${new Date(w.calibration.calibratedAt).toLocaleString()}${w.calibration.coldDurationSec ? ` · cold run ${w.calibration.coldDurationSec}s (model load ${w.calibration.modelLoadSec}s)` : ''}`
+                                        : 'Not yet calibrated — estimate from meta.json'}>
                                         <Clock size={12} />~{w.estimatedDurationSec}s {w.hasCalibration ? '' : '(uncalibrated)'}
                                     </span>
+                                    {w.hasCalibration && w.calibration?.gpu && (
+                                        <span className="flex items-center gap-1 text-success/80"
+                                            title={`Time measured on this GPU. Move to a different GPU and re-calibrate for an accurate estimate.`}>
+                                            <Cpu size={12} />{w.calibration.gpu}
+                                        </span>
+                                    )}
                                     {w.presets?.length > 0 && (
                                         <span className="flex items-center gap-1">
                                             <Tag size={12} />{w.presets.length} presets
