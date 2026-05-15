@@ -16,6 +16,12 @@ const ExposedParameter = z.object({
     min: z.number().optional(),
     max: z.number().optional(),
     step: z.number().optional(),
+    // For image/video params: longest-edge pixel cap the client applies
+    // before upload. Resizing client-side saves LAN bandwidth and matches
+    // the workflow's expected working resolution (most diffusion / i2v
+    // workflows degrade past 1280–2048 anyway). Undefined → client uses
+    // its built-in defaults (1024 for image, 1280 for video).
+    maxInputEdge: z.number().int().positive().optional(),
     required: z.boolean().default(false),
     order: z.number().int().default(0)
 });

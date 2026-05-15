@@ -1,13 +1,16 @@
+// SERVER_URL — origin the client targets for REST + Socket.IO.
+//
+// In dev, Vite proxies all backend routes (see vite.config.js), so the page,
+// the API, and the websocket all share a single HTTPS origin. Same-origin
+// means we don't need to know the hostname or protocol — relative paths
+// just work, and the browser routes them through the proxy.
+//
+// VITE_SERVER_URL can still be set to override (e.g. for production deploys
+// where the API is on a separate host). Leave it unset in dev.
 const getServerUrl = () => {
-    // First try environment variable (ensure it's not empty)
     const envUrl = import.meta.env.VITE_SERVER_URL;
-    if (envUrl && envUrl.trim() !== '') {
-        return envUrl;
-    }
-
-    // Otherwise, construct from current location (host) but use port 3000
-    const { protocol, hostname } = window.location;
-    return `${protocol}//${hostname}:3000`;
+    if (envUrl && envUrl.trim() !== '') return envUrl;
+    return ''; // same origin — Vite proxy handles the rest
 };
 
 export const SERVER_URL = getServerUrl();

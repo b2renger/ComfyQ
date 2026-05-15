@@ -4,6 +4,7 @@ import Button from './ui/Button';
 import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronRight, Upload, X, Image as ImageIcon, Video as VideoIcon, Dices, Info } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { SERVER_URL } from '../utils/api';
+import MediaCaptureField from './capture/MediaCaptureField';
 
 /**
  * Booking Dialog Component
@@ -164,16 +165,18 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         });
     };
 
-    const handleMediaChange = (paramKey) => (e) => {
-        const file = e.target.files[0];
-        if (file) {
-            setMediaFiles(prev => ({ ...prev, [paramKey]: file }));
-            const reader = new FileReader();
-            reader.onloadend = () => {
-                setMediaPreviews(prev => ({ ...prev, [paramKey]: reader.result }));
-            };
-            reader.readAsDataURL(file);
-        }
+    // Called by MediaCaptureField with a (possibly already-resized) File.
+    // The component handles the input event + EXIF-aware resize; we just
+    // stash the file and generate a preview thumbnail. Resizing means the
+    // preview reflects what'll actually be uploaded, not the raw camera shot.
+    const handleMediaChange = (paramKey) => (file) => {
+        if (!file) return;
+        setMediaFiles(prev => ({ ...prev, [paramKey]: file }));
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setMediaPreviews(prev => ({ ...prev, [paramKey]: reader.result }));
+        };
+        reader.readAsDataURL(file);
     };
 
     const adjustTime = (minutes) => {
@@ -196,49 +199,22 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                     const label = config.label || key.charAt(0).toUpperCase() + key.slice(1);
                     const type = config.type || 'text';
 
-                    // Media Upload Input
+                    // Image / video input — delegated to MediaCaptureField,
+                    // which renders the existing upload widget AND an OS-camera
+                    // capture button, then applies maxInputEdge resizing for
+                    // images before handing the File back.
                     if (type === 'image' || type === 'video') {
-                        const preview = mediaPreviews[key];
-                        const isVideoType = type === 'video';
                         return (
-                            <div key={key} className="space-y-2">
-                                <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
-                                    {isVideoType ? <VideoIcon size={14} className="text-primary" /> : <ImageIcon size={14} className="text-primary" />}
-                                    {label}
-                                </label>
-                                <div
-                                    className={`relative group border-2 border-dashed rounded-xl p-4 transition-all duration-300 ${preview ? 'border-primary/50 bg-primary/5' : 'border-border hover:border-primary/30 bg-surface/30'}`}
-                                >
-                                    {preview ? (
-                                        <div className="relative aspect-video rounded-lg overflow-hidden group/preview">
-                                            {isVideoType ? (
-                                                <video src={preview} className="w-full h-full object-cover" muted loop autoPlay />
-                                            ) : (
-                                                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                                            )}
-                                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
-                                                <button
-                                                    type="button"
-                                                    onClick={handleMediaRemove(key)}
-                                                    className="p-2 rounded-full bg-danger text-white hover:scale-110 transition-transform"
-                                                >
-                                                    <X size={20} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <label className="flex flex-col items-center justify-center space-y-3 cursor-pointer py-4">
-                                            <div className="p-3 rounded-full bg-surface border border-border group-hover:border-primary/30 group-hover:scale-110 transition-all duration-300">
-                                                <Upload size={24} className="text-muted group-hover:text-primary" />
-                                            </div>
-                                            <div className="text-center">
-                                                <p className="text-sm font-medium text-slate-300">Click or drag {type} to upload</p>
-                                            </div>
-                                            <input type="file" className="hidden" accept={isVideoType ? "video/*" : "image/*"} onChange={handleMediaChange(key)} />
-                                        </label>
-                                    )}
-                                </div>
-                            </div>
+                            <MediaCaptureField
+                                key={key}
+                                paramKey={key}
+                                label={label}
+                                type={type}
+                                maxInputEdge={config.maxInputEdge}
+                                preview={mediaPreviews[key]}
+                                onChange={handleMediaChange(key)}
+                                onRemove={handleMediaRemove(key)}
+                            />
                         );
                     }
 

@@ -334,10 +334,107 @@ Beyond the original M0/M1 scope, the following has been built so a teacher / lab
 - [ ] `MediaStore` proven with `video/mp4`; client `MediaPlayer` selects `<video controls>` by kind.
 - [ ] `ModelLifecycle` calls ComfyUI `/free` on workflow switch when VRAM budget would be exceeded.
 
-### M4 — Phase 4 (webcam / mobile capture) + 360 video LoRA
+### M4 — Phase 4 (webcam / mobile capture) + 360 video LoRA (M4-1 ✅ · M4-2 ✅ · M4-3/4/5 pending)
 
-- [ ] `WebcamCapture.jsx`: getUserMedia, mobile-friendly (rear camera default).
+- [ ] **In-browser camera capture for image and video inputs.** See [M4 design notes](#m4-design-notes--in-browser-camera-capture) below for the full implementation strategy. Headline checklist:
+  - [x] New `MediaCaptureField.jsx` augments `BookingDialog`'s existing image/video upload widgets without replacing them — drag-and-drop, file picker, and camera capture all coexist; the user picks per-field. No server-side changes; everything routes through the existing `POST /upload` endpoint.
+  - [x] **Image capture path:** `getUserMedia({ video: true })` → live preview → snapshot to `<canvas>` → resize to per-workflow `maxInputEdge` (default 1024) → `canvas.toBlob('image/jpeg', 0.92)` → upload. Same upload contract as a drag-and-drop file; LoadImage node receives a familiar filename. (Initial constraint is the permissive `{ video: true }` — `facingMode` is only applied on explicit **Switch** because Chrome desktop throws `NotFoundError` for devices that don't advertise facing metadata.)
+  - [ ] **Video capture path:** primary route on mobile is `<input type="file" accept="video/*" capture="environment">` which delegates to the OS camera app (returns native MP4 — no codec headaches). Desktop fallback uses `MediaRecorder` with WebM and is documented as best-effort. Server-side MP4 re-encode is deferred until ffmpeg becomes a dependency in M5.
+  - [x] **Resolution policy:** added optional `maxInputEdge: number` to `ExposedParameter` (zod schema in [server/config/schemas.js](server/config/schemas.js)). Client downscales the longer edge to `maxInputEdge` before upload (preserving aspect ratio, never upscaling). Defaults: image 1024, video 1280; admin override per parameter in [WorkflowMetaEditor.jsx](client/src/components/admin/WorkflowMetaEditor.jsx).
+  - [x] **HTTPS in dev:** `getUserMedia` requires a "secure context" — `localhost` and `https://*` only. Solved by serving Vite over HTTPS via `@vitejs/plugin-basic-ssl` and proxying the Express backend through it (`/admin`, `/workflows`, `/jobs`, `/upload`, `/media`, `/images`, `/download`, `/socket.io`). Workshop URL is now `https://<lan-ip>:5173`; one-time self-signed-cert warning per device. The file-picker-with-`capture` route remains the fallback path inside `MediaCaptureField` if any device refuses the cert.
+  - [x] **Device picker:** when multiple cameras are present, **Switch** button in the modal cycles through `enumerateDevices()` video inputs; single-camera devices toggle `facingMode` between `user` and `environment` instead.
 - [ ] 360 video LoRA workflow registered. Verify primitive-fallback parser surfaces `LoraLoader` `lora_name` / `strength_model` / `strength_clip` without a whitelist.
+
+#### M4 design notes — in-browser camera capture
+
+Working through the constraints carefully because the wrong API call here silently breaks a quarter of the classroom (iOS Safari, http LAN, multiple cameras, MediaRecorder codec drift). What follows is the strategy we're locking in before any code lands.
+
+**Existing pipeline — must remain undisturbed.**
+- `BookingDialog` already renders drag-and-drop / file-picker widgets for `image|video|audio` typed parameters, uploading via `POST /upload` (multer + namespacing → `<comfy_root>/input/comfyq_session__<ts>__<rand>__<orig>`), and injects the resulting filename into LoadImage / VHS_LoadVideo / LoadAudio nodes. M4 must **add** a capture entry-point next to the existing widgets; not replace anything. A user with a drag-and-drop habit keeps it.
+- TTL sweep, retention, MediaStore extension classification — all unchanged. The captured frame becomes a `Blob` with a synthetic filename (`camera-<ts>.jpg` / `camera-<ts>.mp4`) and travels the same path.
+
+**Image capture — universal path.**
+```
+getUserMedia({ video: { facingMode, width, height } })
+  → stream into <video autoPlay playsInline muted>
+  → user clicks "Capture"
+  → drawImage(video, canvas) at native resolution
+  → downscale canvas if maxEdge > maxInputEdge
+  → canvas.toBlob('image/jpeg', 0.92)
+  → reuse the existing upload code path
+  → stop tracks (release the camera) immediately
+```
+Why JPEG: works on every browser, ~10× smaller than PNG, ComfyUI's LoadImage handles it fine for non-mask inputs. PNG is offered as a checkbox for users who need exact pixels (alpha, lossless edits — rare in a classroom).
+
+**iOS Safari quirks to design around.**
+- `getUserMedia` must be called inside a synchronous user-gesture handler (the "Open camera" button's onClick). Not in `useEffect` on mount.
+- `<video>` element needs `playsInline` (without it, the live preview goes fullscreen and breaks the layout).
+- `MediaRecorder` is supported in iOS 14.5+ but produces a `video/mp4;codecs=avc1` blob on most devices; older devices return `video/quicktime` or refuse. We never bet on this — phone video flows through `<input type="file" capture>` instead, which returns a native MP4 the OS already encoded.
+- Secure context: iOS Safari **will not** prompt for camera on `http://192.168.x.x:5173`. The file-picker capture (`<input type="file" accept="image/*" capture="environment">`) is the universal fallback — it doesn't need permissions OR HTTPS, opens the OS camera, returns the photo as a normal File object. We treat it as the default mobile path and getUserMedia as a desktop-first feature with mobile-best-effort.
+
+**Video capture — pragmatic split.**
+- **Mobile (phone / tablet):** `<input type="file" accept="video/*" capture="environment">` always. The OS records, returns MP4/H.264, no encoding decisions to make. Drawback: no in-app preview, no re-record loop. Acceptable in v1.
+- **Desktop:** `MediaRecorder` with `mimeType: 'video/webm;codecs=vp9'` (Chrome/Firefox/Edge desktop all handle this). User records for ≤ N seconds (configurable per workflow), then the resulting blob uploads as WebM. Some video workflows are happy with WebM (VHS_LoadVideo) — for workflows that strictly need MP4, document the limitation and route to file-picker.
+- **Deferred to M5:** server-side ffmpeg re-encode from any browser-produced format to MP4. Means M4 doesn't need ffmpeg on the workshop rig (Python ComfyUI portable doesn't ship it).
+
+**Resolution / resize policy.**
+- New optional field in `ExposedParameter`: `maxInputEdge?: number`. When set, the client downscales the longer edge of the capture (or any upload, optionally) to that value before sending. Default falls back to a hard-coded 1024 for images / 1280 for video if unset.
+- Always preserve aspect ratio. Never upscale (small phone photos pass through untouched).
+- Resize happens on `<canvas>` with `imageSmoothingQuality: 'high'`. For video, we don't transcode — we let the user know the source resolution and warn if it's larger than the workflow expects.
+- **Why client-side, not server-side**: LAN bandwidth (5G phone photos are 5-15 MB raw, 0.5-1 MB downscaled — 10× faster upload on a shared WiFi); and ComfyUI VRAM/time scales with input pixel count.
+
+**Permissions UX.**
+- "Open camera" button → calls `navigator.mediaDevices.getUserMedia(...)` inside that handler.
+- On `NotAllowedError` / `SecurityError` → show a "couldn't access the camera — try the file picker instead" message with the `<input type="file" capture>` element ready to click.
+- On `NotFoundError` (no camera at all) → hide the camera button, fall back to file picker silently.
+- After capture/cancel: `stream.getTracks().forEach(t => t.stop())` so the camera indicator light goes off and battery / VRAM doesn't drain.
+
+**Component layout.**
+```
+client/src/components/
+└── capture/
+    ├── MediaCaptureField.jsx    ← orchestrator; renders existing upload widget + camera button
+    ├── CameraCapture.jsx        ← getUserMedia + canvas snapshot for images
+    ├── VideoCapture.jsx         ← MediaRecorder for desktop video
+    └── useCameraDevices.js      ← hook over enumerateDevices() for device picker
+```
+`MediaCaptureField` accepts the same props the current image/video inputs do (paramKey, accept, value, onChange) so it's a drop-in upgrade inside BookingDialog — the BookingDialog code only changes at the import site.
+
+**Schema migration.**
+- `maxInputEdge` is an optional field on `ExposedParameter`. Workflows without it default to the hard-coded fallback. **No breaking change.** Zod schema bumps from "no extra fields" to "ignore unknown" or explicitly accepts `maxInputEdge`. Existing `meta.json` files stay valid.
+- Admin metadata editor adds a single number field next to the type dropdown when type is `image | video`. No editor for it on text/number/checkbox params.
+
+**Backwards-compatibility checklist (must hold).**
+- [ ] Existing drag-and-drop on desktop continues to work exactly as before.
+- [ ] Existing file-picker continues to work.
+- [ ] Existing recall-of-params from a completed job still re-uploads (camera shots aren't auto-recalled — same TTL story as today).
+- [ ] Workflows with no `maxInputEdge` set in their meta use the same upload path; the hard-coded default is conservative enough that nothing currently working gets squeezed.
+- [ ] Server side: no schema bump, no new endpoints, no new dependencies. The upload route remains the only entry point.
+
+**Testing matrix.**
+| Surface | Image capture | Video capture | Notes |
+|---|---|---|---|
+| Desktop Chrome / Edge | `getUserMedia` + canvas | `MediaRecorder` WebM | Primary dev surface |
+| Desktop Firefox | `getUserMedia` + canvas | `MediaRecorder` WebM | VP9 supported |
+| Desktop Safari | `getUserMedia` + canvas | `MediaRecorder` MP4 (best-effort) | Rare in classroom |
+| Android Chrome | `getUserMedia` + canvas (if HTTPS) or file-picker | file-picker → native MP4 | Permission prompt OK |
+| iOS Safari | file-picker (http blocks getUserMedia) | file-picker → native MP4 | The hardest case; works |
+
+**Risks (additions to the list below).**
+- Workshop rigs serve over http on LAN → mobile `getUserMedia` blocked → file-picker is the actual mobile path. Document prominently; consider `vite --https` with a self-signed cert as a later opt-in.
+- Different MediaRecorder codecs across desktop browsers may produce blobs that some workflows reject. Mitigation: surface the source MIME type on the upload, warn the user if the workflow's known-accepted set doesn't include it.
+- Aspect-ratio mismatch between captured frame and what the workflow's empty-latent expects can produce stretched outputs. Mitigation: when the workflow's exposed parameters include `width` / `height` widgets, auto-set them to the resized capture's dimensions on `onChange`.
+
+**Phased delivery (under M4 milestone).**
+1. **M4-1** ✅ — File-picker capture for image (with `accept="image/*" capture="environment"`) + canvas resize + `maxInputEdge` schema field. Ships value on every device immediately. **No `getUserMedia` yet.**
+2. **M4-2** ✅ **VERIFIED 2026-05-15** — `getUserMedia` image capture (desktop + Android Chrome HTTPS). Adds live-preview snapshot UX with retake / device-switch. **Bundled with HTTPS dev server** (`@vitejs/plugin-basic-ssl`) so the secure-context requirement is met on the LAN — see "HTTPS in dev" below. **Lesson learned:** initial constraint must be permissive `{ video: true }`; passing `facingMode: 'user'` on first request causes Chrome on desktop Windows to throw `NotFoundError` when the connected camera doesn't report facing metadata. `facingMode` is only applied when the user explicitly clicks **Switch**.
+3. **M4-3** — File-picker capture for video on mobile (`accept="video/*" capture="environment"`).
+4. **M4-4** — `MediaRecorder` video capture for desktop. Best-effort. Documented limitation list.
+5. **M4-5** — 360 video LoRA workflow registered (independent of capture work).
+
+**HTTPS in dev (added with M4-2).** Vite now serves HTTPS via `@vitejs/plugin-basic-ssl` and proxies every backend route (`/admin`, `/workflows`, `/jobs`, `/upload`, `/media`, `/images`, `/download`, `/socket.io`) to the Express server at `http://localhost:3000`. The browser only ever sees a single HTTPS origin, so `window.isSecureContext === true` on `localhost` AND on the LAN — webcam works on both. Clients see a one-time self-signed-cert warning per device; after clicking through, the cert is trusted for the rest of the session. The Express server keeps running on plain HTTP (only ever reached via the proxy). `SERVER_URL` is now empty → relative URLs → proxy handles it. To restore the previous direct-to-Express setup, set `VITE_SERVER_URL=http://<host>:3000` in `client/.env`.
+
+This split keeps each step shippable and reversible — if `MediaRecorder` codec issues prove hairy on the workshop hardware, M4-4 can defer indefinitely without blocking the mobile camera flow that actually serves students.
 
 ### M5 — Audio I/O + LTX audio-driven
 
@@ -352,7 +449,8 @@ Beyond the original M0/M1 scope, the following has been built so a teacher / lab
 
 1. **ComfyUI `/free` semantics** on the lab build — if it forces a model reload even back-to-back same-workflow, ModelLifecycle should only free on workflow-switch (current default). Validate at M3 with a back-to-back same-workflow timing comparison.
 2. **`temp/` directory cleanup** — ComfyUI may not clean its own temp. Recommended: copy temp outputs to a ComfyQ-managed output folder at completion. Confirm at M1.
-3. **Webcam blob format on iOS Safari** — getUserMedia may yield webm but workflows expect png/jpg. Need client-side canvas re-encode in `WebcamCapture.jsx`. Validate at M4.
+3. **Webcam blob format on iOS Safari** — getUserMedia may yield webm but workflows expect png/jpg. **Resolved in M4 design:** universal image path is always `getUserMedia → canvas → toBlob('image/jpeg', 0.92)`, never trusting MediaRecorder for stills. For mobile video, use `<input type="file" accept="video/*" capture="environment">` which delegates to the OS camera and returns native MP4; the desktop MediaRecorder path stays best-effort.
+3a. **`getUserMedia` requires a secure context (HTTPS or localhost).** **Resolved at M4-2:** Vite now serves HTTPS via `@vitejs/plugin-basic-ssl` and proxies the backend, so the page is `https://<lan-ip>:5173` on every device — secure context satisfied, webcam works on the LAN. Self-signed cert means a one-time per-device "unsafe site" click-through. The file-picker-with-`capture` route is still the fallback on devices that refuse the cert and on mobile video (M4-3) where the OS camera app round-trips to a native MP4.
 4. **MediaRecorder audio format Firefox vs Chrome** — encodings differ; LTX audio model may want wav. Decision: WebAudio decode → wav re-encode (`audiobuffer-to-wav`). Validate at M5.
 5. **Job replay across workflow versions** — we don't replay; jobs are immutable history. Store `workflowVersion` on the job and badge in MyJobs.
 6. **AuthGate scope** — currently gates `delete_job(other_user)`, `reset-to-admin`, `restart-server`, `cancel_job(other_user)`, `restart`, `upload-workflow`, `:id/calibrate`, `:id/config-meta`. Re-review during M2.

@@ -43,9 +43,11 @@ export const SocketProvider = ({ children }) => {
             .catch(() => { /* non-critical */ });
     }, []);
 
-    // Initialize socket connection
+    // Initialize socket connection. Empty SERVER_URL means same-origin
+    // (Vite is proxying /socket.io); pass undefined so socket.io-client
+    // uses window.location instead of choking on the empty string.
     useEffect(() => {
-        const newSocket = io(SERVER_URL);
+        const newSocket = SERVER_URL ? io(SERVER_URL) : io();
         setSocket(newSocket);
 
         newSocket.on('connect', () => {

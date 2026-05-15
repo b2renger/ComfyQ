@@ -461,9 +461,13 @@ Outstanding gaps surfaced during M0 acceptance go into **M1 prerequisites** belo
 
 ## M4 — Phase 4 (webcam / mobile capture) + 360 video LoRA
 
-- M4-1 Phone webcam capture submits a Flux2 image-edit job successfully.
-- M4-2 360 video LoRA: LoRA strength sliders surface in BookingDialog without code changes (proves no whitelist regression). Output mp4 plays.
-- M4-3 iOS Safari getUserMedia: capture re-encoded as PNG/JPEG via canvas before upload (open risk #3 in plan).
+- **M4-1** File-picker capture path: on a Flux2 image-edit slot, click **Upload image**, pick a 12 MP phone photo. Browser console shows `[imageResize] resized <orig>×<orig> → <≤maxEdge>×… (<orig>kB → <new>kB)`. Job submits and the result is generated from the downscaled image, not the raw 12 MP. Also: open the workflow in the admin editor, set `maxInputEdge: 768` on the image param, re-upload — console reflects the new max edge.
+- **M4-2** ✅ **VERIFIED 2026-05-15** — Live webcam capture (desktop): open `https://localhost:5173` (or `https://<lan-ip>:5173` after accepting the self-signed cert). On a Flux2 image-edit slot, click **Use camera** → live preview opens in modal → browser prompts for camera permission → grant → live video shows. Click **Capture** → snapshot freezes → **Use this shot** → modal closes, preview thumbnail appears in BookingDialog, submit. Verify `[imageResize]` log fires on the canvas-derived File. Also exercise **Retake** and **Switch** (if multiple cameras). **Regression caught during M4-2:** initial constraint must be `{ video: true }`, not `{ video: { facingMode: 'user' } }` — desktop Chrome on Windows throws `NotFoundError` on the latter when the connected device doesn't report facing metadata.
+- **M4-2-fallback** On `http://<lan-ip>:5173` (no HTTPS): **Use camera** falls back to the file picker without prompting for permission. No console errors. This is the documented behavior — `canUseLiveCamera()` short-circuits when `window.isSecureContext` is false.
+- **M4-3** Mobile video capture: from a phone on the LAN, hit `https://<lan-ip>:5173`, accept cert, book a video workflow, click **Use camera** → OS camera app opens in video mode → record → return → file appears as preview. Submit, verify the server gets a native MP4.
+- **M4-4** Desktop MediaRecorder video (best-effort): record → preview → submit; document codec on the workflow's output card.
+- **M4-5** 360 video LoRA: LoRA strength sliders surface in BookingDialog without code changes (proves no whitelist regression). Output mp4 plays.
+- **M4-iOS** iOS Safari `getUserMedia`: capture re-encoded as PNG/JPEG via canvas before upload (open risk #3 in plan).
 
 ## M5 — Audio I/O + LTX audio-driven
 

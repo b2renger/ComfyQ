@@ -121,6 +121,11 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                     min: p.min,
                     max: p.max,
                     step: p.step,
+                    // Only persisted when set on image/video params. Stored as
+                    // an int; the schema rejects 0/negatives.
+                    maxInputEdge: (p.type === 'image' || p.type === 'video') && p.maxInputEdge
+                        ? Math.max(1, parseInt(p.maxInputEdge, 10))
+                        : undefined,
                     required: p.required ?? false,
                     order: i
                 }));
@@ -322,6 +327,23 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                                                             <NumField label="min" value={p.min} onChange={v => updateParam(idx, { min: v })} />
                                                             <NumField label="max" value={p.max} onChange={v => updateParam(idx, { max: v })} />
                                                             <NumField label="step" value={p.step} onChange={v => updateParam(idx, { step: v })} />
+                                                        </div>
+                                                    )}
+                                                    {(p.type === 'image' || p.type === 'video') && p.enabled && (
+                                                        <div className="md:col-span-12 space-y-1">
+                                                            <label className="text-[10px] uppercase tracking-wider text-muted font-semibold">
+                                                                Max input edge (px)
+                                                            </label>
+                                                            <input type="number" min="64" step="64"
+                                                                placeholder={p.type === 'image' ? '1024 (default)' : '1280 (default)'}
+                                                                value={p.maxInputEdge ?? ''}
+                                                                onChange={e => updateParam(idx, {
+                                                                    maxInputEdge: e.target.value === '' ? undefined : parseInt(e.target.value, 10)
+                                                                })}
+                                                                className="w-full bg-background border border-border rounded px-2 py-1.5 text-sm text-white" />
+                                                            <p className="text-[10px] text-muted leading-snug">
+                                                                Client downsizes the longer edge to this many pixels before upload — saves LAN bandwidth and matches the workflow's working resolution. Leave blank to use the {p.type === 'image' ? '1024' : '1280'}px default. Aspect ratio is preserved; never upscales.
+                                                            </p>
                                                         </div>
                                                     )}
                                                 </div>

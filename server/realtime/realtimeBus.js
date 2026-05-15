@@ -262,6 +262,7 @@ class RealtimeBus {
                 min: p.min,
                 max: p.max,
                 step: p.step,
+                maxInputEdge: p.maxInputEdge,
                 required: p.required
             };
         }

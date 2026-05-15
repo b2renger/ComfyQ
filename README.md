@@ -25,6 +25,9 @@ This is the **v2 rebuild**. v1 lives on the `main` branch; v2 lives on the `v2` 
 - **Cancel running jobs** — X button on your own in-flight job card REST-interrupts ComfyUI cleanly; the job lands in `cancelled` state (preserved as a record, not deleted)
 - **Clean all outputs** — admin button purges every output file on disk for terminal jobs and clears the `outputs` field, keeping job history. Skips in-flight jobs
 - **Emergency stop** — one button cancels every job, kills ComfyUI (only what we spawned), and restarts in admin mode
+- **In-browser camera capture** — for any `image`-typed workflow parameter, **Use camera** opens a live preview modal (`getUserMedia`), captures a snapshot, lets you retake, and submits a downscaled JPEG. Multi-camera rigs get a **Switch** button; devices that refuse the webcam (no camera / Windows privacy off) fall back to the OS file picker without a hard error. Mobile capture (phone camera) uses `<input type="file" capture="environment">` so it just works on Android/iOS
+- **Resize-before-upload** — every captured or uploaded image is downscaled to `maxInputEdge` (default 1024 px, overridable per parameter in the admin workflow editor) before it leaves the browser. No more 12 MP phone photos crawling through the diffusion pipeline
+- **HTTPS dev server** — Vite serves HTTPS via `@vitejs/plugin-basic-ssl` and proxies the backend, so the page, REST, and websocket all share one origin. Required because `getUserMedia` only works in a secure context — `localhost` and LAN both qualify once the one-time self-signed-cert warning is accepted
 - **Workshop-rig defaults** — `defaultConfig()` ships with the standard portable-ComfyUI paths pre-filled, so a freshly cloned classroom machine lands with all three paths populated; **Check paths** validates them in-place (root, main.py, python `--version`, output writability) and **Reset to defaults** repopulates the form one-click
 - **Hardened ComfyUI spawn** — matches `run_nvidia_gpu.bat`: `python.exe -s main.py --windows-standalone-build --disable-auto-launch …`. The Node parent's Python/conda env vars (`PYTHONPATH`, `PYTHONHOME`, `VIRTUAL_ENV`, `CONDA_PREFIX`, etc.) are stripped and conda-prefix directories are scrubbed from `PATH` before spawn, so an active `(base)` shell can no longer drag a CPU-only torch into the portable runtime
 - **Verbose generation logs** — every job pickup logs workflow + params + inputs; sampler progress is throttled to 2s + first/last step; node transitions, completion duration, output filenames, and failure phase/reason all surface on the server console
@@ -39,7 +42,9 @@ This is the **v2 rebuild**. v1 lives on the `main` branch; v2 lives on the `v2` 
 - ✅ **M0 (verified on rig — RTX 5090)** — Flux1 dev t2i smoke fixture, plus Flux2 Klein 9B t2i, image-edit, and image-edit-with-reference all run end-to-end.
 - ✅ **M1 (mostly complete)** — real benchmark (with cold/warm split), Flux2 image-edit (1- and 2-image variants), image upload pipeline, admin workflow editor, calibrate/delete/edit per-card actions, emergency stop. Depth preprocessor + temp/ media routing deferred to M3.
 - ⏳ **M2** — Phase 2 (job mgmt: colors, prompt search, CSV export) + Phase 3 (real-time progress visualization, ETA badge).
-- ⏳ **M3–M5** — LTX video, audio I/O, mobile capture. See [implementation_plan.md](implementation_plan.md).
+- ⏳ **M3** — LTX 2.3 video-from-reference + long-job support.
+- 🟡 **M4** — Webcam / mobile capture + 360 video LoRA. **M4-1 (file-picker capture + resize) and M4-2 (live webcam preview) shipped 2026-05-15.** M4-3 (mobile video), M4-4 (desktop MediaRecorder video), M4-5 (360 video LoRA) pending.
+- ⏳ **M5** — Audio I/O + LTX audio-driven workflow.
 
 ---
 
@@ -56,10 +61,12 @@ git clone <repo>
 cd ComfyQ
 git checkout v2
 npm install        # installs root + client + server deps
-npm run dev        # concurrently starts server (port 3000) + client (vite)
+npm run dev        # concurrently starts server (port 3000) + client (vite, HTTPS)
 ```
 
-Open `http://<host>:3000`. On first boot the server starts in **admin mode** (no ComfyUI launched) and redirects to `/admin`.
+Open **`https://localhost:5173`** (or one of the `https://<lan-ip>:5173` URLs printed at boot). Vite serves HTTPS via a self-signed cert and proxies the backend, so the page, the API, and the websocket all share a single origin. **First time on each device, accept the cert warning** (Chrome: *Advanced → Proceed*; Safari: *Show Details → Visit Website*). On first boot the server starts in **admin mode** (no ComfyUI launched) and redirects to `/admin`.
+
+> Why HTTPS in dev? Browsers refuse to expose the webcam / phone camera (`getUserMedia`) on any non-loopback `http://` origin. Workshop students opening the LAN URL on a phone need a secure context, so Vite is configured with `@vitejs/plugin-basic-ssl` and acts as the only port students hit.
 
 ## First-run setup (admin)
 
@@ -175,6 +182,12 @@ ComfyQ does **not** pass `--highvram` to ComfyUI. On a 24 GB card running a 23.8
 
 ### A ComfyUI browser tab pops open every time the server spawns ComfyUI
 ComfyQ passes `--disable-auto-launch`. If you still see the tab, you're either attached to an external ComfyUI instance (start ComfyQ first, then it spawns its own) or your ComfyUI build ignores the flag — verify with the spawn line in the server log.
+
+### "Use camera" only shows a file picker on desktop
+Webcam capture (`getUserMedia`) requires a **secure context**: `localhost` or `https://*`. If you're hitting plain `http://<lan-ip>:5173`, the browser silently refuses and `MediaCaptureField` falls back to the file picker. **Open `https://<host>:5173` instead** (Vite serves HTTPS via `@vitejs/plugin-basic-ssl`; accept the self-signed cert on first visit). If your browser's address bar shows `https://` and you still see only the file picker, open DevTools → Console — the secure-context check probably failed because the cert was rejected.
+
+### Browser says "Your connection is not private" on `https://...:5173`
+Expected — the cert is self-signed. Click **Advanced → Proceed to <host> (unsafe)** in Chrome / Edge, or **Show Details → Visit Website** in Safari. Trusts for the rest of the session.
 
 ### Workflow validation: `Invalid image file: <filename>`
 ComfyUI couldn't find that filename in its `input/` directory. Two common causes: (1) the workflow's hardcoded default doesn't exist on this rig — re-upload an image via the BookingDialog before submitting, or (2) the file was swept by the input-retention TTL (default 30 min). Re-upload to refresh.

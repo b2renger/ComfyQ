@@ -42,8 +42,11 @@ const uploadRoutes = require('./routes/uploads');
 const mediaStore = require('./media/mediaStore');
 
 // Prints the URLs students should use from another machine on the LAN.
-// They open Vite (5173) in their browser; the client auto-targets the
-// server (3000) at the same hostname (see client/src/utils/api.js).
+// They open Vite (5173) in their browser; Vite serves HTTPS (self-signed)
+// and proxies every backend route to this Express server over plain HTTP
+// on localhost. Students see a one-time "unsafe site" warning per device,
+// click through, and from then on the page can use the webcam / phone
+// camera (getUserMedia requires a secure context).
 function logLanUrls(serverPort) {
     const ips = lanAddresses();
     if (ips.length === 0) {
@@ -52,8 +55,9 @@ function logLanUrls(serverPort) {
     }
     console.log('[ComfyQ] LAN access — share one of these URLs with students:');
     for (const ip of ips) {
-        console.log(`[ComfyQ]   http://${ip}:5173   (Vite client; API auto-targets http://${ip}:${serverPort})`);
+        console.log(`[ComfyQ]   https://${ip}:5173   (Vite HTTPS; proxies API + websocket to localhost:${serverPort})`);
     }
+    console.log('[ComfyQ] First time on each device: accept the self-signed certificate warning.');
     console.log('[ComfyQ] If a student gets a connection error, allow Node.js through Windows Firewall for "Private" networks.');
 }
 
@@ -107,7 +111,7 @@ async function main() {
         const port = config.server.port;
         const host = config.server.host;
         server.listen(port, host, () => {
-            console.log(`[ComfyQ] admin mode listening on http://${host}:${port}`);
+            console.log(`[ComfyQ] admin mode — API on http://${host}:${port}  •  open the UI at https://localhost:5173`);
             logLanUrls(port);
             console.log('[ComfyQ] open the admin UI to configure ComfyUI and pick a workflow.');
         });
@@ -176,7 +180,7 @@ async function main() {
     const port = config.server.port;
     const host = config.server.host;
     server.listen(port, host, () => {
-        console.log(`[ComfyQ] student mode listening on http://${host}:${port}`);
+        console.log(`[ComfyQ] student mode — API on http://${host}:${port}  •  open the UI at https://localhost:5173`);
         logLanUrls(port);
         const active = config.workflows.activeWorkflowId;
         if (!active) {
