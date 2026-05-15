@@ -19,7 +19,22 @@ export default defineConfig({
     host: true,           // 0.0.0.0 — accept LAN connections
     https: true,
     proxy: {
-      '/admin':        { target: BACKEND, changeOrigin: true, secure: false },
+      // `/admin` is overloaded: the React app owns the bare path
+      // (https://localhost:5173/admin), the Express backend owns every
+      // sub-path (`/admin/mode`, `/admin/config`, etc). Without bypass,
+      // Vite proxies the bare path to Express, which has no handler for
+      // it — returning 404 and a blank page where the SPA should be.
+      '/admin': {
+        target: BACKEND,
+        changeOrigin: true,
+        secure: false,
+        bypass(req) {
+          const url = req.url || '';
+          if (url === '/admin' || url.startsWith('/admin?') || url.startsWith('/admin#')) {
+            return '/index.html';
+          }
+        }
+      },
       '/workflows':    { target: BACKEND, changeOrigin: true, secure: false },
       '/jobs':         { target: BACKEND, changeOrigin: true, secure: false },
       '/upload':       { target: BACKEND, changeOrigin: true, secure: false },

@@ -20,15 +20,13 @@ const UsernameModal = () => {
     return (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-background/80 backdrop-blur-xl animate-in fade-in duration-500">
             <div className="w-full max-w-md animate-in zoom-in-95 slide-in-from-bottom-4 duration-500 delay-150 fill-mode-both">
-                <Card className="shadow-2xl border-white/10 overflow-hidden relative group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-secondary/10 opacity-50 pointer-events-none" />
-
+                <Card className="shadow-2xl border-border overflow-hidden relative">
                     <div className="relative space-y-6 py-4">
                         <div className="flex flex-col items-center text-center space-y-2">
-                            <div className="w-16 h-16 bg-gradient-to-br from-primary to-secondary rounded-2xl flex items-center justify-center shadow-2xl shadow-primary/20 mb-4 group-hover:scale-110 transition-transform duration-500">
-                                <UserCircle2 size={32} className="text-white" />
+                            <div className="w-16 h-16 bg-surface border border-border rounded-2xl flex items-center justify-center mb-4">
+                                <UserCircle2 size={32} className="text-muted" />
                             </div>
-                            <h2 className="text-2xl font-bold tracking-tight text-white">Welcome to ComfyQ</h2>
+                            <h2 className="text-2xl font-bold tracking-tight text-foreground">Welcome to ComfyQ</h2>
                             <p className="text-muted text-sm max-w-[280px]">
                                 Please enter your name to start scheduling your creative generations.
                             </p>

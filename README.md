@@ -28,6 +28,11 @@ This is the **v2 rebuild**. v1 lives on the `main` branch; v2 lives on the `v2` 
 - **In-browser camera capture** — for any `image`-typed workflow parameter, **Use camera** opens a live preview modal (`getUserMedia`), captures a snapshot, lets you retake, and submits a downscaled JPEG. Multi-camera rigs get a **Switch** button; devices that refuse the webcam (no camera / Windows privacy off) fall back to the OS file picker without a hard error. Mobile capture (phone camera) uses `<input type="file" capture="environment">` so it just works on Android/iOS
 - **Resize-before-upload** — every captured or uploaded image is downscaled to `maxInputEdge` (default 1024 px, overridable per parameter in the admin workflow editor) before it leaves the browser. No more 12 MP phone photos crawling through the diffusion pipeline
 - **HTTPS dev server** — Vite serves HTTPS via `@vitejs/plugin-basic-ssl` and proxies the backend, so the page, REST, and websocket all share one origin. Required because `getUserMedia` only works in a secure context — `localhost` and LAN both qualify once the one-time self-signed-cert warning is accepted
+- **Light + dark mode** — sober grayscale palette, sun/moon toggle in the nav. First visit honors `prefers-color-scheme`; selection persists to `localStorage`. Dark mode is the polished default; light mode is functional v0 (some hardcoded utility classes still need migration to semantic `text-foreground`)
+- **Per-user colors** — every student is mapped via FNV-1a hash to one of 12 curated hues, surfaced on the timeline stripe, grid cards, and sidebar so the same user is visually grouped at a glance
+- **Prompt search** — case-insensitive substring across `prompt` + `user_id` on the main grid; prompt-only on the MyJobs sidebar
+- **Headline-prompt resilience** — workflows that expose their text input under a non-`prompt` key (LTX i2v `positive_prompt`, primitive-fallback `text`, …) still display the user-typed text on cards / lightbox / search. Fix is two-sided: client picks the right key at submit time; render-time fallback mines `job.params` for historical rows
+- **Branded mark** — favicon and inline header glyph are a sober "Q" (ring + bold tilde wave bar). Distinct from a magnifier icon and reads as "queue / flow"
 - **Workshop-rig defaults** — `defaultConfig()` ships with the standard portable-ComfyUI paths pre-filled, so a freshly cloned classroom machine lands with all three paths populated; **Check paths** validates them in-place (root, main.py, python `--version`, output writability) and **Reset to defaults** repopulates the form one-click
 - **Hardened ComfyUI spawn** — matches `run_nvidia_gpu.bat`: `python.exe -s main.py --windows-standalone-build --disable-auto-launch …`. The Node parent's Python/conda env vars (`PYTHONPATH`, `PYTHONHOME`, `VIRTUAL_ENV`, `CONDA_PREFIX`, etc.) are stripped and conda-prefix directories are scrubbed from `PATH` before spawn, so an active `(base)` shell can no longer drag a CPU-only torch into the portable runtime
 - **Verbose generation logs** — every job pickup logs workflow + params + inputs; sampler progress is throttled to 2s + first/last step; node transitions, completion duration, output filenames, and failure phase/reason all surface on the server console
@@ -41,10 +46,9 @@ This is the **v2 rebuild**. v1 lives on the `main` branch; v2 lives on the `v2` 
 
 - ✅ **M0 (verified on rig — RTX 5090)** — Flux1 dev t2i smoke fixture, plus Flux2 Klein 9B t2i, image-edit, and image-edit-with-reference all run end-to-end.
 - ✅ **M1 (mostly complete)** — real benchmark (with cold/warm split), Flux2 image-edit (1- and 2-image variants), image upload pipeline, admin workflow editor, calibrate/delete/edit per-card actions, emergency stop. Depth preprocessor + temp/ media routing deferred to M3.
-- ⏳ **M2** — Phase 2 (job mgmt: colors, prompt search, CSV export) + Phase 3 (real-time progress visualization, ETA badge).
-- ⏳ **M3** — LTX 2.3 video-from-reference + long-job support.
-- 🟡 **M4** — Webcam / mobile capture + 360 video LoRA. **M4-1 (file-picker capture + resize) and M4-2 (live webcam preview) shipped 2026-05-15.** M4-3 (mobile video), M4-4 (desktop MediaRecorder video), M4-5 (360 video LoRA) pending.
-- ⏳ **M5** — Audio I/O + LTX audio-driven workflow.
+- 🚧 **M2 (active)** — Phase 2 (job mgmt: colors, prompt search, CSV export) + Phase 3 (real-time progress visualization, ETA badge).
+- 🟡 **M4** — Webcam / mobile capture. **M4-1 (file-picker capture + resize) and M4-2 (live webcam preview) shipped 2026-05-15.** M4-3 (mobile video) deferred, M4-4 (desktop MediaRecorder video) pending.
+- ⏳ **Target workflows** — exercise the primitive-fallback parser against real workshop workflows: Hunyuan3D 2.1, Qwen image-to-multiview, music (ACE), LTX 2.3 video-from-reference, LTX audio-driven, 360 video LoRA. Each row is a probe into "does ComfyQ stay zero-config when a new workflow lands?" — fixes land generally, not per-workflow.
 
 ---
 
@@ -188,6 +192,9 @@ Webcam capture (`getUserMedia`) requires a **secure context**: `localhost` or `h
 
 ### Browser says "Your connection is not private" on `https://...:5173`
 Expected — the cert is self-signed. Click **Advanced → Proceed to <host> (unsafe)** in Chrome / Edge, or **Show Details → Visit Website** in Safari. Trusts for the rest of the session.
+
+### `/admin` shows a blank page or 404
+The `/admin` path is overloaded — the SPA owns the bare path, the Express API owns every sub-path (`/admin/mode`, `/admin/config`, …). Vite's proxy needs a `bypass` hook to let the bare path fall through to the SPA; we ship one in [client/vite.config.js](client/vite.config.js). If you ever see a 404 here, check that vite.config.js still has the `bypass(req)` handler on the `/admin` proxy entry. The fix only takes effect after a dev-server restart (`Ctrl+C`, then `npm run dev` — HMR doesn't pick up vite.config.js changes).
 
 ### Workflow validation: `Invalid image file: <filename>`
 ComfyUI couldn't find that filename in its `input/` directory. Two common causes: (1) the workflow's hardcoded default doesn't exist on this rig — re-upload an image via the BookingDialog before submitting, or (2) the file was swept by the input-retention TTL (default 30 min). Re-upload to refresh.

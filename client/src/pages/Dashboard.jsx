@@ -23,6 +23,7 @@ import Badge from '../components/ui/Badge';
 import MediaPreview from '../components/ui/MediaPreview';
 import WorkflowChip from '../components/ui/WorkflowChip';
 import { getImageUrl, SERVER_URL } from '../utils/api';
+import { getDisplayPrompt } from '../utils/jobDisplay';
 
 /**
  * Dashboard Page Component
@@ -122,7 +123,13 @@ const DashboardPage = () => {
         {
             header: 'Prompt',
             accessorKey: 'prompt',
-            cell: info => <div className="max-w-xs truncate text-sm text-slate-400" title={info.getValue()}>{info.getValue()}</div>
+            // Fall back to the resolved display prompt so jobs whose
+            // top-level `prompt` was stored empty (LTX i2v with
+            // positive_prompt) still show their text.
+            cell: info => {
+                const prompt = getDisplayPrompt(info.row.original);
+                return <div className="max-w-xs truncate text-sm text-slate-400" title={prompt}>{prompt || <span className="text-muted italic">no prompt</span>}</div>;
+            }
         },
         {
             header: 'Result',
@@ -186,7 +193,7 @@ const DashboardPage = () => {
         <div className="p-6 space-y-8 max-w-7xl mx-auto">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-2xl font-bold tracking-tight">System Dashboard</h2>
+                    <h2 className="text-2xl font-bold tracking-tight">Session Dashboard</h2>
                     <p className="text-muted mt-1">Real-time metrics and job history</p>
                 </div>
                 <button
@@ -255,7 +262,7 @@ const DashboardPage = () => {
                 <Card className="lg:col-span-2 border-slate-700/50" noPadding>
                     <div className="px-6 py-4 border-b border-border bg-surface/50 backdrop-blur-sm flex justify-between items-center sticky top-0">
                         <h3 className="font-semibold flex items-center space-x-2">
-                            <Server size={18} className="text-secondary" />
+                            <Server size={18} className="text-muted" />
                             <span>Recent Activity</span>
                         </h3>
                         {selectedUser && (

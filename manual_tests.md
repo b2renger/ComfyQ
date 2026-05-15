@@ -445,36 +445,57 @@ Outstanding gaps surfaced during M0 acceptance go into **M1 prerequisites** belo
 
 ## M2 — Phase 2 (job mgmt) + Phase 3 (real-time progress)
 
-- M2-1 User color coding (deterministic per username) on timeline + cards.
-- M2-2 MyJobs search by prompt substring.
-- M2-3 MyJobs date filter.
-- M2-4 CSV export covers `id, user, workflow, scheduled_at, finished_at, status, prompt, error_reason`.
-- M2-5 Real-time `ProgressViz`: live current node + step %.
-- M2-6 ETA badge counts down; matches actual finish time within 15%.
+- **M2-1** ✅ **VERIFIED 2026-05-15** — User color coding (deterministic per username). Open the Scheduler with 2+ users having booked. Each user gets a stable hue. Same name appears with same color across: timeline left-stripe + prefix label, grid card dot + label, MyJobsPanel header. Reload the page → colors persist (no randomness).
+- **M2-2** ✅ **VERIFIED 2026-05-15** — Prompt search. Type a substring in the toolbar input — grid filters live. Switching My/All tabs preserves the query. Clearing the X button restores all results. Empty-state message says `No jobs match "<query>"` when search returns zero. Sidebar search filters MyJobsPanel similarly.
+- **M2-3** MyJobs date filter (next).
+- **M2-4** CSV export covers `id, user, workflow, scheduled_at, finished_at, status, prompt, error_reason`.
+- **M2-5** Real-time `ProgressViz`: live current node + step %.
+- **M2-6** ETA badge counts down; matches actual finish time within 15%.
+- **M2-theme** ✅ **VERIFIED 2026-05-15** — Theme toggle. Click sun/moon button in nav → palette flips. Reload → preserved. Clear `localStorage.comfyq_theme` → first paint honors `prefers-color-scheme`. Indigo/purple chrome should be gone everywhere — toolbar accents, buttons, focus rings, badges are all neutral greys (per-user accent colors on cards are intentionally preserved).
+- **M2-admin-route** ✅ **VERIFIED 2026-05-15** — Admin route accessible. (a) Click the Settings icon in the StudentLayout nav → lands on `/admin`. (b) Type `https://<host>:5173/admin` directly → renders AdminConfig (not a 404 / blank page). (c) Every admin sub-route (cleanup outputs, calibrate workflow, update password, etc) still works — proxy correctly forwards `/admin/*` to the backend while letting bare `/admin` reach the SPA.
+- **M2-prompt-bugfix** ✅ **VERIFIED 2026-05-15** — Headline-prompt resilience for non-`prompt`-keyed workflows. Book a job on an LTX 2.3 i2v workflow (or any workflow whose textarea key is `positive_prompt`/`text` rather than literal `prompt`). On the resulting card + lightbox + sidebar row, the typed text shows correctly (not empty quotes). Historical jobs in the DB (created before the fix) ALSO display correctly thanks to the render-time `getDisplayPrompt` fallback.
 
-## M3 — LTX 2.3 video-from-reference + long-job support
-
-- M3-1 LTX video job (~5 min) completes; output is mp4 with correct MIME.
-- M3-2 Mid-job ComfyUI kill → `failed: errorPhase=executing` with descriptive reason.
-- M3-3 Back-to-back Flux2 9B → LTX: server log shows `[Worker] /free invoked: budget-exceeded`. nvidia-smi confirms VRAM drops between jobs.
-- M3-4 History polling deadline honored: an LTX job exceeding `maxRuntimeSec` fails with `runtime-budget-exceeded` (artificial test: set `maxRuntimeSec` to 60 in meta, run a long job).
-
-## M4 — Phase 4 (webcam / mobile capture) + 360 video LoRA
+## M4 — Phase 4 (webcam / mobile capture)
 
 - **M4-1** File-picker capture path: on a Flux2 image-edit slot, click **Upload image**, pick a 12 MP phone photo. Browser console shows `[imageResize] resized <orig>×<orig> → <≤maxEdge>×… (<orig>kB → <new>kB)`. Job submits and the result is generated from the downscaled image, not the raw 12 MP. Also: open the workflow in the admin editor, set `maxInputEdge: 768` on the image param, re-upload — console reflects the new max edge.
 - **M4-2** ✅ **VERIFIED 2026-05-15** — Live webcam capture (desktop): open `https://localhost:5173` (or `https://<lan-ip>:5173` after accepting the self-signed cert). On a Flux2 image-edit slot, click **Use camera** → live preview opens in modal → browser prompts for camera permission → grant → live video shows. Click **Capture** → snapshot freezes → **Use this shot** → modal closes, preview thumbnail appears in BookingDialog, submit. Verify `[imageResize]` log fires on the canvas-derived File. Also exercise **Retake** and **Switch** (if multiple cameras). **Regression caught during M4-2:** initial constraint must be `{ video: true }`, not `{ video: { facingMode: 'user' } }` — desktop Chrome on Windows throws `NotFoundError` on the latter when the connected device doesn't report facing metadata.
 - **M4-2-fallback** On `http://<lan-ip>:5173` (no HTTPS): **Use camera** falls back to the file picker without prompting for permission. No console errors. This is the documented behavior — `canUseLiveCamera()` short-circuits when `window.isSecureContext` is false.
-- **M4-3** Mobile video capture: from a phone on the LAN, hit `https://<lan-ip>:5173`, accept cert, book a video workflow, click **Use camera** → OS camera app opens in video mode → record → return → file appears as preview. Submit, verify the server gets a native MP4.
+- **M4-3** *Deferred.* Mobile video capture from a phone (was: hit `https://<lan-ip>:5173`, accept cert, book a video workflow, click **Use camera** → OS camera app opens in video mode → record → return → file appears as preview → submit). Re-prioritize when a target workflow needs phone-recorded video input.
 - **M4-4** Desktop MediaRecorder video (best-effort): record → preview → submit; document codec on the workflow's output card.
-- **M4-5** 360 video LoRA: LoRA strength sliders surface in BookingDialog without code changes (proves no whitelist regression). Output mp4 plays.
 - **M4-iOS** iOS Safari `getUserMedia`: capture re-encoded as PNG/JPEG via canvas before upload (open risk #3 in plan).
 
-## M5 — Audio I/O + LTX audio-driven
+## Target workflows — primitive-fallback parser exercised against real workshop workflows
 
-- M5-1 In-browser audio recorder produces a wav file.
-- M5-2 LTX audio-driven completes; `MyJobs` shows BOTH audio and video outputs; both play.
-- M5-3 Re-book by uploading a wav from disk; succeeds.
-- M5-4 Output classifier returns the right MIME for `.wav`, `.mp4`, `.png` based purely on extension.
+Each target workflow gets its own test slate. Pass = upload, calibrate, smoke-test all succeed **without per-workflow code**. Fail = file a fix landing in the registry / parser / MediaStore (not in the workflow's meta.json).
+
+### Hunyuan3D 2.1 (image → textured 3D mesh)
+- H3D-1 Workflow uploads, primitive-fallback parser surfaces image input + relevant sliders (face-count, etc).
+- H3D-2 Calibration completes (note: full unwrap is 5–10 min — set `maxRuntimeSec` ≥ 900).
+- H3D-3 Output classifier recognizes `.glb` (or `.obj`) and serves with correct MIME (`model/gltf-binary` / `text/plain`).
+- H3D-4 `MyJobs` shows mesh outputs distinctly from images (download link works; viewer is a stretch goal).
+
+### Qwen image-to-multiview (single image → N viewpoints)
+- QMV-1 Workflow surfaces N (batch-size) as an exposed parameter.
+- QMV-2 Job produces N output PNGs; `MyJobs` shows all N as a grid, all are downloadable.
+- QMV-3 Timeline cell shows aggregated count + first thumbnail.
+
+### Music workflow (probably ACE)
+- MUS-1 In-browser audio recorder produces a wav file.
+- MUS-2 Job completes; `MyJobs` plays the resulting audio inline.
+- MUS-3 Re-book by uploading a wav from disk; succeeds.
+- MUS-4 Output classifier returns the right MIME for `.wav`/`.mp3`/`.flac` based purely on extension.
+
+### LTX 2.3 video-from-reference (was M3)
+- LTX-1 LTX video job (~5 min) completes; output is mp4 with correct MIME.
+- LTX-2 Mid-job ComfyUI kill → `failed: errorPhase=executing` with descriptive reason.
+- LTX-3 Back-to-back Flux2 9B → LTX: server log shows `[Worker] /free invoked: budget-exceeded`. nvidia-smi confirms VRAM drops between jobs.
+- LTX-4 History polling deadline honored: an LTX job exceeding `maxRuntimeSec` fails with `runtime-budget-exceeded` (artificial test: set `maxRuntimeSec` to 60 in meta, run a long job).
+
+### LTX audio-driven (was M5)
+- LTXA-1 LTX audio-driven completes; `MyJobs` shows BOTH audio and video outputs; both play.
+
+### 360 video LoRA (was M4-5)
+- L360-1 LoRA strength sliders surface in BookingDialog without code changes (proves no whitelist regression). Output mp4 plays.
 
 ---
 
@@ -482,7 +503,7 @@ Outstanding gaps surfaced during M0 acceptance go into **M1 prerequisites** belo
 
 Use this section to track which physical machines have been validated against which milestone. Helpful when machines diverge (e.g. a 3090 fails OOM where a 4090 doesn't).
 
-| Rig | GPU | OS | ComfyUI version | M0 | M1 | M2 | M3 | M4 | M5 |
-|-----|-----|-----|-----------------|----|----|----|----|----|----|
-|     |     |     |                 |    |    |    |    |    |    |
+| Rig | GPU | OS | ComfyUI version | M0 | M1 | M2 | M4 | Target workflows |
+|-----|-----|-----|-----------------|----|----|----|----|------------------|
+|     |     |     |                 |    |    |    |    |                  |
 |     |     |     |                 |    |    |    |    |    |    |

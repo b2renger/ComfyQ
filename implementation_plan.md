@@ -321,20 +321,19 @@ Beyond the original M0/M1 scope, the following has been built so a teacher / lab
 - [x] **Active-workflow description on user UI** — the Scheduler header's "Active workflow" pill grew into a card containing the workflow description (whitespace-preserving), and the same block is mirrored at the top of `BookingDialog`. Description text comes from `state.workflow_info.description`, already on the wire — no schema change. Admins write prompting tips in the workflow editor's Description field and they appear immediately for students.
 - [x] **Compact Live Schedule** — timeline container shrunk from `h-[300px]/h-[400px]` to `h-[180px]/h-[220px]` (mobile/desktop) and the block wrapper got `px-4 sm:px-12 lg:px-20` so the timeline sits inset from the page edges without bleeding into the rest of the layout.
 
-### M2 — Phase 2 (job mgmt) + Phase 3 (real-time progress)
+### M2 — Phase 2 (job mgmt) + Phase 3 (real-time progress)  *(active)*
 
-- [ ] `MyJobs.jsx`: deterministic user colors, prompt search, date filter, CSV export from `/jobs?since=…&until=…`.
-- [ ] `ProgressViz`, `ETABadge` driven by `samplesPerSec` × steps remaining.
-- [ ] AuthGate enforced on cross-user `delete_job` / `cancel_job`.
+- [ ] `MyJobs.jsx`: ~~deterministic user colors~~ ✅, ~~prompt search~~ ✅ (2026-05-15), date filter, CSV export from `/jobs?since=…&until=…`.
+  - Colors: [client/src/utils/userColor.js](client/src/utils/userColor.js) — FNV-1a hash → 12-color palette. Applied to MyJobsPanel header, Scheduler grid user-chip, vis-timeline left-stripe + prefix label.
+  - Prompt search: case-insensitive substring on `prompt` + `user_id` in the Scheduler grid (toolbar input, persists across My/All tab switch); prompt-only in MyJobsPanel sidebar. Timeline view is intentionally untouched — it's a schedule, not a results filter.
+- [x] **Theme system — light + dark mode with grayscale palette** (2026-05-15). [client/src/context/ThemeContext.jsx](client/src/context/ThemeContext.jsx) drives the `.dark` / `.light` class on `<html>`; [client/src/components/ui/ThemeToggle.jsx](client/src/components/ui/ThemeToggle.jsx) is the sun/moon button mounted in StudentLayout nav + AdminConfig header. Persists to `localStorage.comfyq_theme`; first visit honors `prefers-color-scheme`. Indigo + purple chrome dropped in favor of sober zinc-grey neutrals; the per-user accent palette ([userColor.js](client/src/utils/userColor.js)) is kept since users need to be visually distinguishable. **Known v0 limitation:** ~150 hardcoded `text-white` / `text-slate-*` / `bg-white/N` references across components are pragma-overridden in [index.css](client/src/index.css) rather than refactored. Light mode may show contrast oddities on coloured buttons; full migration to `text-foreground` is follow-up.
+- [ ] `ProgressViz`, `ETABadge` driven by `samplesPerSec` × steps remaining (the server already throttles + logs sampler progress at 2 s + first/last step — exposing that on the wire is the next step).
+- [x] AuthGate enforced on cross-user `delete_job` / `cancel_job` — landed alongside the admin-password gating UX. See `isAuthorizedForJob` in [server/auth/authGate.js](server/auth/authGate.js).
+- [x] **Branding refresh — favicon + tab title + nav mark** (2026-05-15). Browser tab now reads `ComfyQ` ([client/index.html](client/index.html)). New SVG favicon ([client/public/favicon.svg](client/public/favicon.svg)) — ring on top, bold tilde-wave bar underneath as the Q's bar, on a sober zinc-800 rounded square. The inline mark in the StudentLayout nav uses the same geometry with `currentColor` strokes so it adapts to the active theme. Iterated through three designs: single diagonal tail (looked like a magnifier), doubled diagonal tail, asymmetric doubled tail, and finally the bold tilde wave that reads as "queue / flow / motion".
+- [x] **"Session Dashboard" rename + nav admin link** (2026-05-15). The nav tab next to Timeline is now "Session Dashboard" (was "All Jobs"); the Dashboard page heading matches. A small Settings-icon button in the nav links to `/admin` — previously the only path was typing the URL ([App.jsx](client/src/App.jsx)).
+- [x] **Prompt-display fix for non-`prompt`-keyed workflows** (2026-05-15). Workflows like LTX 2.3 i2v expose the user-visible text under keys like `positive_prompt` or `text`, not literally `prompt`. The old client only forwarded `finalParams.prompt`, so `job.prompt` was stored empty. Fixed both ways: (a) `pickHeadlinePrompt(finalParams, parameterMap)` in [BookingDialog.jsx](client/src/components/BookingDialog.jsx) chooses the right textarea field at submit time (skipping anything `negative*`); (b) `getDisplayPrompt(job)` in [client/src/utils/jobDisplay.js](client/src/utils/jobDisplay.js) mines `job.params` at render time so historical records display correctly without a DB backfill. Threaded through ImageLightbox, MyJobsPanel, Scheduler (grid + timeline + search), and Dashboard. **Bonus:** while in the timeline code, HTML-escaped the previously-unescaped `${job.prompt}` and `${shortId}` interpolations in vis-timeline `content` strings (XSS hole — any classmate's username/prompt containing HTML would have rendered on everyone's view).
 
-### M3 — LTX 2.3 video-from-reference + long-job support
-
-- [ ] Per-workflow `maxRuntimeSec` honored; adaptive history polling (1 s × 60 s, then 5 s up to budget).
-- [ ] WS `executed` short-circuits polling.
-- [ ] `MediaStore` proven with `video/mp4`; client `MediaPlayer` selects `<video controls>` by kind.
-- [ ] `ModelLifecycle` calls ComfyUI `/free` on workflow switch when VRAM budget would be exceeded.
-
-### M4 — Phase 4 (webcam / mobile capture) + 360 video LoRA (M4-1 ✅ · M4-2 ✅ · M4-3/4/5 pending)
+### M4 — Phase 4 (webcam / mobile capture) (M4-1 ✅ · M4-2 ✅ · M4-3 deferred · M4-4 pending)
 
 - [ ] **In-browser camera capture for image and video inputs.** See [M4 design notes](#m4-design-notes--in-browser-camera-capture) below for the full implementation strategy. Headline checklist:
   - [x] New `MediaCaptureField.jsx` augments `BookingDialog`'s existing image/video upload widgets without replacing them — drag-and-drop, file picker, and camera capture all coexist; the user picks per-field. No server-side changes; everything routes through the existing `POST /upload` endpoint.
@@ -428,35 +427,44 @@ client/src/components/
 **Phased delivery (under M4 milestone).**
 1. **M4-1** ✅ — File-picker capture for image (with `accept="image/*" capture="environment"`) + canvas resize + `maxInputEdge` schema field. Ships value on every device immediately. **No `getUserMedia` yet.**
 2. **M4-2** ✅ **VERIFIED 2026-05-15** — `getUserMedia` image capture (desktop + Android Chrome HTTPS). Adds live-preview snapshot UX with retake / device-switch. **Bundled with HTTPS dev server** (`@vitejs/plugin-basic-ssl`) so the secure-context requirement is met on the LAN — see "HTTPS in dev" below. **Lesson learned:** initial constraint must be permissive `{ video: true }`; passing `facingMode: 'user'` on first request causes Chrome on desktop Windows to throw `NotFoundError` when the connected camera doesn't report facing metadata. `facingMode` is only applied when the user explicitly clicks **Switch**.
-3. **M4-3** — File-picker capture for video on mobile (`accept="video/*" capture="environment"`).
+3. **M4-3** — *Deferred.* File-picker capture for video on mobile (`accept="video/*" capture="environment"`). Already wired in `MediaCaptureField` for the video param type; deferred because (a) no urgent workshop need and (b) verification requires a phone test session. Pick up when a target workflow actually needs phone-recorded video input.
 4. **M4-4** — `MediaRecorder` video capture for desktop. Best-effort. Documented limitation list.
-5. **M4-5** — 360 video LoRA workflow registered (independent of capture work).
 
 **HTTPS in dev (added with M4-2).** Vite now serves HTTPS via `@vitejs/plugin-basic-ssl` and proxies every backend route (`/admin`, `/workflows`, `/jobs`, `/upload`, `/media`, `/images`, `/download`, `/socket.io`) to the Express server at `http://localhost:3000`. The browser only ever sees a single HTTPS origin, so `window.isSecureContext === true` on `localhost` AND on the LAN — webcam works on both. Clients see a one-time self-signed-cert warning per device; after clicking through, the cert is trusted for the rest of the session. The Express server keeps running on plain HTTP (only ever reached via the proxy). `SERVER_URL` is now empty → relative URLs → proxy handles it. To restore the previous direct-to-Express setup, set `VITE_SERVER_URL=http://<host>:3000` in `client/.env`.
 
+**Admin-route proxy bypass (regression fix, 2026-05-15).** The `/admin` prefix is overloaded — the React SPA owns the bare path (`https://localhost:5173/admin`), the Express backend owns every sub-path (`/admin/mode`, `/admin/config`, `/admin/cleanup-outputs`, …). Without a bypass, Vite proxied the bare path to Express, which has no handler for it → 404 and a blank page. Fix in [client/vite.config.js](client/vite.config.js): a `bypass(req)` hook on the `/admin` proxy entry that returns `/index.html` when `req.url` is exactly `/admin` (or `/admin?…` / `/admin#…`), letting the SPA take over. Every `/admin/<sub>` still proxies normally. If you add a new top-level path that's shared between SPA and API, replicate the same bypass pattern.
+
 This split keeps each step shippable and reversible — if `MediaRecorder` codec issues prove hairy on the workshop hardware, M4-4 can defer indefinitely without blocking the mobile camera flow that actually serves students.
 
-### M5 — Audio I/O + LTX audio-driven
+### Target workflows — primitive-fallback parser exercised against real workshop workflows
 
-- [ ] `inputUploader` extended for audio kinds.
-- [ ] `AudioRecorder.jsx`: in-browser recording with WebAudio → wav re-encode.
-- [ ] LTX audio-driven workflow registered; output verified as both audio and video on different nodes.
-- [ ] `MediaPlayer` audio branch.
+Catch-all for **workflow registrations and the infra each one stresses**. Each target workflow gets a row; the work is "upload, calibrate, smoke-test, fix anything the registry/parser/MediaStore can't handle without per-workflow code." If the primitive-fallback parser is doing its job, most rows should be zero-code.
+
+Active queue (in rough priority order):
+
+- [ ] **Hunyuan3D 2.1** — image → textured 3D mesh. Stresses: GLB/OBJ output classification in `MediaStore` (new model3d kind), multi-output download UX (mesh + texture maps), long execution times (mesh unwrap is ~5–10 min). External integration work already validated upstream (see notes in earlier conversation — `custom_rasterizer` + `mesh_inpaint_processor` wheels build against torch 2.9.1+cu128).
+- [ ] **Qwen image-to-multiview** — single reference image → N consistent viewpoint images. Stresses: workflows that emit N images (not 1), thumbnail grid layout in `MyJobs`, batch-size as an exposed parameter.
+- [ ] **Music workflow (probably ACE)** — text or audio prompt → music. Stresses: `inputUploader` for audio kinds, `AudioRecorder.jsx` (WebAudio → wav re-encode), `MediaPlayer` audio branch, output classification for `.wav`/`.mp3`/`.flac`. Lifts what was previously planned as M5.
+- [ ] **LTX 2.3 video-from-reference** — i2v with a reference image. Stresses: long-job support (`maxRuntimeSec` honored, adaptive history polling 1 s × 60 s then 5 s up to budget, WS `executed` short-circuits polling), `MediaStore` for `video/mp4`, `ModelLifecycle` `/free` on workflow switch when VRAM budget exceeded. Lifts what was previously M3.
+- [ ] **LTX audio-driven** — audio + reference image → video with a synced audio track. Stresses: workflows with both audio and video outputs (multi-output UX from above), audio MIME classification. Lifts what was previously M5.
+- [ ] **360 video LoRA** — verify the primitive-fallback parser surfaces `LoraLoader.lora_name` / `strength_model` / `strength_clip` without a whitelist. Lifts what was previously M4-5.
+
+**What we're really testing.** Each row is a probe into "does ComfyQ stay zero-config when a new workflow lands?" — that's the actual product promise. The headline failures we expect are around (a) output kinds the `MediaStore` classifier doesn't know yet (e.g. `.glb`), (b) workflows that produce N>1 primary outputs (multiview, audio+video), and (c) workflows whose runtime blows past the 60 s polling window. Each fix lands generally, not per-workflow.
 
 ---
 
 ## Open risks / decisions still to nail down
 
-1. **ComfyUI `/free` semantics** on the lab build — if it forces a model reload even back-to-back same-workflow, ModelLifecycle should only free on workflow-switch (current default). Validate at M3 with a back-to-back same-workflow timing comparison.
+1. **ComfyUI `/free` semantics** on the lab build — if it forces a model reload even back-to-back same-workflow, ModelLifecycle should only free on workflow-switch (current default). Validate during the LTX 2.3 row of **Target workflows** with a back-to-back same-workflow timing comparison.
 2. **`temp/` directory cleanup** — ComfyUI may not clean its own temp. Recommended: copy temp outputs to a ComfyQ-managed output folder at completion. Confirm at M1.
 3. **Webcam blob format on iOS Safari** — getUserMedia may yield webm but workflows expect png/jpg. **Resolved in M4 design:** universal image path is always `getUserMedia → canvas → toBlob('image/jpeg', 0.92)`, never trusting MediaRecorder for stills. For mobile video, use `<input type="file" accept="video/*" capture="environment">` which delegates to the OS camera and returns native MP4; the desktop MediaRecorder path stays best-effort.
 3a. **`getUserMedia` requires a secure context (HTTPS or localhost).** **Resolved at M4-2:** Vite now serves HTTPS via `@vitejs/plugin-basic-ssl` and proxies the backend, so the page is `https://<lan-ip>:5173` on every device — secure context satisfied, webcam works on the LAN. Self-signed cert means a one-time per-device "unsafe site" click-through. The file-picker-with-`capture` route is still the fallback on devices that refuse the cert and on mobile video (M4-3) where the OS camera app round-trips to a native MP4.
-4. **MediaRecorder audio format Firefox vs Chrome** — encodings differ; LTX audio model may want wav. Decision: WebAudio decode → wav re-encode (`audiobuffer-to-wav`). Validate at M5.
+4. **MediaRecorder audio format Firefox vs Chrome** — encodings differ; ACE / LTX audio model may want wav. Decision: WebAudio decode → wav re-encode (`audiobuffer-to-wav`). Validate during the music-workflow row of **Target workflows**.
 5. **Job replay across workflow versions** — we don't replay; jobs are immutable history. Store `workflowVersion` on the job and badge in MyJobs.
-6. **AuthGate scope** — currently gates `delete_job(other_user)`, `reset-to-admin`, `restart-server`, `cancel_job(other_user)`, `restart`, `upload-workflow`, `:id/calibrate`, `:id/config-meta`. Re-review during M2.
-7. **WS reconnection while a job is executing** — REST `/history` is the source of truth; WS gap should not interrupt polling. Confirm at M3.
+6. **AuthGate scope** — gates `delete_job(other_user)`, `reset-to-admin`, `restart-server`, `cancel_job(other_user)`, `restart`, `upload-workflow`, `:id/calibrate`, `:id/config-meta`, `cleanup-outputs`. Cross-user delete/cancel routes through the admin-password modal; without a password configured, cross-user actions are refused entirely. Re-review if M2 surfaces new mutation surfaces (CSV export of others' jobs, etc).
+7. **WS reconnection while a job is executing** — REST `/history` is the source of truth; WS gap should not interrupt polling. Confirm during the LTX 2.3 row of **Target workflows**.
 8. **Timeline collision with variable durations** — collision check uses each job's own workflow `estimatedDurationSec`. When unbenched, falls back to `meta.json.estimatedDurationSec` seed; never to a hard-coded 60 s.
-9. **Multi-output download UX** — LTX-audio job has both video + audio outputs. MyJobs lists all; timeline cell shows aggregated count + first thumbnail. Verify visually at M5.
+9. **Multi-output download UX** — applies to LTX-audio (video + audio) and Qwen multiview (N images) target workflows. MyJobs lists all; timeline cell shows aggregated count + first thumbnail. Verify during the relevant **Target workflows** rows.
 10. **Skills repo** — out of scope. Revisit only if a future Phase 6 ships a `ComfyQ_Save` helper node for tighter progress / structured save metadata.
 
 ---

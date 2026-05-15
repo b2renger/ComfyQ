@@ -23,6 +23,37 @@ import MediaCaptureField from './capture/MediaCaptureField';
  * @param {number} props.initialTime - Default start time for the job
  * @param {Function} props.onConfirm - Submit handler ({ prompt, params, time })
  */
+// Pick the user-visible "headline" prompt out of the submitted form values.
+// Workflows expose their text inputs under different keys (`prompt`,
+// `positive_prompt`, `text`, etc.) — we look for the most prompt-like
+// textarea-typed param and return its current value, falling back to a
+// looser match if no parameterMap is available.
+function pickHeadlinePrompt(finalParams, parameterMap = {}) {
+    // 1. Literal `prompt` key wins if filled — old behavior, preserved.
+    if (typeof finalParams.prompt === 'string' && finalParams.prompt.trim()) {
+        return finalParams.prompt;
+    }
+    // 2. Prefer textarea-typed params, skipping anything that smells negative.
+    const score = (k) => (/positive/i.test(k) ? 0 : /prompt/i.test(k) ? 1 : 2);
+    const textareaKeys = Object.entries(parameterMap || {})
+        .filter(([, p]) => p?.type === 'textarea')
+        .map(([k]) => k)
+        .filter(k => !/negative|neg/i.test(k))
+        .sort((a, b) => score(a) - score(b));
+    for (const k of textareaKeys) {
+        const v = finalParams[k];
+        if (typeof v === 'string' && v.trim()) return v;
+    }
+    // 3. Fallback — no parameterMap or no textarea typed param matched.
+    //    Scan finalParams for anything prompt-shaped.
+    for (const [k, v] of Object.entries(finalParams)) {
+        if (typeof v === 'string' && v.trim() && /prompt|^text$/i.test(k) && !/negative|neg/i.test(k)) {
+            return v;
+        }
+    }
+    return '';
+}
+
 // A param qualifies as a "seed" if its key or field looks like one. Catches
 // both KSampler.seed (Flux1) and RandomNoise.noise_seed (Flux2), plus any
 // custom node that exposes a *_seed field.
@@ -141,8 +172,15 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         // Prepare final params
         const finalParams = { ...formParams, ...uploadedFilenames };
 
+        // Pick the user-visible "headline" prompt. Workflows expose textarea
+        // inputs under different keys — `prompt` for Flux, `positive_prompt`
+        // for LTX i2v, `text` for some primitive-fallback parses. The server
+        // stores ONE field for the cards / lightbox / search, so surface the
+        // value the user actually typed regardless of its key.
+        const headlinePrompt = pickHeadlinePrompt(finalParams, state.workflow?.parameter_map);
+
         onConfirm({
-            prompt: finalParams.prompt || '',
+            prompt: headlinePrompt,
             params: finalParams,
             time: scheduledTime
         });
@@ -317,7 +355,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                         <div className="flex items-center gap-2">
                             <Info size={14} className="text-primary shrink-0" />
                             <span className="text-[10px] uppercase tracking-widest font-bold text-muted">Active workflow</span>
-                            <span className="text-sm font-semibold text-primary-light">{state.workflow_info.name}</span>
+                            <span className="text-sm font-semibold text-foreground">{state.workflow_info.name}</span>
                             {state.workflow_info.category && state.workflow_info.category !== 'other' && (
                                 <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
                                     {state.workflow_info.category}

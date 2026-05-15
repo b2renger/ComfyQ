@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useSocket } from '../context/SocketContext';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
@@ -6,6 +6,8 @@ import { Sparkles, Clock, CheckCircle2, AlertCircle, Image as ImageIcon, Search,
 import MediaPreview from './ui/MediaPreview';
 import WorkflowChip from './ui/WorkflowChip';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
+import { getUserColor } from '../utils/userColor';
+import { getDisplayPrompt } from '../utils/jobDisplay';
 
 /**
  * My Jobs Panel Component
@@ -24,12 +26,16 @@ import { getImageUrl, getDownloadUrl } from '../utils/api';
  */
 const MyJobsPanel = ({ onClose }) => {
     const { state, username, workflowsById } = useSocket();
+    const userColor = getUserColor(username);
+    const [searchQuery, setSearchQuery] = useState('');
 
     // Sidebar shows ONLY the current user's jobs — the main grid has tabs
     // (My / All) for cross-user views. Anonymous users (no username) see
     // nothing in the sidebar.
+    const q = searchQuery.trim().toLowerCase();
     const allJobs = state.jobs
         .filter(j => username && j.user_id === username)
+        .filter(j => !q || getDisplayPrompt(j).toLowerCase().includes(q))
         .sort((a, b) => b.time_slot - a.time_slot);
 
     return (
@@ -46,13 +52,51 @@ const MyJobsPanel = ({ onClose }) => {
                     )}
                     <div>
                         <h3 className="font-bold text-base sm:text-lg tracking-tight text-white leading-none">My Generations</h3>
-                        <p className="text-[10px] text-muted font-medium mt-1 uppercase tracking-widest leading-none">{username || 'Anonymous'}</p>
+                        <div className="flex items-center gap-1.5 mt-1">
+                            <span className="w-2 h-2 rounded-full" style={{ backgroundColor: userColor.dot }} />
+                            <p
+                                className="text-[10px] font-medium uppercase tracking-widest leading-none"
+                                style={{ color: userColor.ring }}
+                            >
+                                {username || 'Anonymous'}
+                            </p>
+                        </div>
                     </div>
                 </div>
-                <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20 shrink-0">
-                    <span className="text-xs font-bold text-primary">{allJobs.length}</span>
+                <div
+                    className="w-8 h-8 rounded-xl flex items-center justify-center border shrink-0"
+                    style={{ backgroundColor: userColor.bg, borderColor: userColor.ring + '40' }}
+                >
+                    <span className="text-xs font-bold" style={{ color: userColor.ring }}>{allJobs.length}</span>
                 </div>
             </div>
+
+            {/* Search box — filters allJobs in place. Hidden for anonymous
+                users since they have nothing to search through. */}
+            {username && (
+                <div className="px-4 py-3 border-b border-border bg-surface/20 shrink-0">
+                    <div className="relative">
+                        <Search size={12} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                        <input
+                            type="search"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="Search your prompts…"
+                            className="w-full bg-background/50 border border-border rounded-md pl-7 pr-7 py-1.5 text-xs text-white placeholder-muted focus:outline-none focus:border-primary/50"
+                        />
+                        {searchQuery && (
+                            <button
+                                type="button"
+                                onClick={() => setSearchQuery('')}
+                                className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted hover:text-white hover:bg-white/5"
+                                title="Clear"
+                            >
+                                <X size={12} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+            )}
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-black/20">
                 {allJobs.length === 0 ? (
@@ -61,8 +105,17 @@ const MyJobsPanel = ({ onClose }) => {
                             <Search size={32} />
                         </div>
                         <div className="space-y-1">
-                            <p className="text-sm font-medium">No active jobs</p>
-                            <p className="text-xs text-muted">Book a slot on the timeline</p>
+                            {q ? (
+                                <>
+                                    <p className="text-sm font-medium">No matches</p>
+                                    <p className="text-xs text-muted">Nothing in your jobs contains "{searchQuery}"</p>
+                                </>
+                            ) : (
+                                <>
+                                    <p className="text-sm font-medium">No active jobs</p>
+                                    <p className="text-xs text-muted">Book a slot on the timeline</p>
+                                </>
+                            )}
                         </div>
                     </div>
                 ) : (
@@ -117,9 +170,14 @@ const MyJobsPanel = ({ onClose }) => {
                                 )}
                             </div>
 
-                            <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed italic pr-2" title={job.prompt}>
-                                "{job.prompt}"
-                            </p>
+                            {(() => {
+                                const prompt = getDisplayPrompt(job);
+                                return (
+                                    <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed italic pr-2" title={prompt}>
+                                        {prompt ? `"${prompt}"` : <span className="text-muted not-italic">no prompt</span>}
+                                    </p>
+                                );
+                            })()}
                             <div className="mt-2">
                                 <WorkflowChip workflowId={job.workflow_id} workflowsById={workflowsById} />
                             </div>
@@ -136,14 +194,14 @@ const MyJobsPanel = ({ onClose }) => {
                                             </div>
                                             <div className="w-full bg-muted/10 h-1 rounded-full overflow-hidden">
                                                 <div
-                                                    className="h-full bg-primary shadow-[0_0_8px_rgba(99,102,241,0.5)] transition-all duration-300"
+                                                    className="h-full bg-primary shadow-[0_0_8px_rgba(113,113,122,0.4)] transition-all duration-300"
                                                     style={{ width: `${(job.progress.value / job.progress.max) * 100}%` }}
                                                 />
                                             </div>
                                         </>
                                     ) : (
                                         <div className="w-full bg-muted/10 h-1 rounded-full overflow-hidden">
-                                            <div className="h-full bg-primary animate-progress-indeterminate shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
+                                            <div className="h-full bg-primary animate-progress-indeterminate shadow-[0_0_8px_rgba(113,113,122,0.4)]" />
                                         </div>
                                     )}
                                 </div>

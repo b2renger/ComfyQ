@@ -1,149 +1,244 @@
 @import "tailwindcss";
 
+/* Class-based dark mode: `.dark` on the <html> element flips the variants.
+   See ThemeContext.jsx for the toggle that drives this. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ============================================================
+   Design tokens
+   ------------------------------------------------------------
+   The @theme block exposes everything Tailwind utilities key off
+   of as `--color-*` variables. Each one is itself defined via
+   `var(--something)` so we can swap the underlying value between
+   light and dark mode without touching component code.
+
+   Aesthetic goals (2026-05-15 rebrand):
+     • Sober, neutral, grayscale. No indigo or purple chrome.
+     • The same `primary` works in both modes for white text
+       (zinc-600-ish, ~5.5:1 against white, ~6.3:1 against
+       near-black) so we don't need to flip text-on-primary.
+     • The per-user accent palette (utils/userColor.js) is
+       unaffected — those need to differentiate students.
+   ============================================================ */
 @theme {
-  --color-background: #09090b;
-  --color-surface: #18181b;
-  --color-border: #27272a;
-  --color-primary: #6366f1;
-  --color-primary-hover: #4f46e5;
-  --color-secondary: #a855f7;
-  --color-success: #10b981;
-  --color-warning: #f59e0b;
-  --color-danger: #ef4444;
-  --color-muted: #a1a1aa;
+    --color-background: var(--bg);
+    --color-surface: var(--surface);
+    --color-border: var(--border-color);
+    --color-primary: var(--primary);
+    --color-primary-hover: var(--primary-hover);
+    --color-muted: var(--muted);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-danger: var(--danger);
+    --color-foreground: var(--text);
+
+    /* Compat override: any existing `text-white` resolves to the
+       theme's foreground color in BOTH modes. Lets us flip light/
+       dark without sweeping 150+ `text-white` usages. New code
+       should prefer `text-foreground` for clarity. */
+    --color-white: var(--text);
 }
 
+/* Dark mode is the original look — keeping the previously-shipped
+   palette values so existing screens look identical. */
+:root.dark,
 :root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+    --bg: #09090b;
+    --surface: #18181b;
+    --border-color: #27272a;
+    --primary: #71717a;
+    --primary-hover: #a1a1aa;
+    --muted: #a1a1aa;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --text: #e4e4e7;
 
-  color-scheme: dark;
-  background-color: #09090b;
-  /* Zinc-950 */
-  color: #e4e4e7;
-  /* Zinc-200 */
+    color-scheme: dark;
+}
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* Light mode — engaged by the absence of `.dark` (we keep `.light`
+   as an explicit marker for clarity in DevTools and in the few
+   CSS overrides below that need to disambiguate). */
+:root.light {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --border-color: #e4e4e7;
+    --primary: #52525b;
+    --primary-hover: #3f3f46;
+    --muted: #71717a;
+    --success: #16a34a;
+    --warning: #ca8a04;
+    --danger: #dc2626;
+    --text: #18181b;
+
+    color-scheme: light;
+}
+
+/* ============================================================
+   Light-mode contrast overrides for hard-coded utility classes
+   ------------------------------------------------------------
+   The codebase has a long tail of `text-slate-200/300/400`,
+   `bg-white/N`, `bg-black/N` references baked into components.
+   They look fine in dark mode but in light mode they fight the
+   eye (light grey on near-white, etc.). We override the worst
+   offenders here rather than touching every component.
+
+   This is intentional tech debt. Migrate components to
+   `text-foreground` / `text-muted` over time and drop the
+   override.
+   ============================================================ */
+:root.light .text-slate-200,
+:root.light .text-slate-300,
+:root.light .text-slate-400 {
+    color: var(--text);
+}
+
+:root.light .text-slate-500 {
+    color: var(--muted);
+}
+
+:root.light .bg-white\/5,
+:root.light .bg-white\/10 {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+:root.light .bg-black\/20,
+:root.light .bg-black\/30,
+:root.light .bg-black\/40,
+:root.light .bg-black\/60,
+:root.light .bg-black\/70 {
+    background-color: rgba(0, 0, 0, 0.04);
+}
+
+:root.light .hover\:bg-white\/5:hover,
+:root.light .hover\:bg-white\/10:hover {
+    background-color: rgba(0, 0, 0, 0.06);
+}
+
+/* ============================================================
+   Base body + selection
+   ============================================================ */
+:root {
+    font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+    background-color: var(--bg);
+    color: var(--text);
+
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  min-width: 320px;
-  min-height: 100vh;
+    margin: 0;
+    display: flex;
+    min-width: 320px;
+    min-height: 100vh;
+    background-color: var(--bg);
+    color: var(--text);
 }
 
 #root {
-  width: 100%;
+    width: 100%;
 }
 
-/* Custom Styles for vis-timeline to match theme */
+/* ============================================================
+   vis-timeline theme — now uses variables so light/dark works
+   ============================================================ */
 .vis-timeline {
-  border: none !important;
-  border-right: 1px solid #27272a !important;
-  /* Zinc-800 */
-  background-color: #18181b !important;
-  /* Zinc-900 */
-  color: #e4e4e7 !important;
-  font-family: 'Inter', sans-serif !important;
+    border: none !important;
+    border-right: 1px solid var(--border-color) !important;
+    background-color: var(--surface) !important;
+    color: var(--text) !important;
+    font-family: 'Inter', sans-serif !important;
 }
 
 .vis-time-axis .vis-text {
-  color: #a1a1aa !important;
-  /* Zinc-400 */
+    color: var(--muted) !important;
 }
 
-/* Custom Item Styles */
 .vis-item {
-  border-color: transparent !important;
-  border-radius: 6px !important;
-  font-size: 11px !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-color: transparent !important;
+    border-radius: 6px !important;
+    font-size: 11px !important;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
+/* Status-driven item backgrounds. Greys for scheduled (sober default),
+   semantic colors retained for processing/completed/cancelled so users
+   can still spot the running job at a glance. */
 .vis-item-scheduled {
-  background-color: #6366f1 !important;
-  /* Indigo-500 */
-  border: 1px solid rgba(99, 102, 241, 0.5) !important;
+    background-color: var(--primary) !important;
+    border: 1px solid var(--primary) !important;
+    color: #ffffff !important;
 }
 
 .vis-item-processing {
-  background-color: #eab308 !important;
-  /* Yellow-500 */
-  border: 1px solid rgba(234, 179, 8, 0.5) !important;
-  color: #000 !important;
+    background-color: var(--warning) !important;
+    border: 1px solid var(--warning) !important;
+    color: #000 !important;
 }
 
 .vis-item-completed {
-  background-color: #10b981 !important;
-  /* Emerald-500 */
-  border: 1px solid rgba(16, 185, 129, 0.5) !important;
+    background-color: var(--success) !important;
+    border: 1px solid var(--success) !important;
+    color: #ffffff !important;
 }
 
 .vis-item-mine {
-  border: 2px solid #fff !important;
-  box-shadow: 0 0 15px rgba(99, 102, 241, 0.4) !important;
+    border: 2px solid var(--text) !important;
+    box-shadow: 0 0 12px rgba(113, 113, 122, 0.4) !important;
 }
 
 .vis-item.vis-selected {
-  border-color: #fff !important;
-  background-color: #8b5cf6 !important;
-  /* Violet-500 */
-  box-shadow: 0 0 0 2px rgba(139, 92, 246, 0.5) !important;
-  z-index: 2;
+    border-color: var(--text) !important;
+    background-color: var(--primary-hover) !important;
+    box-shadow: 0 0 0 2px var(--primary-hover) !important;
+    z-index: 2;
 }
 
 @keyframes progress-indeterminate {
-  0% {
-    transform: translateX(-100%);
-  }
-
-  50% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(100%);
-  }
+    0% { transform: translateX(-100%); }
+    50% { transform: translateX(0); }
+    100% { transform: translateX(100%); }
 }
 
 .animate-progress-indeterminate {
-  animation: progress-indeterminate 2s infinite ease-in-out;
+    animation: progress-indeterminate 2s infinite ease-in-out;
 }
 
-/* Custom Scrollbar */
+/* ============================================================
+   Scrollbar — uses --border-color so it adapts per mode
+   ============================================================ */
 .custom-scrollbar::-webkit-scrollbar {
-  width: 5px;
+    width: 5px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #27272a;
-  border-radius: 10px;
+    background: var(--border-color);
+    border-radius: 10px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #3f3f46;
+    background: var(--muted);
 }
 
 .vis-time-axis .vis-grid.vis-minor {
-  border-color: #27272a !important;
-  /* Zinc-800 */
+    border-color: var(--border-color) !important;
 }
 
 .vis-time-axis .vis-grid.vis-major {
-  border-color: #3f3f46 !important;
-  /* Zinc-700 */
+    border-color: var(--muted) !important;
 }
 
 .vis-labelset .vis-label {
-  border-bottom: 1px solid #27272a !important;
-  color: #e4e4e7;
+    border-bottom: 1px solid var(--border-color) !important;
+    color: var(--text);
 }

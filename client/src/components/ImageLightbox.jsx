@@ -4,11 +4,13 @@ import Modal from './ui/Modal';
 import Button from './ui/Button';
 import { useSocket } from '../context/SocketContext';
 import { getImageUrl, getDownloadUrl, isVideo } from '../utils/api';
+import { getDisplayPrompt } from '../utils/jobDisplay';
 
 const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
     const { workflowsById } = useSocket();
     if (!job) return null;
     const wf = workflowsById?.[job.workflow_id];
+    const displayPrompt = getDisplayPrompt(job);
 
     const isVid = isVideo(job.result_filename);
 
@@ -61,7 +63,7 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                             <div className="space-y-1">
                                 <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Prompt</label>
                                 <p className="text-sm text-slate-200 leading-relaxed italic">
-                                    "{job.prompt}"
+                                    {displayPrompt ? `"${displayPrompt}"` : <span className="text-muted not-italic">No prompt entered</span>}
                                 </p>
                             </div>
 
@@ -79,7 +81,7 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                             {job.workflow_id && (
                                 <div className="space-y-1 pt-3 border-t border-white/10">
                                     <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Workflow</label>
-                                    <p className="text-sm font-medium text-primary-light flex items-center gap-2">
+                                    <p className="text-sm font-medium text-foreground flex items-center gap-2">
                                         <Wand2 size={14} className="text-primary shrink-0" />
                                         <span className="truncate" title={job.workflow_id}>{wf?.name || job.workflow_id}</span>
                                     </p>

@@ -12,7 +12,7 @@ const WorkflowChip = ({ workflowId, workflowsById, className = '' }) => {
     const name = wf?.name || workflowId;
     return (
         <span
-            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20 text-[9px] uppercase tracking-wider text-primary-light max-w-[160px] ${className}`}
+            className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20 text-[9px] uppercase tracking-wider text-primary max-w-[160px] ${className}`}
             title={`Workflow: ${name}${wf ? '' : ' (no longer in library)'}`}
         >
             <Wand2 size={9} className="shrink-0" />

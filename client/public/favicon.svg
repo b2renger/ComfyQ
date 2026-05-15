@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <rect width="64" height="64" rx="16" fill="#27272a"/>
+  <!-- Stylized "Q":
+       • Ring on top.
+       • Bold tilde wave underneath as the Q's bar. Reads as Q (ring + bar)
+         AND signals motion / queue / flow — distinct from a magnifier
+         glyph or any letter-Q with a straight diagonal tail. -->
+  <circle cx="32" cy="24" r="13" fill="none" stroke="#fafafa" stroke-width="5"/>
+  <path d="M 12 50 Q 22 38 32 50 T 52 50"
+        fill="none"
+        stroke="#fafafa"
+        stroke-width="6"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+</svg>

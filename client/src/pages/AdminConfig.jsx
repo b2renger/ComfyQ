@@ -6,6 +6,7 @@ import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
+import ThemeToggle from '../components/ui/ThemeToggle';
 import { SERVER_URL } from '../utils/api';
 
 const PRESET_PYTHON_HINTS = [
@@ -267,11 +268,11 @@ const AdminConfig = ({ currentMode }) => {
     const pathsConfigured = !!(config?.comfy_ui?.root_path && config?.comfy_ui?.python_executable);
 
     return (
-        <div className="min-h-screen bg-background text-white p-4 sm:p-8 space-y-6">
+        <div className="min-h-screen bg-background text-foreground p-4 sm:p-8 space-y-6">
             <header className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gradient-to-br from-primary to-secondary rounded-xl flex items-center justify-center">
-                        <Settings className="w-5 h-5" />
+                    <div className="w-10 h-10 bg-surface border border-border rounded-xl flex items-center justify-center">
+                        <Settings className="w-5 h-5 text-muted" />
                     </div>
                     <div>
                         <h1 className="text-2xl font-bold tracking-tight">ComfyQ Admin</h1>
@@ -279,6 +280,7 @@ const AdminConfig = ({ currentMode }) => {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+                    <ThemeToggle />
                     {config.mode === 'student' && (
                         <Button variant="ghost" onClick={() => window.location.assign('/user')} icon={ArrowLeft}>Back to user</Button>
                     )}

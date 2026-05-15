@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Timeline, DataSet } from 'vis-timeline/standalone';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import { useSocket } from '../context/SocketContext';
-import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X, Crosshair, Users } from 'lucide-react';
+import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X, Crosshair, Users, Search } from 'lucide-react';
 import BookingDialog from '../components/BookingDialog';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -13,6 +13,8 @@ import MediaPreview from '../components/ui/MediaPreview';
 import WorkflowChip from '../components/ui/WorkflowChip';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
+import { getUserColor } from '../utils/userColor';
+import { getDisplayPrompt } from '../utils/jobDisplay';
 
 /**
  * Scheduler Page Component
@@ -52,6 +54,11 @@ const SchedulerPage = () => {
     const [activeTab, setActiveTab] = useState('mine');
     // User-filter dropdown in the "All" tab. 'all' shows everyone.
     const [userFilter, setUserFilter] = useState('all');
+    // Free-text search across prompt + user_id (case-insensitive). Filters
+    // the grid below; doesn't affect the timeline above (the timeline is a
+    // schedule view, not a results view, so hiding bookings there would
+    // confuse the room).
+    const [searchQuery, setSearchQuery] = useState('');
     // Pending delete/cancel; populated by the X button. Drives ConfirmDialog.
     const [pendingAction, setPendingAction] = useState(null);
 
@@ -196,21 +203,37 @@ const SchedulerPage = () => {
      */
     useEffect(() => {
         if (itemsRef.current) {
+            // vis-timeline's `content` field is inserted as raw HTML, so any
+            // user-controlled string in there has to be HTML-escaped first.
+            const escapeHtml = (s) => String(s ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
             const itemsData = state.jobs.map(job => {
                 const isMine = job.user_id === username;
                 const shortId = (job.user_id || '???').substring(0, 3).toUpperCase();
+                const color = getUserColor(job.user_id);
+                const promptText = getDisplayPrompt(job);
 
                 return {
                     id: job.id,
+                    // Inline-style the user-color prefix so the same student's
+                    // bookings group visually at a glance. Body text stays
+                    // unstyled — status drives that via className.
                     content: `<div class="flex items-center space-x-2 w-full truncate">
-                                <span class="font-bold text-[10px] opacity-70">${isMine ? 'ME' : shortId}</span>
-                                <span class="font-medium text-xs truncate">${job.prompt}</span>
+                                <span class="font-bold text-[10px]" style="color:${color.ring}">${escapeHtml(isMine ? 'ME' : shortId)}</span>
+                                <span class="font-medium text-xs truncate">${escapeHtml(promptText)}</span>
                               </div>`,
                     start: new Date(job.time_slot),
                     end: new Date(job.time_slot + (state.benchmark_ms || 60000)), // Default to 1 min if benchmark not ready
                     className: `${isMine ? 'vis-item-mine' : ''} ${job.status === 'processing' ? 'vis-item-processing' :
                         (job.status === 'completed' ? 'vis-item-completed' : 'vis-item-scheduled')}`,
-                    title: `${job.user_id}: ${job.prompt}`,
+                    // Left stripe = user color. Background tint is intentionally
+                    // skipped — the status-driven className already drives bg.
+                    style: `border-left: 3px solid ${color.dot};`,
+                    title: `${job.user_id}: ${promptText}`,
                     editable: isMine && job.status === 'scheduled'
                 };
             });
@@ -245,7 +268,7 @@ const SchedulerPage = () => {
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <Sparkles size={12} className="text-primary" />
                                     <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">Active workflow</span>
-                                    <span className="text-xs font-medium text-primary-light">{state.workflow_info.name}</span>
+                                    <span className="text-xs font-medium text-primary">{state.workflow_info.name}</span>
                                     {state.workflow_info.category && state.workflow_info.category !== 'other' && (
                                         <Badge variant="primary" className="text-[9px] py-0 h-4 uppercase">{state.workflow_info.category}</Badge>
                                     )}
@@ -348,32 +371,63 @@ const SchedulerPage = () => {
                                 All Jobs
                             </button>
                         </div>
-                        {activeTab === 'all' && (() => {
-                            const users = Array.from(new Set(state.jobs.map(j => j.user_id))).sort();
-                            return (
-                                <div className="flex items-center gap-2">
-                                    <Users size={14} className="text-muted" />
-                                    <select
-                                        value={userFilter}
-                                        onChange={(e) => setUserFilter(e.target.value)}
-                                        className="bg-surface border border-border rounded-md px-2 py-1.5 text-xs text-white"
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <div className="relative">
+                                <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                                <input
+                                    type="search"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                    placeholder="Search prompts…"
+                                    className="bg-surface border border-border rounded-md pl-8 pr-7 py-1.5 text-xs text-white placeholder-muted w-48 focus:outline-none focus:border-primary/50"
+                                />
+                                {searchQuery && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSearchQuery('')}
+                                        className="absolute right-1.5 top-1/2 -translate-y-1/2 p-0.5 rounded text-muted hover:text-white hover:bg-white/5"
+                                        title="Clear"
                                     >
-                                        <option value="all">All users ({state.jobs.length})</option>
-                                        {users.map(u => {
-                                            const count = state.jobs.filter(j => j.user_id === u).length;
-                                            return <option key={u} value={u}>{u === username ? `${u} (you)` : u} — {count}</option>;
-                                        })}
-                                    </select>
-                                </div>
-                            );
-                        })()}
+                                        <X size={12} />
+                                    </button>
+                                )}
+                            </div>
+                            {activeTab === 'all' && (() => {
+                                const users = Array.from(new Set(state.jobs.map(j => j.user_id))).sort();
+                                return (
+                                    <div className="flex items-center gap-2">
+                                        <Users size={14} className="text-muted" />
+                                        <select
+                                            value={userFilter}
+                                            onChange={(e) => setUserFilter(e.target.value)}
+                                            className="bg-surface border border-border rounded-md px-2 py-1.5 text-xs text-white"
+                                        >
+                                            <option value="all">All users ({state.jobs.length})</option>
+                                            {users.map(u => {
+                                                const count = state.jobs.filter(j => j.user_id === u).length;
+                                                return <option key={u} value={u}>{u === username ? `${u} (you)` : u} — {count}</option>;
+                                            })}
+                                        </select>
+                                    </div>
+                                );
+                            })()}
+                        </div>
                     </div>
 
                     {(() => {
+                        const q = searchQuery.trim().toLowerCase();
                         const filtered = state.jobs.filter(job => {
-                            if (activeTab === 'mine') return job.user_id === username;
-                            if (userFilter === 'all') return true;
-                            return job.user_id === userFilter;
+                            if (activeTab === 'mine' && job.user_id !== username) return false;
+                            if (activeTab === 'all' && userFilter !== 'all' && job.user_id !== userFilter) return false;
+                            if (q) {
+                                // Search against the resolved display prompt so jobs whose
+                                // headline `prompt` was empty (LTX-style with positive_prompt)
+                                // still match on what the user actually typed.
+                                const prompt = getDisplayPrompt(job).toLowerCase();
+                                const user = (job.user_id || '').toLowerCase();
+                                if (!prompt.includes(q) && !user.includes(q)) return false;
+                            }
+                            return true;
                         });
                         return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
@@ -381,9 +435,11 @@ const SchedulerPage = () => {
                             <div className="col-span-full py-12 flex flex-col items-center justify-center text-center space-y-4 opacity-30">
                                 <Clock size={48} />
                                 <p className="text-lg font-medium">
-                                    {activeTab === 'mine' ? "You haven't generated anything yet" : 'No jobs match this filter'}
+                                    {q
+                                        ? `No jobs match "${searchQuery}"`
+                                        : activeTab === 'mine' ? "You haven't generated anything yet" : 'No jobs match this filter'}
                                 </p>
-                                {activeTab === 'mine' && <Button variant="ghost" onClick={() => setIsBookingOpen(true)}>Book your first slot</Button>}
+                                {activeTab === 'mine' && !q && <Button variant="ghost" onClick={() => setIsBookingOpen(true)}>Book your first slot</Button>}
                             </div>
                         ) : (
                             filtered.sort((a, b) => b.time_slot - a.time_slot).map((job) => (
@@ -514,17 +570,33 @@ const SchedulerPage = () => {
                                             )}
                                         </div>
 
-                                        <p className="text-xs text-slate-300 line-clamp-2 italic leading-relaxed">
-                                            "{job.prompt}"
-                                        </p>
+                                        {(() => {
+                                            const prompt = getDisplayPrompt(job);
+                                            return (
+                                                <p className="text-xs text-slate-300 line-clamp-2 italic leading-relaxed">
+                                                    {prompt ? `"${prompt}"` : <span className="text-muted not-italic">no prompt</span>}
+                                                </p>
+                                            );
+                                        })()}
 
                                         <div className="flex items-center justify-between pt-2 border-t border-border/30 gap-2">
-                                            <div className="flex items-center space-x-1.5 overflow-hidden">
-                                                <div className="w-5 h-5 rounded-full bg-surface border border-border flex items-center justify-center shrink-0">
-                                                    <User size={10} className="text-muted" />
-                                                </div>
-                                                <span className="text-[10px] text-muted truncate">{job.user_id === username ? 'You' : job.user_id}</span>
-                                            </div>
+                                            {(() => {
+                                                const color = getUserColor(job.user_id);
+                                                return (
+                                                    <div className="flex items-center space-x-1.5 overflow-hidden" title={`User: ${job.user_id || 'anonymous'}`}>
+                                                        <div
+                                                            className="w-3 h-3 rounded-full shrink-0 ring-1 ring-black/30"
+                                                            style={{ backgroundColor: color.dot }}
+                                                        />
+                                                        <span
+                                                            className="text-[10px] truncate font-medium"
+                                                            style={{ color: color.ring }}
+                                                        >
+                                                            {job.user_id === username ? 'You' : job.user_id}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })()}
                                             <WorkflowChip workflowId={job.workflow_id} workflowsById={workflowsById} />
                                         </div>
                                     </div>

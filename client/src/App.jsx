@@ -6,6 +6,7 @@ import DashboardPage from './pages/Dashboard';
 import AdminConfig from './pages/AdminConfig';
 import { LayoutDashboard, Calendar, Settings } from 'lucide-react';
 import UsernameModal from './components/UsernameModal';
+import ThemeToggle from './components/ui/ThemeToggle';
 import { SERVER_URL } from './utils/api';
 import { Link, useLocation } from 'react-router-dom';
 
@@ -18,27 +19,52 @@ import { Link, useLocation } from 'react-router-dom';
  */
 const StudentLayout = () => {
   return (
-    <div className="h-screen bg-background text-white flex flex-col font-sans antialiased selection:bg-primary/20 selection:text-primary-light relative">
+    <div className="h-screen bg-background text-foreground flex flex-col font-sans antialiased selection:bg-primary/20 selection:text-foreground relative">
       <UsernameModal />
 
       <nav className="bg-surface/50 backdrop-blur-md border-b border-border px-4 py-3 sm:px-6 sm:py-4 flex items-center justify-between sticky top-0 z-40 shrink-0">
         <div className="flex items-center space-x-2 sm:space-x-3">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-primary to-secondary rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-            <span className="font-bold text-lg sm:text-xl text-white">C</span>
+          {/* Stylized "Q" mark — ring on top, bold tilde wave underneath
+              as the Q's bar. Reads as Q AND signals motion / queue /
+              flow. Distinct from a magnifier (single straight handle)
+              and from a letter-Q with a diagonal tail. Keep in sync
+              with public/favicon.svg if you tweak. */}
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-surface border border-border rounded-lg sm:rounded-xl flex items-center justify-center">
+            <svg viewBox="0 0 64 64" className="w-5 h-5 sm:w-6 sm:h-6" aria-hidden="true">
+              <circle cx="32" cy="24" r="13" fill="none" stroke="currentColor" strokeWidth="5"/>
+              <path
+                d="M 12 50 Q 22 38 32 50 T 52 50"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
           <div className="hidden xs:block">
             <h1 className="text-base sm:text-lg font-bold tracking-tight leading-none">ComfyQ</h1>
-            <p className="text-[10px] text-muted font-medium text-primary uppercase tracking-widest mt-0.5 sm:mt-1">Studio</p>
+            <p className="text-[10px] text-muted font-medium uppercase tracking-widest mt-0.5 sm:mt-1">Studio</p>
           </div>
         </div>
-        <div className="flex items-center space-x-1 bg-surface border border-border rounded-lg p-1">
-          <NavLink to="/user" icon={Calendar} label="Timeline" end />
-          <NavLink to="/user/dashboard" icon={LayoutDashboard} label="All Jobs" />
+        <div className="flex items-center gap-2">
+          <div className="flex items-center space-x-1 bg-surface border border-border rounded-lg p-1">
+            <NavLink to="/user" icon={Calendar} label="Timeline" end />
+            <NavLink to="/user/dashboard" icon={LayoutDashboard} label="Session Dashboard" />
+          </div>
+          <Link
+            to="/admin"
+            title="Admin"
+            aria-label="Admin"
+            className="p-2 rounded-lg border border-border bg-surface hover:bg-surface/70 text-muted hover:text-foreground transition-colors"
+          >
+            <Settings size={16} />
+          </Link>
+          <ThemeToggle />
         </div>
       </nav>
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-primary/5 via-background to-background pointer-events-none" />
         <Outlet />
       </main>
     </div>
@@ -65,8 +91,8 @@ const NavLink = ({ to, icon: Icon, label, end = false }) => {
     <Link
       to={to}
       className={`flex items-center space-x-2 px-2 sm:px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${isActive
-        ? 'bg-primary/10 text-primary-light'
-        : 'text-muted hover:text-white hover:bg-white/5'
+        ? 'bg-primary/15 text-foreground'
+        : 'text-muted hover:text-foreground hover:bg-white/5'
         }`}
     >
       <Icon size={16} />
@@ -121,8 +147,8 @@ const App = () => {
   if (!mode) {
     return (
       <div className="h-screen w-full bg-background flex flex-col items-center justify-center space-y-4">
-        <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-primary to-primary-dark animate-pulse shadow-lg shadow-primary/20" />
-        <p className="text-slate-500 font-medium animate-pulse">Connecting to ComfyQ...</p>
+        <div className="w-12 h-12 rounded-xl bg-surface border border-border animate-pulse" />
+        <p className="text-muted font-medium animate-pulse">Connecting to ComfyQ...</p>
       </div>
     );
   }

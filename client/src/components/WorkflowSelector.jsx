@@ -209,7 +209,7 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                             </div>
                             <div className={viewMode === 'list' ? 'flex-1 min-w-0' : ''}>
                                 <div className="flex items-start justify-between gap-2">
-                                    <h4 className={`font-medium truncate ${isSelected ? 'text-primary-light' : 'text-white'}`}>{w.name}</h4>
+                                    <h4 className={`font-medium truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>{w.name}</h4>
                                     {isSelected && <ChevronRight size={16} className="text-primary flex-shrink-0" />}
                                 </div>
                                 <p className="text-sm text-muted mt-1 line-clamp-2">{w.description}</p>
