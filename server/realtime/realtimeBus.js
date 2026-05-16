@@ -10,13 +10,15 @@ const HEARTBEAT_MS = 5000;
 // queue / executor actions. Wire format kept compatible with the v1 client:
 //
 // emit('state_update', {
-//   system_status: 'starting' | 'idle' | 'busy' | 'down',
-//   benchmark_ms,
+//   system_status: 'starting' | 'idle' | 'busy' | 'down' | 'ready',
+//   benchmark_ms,                              // active workflow's estimatedDurationSec * 1000
 //   connected_users: [{ socketId, userId }],
-//   jobs: [{ id, user_id, status, time_slot, prompt, params, result_filename,
-//            progress: { value, max }, current_node, s_it, outputs, workflow_id }],
-//   workflow: { parameter_map },                // for active workflow
-//   workflow_info: { id, name, description, category }
+//   jobs: [{ id, user_id, status, phase, time_slot, prompt, params,
+//            result_filename, outputs, progress: { value, max } | null,
+//            current_node, workflow_id, error_reason }],
+//   workflow: { parameter_map },               // for active workflow
+//   workflow_info: { id, name, description, category,
+//                    samplesPerSec, estimatedDurationSec }  // for ETA + ProgressViz
 // })
 //
 // Inbound events:
@@ -226,8 +228,10 @@ class RealtimeBus {
                 id: entry.id,
                 name: entry.summary.name,
                 description: entry.summary.description,
-                category: entry.summary.category
-            } : { id: null, name: 'No workflow configured', description: '', category: 'other' };
+                category: entry.summary.category,
+                samplesPerSec: entry.summary.samplesPerSec,
+                estimatedDurationSec: entry.summary.estimatedDurationSec
+            } : { id: null, name: 'No workflow configured', description: '', category: 'other', samplesPerSec: null, estimatedDurationSec: null };
             const benchmarkMs = entry && !entry.unavailable
                 ? (entry.summary.estimatedDurationSec * 1000) : 60000;
             const workerStatus = this.worker.getStatus();

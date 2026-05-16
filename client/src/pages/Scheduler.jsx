@@ -12,9 +12,11 @@ import ImageLightbox from '../components/ImageLightbox';
 import MediaPreview from '../components/ui/MediaPreview';
 import WorkflowChip from '../components/ui/WorkflowChip';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
+import ProgressViz from '../components/ui/ProgressViz';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 import { getUserColor } from '../utils/userColor';
 import { getDisplayPrompt } from '../utils/jobDisplay';
+import { computeEtaSeconds } from '../utils/jobEta';
 
 /**
  * Scheduler Page Component
@@ -544,28 +546,19 @@ const SchedulerPage = () => {
                                                         {job.status === 'processing' ? (job.current_node ? `Executing: ${job.current_node}` : 'Generating...') : 'Pending'}
                                                     </span>
                                                     {job.status === 'processing' && job.progress && (
-                                                        <div className="w-full mt-4 space-y-1">
-                                                            <div className="flex justify-between text-[8px] font-mono text-primary/70">
-                                                                <span>Step {job.progress.value} of {job.progress.max}</span>
-                                                                {job.s_it && <span>{job.s_it} s/it</span>}
-                                                                <span>{Math.round((job.progress.value / job.progress.max) * 100)}%</span>
-                                                            </div>
-                                                            <div className="w-full bg-surface h-1 rounded-full overflow-hidden border border-border/50">
-                                                                <div
-                                                                    className="h-full bg-primary transition-all duration-300 shadow-[0_0_8px_rgba(99,102,241,0.4)]"
-                                                                    style={{ width: `${(job.progress.value / job.progress.max) * 100}%` }}
-                                                                />
-                                                            </div>
+                                                        <div className="w-full mt-4">
+                                                            <ProgressViz
+                                                                progress={job.progress}
+                                                                etaSeconds={computeEtaSeconds(job, workflowsById, state.workflow_info)}
+                                                                size="sm"
+                                                            />
                                                         </div>
                                                     )}
                                                 </div>
                                             )}
                                             {job.status === 'processing' && !job.progress && (
                                                 <div className="absolute bottom-0 left-0 right-0 p-2">
-                                                    {job.current_node && <p className="text-[8px] text-primary/50 mb-1">Node: {job.current_node}</p>}
-                                                    <div className="w-full bg-muted/10 h-1 rounded-full overflow-hidden">
-                                                        <div className="h-full bg-primary animate-progress-indeterminate shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                                                    </div>
+                                                    <ProgressViz progress={null} currentNode={job.current_node} size="sm" />
                                                 </div>
                                             )}
                                         </div>

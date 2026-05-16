@@ -24,6 +24,8 @@
 
 **Tier 2 (cu130 upgrade): not done, intentionally.** Skipping to preserve cross-rig compatibility with 40xx hardware. The cu130 warning and `comfy_kitchen backend cuda: 'disabled': True` continue to print at boot — benign; eager backend handles those code paths.
 
+**Post-install recalibration: done.** Registered workflows were recalibrated through the admin UI after Tier 1 landed; updated `estimatedDurationSec` values in each `<id>.runtime.json` are now feeding the Scheduler's timeline collision detection. The actual before/after numbers per workflow live in those sidecar files — they're per-deployment and gitignored, so they don't surface in the repo.
+
 **Tier 1B cosmetic note.** PowerShell's default codepage mangles one emoji in SeedVR2's check line: `Flash Attention �`. The `�` is whatever it would print for ❌ — `flash-attn` is in Tier 3 (skip) since SDPA already gives FA2 on Blackwell + Ada, so no action.
 
 ## Context

@@ -5,9 +5,11 @@ import Badge from './ui/Badge';
 import { Sparkles, Clock, CheckCircle2, AlertCircle, Image as ImageIcon, Search, X, Download } from 'lucide-react';
 import MediaPreview from './ui/MediaPreview';
 import WorkflowChip from './ui/WorkflowChip';
+import ProgressViz from './ui/ProgressViz';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 import { getUserColor } from '../utils/userColor';
 import { getDisplayPrompt } from '../utils/jobDisplay';
+import { computeEtaSeconds } from '../utils/jobEta';
 
 /**
  * My Jobs Panel Component
@@ -183,27 +185,13 @@ const MyJobsPanel = ({ onClose }) => {
                             </div>
 
                             {job.status === 'processing' && (
-                                <div className="mt-3 space-y-2">
-                                    {job.current_node && <p className="text-[9px] text-primary/60 font-medium">Node: {job.current_node}</p>}
-                                    {job.progress ? (
-                                        <>
-                                            <div className="flex justify-between text-[9px] font-mono text-primary/80">
-                                                <span>Step {job.progress.value} of {job.progress.max}</span>
-                                                {job.s_it && <span>{job.s_it} s/it</span>}
-                                                <span>{Math.round((job.progress.value / job.progress.max) * 100)}%</span>
-                                            </div>
-                                            <div className="w-full bg-muted/10 h-1 rounded-full overflow-hidden">
-                                                <div
-                                                    className="h-full bg-primary shadow-[0_0_8px_rgba(113,113,122,0.4)] transition-all duration-300"
-                                                    style={{ width: `${(job.progress.value / job.progress.max) * 100}%` }}
-                                                />
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <div className="w-full bg-muted/10 h-1 rounded-full overflow-hidden">
-                                            <div className="h-full bg-primary animate-progress-indeterminate shadow-[0_0_8px_rgba(113,113,122,0.4)]" />
-                                        </div>
-                                    )}
+                                <div className="mt-3">
+                                    <ProgressViz
+                                        progress={job.progress}
+                                        currentNode={job.current_node}
+                                        etaSeconds={computeEtaSeconds(job, workflowsById, state.workflow_info)}
+                                        size="md"
+                                    />
                                 </div>
                             )}
                         </div>

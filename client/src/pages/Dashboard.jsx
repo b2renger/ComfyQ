@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback } from 'react';
+import React, { useMemo, useCallback, useState } from 'react';
 import { useSocket } from '../context/SocketContext';
 import {
     useReactTable,
@@ -16,7 +16,9 @@ import {
     Server,
     CheckCircle2,
     Settings,
-    Trash2
+    Trash2,
+    Calendar,
+    Download
 } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -24,6 +26,26 @@ import MediaPreview from '../components/ui/MediaPreview';
 import WorkflowChip from '../components/ui/WorkflowChip';
 import { getImageUrl, SERVER_URL } from '../utils/api';
 import { getDisplayPrompt } from '../utils/jobDisplay';
+
+// Range presets for the Dashboard date filter. `bounds(now)` returns the
+// {since, until} milliseconds-epoch window for that preset, or null for
+// "all time" / "custom" (which the UI handles separately).
+const DATE_PRESETS = {
+    all:    { label: 'All time',  bounds: () => null },
+    today:  { label: 'Today',     bounds: (now) => { const d = new Date(now); d.setHours(0,0,0,0); return { since: d.getTime(), until: now }; } },
+    '24h':  { label: 'Last 24h',  bounds: (now) => ({ since: now - 24 * 3600 * 1000, until: now }) },
+    '7d':   { label: 'Last 7d',   bounds: (now) => ({ since: now - 7 * 86400 * 1000, until: now }) },
+    custom: { label: 'Custom…',   bounds: () => null }
+};
+
+// CSV escape per RFC 4180: wrap in quotes if the value contains a comma,
+// quote, newline, or leading/trailing whitespace; double any internal quote.
+const csvCell = (v) => {
+    if (v == null) return '';
+    const s = String(v);
+    if (/[",\n\r]|^\s|\s$/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+    return s;
+};
 
 /**
  * Dashboard Page Component
@@ -43,7 +65,12 @@ import { getDisplayPrompt } from '../utils/jobDisplay';
  */
 const DashboardPage = () => {
     const { state, deleteJob, reorderJob, workflowsById } = useSocket();
-    const [selectedUser, setSelectedUser] = React.useState(null);
+    const [selectedUser, setSelectedUser] = useState(null);
+    const [dateRange, setDateRange] = useState('all');
+    // Custom range: YYYY-MM-DD strings from <input type="date">; bounds derived below.
+    const [customSince, setCustomSince] = useState('');
+    const [customUntil, setCustomUntil] = useState('');
+    const [exporting, setExporting] = useState(false);
 
     const handleDeleteJob = (jobId) => {
         if (window.confirm('Are you sure you want to kill this job?')) {
@@ -72,14 +99,85 @@ const DashboardPage = () => {
         }
     };
 
-    // Filter jobs by selected user
+    // Date bounds (epoch ms). Recomputed on every render so the live "Today"
+    // window slides as time passes. Custom dates use the local timezone via
+    // <input type="date">, with `until` rolled to end-of-day so the picked
+    // date is inclusive.
+    const dateBounds = useMemo(() => {
+        if (dateRange === 'custom') {
+            if (!customSince && !customUntil) return null;
+            const since = customSince ? new Date(`${customSince}T00:00:00`).getTime() : null;
+            const until = customUntil ? new Date(`${customUntil}T23:59:59.999`).getTime() : null;
+            return { since, until };
+        }
+        return DATE_PRESETS[dateRange]?.bounds(Date.now()) || null;
+    }, [dateRange, customSince, customUntil]);
+
+    // Filter jobs by selected user + date range. Date filter compares against
+    // time_slot (the scheduled time) so historical "when was this booked"
+    // queries match user expectation.
     const filteredJobs = useMemo(() => {
-        if (!selectedUser) return state.jobs;
-        return state.jobs.filter(job => job.user_id === selectedUser);
-    }, [state.jobs, selectedUser]);
+        let jobs = state.jobs;
+        if (selectedUser) jobs = jobs.filter(j => j.user_id === selectedUser);
+        if (dateBounds) {
+            const { since, until } = dateBounds;
+            jobs = jobs.filter(j => {
+                if (since != null && j.time_slot < since) return false;
+                if (until != null && j.time_slot > until) return false;
+                return true;
+            });
+        }
+        return jobs;
+    }, [state.jobs, selectedUser, dateBounds]);
+
+    // CSV export hits /jobs?since=&until= directly so we get the full history,
+    // not just the broadcast cap (500). User filter is applied client-side
+    // after fetch so the server route doesn't need to know about it.
+    const handleExportCsv = useCallback(async () => {
+        setExporting(true);
+        try {
+            const params = new URLSearchParams();
+            if (dateBounds?.since != null) params.set('since', String(dateBounds.since));
+            if (dateBounds?.until != null) params.set('until', String(dateBounds.until));
+            const url = `${SERVER_URL}/jobs${params.toString() ? `?${params}` : ''}`;
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            const { jobs } = await res.json();
+            const rows = selectedUser ? jobs.filter(j => j.user_id === selectedUser) : jobs;
+
+            const cols = ['id', 'user_id', 'status', 'workflow_id', 'time_slot', 'started_at', 'finished_at', 'prompt', 'result_filename', 'error_reason'];
+            const header = cols.join(',');
+            const body = rows.map(j => {
+                const result = j.outputs?.[0]?.filename || '';
+                const cells = [
+                    j.id, j.user_id, j.status, j.workflow_id,
+                    j.time_slot ? new Date(j.time_slot).toISOString() : '',
+                    j.started_at ? new Date(j.started_at).toISOString() : '',
+                    j.finished_at ? new Date(j.finished_at).toISOString() : '',
+                    getDisplayPrompt(j), result, j.error_reason || ''
+                ];
+                return cells.map(csvCell).join(',');
+            }).join('\n');
+
+            const blob = new Blob([`${header}\n${body}\n`], { type: 'text/csv;charset=utf-8' });
+            const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `comfyq-jobs-${stamp}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(link.href);
+        } catch (e) {
+            console.error('[Dashboard] CSV export failed:', e);
+            alert(`CSV export failed: ${e.message}`);
+        } finally {
+            setExporting(false);
+        }
+    }, [dateBounds, selectedUser]);
 
     const stats = [
-        { label: 'Total Jobs Today', value: filteredJobs.length, icon: History, color: 'text-primary' },
+        { label: dateRange === 'all' ? 'Jobs in view' : `Jobs in ${DATE_PRESETS[dateRange].label.toLowerCase()}`, value: filteredJobs.length, icon: History, color: 'text-primary' },
         { label: 'Avg Generation Time', value: `${(state.benchmark_ms / 1000).toFixed(1)}s`, icon: Zap, color: 'text-warning' },
         { label: 'Active Users', value: state.connected_users.length, icon: Users, color: 'text-success' },
     ];
@@ -260,20 +358,69 @@ const DashboardPage = () => {
 
                 {/* Job List */}
                 <Card className="lg:col-span-2 border-slate-700/50" noPadding>
-                    <div className="px-6 py-4 border-b border-border bg-surface/50 backdrop-blur-sm flex justify-between items-center sticky top-0">
-                        <h3 className="font-semibold flex items-center space-x-2">
-                            <Server size={18} className="text-muted" />
-                            <span>Recent Activity</span>
-                        </h3>
-                        {selectedUser && (
-                            <button
-                                onClick={() => setSelectedUser(null)}
-                                className="text-xs px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg transition-colors flex items-center gap-2"
-                            >
-                                <span>Viewing: {selectedUser.substring(0, 8)}...</span>
-                                <span className="text-primary/70">✕</span>
-                            </button>
-                        )}
+                    <div className="px-6 py-4 border-b border-border bg-surface/50 backdrop-blur-sm sticky top-0 space-y-3">
+                        <div className="flex justify-between items-center flex-wrap gap-2">
+                            <h3 className="font-semibold flex items-center space-x-2">
+                                <Server size={18} className="text-muted" />
+                                <span>Recent Activity</span>
+                            </h3>
+                            <div className="flex items-center gap-2 flex-wrap">
+                                {selectedUser && (
+                                    <button
+                                        onClick={() => setSelectedUser(null)}
+                                        className="text-xs px-3 py-1.5 bg-primary/10 hover:bg-primary/20 text-primary border border-primary/30 rounded-lg transition-colors flex items-center gap-2"
+                                    >
+                                        <span>Viewing: {selectedUser.substring(0, 8)}...</span>
+                                        <span className="text-primary/70">✕</span>
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleExportCsv}
+                                    disabled={exporting}
+                                    className="text-xs px-3 py-1.5 bg-white/5 hover:bg-white/10 disabled:opacity-50 disabled:cursor-wait text-slate-300 border border-white/10 rounded-lg transition-colors flex items-center gap-1.5"
+                                    title="Download the visible range as CSV"
+                                >
+                                    <Download size={12} />
+                                    <span>{exporting ? 'Exporting…' : 'Export CSV'}</span>
+                                </button>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 flex-wrap text-xs">
+                            <Calendar size={12} className="text-muted" />
+                            <span className="text-muted">Range:</span>
+                            {Object.entries(DATE_PRESETS).map(([key, { label }]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => setDateRange(key)}
+                                    className={`px-2.5 py-1 rounded-md border transition-colors ${dateRange === key
+                                        ? 'bg-primary/15 text-primary border-primary/40'
+                                        : 'bg-white/5 hover:bg-white/10 text-muted border-white/10'}`}
+                                >
+                                    {label}
+                                </button>
+                            ))}
+                            {dateRange === 'custom' && (
+                                <div className="flex items-center gap-1.5 ml-1">
+                                    <input
+                                        type="date"
+                                        value={customSince}
+                                        onChange={(e) => setCustomSince(e.target.value)}
+                                        max={customUntil || undefined}
+                                        className="bg-background/50 border border-border rounded-md px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-primary/50"
+                                        title="From (inclusive)"
+                                    />
+                                    <span className="text-muted">→</span>
+                                    <input
+                                        type="date"
+                                        value={customUntil}
+                                        onChange={(e) => setCustomUntil(e.target.value)}
+                                        min={customSince || undefined}
+                                        className="bg-background/50 border border-border rounded-md px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-primary/50"
+                                        title="To (inclusive)"
+                                    />
+                                </div>
+                            )}
+                        </div>
                     </div>
                     <div className="overflow-x-auto max-h-[400px]">
                         <table className="w-full text-left">
