@@ -1,10 +1,30 @@
-# ComfyUI runtime optimizations for the workshop rig (RTX 5090)
+# ComfyUI runtime optimizations for the workshop rigs (RTX 40xx + 50xx)
 
 > Operator advice for the portable ComfyUI install at
 > `D:\ComfyUI_windows_portable_nvidia\ComfyUI_windows_portable\`.
 > **No ComfyQ code changes.** Execution is `python_embeded/python.exe -m pip install …`
 > commands run against the embedded interpreter. Each item below lists install
 > command + benefit + risk, in priority order.
+>
+> **GPU compatibility scope.** Tier 1 (SageAttention + Triton) is safe on both
+> Ada Lovelace (RTX 4070/4080/4090, sm_89) and Blackwell (RTX 5090, sm_120).
+> Tier 2 (cu130 upgrade) is **Blackwell-only**: the kernels it unlocks target
+> sm_120; Ada gains nothing and the ABI-churn risk is the same. On a 40xx rig,
+> stop after Tier 1.
+
+## Status (as of 2026-05-16)
+
+**Tier 1 executed on the 5090 workshop rig.** Installed: `sageattention 1.0.6` (PyPI wrapper, Triton-backed) + `triton-windows 3.7.0.post26` (cp312 binary wheel, no compilation). Boot log confirms every Tier 1 verification matrix prediction held:
+
+- `[FlashVSR] ✓ SageAttention detected (~20-30% speedup enabled)` — was ○
+- `⚡ SeedVR2 optimizations check: SageAttention ✅ | … | Triton ✅` — both were ❌
+- `Found comfy_kitchen backend triton: {'available': True, 'disabled': True, …}` — was ImportError; `disabled: True` is gated by cu130 (expected, we're staying on cu128)
+- `AILab_SAM3Segment.py` no longer raises `No module named 'triton'` — node loads
+- `Warning: Could not load sageattention` — gone
+
+**Tier 2 (cu130 upgrade): not done, intentionally.** Skipping to preserve cross-rig compatibility with 40xx hardware. The cu130 warning and `comfy_kitchen backend cuda: 'disabled': True` continue to print at boot — benign; eager backend handles those code paths.
+
+**Tier 1B cosmetic note.** PowerShell's default codepage mangles one emoji in SeedVR2's check line: `Flash Attention �`. The `�` is whatever it would print for ❌ — `flash-attn` is in Tier 3 (skip) since SDPA already gives FA2 on Blackwell + Ada, so no action.
 
 ## Context
 
@@ -60,11 +80,11 @@ The libraries that ARE worth installing on this rig live under "Tier 1 — high 
 
 ---
 
-## Tier 1 — high value, low risk (do these first)
+## Tier 1 — high value, low risk (do these first; safe on RTX 40xx + 50xx)
 
 ### A. SageAttention (probably the single biggest win)
 
-**What it is.** A drop-in replacement for attention kernels, built on quantized math (INT8 / FP8 per-head). On Hopper/Blackwell it's **typically 2–3× faster than Flash Attention 2** for the same quality target. Multiple custom nodes on this rig explicitly want it (FlashVSR, SeedVR2). It's actively maintained — version 2.x added sm_120 (Blackwell) support.
+**What it is.** A drop-in replacement for attention kernels, built on quantized math (INT8 / FP8 per-head). On Ada Lovelace it's typically 1.5–2× faster than Flash Attention 2; on Hopper/Blackwell it's **typically 2–3× faster**. Multiple custom nodes on this rig explicitly want it (FlashVSR, SeedVR2). It's actively maintained — version 2.x added sm_120 (Blackwell) support and continues to support sm_89 (Ada).
 
 **Install** (from a normal cmd — NOT the conda/venv-active shell, to keep the env clean):
 
@@ -73,11 +93,29 @@ cd /d D:\ComfyUI_windows_portable_nvidia\ComfyUI_windows_portable
 python_embeded\python.exe -m pip install sageattention
 ```
 
-If pip can't find a Blackwell-compatible wheel it'll try to build from source (needs Visual Studio Build Tools, CUDA toolkit, and `TORCH_CUDA_ARCH_LIST="8.9;9.0;12.0"`). That's a 5-minute build; the build chain is already set up from the Hunyuan3D session.
+> ⚠️ **What pip actually installs.** PyPI ships **sageattention 1.0.6** — a
+> ~20 kB Triton-backed implementation, not the 2.x series with native CUDA
+> kernels. v1.x **requires Triton** (Tier 1B below) to do anything at all, so
+> install both. v1.x is close to optimal on Ada / RTX 40xx, and is fully
+> functional on Blackwell (verified: sageattn ran end-to-end on RTX 5090
+> sm_120 and was ~6× faster than torch SDPA on a 2×16×1024×64 fp16 attention
+> micro-benchmark). The 2.x series with Blackwell-tuned CUDA kernels is
+> **GitHub source only** — see "Optional follow-up: SageAttention 2.x" below.
 
 **Verify after restart.** The log should now read `[FlashVSR] ✓ SageAttention loaded` instead of the ○. SeedVR2 should report `SageAttention ✓`. Workflows that opt-in to it (LTX video, FlashVSR, SeedVR2) become noticeably faster — measure with a calibration run on `video_ltx2_3_i2v` before and after.
 
-**Risk.** Low. SageAttention loads at runtime; if the wheel is broken, nodes simply fall back to PyTorch attention with no crashes.
+**Risk.** Low. SageAttention loads at runtime; if the import is broken, nodes simply fall back to PyTorch attention with no crashes. v1.x has the additional Triton dependency — if Triton is missing, the SageAttention import itself fails.
+
+**Optional follow-up: SageAttention 2.x (Blackwell-only further win).** v2.x adds hand-tuned CUDA kernels for sm_120, typically 2–3× faster than v1.x on Blackwell. Not on PyPI; build from source:
+
+```cmd
+git clone https://github.com/thu-ml/SageAttention
+cd SageAttention
+set TORCH_CUDA_ARCH_LIST=8.9;9.0;12.0
+D:\ComfyUI_windows_portable_nvidia\ComfyUI_windows_portable\python_embeded\python.exe -m pip install .
+```
+
+Requires VS Build Tools + CUDA toolkit (already configured from the Hunyuan3D session). ~5 minute build. On 40xx, v1.x is good enough and the v2.x build is not worth the toolchain risk.
 
 ### B. Triton (unlocks a crashing node + future optimizations)
 
@@ -100,13 +138,19 @@ python_embeded\python.exe -m pip install triton-windows
 
 ---
 
-## Tier 2 — medium risk, big payoff (do when you have a maintenance window)
+## Tier 2 — medium risk, big payoff (Blackwell / RTX 5090 only — SKIP on RTX 40xx)
 
-### C. PyTorch cu130 upgrade
+> ⚠️ **40xx rigs stop here.** The payoff is Blackwell-specific tensor-core kernels
+> (NVFP4, MXFP8) that Ada hardware cannot run. cu130 still supports sm_89 so it
+> wouldn't *break* a 4090/4080/4070, but the ABI-churn cost is identical to a
+> 5090 and the speed benefit is ~zero. On a 40xx rig, the Tier 1 installs are
+> the whole plan.
+
+### C. PyTorch cu130 upgrade (Blackwell-only)
 
 **What.** Move from torch 2.9.1+cu128 to torch 2.9.x+cu130 (or whatever the current latest cu130 build is in May 2026). The log explicitly says: `You need pytorch with cu130 or higher to use optimized CUDA operations.`
 
-**Why.** This is what un-disables the `comfy_kitchen` CUDA backend, which carries native FP8 / NVFP4 / MXFP8 quantization kernels for Blackwell. On 5090, these are the kernels NVIDIA designed the new tensor cores around. Workflows that use FP8 weights (Flux2 Klein 9B fp8, Qwen 3 8B fp8mixed — already in your workflow library) become materially faster.
+**Why.** This is what un-disables the `comfy_kitchen` CUDA backend, which carries native FP8 / NVFP4 / MXFP8 quantization kernels for Blackwell. On 5090, these are the kernels NVIDIA designed the new tensor cores around. Workflows that use FP8 weights (Flux2 Klein 9B fp8, Qwen 3 8B fp8mixed — already in your workflow library) become materially faster. On Ada (4090/4080/4070), FP8 is already reachable via the existing cu128 path and NVFP4/MXFP8 don't exist in hardware — no win.
 
 **Install** (workshop-level commit, not for the middle of a class):
 
@@ -132,9 +176,9 @@ python_embeded\python.exe -m pip install triton-windows
 
 If you tackle this:
 
-1. **Now / cheap**: Tier 1A SageAttention (single pip command, ~2 min). Restart ComfyQ. Verify log lines flipped. Recalibrate LTX video and one Flux2 workflow — note the new `estimatedDurationSec` in `runtime.json`.
-2. **Now / cheap**: Tier 1B Triton-windows (single pip command, ~1 min). Restart. Confirm SAM3 node loads + Triton-backend flips.
-3. **Schedule for a maintenance hour**: Tier 2 cu130 upgrade. Backup the portable folder. Reinstall the four compiled deps. Re-run the M0 smoke matrix.
+1. **Now / cheap (both rig classes)**: Tier 1A SageAttention (single pip command, ~2 min). Restart ComfyQ. Verify log lines flipped. Recalibrate LTX video and one Flux2 workflow — note the new `estimatedDurationSec` in `runtime.json`.
+2. **Now / cheap (both rig classes)**: Tier 1B Triton-windows (single pip command, ~1 min). Restart. Confirm SAM3 node loads + Triton-backend flips.
+3. **Blackwell-only, schedule for a maintenance hour**: Tier 2 cu130 upgrade. Backup the portable folder. Reinstall the four compiled deps. Re-run the M0 smoke matrix. **Skip this entirely on a 40xx rig.**
 
 After step 1 + step 2 the startup log should look noticeably cleaner: `xFormers not available` will still print (we're ignoring it) but every other ❌ should be a ✓.
 
@@ -151,8 +195,8 @@ After each tier, restart ComfyQ (`Ctrl+C`, then `npm run dev` — or use [start-
 | `SageAttention not installed` / `SageAttention ❌` | ❌ | ✓ | ✓ | ✓ |
 | `[SeedVR2] Triton ❌` | ❌ | ❌ | ✓ | ✓ |
 | `comfy_kitchen backend triton ... ImportError` | ❌ | ❌ | available:true | available:true |
-| `comfy_kitchen backend cuda ... disabled:True` | disabled | disabled | disabled | **enabled** |
-| `WARNING: You need pytorch with cu130` | ⚠️ | ⚠️ | ⚠️ | **gone** |
+| `comfy_kitchen backend cuda ... disabled:True` | disabled | disabled | disabled | **enabled** (5090 only — on 40xx the disabled flag is benign, those kernels aren't for Ada) |
+| `WARNING: You need pytorch with cu130` | ⚠️ | ⚠️ | ⚠️ | **gone** (5090 only — on 40xx the warning persists harmlessly) |
 | `AILab_SAM3Segment.py: No module named 'triton'` | error | error | **loads** | loads |
 
 Calibration timing (LTX i2v workflow) is the real signal for "did it get faster": run `Calibrate` on the workflow card in admin mode before and after each tier; `runtime.json` records the new `estimatedDurationSec`. Tier 1A typically halves attention-bound time; Tier 2 unlocks FP8 throughput. Tier 1B is correctness, not speed.
