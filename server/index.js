@@ -61,6 +61,20 @@ function logLanUrls(serverPort) {
     console.log('[ComfyQ] If a student gets a connection error, allow Node.js through Windows Firewall for "Private" networks.');
 }
 
+// Wraps logLanUrls() in a visually distinct banner so reprints (after
+// ComfyUI's noisy startup) stand out in the terminal. `label` says WHY
+// the banner is showing — students don't see this, but the workshop
+// admin uses it to confirm each boot milestone has passed.
+function printConnectionBanner(label, serverPort) {
+    console.log('');
+    console.log('==============================================================');
+    console.log(`[ComfyQ] ${label}`);
+    console.log('==============================================================');
+    logLanUrls(serverPort);
+    console.log('==============================================================');
+    console.log('');
+}
+
 function exitForRestart() {
     console.log('[ComfyQ] Exiting for restart');
     // nodemon does NOT auto-restart on a clean exit — it only restarts on a
@@ -139,9 +153,15 @@ async function main() {
     else console.log('[ComfyQ] no stale jobs to reconcile');
 
     console.log('[ComfyQ] starting ComfyUI worker…');
+    // Reprints the LAN-URL banner at key boot milestones (WS connect,
+    // comfyregistry fetch complete) so the URLs aren't buried in
+    // ComfyUI's startup output. Resolved with config.server.port so the
+    // banner shows the same backend port the boot-time banner did.
+    const onMilestone = (label) => printConnectionBanner(label, config.server.port);
     const worker = new LocalComfyUIWorker({
         comfyConfig: config.comfy_ui,
-        queueConfig: config.queue
+        queueConfig: config.queue,
+        onMilestone
     });
     try {
         const started = await worker.start();

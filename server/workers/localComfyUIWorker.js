@@ -12,18 +12,27 @@ const CLIENT_ID_PREFIX = 'comfyq';
 // child process (or attaches to an external one), one REST client, one WS
 // client (auto-reconnecting), one InputUploader, one ModelLifecycle.
 class LocalComfyUIWorker extends Worker {
-    constructor({ comfyConfig, queueConfig }) {
+    constructor({ comfyConfig, queueConfig, onMilestone }) {
         super();
         this.host = comfyConfig.api_host;
         this.port = comfyConfig.api_port;
         this.clientId = `${CLIENT_ID_PREFIX}-${Math.random().toString(36).slice(2, 8)}`;
+        // Boot-milestone callback. server/index.js uses it to reprint the
+        // LAN-URL banner so workshop admins don't lose the URLs to
+        // ComfyUI's noisy startup output. Defaults to a no-op so tests
+        // and other call sites can ignore it.
+        this.onMilestone = onMilestone || (() => {});
+        // One-shot guard — WS reconnects (close→open cycles) shouldn't
+        // reprint the banner. Reset to false on every worker start.
+        this._wsMilestoneFired = false;
 
         this.process = new ComfyProcess({
             rootPath: comfyConfig.root_path,
             pythonExecutable: comfyConfig.python_executable,
             host: this.host,
             port: this.port,
-            installationType: comfyConfig.installation_type
+            installationType: comfyConfig.installation_type,
+            onMilestone: this.onMilestone
         });
         this.rest = new ComfyRestClient({ host: this.host, port: this.port });
         this.uploader = new InputUploader({
@@ -65,7 +74,15 @@ class LocalComfyUIWorker extends Worker {
             await this.process.waitForApi();
             console.log('[Worker] ComfyUI API is responsive');
             this.ws = new ComfyWsClient({ host: this.host, port: this.port, clientId: this.clientId });
-            this.ws.on('open', () => console.log(`[Worker] WS connected (clientId=${this.clientId})`));
+            this.ws.on('open', () => {
+                console.log(`[Worker] WS connected (clientId=${this.clientId})`);
+                // Reprint the LAN URL banner the FIRST time the WS opens this
+                // boot. Skipped on reconnect so terminal noise stays low.
+                if (!this._wsMilestoneFired) {
+                    this._wsMilestoneFired = true;
+                    this.onMilestone('Worker connected — ComfyUI ready for jobs');
+                }
+            });
             this.ws.on('close', () => console.log('[Worker] WS disconnected (will reconnect)'));
             this.ws.on('error', (e) => console.warn('[Worker] WS error:', e.message));
             this.ws.on('message', (msg) => this._handleWsMessage(msg));

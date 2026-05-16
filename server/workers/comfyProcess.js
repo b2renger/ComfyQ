@@ -8,7 +8,7 @@ const axios = require('axios');
 // If ComfyUI exits, we emit 'exited' and let the LocalComfyUIWorker decide
 // whether to respawn (default: yes, with backoff).
 class ComfyProcess extends EventEmitter {
-    constructor({ rootPath, pythonExecutable, host, port, installationType }) {
+    constructor({ rootPath, pythonExecutable, host, port, installationType, onMilestone }) {
         super();
         this.rootPath = rootPath;
         this.pythonExecutable = pythonExecutable;
@@ -16,6 +16,16 @@ class ComfyProcess extends EventEmitter {
         this.port = port;
         this.installationType = installationType || 'portable';
         this.proc = null;
+        // Boot-milestone callback (see LocalComfyUIWorker). Used here to
+        // reprint the LAN URL banner the moment ComfyUI's comfyregistry
+        // fetch finishes — that's the natural "everything is ready" point
+        // and the last big block of startup noise. Defaults to no-op.
+        this.onMilestone = onMilestone || (() => {});
+        this._registryMilestoneFired = false;
+        // Line buffer for stdout. Python flushes can split a single line
+        // across two 'data' events, so a regex against each chunk alone
+        // would miss matches that straddle the boundary.
+        this._stdoutBuf = '';
     }
 
     validate() {
@@ -99,7 +109,7 @@ class ComfyProcess extends EventEmitter {
             cwd: this.rootPath,
             env
         });
-        this.proc.stdout.on('data', d => process.stdout.write(`[ComfyUI] ${d}`));
+        this.proc.stdout.on('data', d => this._handleStdoutChunk(d));
         this.proc.stderr.on('data', d => process.stderr.write(`[ComfyUI!] ${d}`));
         this.proc.on('exit', (code, signal) => {
             console.log(`[ComfyProcess] Exited code=${code} signal=${signal}`);
@@ -107,6 +117,46 @@ class ComfyProcess extends EventEmitter {
             this.emit('exited', { code, signal });
         });
         return { external: false };
+    }
+
+    // Pipes ComfyUI's stdout through with the original `[ComfyUI]` prefix
+    // AND scans for the comfyregistry fetch terminal log line. On the
+    // first match per boot, fires onMilestone() so the LAN URL banner
+    // reprints right after the noisy registry block finishes — that's
+    // the moment workshop admins actually want the URLs visible.
+    //
+    // Matching uses a line buffer because Python's stdout flush can split
+    // a single line across multiple 'data' chunks; regex-per-chunk would
+    // miss boundary-crossing matches.
+    //
+    // Terminal patterns observed in this codebase / ComfyUI Manager:
+    //   "Comfyregistry has been fetched"         (success)
+    //   "Cannot connect to comfyregistry."       (offline)
+    //   plus generic done/complete/failed variants for forward compat.
+    _handleStdoutChunk(chunk) {
+        // Pass-through write — preserves the existing operator UX.
+        process.stdout.write(`[ComfyUI] ${chunk}`);
+        if (this._registryMilestoneFired) return;
+        this._stdoutBuf += chunk.toString('utf8');
+        let idx;
+        while ((idx = this._stdoutBuf.indexOf('\n')) !== -1) {
+            const line = this._stdoutBuf.slice(0, idx);
+            this._stdoutBuf = this._stdoutBuf.slice(idx + 1);
+            if (/comfyregistry/i.test(line) && /(fetched|cannot|failed|done|complete|skip)/i.test(line)) {
+                this._registryMilestoneFired = true;
+                this.onMilestone('ComfyUI registry fetch completed');
+                // Stop buffering — we found what we wanted, no need to
+                // hold partial lines or scan further.
+                this._stdoutBuf = '';
+                return;
+            }
+        }
+        // Guard against pathological input (a single line that never
+        // terminates) bloating memory. 64 KiB is far past any real log
+        // line; truncate from the front so we still match the tail.
+        if (this._stdoutBuf.length > 65536) {
+            this._stdoutBuf = this._stdoutBuf.slice(-32768);
+        }
     }
 
     async waitForApi(timeoutMs = 120000) {

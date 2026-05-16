@@ -49,6 +49,7 @@ This is the **v2 rebuild**. v1 lives on the `main` branch; v2 lives on the `v2` 
 - 🚧 **M2 (active)** — Phase 2 (job mgmt: colors, prompt search, CSV export) + Phase 3 (real-time progress visualization, ETA badge).
 - 🟡 **M4** — Webcam / mobile capture. **M4-1 (file-picker capture + resize) and M4-2 (live webcam preview) shipped 2026-05-15.** M4-3 (mobile video) deferred, M4-4 (desktop MediaRecorder video) pending.
 - ⏳ **Target workflows** — exercise the primitive-fallback parser against real workshop workflows: Hunyuan3D 2.1, Qwen image-to-multiview, music (ACE), LTX 2.3 video-from-reference, LTX audio-driven, 360 video LoRA. Each row is a probe into "does ComfyQ stay zero-config when a new workflow lands?" — fixes land generally, not per-workflow.
+- ⏳ **Phase F — Multi-instance federation** *(final phase, design locked, implementation deferred)* — auto-discover peers on the LAN via mDNS, fleet-wide admin view (GPU / RAM / active workflow / queue per peer), student picker to pick a workshop station, optional orchestrator role for an instructor laptop with no GPU. Six sub-phases F1–F6, each shippable on its own; full design in [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
 
 ---
 

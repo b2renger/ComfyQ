@@ -451,6 +451,38 @@ Active queue (in rough priority order):
 
 **What we're really testing.** Each row is a probe into "does ComfyQ stay zero-config when a new workflow lands?" — that's the actual product promise. The headline failures we expect are around (a) output kinds the `MediaStore` classifier doesn't know yet (e.g. `.glb`), (b) workflows that produce N>1 primary outputs (multiview, audio+video), and (c) workflows whose runtime blows past the 60 s polling window. Each fix lands generally, not per-workflow.
 
+### Phase F — Multi-instance federation *(final phase — design locked 2026-05-16, implementation deferred)*
+
+Final milestone of ComfyQ v2: let several ComfyQ instances on the same LAN auto-discover each other, expose a fleet-wide admin view (GPU / RAM / active workflow / queue per peer), and let students pick which rig to book against. Different machines run *different* workflows in parallel; students manually choose their station — there is no cross-instance job routing. Full plan lives at `~/.claude/plans/iridescent-wondering-lagoon.md`; key decisions captured below so the project's design intent travels with the repo.
+
+**Architectural decisions (locked):**
+
+- **Discovery: mDNS primary, static-peer list fallback.** Each instance publishes itself via [`bonjour-service`](https://www.npmjs.com/package/bonjour-service) on `_comfyq._tcp.local` and subscribes to the same service type. mDNS works out of the box on Win10+/macOS/Linux; Windows Firewall on UDP/5353 is the same friction as today's LAN access. A `federation.staticPeers: []` array in config covers (a) multicast-blocked workshop networks and (b) cross-subnet deployments. Peer records age out after `last_seen_at + 30s`.
+- **Topology: peer-to-peer, no leader.** Every instance maintains its own peer map. No election, no SPOF, no quorum logic. Cheap on a workshop LAN (≤20 peers).
+- **Cross-instance API: server-side aggregation, browser stays single-origin.** Each ComfyQ has new `/federation/*` routes that proxy / aggregate from peers. The browser never `fetch()`s a peer's HTTPS URL directly (each peer has a different self-signed cert; cross-peer browser calls would each need a separate cert click-through — bad UX). Node-to-Node peer traffic goes over HTTP to the bare Express port (3000) with `rejectUnauthorized: false` and an optional shared secret. When a student clicks "use Station B", a *new tab* opens to B's Vite URL — that tab gets its own one-time cert prompt.
+- **Trust: optional cluster secret, defaults off.** Mirrors the existing admin-password pattern in [server/auth/authGate.js](server/auth/authGate.js). `federation.clusterSecret` unset → implicit LAN trust (acceptable for closed workshop networks). Set → every inter-instance HTTP call signs with `X-ComfyQ-Cluster-Secret`; receiving instance refuses mutating calls without it. mDNS broadcast itself stays unauthenticated — the secret only gates *commanding* peers, not *seeing* them.
+- **Identity: persistent instance UUID + hostname + GPU + RAM.** New `instance.{id, hostname, gpu, vramGb, ramGb, cudaVersion}` block in config, generated on first boot. GPU / VRAM captured from ComfyUI's `/system_stats` at first `[Worker] WS connected` event (today they only land in `runtime.json` post-calibration, which is too late and too coupled). RAM from `os.totalmem()`.
+- **New role: orchestrator** (in addition to today's runner). Orthogonal to the existing `mode: admin|student`. Set via `role: 'runner' | 'orchestrator'` in config. Orchestrator boots Express + Vite *without* a `LocalComfyUIWorker`, skips queue/executor/registry — pure control-plane node for an instructor laptop with no GPU. Two launchers: today's [start-comfyq.bat](start-comfyq.bat) (runner) and a new `start-comfyq-admin.bat` (orchestrator, sets `COMFYQ_ROLE=orchestrator` env var).
+- **Backwards compat: federation entirely opt-in.** `federation.enabled: false` (default) → no mDNS publish, no subscribe, `/federation/*` returns `{ enabled: false }`. Today's single-instance behavior is unchanged at every phase.
+
+**Phased delivery** (each phase shippable on its own; previous behavior preserved throughout):
+
+- [ ] **F1 — Instance identity + system-info capture.** UUID + hostname + GPU + RAM + CUDA driver version persisted to config on first boot. `GET /admin/system-info` endpoint. "This machine" card in AdminConfig. No federation behavior yet — just the metadata that F2 will broadcast.
+- [ ] **F2 — mDNS discovery + read-only `/federation/*` API.** Add `bonjour-service`. New `server/federation/federationService.js` owns the publish/subscribe loop, peer map, static-peer poller. Routes: `GET /federation/self`, `GET /federation/peers`, `POST /federation/peers/refresh`. Socket.IO `federation_update` event on peer-map changes.
+- [ ] **F3 — Admin federation panel (read-only).** New "Federation" section in AdminConfig: enable toggle, static-peer textarea, cluster-secret input, peer table (hostname / IP / role / GPU / VRAM / RAM / active workflow / queue summary / last-seen / "ping"). Vite proxy entry for `/federation` added.
+- [ ] **F4 — Cross-instance admin actions.** `POST /federation/peers/:id/activate-workflow` proxies the call to the named peer's `POST /admin/activate-workflow` (with cluster-secret header). Extend `/federation/self` to advertise `availableWorkflowIds`. Admin UI grows "Launch workflow on peer" dropdown per peer row. Handle the disconnect window during peer restart gracefully ("Peer restarting…" until it reappears in mDNS).
+- [ ] **F5 — Student peer picker.** New `/user/workshop` page lists all `role=runner` peers + their active workflow + ETA-till-free. "Use this station" opens the peer's Vite URL in a new tab (one-time cert prompt per device, documented).
+- [ ] **F6 — Orchestrator role + second launcher.** Boot-path branching in [server/index.js](server/index.js) for `role=orchestrator` (skip worker / queue / executor / registry). New [start-comfyq-admin.bat](start-comfyq-admin.bat). AdminConfig hides the ComfyUI/workflow-library sections in orchestrator mode.
+
+**Out of scope** (each warrants its own milestone if needed later):
+- Cross-instance job routing / load balancing (students manually pick a station).
+- Shared job history across instances (each runner keeps its own sqlite).
+- Shared workflow library (admins upload to each peer).
+- Authenticated mDNS or encrypted peer traffic (LAN-trust threat model; cluster secret only gates *commands*).
+- Replacing admin-password with cluster-secret (the two coexist — different scopes).
+
+**Verification matrix** (when phase work begins): each phase must keep `federation.enabled: false` behavior identical to today's single-instance ComfyQ. Two-instance dev validation can run both instances on a single host with different ports (3000 + 3001 bound to `0.0.0.0`); mDNS works on a single host fine.
+
 ---
 
 ## Open risks / decisions still to nail down
