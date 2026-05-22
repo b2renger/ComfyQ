@@ -2,9 +2,10 @@ import React, { useEffect } from 'react';
 import { X, Download, User, Clock, Sparkles, RotateCw, Wand2 } from 'lucide-react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
+import ModelViewer from './ui/ModelViewer';
 import { useSocket } from '../context/SocketContext';
-import { getImageUrl, getDownloadUrl, isVideo } from '../utils/api';
-import { getDisplayPrompt } from '../utils/jobDisplay';
+import { getImageUrl, getDownloadUrl, isVideo, isModel3d } from '../utils/api';
+import { getDisplayPrompt, getPrimaryDownloadFilename } from '../utils/jobDisplay';
 
 const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
     const { workflowsById } = useSocket();
@@ -12,13 +13,20 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
     const wf = workflowsById?.[job.workflow_id];
     const displayPrompt = getDisplayPrompt(job);
 
-    const isVid = isVideo(job.result_filename);
+    // The wire job carries every output the executor collected. For 3D
+    // workflows (Hunyuan3D, …) the headline result is the GLB, not the
+    // preview PNG that `result_filename` picks for the grid thumbnail.
+    // Prefer persistent outputs over temp/ (Preview3D writes to temp).
+    const model3ds = (job.outputs || []).filter(o => isModel3d(o.filename));
+    const model3dOutput = model3ds.find(o => o.type !== 'temp') || model3ds[0] || null;
+    const primaryFilename = getPrimaryDownloadFilename(job);
+    const isVid = !model3dOutput && isVideo(job.result_filename);
 
     const downloadMedia = (e) => {
         e.stopPropagation();
         const link = document.createElement('a');
-        link.href = getDownloadUrl(job.result_filename);
-        link.download = job.result_filename;
+        link.href = getDownloadUrl(primaryFilename);
+        link.download = primaryFilename;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
@@ -30,7 +38,9 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                 {/* Media Section */}
                 <div className="flex-1 relative group">
                     <div className="aspect-square bg-black rounded-xl overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center">
-                        {isVid ? (
+                        {model3dOutput ? (
+                            <ModelViewer url={getImageUrl(model3dOutput.filename)} />
+                        ) : isVid ? (
                             <video
                                 src={getImageUrl(job.result_filename)}
                                 className="w-full h-full object-contain"

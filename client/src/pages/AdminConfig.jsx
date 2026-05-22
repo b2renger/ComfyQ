@@ -23,6 +23,7 @@ const AdminConfig = ({ currentMode }) => {
     const [pickedWorkflow, setPickedWorkflow] = useState(null);
     const [isActivating, setIsActivating] = useState(false);
     const [adminPassword, setAdminPassword] = useState('');
+    const [passwordValid, setPasswordValid] = useState(false);
     const [newAdminPassword, setNewAdminPassword] = useState('');
     const [pwSaving, setPwSaving] = useState(false);
     const [toast, setToast] = useState(null);
@@ -39,6 +40,32 @@ const AdminConfig = ({ currentMode }) => {
     const [cleaningOutputs, setCleaningOutputs] = useState(false);
 
     useEffect(() => { reloadConfig(); }, []);
+
+    // Debounced password verification — hits the no-op /admin/verify-password
+    // endpoint whenever the operator pauses typing, so the "Admin password is
+    // set" chip can switch green once the correct password is entered. No
+    // side effects on the server; never requested when no password is
+    // configured (chip isn't rendered in that case).
+    useEffect(() => {
+        if (!hasAdminPassword || !adminPassword) {
+            setPasswordValid(false);
+            return;
+        }
+        let cancelled = false;
+        const t = setTimeout(async () => {
+            try {
+                const res = await fetch(`${SERVER_URL}/admin/verify-password`, {
+                    method: 'POST',
+                    headers: { 'X-Admin-Password': adminPassword }
+                });
+                const data = await res.json();
+                if (!cancelled) setPasswordValid(!!data.valid);
+            } catch {
+                if (!cancelled) setPasswordValid(false);
+            }
+        }, 300);
+        return () => { cancelled = true; clearTimeout(t); };
+    }, [adminPassword, hasAdminPassword]);
 
     const reloadConfig = async () => {
         setLoading(true);
@@ -303,17 +330,24 @@ const AdminConfig = ({ currentMode }) => {
             )}
 
             {hasAdminPassword && (
-                <Card className="border-warning/30">
-                    <div className="flex items-center gap-2 text-warning mb-2">
-                        <KeyRound size={16} /><span className="font-medium">Admin password is set</span>
+                <Card className={passwordValid ? 'border-success/40' : 'border-warning/30'}>
+                    <div className={`flex items-center gap-2 mb-2 ${passwordValid ? 'text-success' : 'text-warning'}`}>
+                        {passwordValid ? <CheckCircle2 size={16} /> : <KeyRound size={16} />}
+                        <span className="font-medium">
+                            {passwordValid ? 'Admin password verified' : 'Admin password is set'}
+                        </span>
                     </div>
-                    <p className="text-xs text-muted mb-3">Provide the password to make changes below.</p>
+                    <p className="text-xs text-muted mb-3">
+                        {passwordValid
+                            ? 'You can perform destructive actions below.'
+                            : 'Provide the password to make changes below.'}
+                    </p>
                     <input
                         type="password"
                         value={adminPassword}
                         onChange={(e) => setAdminPassword(e.target.value)}
                         placeholder="Admin password"
-                        className="w-full bg-background border border-border rounded-lg p-2.5 text-white"
+                        className={`w-full bg-background border rounded-lg p-2.5 text-white transition-colors ${passwordValid ? 'border-success/50 focus:border-success' : 'border-border'}`}
                     />
                 </Card>
             )}

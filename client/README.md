@@ -6,7 +6,7 @@ The client is one SPA with two user-facing modes (admin / student) plus live sta
 
 ## Tech stack
 
-- **React 18** + **Vite 5** (HMR, HTTPS via `@vitejs/plugin-basic-ssl`)
+- **React 18** + **Vite 5** (HMR, plain HTTP — see "Running it" below)
 - **Tailwind CSS 4** (PostCSS pipeline) + **lucide-react** icons
 - **react-router-dom 7** for routing between pages
 - **socket.io-client** for live job updates pushed from the server
@@ -27,7 +27,7 @@ npm run build  --prefix client # production build to client/dist
 npm run lint   --prefix client # ESLint
 ```
 
-Vite serves over HTTPS with a self-signed cert (first visit on each device requires accepting the warning) and proxies `/api` + the Socket.IO channel to the Express server on `:3000`.
+Vite serves over plain HTTP and proxies every backend route + the Socket.IO channel to the Express server on `:3000`, so the page stays single-origin. HTTP is deliberate: a self-signed HTTPS cert can't be trusted across Safari/Chrome/mobile in a BYOD workshop without installing a CA on every device. The trade-off is that live in-browser webcam preview (`getUserMedia`) only works on `localhost`; off-localhost the camera button falls back to the device's native camera app via a file picker (`canUseLiveCamera()` in `MediaCaptureField.jsx` detects this automatically).
 
 ## Layout
 
@@ -46,7 +46,7 @@ src/
 │   ├── UsernameModal.jsx     student identity gate
 │   ├── ImageLightbox.jsx     result preview
 │   ├── admin/                upload, parameter selector, config preview, meta editor
-│   ├── capture/              in-browser camera capture (MediaCaptureField, CameraCaptureModal)
+│   ├── capture/              media upload widget (MediaCaptureField — click + drag-and-drop)
 │   └── ui/                   Button, Card, Modal, Toast, Badge, ConfirmDialog, ThemeToggle, WorkflowChip, MediaPreview
 ├── context/
 │   ├── SocketContext.jsx     shared socket instance + live job/queue state

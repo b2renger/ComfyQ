@@ -25,6 +25,6 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "video_ltx2_3_i2v"
+    "activeWorkflowId": "flux2_klein_9b_image_edit"
   }
 }

@@ -238,9 +238,9 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                     const type = config.type || 'text';
 
                     // Image / video input — delegated to MediaCaptureField,
-                    // which renders the existing upload widget AND an OS-camera
-                    // capture button, then applies maxInputEdge resizing for
-                    // images before handing the File back.
+                    // which renders the file-upload widget (click + drag-and-
+                    // drop), then applies maxInputEdge resizing for images
+                    // before handing the File back.
                     if (type === 'image' || type === 'video') {
                         return (
                             <MediaCaptureField

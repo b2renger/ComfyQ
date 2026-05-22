@@ -15,7 +15,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import ProgressViz from '../components/ui/ProgressViz';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 import { getUserColor } from '../utils/userColor';
-import { getDisplayPrompt } from '../utils/jobDisplay';
+import { getDisplayPrompt, getPrimaryDownloadFilename } from '../utils/jobDisplay';
 import { computeEtaSeconds } from '../utils/jobEta';
 
 /**
@@ -522,13 +522,15 @@ const SchedulerPage = () => {
                                         <div className="flex-1 aspect-video bg-background rounded-lg border border-border/50 flex items-center justify-center overflow-hidden relative shadow-inner">
                                             {job.status === 'completed' ? (
                                                 <div className="relative w-full h-full group/img">
-                                                    <MediaPreview filename={job.result_filename} />
+                                                    <MediaPreview filename={getPrimaryDownloadFilename(job) || job.result_filename} />
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();
+                                                            const dl = getPrimaryDownloadFilename(job);
+                                                            if (!dl) return;
                                                             const link = document.createElement('a');
-                                                            link.href = getDownloadUrl(job.result_filename);
-                                                            link.download = job.result_filename;
+                                                            link.href = getDownloadUrl(dl);
+                                                            link.download = dl;
                                                             document.body.appendChild(link);
                                                             link.click();
                                                             document.body.removeChild(link);

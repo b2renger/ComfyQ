@@ -166,6 +166,20 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         res.json({ ok: checks.every(c => c.ok), checks });
     });
 
+    // Light-touch endpoint: returns whether the X-Admin-Password header
+    // matches the configured password. Used by the admin UI to turn the
+    // "Admin password is set" chip green once the operator has typed the
+    // correct password — no destructive side effects, no rate-limit risk
+    // since the chip only re-checks on input change.
+    router.post('/verify-password', (req, res) => {
+        const { config } = configManager.load();
+        const configured = !!config.auth.adminPasswordHash;
+        if (!configured) return res.json({ configured: false, valid: true });
+        const provided = req.headers['x-admin-password'];
+        const valid = checkAdminPassword(provided, configManager);
+        res.json({ configured: true, valid });
+    });
+
     // Set / clear the admin password. Allowed without auth ONLY when no
     // password is currently set (first-run). Otherwise requires the current
     // password via X-Admin-Password header.

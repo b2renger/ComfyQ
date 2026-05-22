@@ -10,12 +10,12 @@ REM    2. Runs `npm install` once if node_modules is missing
 REM       (fresh clone case).
 REM    3. Starts the full stack via `npm run dev`, which uses
 REM       `concurrently` to spawn the Express server (port 3000)
-REM       + Vite HTTPS dev server (port 5173) in one terminal.
+REM       + Vite dev server (port 5173) in one terminal.
 REM    4. On exit, pauses so any error message stays readable.
 REM
 REM  Notes:
-REM    - Vite serves HTTPS via a self-signed cert. First visit
-REM      per device: accept the warning (Advanced -> Proceed).
+REM    - Vite serves plain HTTP — no certificate, no warning.
+REM      Works the same on Safari, Chrome, and phones.
 REM    - LAN URLs are printed by the server on startup. Share
 REM      those with students on the same WiFi.
 REM    - Ctrl+C in this window stops both processes cleanly.
@@ -49,11 +49,10 @@ echo  Starting server. Keep this window open.
 echo  Press Ctrl+C to stop.
 echo.
 echo  When ready, open in your browser:
-echo    https://localhost:5173
+echo    http://localhost:5173
 echo.
 echo  Watch for LAN URLs printed below; share those
 echo  with students on the same network.
-echo  Accept the self-signed cert on first visit.
 echo ============================================
 echo.
 

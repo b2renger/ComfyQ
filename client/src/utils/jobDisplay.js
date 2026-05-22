@@ -25,3 +25,21 @@ export function getDisplayPrompt(job) {
         });
     return candidates[0]?.[1] || '';
 }
+
+const MODEL3D_RX = /\.(glb|gltf)$/i;
+
+// Pick the file the user actually wants to download for a job. For 2D/video
+// workflows that's just `result_filename`. For 3D workflows the headline
+// artifact is the GLB, not the preview-PNG that the grid uses as its
+// thumbnail. Prefer persistent outputs over ComfyUI temp/ files (Preview3D
+// nodes write to temp and may be cleaned up).
+export function getPrimaryDownloadFilename(job) {
+    if (!job) return null;
+    const outputs = job.outputs || [];
+    const model3ds = outputs.filter(o => MODEL3D_RX.test(o.filename || ''));
+    if (model3ds.length > 0) {
+        const persistent = model3ds.find(o => o.type !== 'temp');
+        return (persistent || model3ds[0]).filename;
+    }
+    return job.result_filename || null;
+}

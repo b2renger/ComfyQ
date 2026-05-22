@@ -22,6 +22,7 @@ export const getDownloadUrl = (filename) => `${SERVER_URL}/download/${filename}`
 // Media type helpers
 const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+const MODEL3D_EXTENSIONS = ['glb', 'gltf'];
 
 export const isVideo = (filename) => {
     if (!filename) return false;
@@ -33,4 +34,12 @@ export const isImage = (filename) => {
     if (!filename) return false;
     const ext = filename.split('.').pop().toLowerCase();
     return IMAGE_EXTENSIONS.includes(ext);
+};
+
+// 3D model — only formats with a real browser loader (GLTFLoader). OBJ/FBX/PLY
+// are recognised server-side but the inline viewer would need extra loaders.
+export const isModel3d = (filename) => {
+    if (!filename) return false;
+    const ext = filename.split('.').pop().toLowerCase();
+    return MODEL3D_EXTENSIONS.includes(ext);
 };

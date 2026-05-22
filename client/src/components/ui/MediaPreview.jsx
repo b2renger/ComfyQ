@@ -1,10 +1,22 @@
 import React from 'react';
-import { isVideo, getImageUrl } from '../../utils/api';
+import { isVideo, isModel3d, getImageUrl } from '../../utils/api';
 import { Play } from 'lucide-react';
+import ModelViewer from './ModelViewer';
 
 const MediaPreview = ({ filename, className = '', alt = 'Preview', showPlayIcon = true }) => {
     const isVid = isVideo(filename);
+    const is3d = isModel3d(filename);
     const url = getImageUrl(filename);
+
+    // 3D models render an interactive viewer right in the card — same
+    // ModelViewer component as the lightbox, in compact mode (no help-text
+    // overlay, no big loader). Render-on-demand keeps idle GPU draws at
+    // zero. Pointer events are swallowed by ModelViewer so drag-to-rotate
+    // doesn't trigger parent click handlers (eg the Scheduler card click
+    // that opens the lightbox — user clicks outside the viewer for that).
+    if (is3d) {
+        return <ModelViewer url={url} className={className} compact />;
+    }
 
     if (isVid) {
         return (

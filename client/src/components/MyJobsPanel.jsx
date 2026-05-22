@@ -8,7 +8,7 @@ import WorkflowChip from './ui/WorkflowChip';
 import ProgressViz from './ui/ProgressViz';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 import { getUserColor } from '../utils/userColor';
-import { getDisplayPrompt } from '../utils/jobDisplay';
+import { getDisplayPrompt, getPrimaryDownloadFilename } from '../utils/jobDisplay';
 import { computeEtaSeconds } from '../utils/jobEta';
 
 /**
@@ -146,7 +146,12 @@ const MyJobsPanel = ({ onClose }) => {
                                         <div
                                             className="w-12 h-12 rounded-lg overflow-hidden border border-border group-hover:border-primary/40 transition-colors bg-black cursor-pointer shadow-md"
                                             onClick={() => window.open(getImageUrl(job.result_filename), '_blank')}
+                                            title="Open preview in new tab"
                                         >
+                                            {/* Sidebar thumb intentionally uses result_filename (PNG
+                                                preview for 3D jobs), not the GLB — a 48px WebGL
+                                                viewer is too small to be useful. The download button
+                                                below still grabs the GLB via getPrimaryDownloadFilename. */}
                                             <MediaPreview
                                                 filename={job.result_filename}
                                                 className="transition-transform group-hover:scale-110"
@@ -156,9 +161,11 @@ const MyJobsPanel = ({ onClose }) => {
                                         <button
                                             onClick={(e) => {
                                                 e.stopPropagation();
+                                                const dl = getPrimaryDownloadFilename(job);
+                                                if (!dl) return;
                                                 const link = document.createElement('a');
-                                                link.href = getDownloadUrl(job.result_filename);
-                                                link.download = job.result_filename;
+                                                link.href = getDownloadUrl(dl);
+                                                link.download = dl;
                                                 document.body.appendChild(link);
                                                 link.click();
                                                 document.body.removeChild(link);

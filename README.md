@@ -25,9 +25,9 @@ This is the **v2 rebuild**. v1 lives on the `main` branch; v2 lives on the `v2` 
 - **Cancel running jobs** — X button on your own in-flight job card REST-interrupts ComfyUI cleanly; the job lands in `cancelled` state (preserved as a record, not deleted)
 - **Clean all outputs** — admin button purges every output file on disk for terminal jobs and clears the `outputs` field, keeping job history. Skips in-flight jobs
 - **Emergency stop** — one button cancels every job, kills ComfyUI (only what we spawned), and restarts in admin mode
-- **In-browser camera capture** — for any `image`-typed workflow parameter, **Use camera** opens a live preview modal (`getUserMedia`), captures a snapshot, lets you retake, and submits a downscaled JPEG. Multi-camera rigs get a **Switch** button; devices that refuse the webcam (no camera / Windows privacy off) fall back to the OS file picker without a hard error. Mobile capture (phone camera) uses `<input type="file" capture="environment">` so it just works on Android/iOS
-- **Resize-before-upload** — every captured or uploaded image is downscaled to `maxInputEdge` (default 1024 px, overridable per parameter in the admin workflow editor) before it leaves the browser. No more 12 MP phone photos crawling through the diffusion pipeline
-- **HTTPS dev server** — Vite serves HTTPS via `@vitejs/plugin-basic-ssl` and proxies the backend, so the page, REST, and websocket all share one origin. Required because `getUserMedia` only works in a secure context — `localhost` and LAN both qualify once the one-time self-signed-cert warning is accepted
+- **File uploads for image/video inputs** — any `image`- or `video`-typed workflow parameter renders an upload widget: click to browse or drag-and-drop a file. The drop zone highlights while a file hovers and rejects mismatched MIME types. On a phone the OS file picker itself offers "Take Photo", so camera input still works without any in-app webcam code
+- **Resize-before-upload** — every uploaded image is downscaled to `maxInputEdge` (default 1024 px, overridable per parameter in the admin workflow editor) before it leaves the browser. No more 12 MP phone photos crawling through the diffusion pipeline
+- **Plain-HTTP dev server** — Vite serves HTTP and proxies the backend, so the page, REST, and websocket all share one origin with zero certificate friction — identical on Safari, Chrome, and phones. (A self-signed HTTPS cert can't be trusted across a BYOD workshop without installing a CA on every device)
 - **Light + dark mode** — sober grayscale palette, sun/moon toggle in the nav. First visit honors `prefers-color-scheme`; selection persists to `localStorage`. Dark mode is the polished default; light mode is functional v0 (some hardcoded utility classes still need migration to semantic `text-foreground`)
 - **Per-user colors** — every student is mapped via FNV-1a hash to one of 12 curated hues, surfaced on the timeline stripe, grid cards, and sidebar so the same user is visually grouped at a glance
 - **Prompt search** — case-insensitive substring across `prompt` + `user_id` on the main grid; prompt-only on the MyJobs sidebar
@@ -47,7 +47,7 @@ This is the **v2 rebuild**. v1 lives on the `main` branch; v2 lives on the `v2` 
 - ✅ **M0 (verified on rig — RTX 5090)** — Flux1 dev t2i smoke fixture, plus Flux2 Klein 9B t2i, image-edit, and image-edit-with-reference all run end-to-end.
 - ✅ **M1 (mostly complete)** — real benchmark (with cold/warm split), Flux2 image-edit (1- and 2-image variants), image upload pipeline, admin workflow editor, calibrate/delete/edit per-card actions, emergency stop. Depth preprocessor + temp/ media routing deferred to M3.
 - 🚧 **M2 (active)** — Phase 2 (job mgmt: colors, prompt search, CSV export) + Phase 3 (real-time progress visualization, ETA badge).
-- 🟡 **M4** — Webcam / mobile capture. **M4-1 (file-picker capture + resize) and M4-2 (live webcam preview) shipped 2026-05-15.** M4-3 (mobile video) deferred, M4-4 (desktop MediaRecorder video) pending.
+- 🟡 **M4** — Media capture. File upload (click + drag-and-drop) with client-side resize is the supported path. The webcam / `getUserMedia` capture path (M4-2) was **removed 2026-05-19** — it needed an HTTPS secure context the workshop's plain-HTTP setup can't provide; phones still get camera input via the OS file picker's "Take Photo".
 - ⏳ **Target workflows** — exercise the primitive-fallback parser against real workshop workflows: Hunyuan3D 2.1, Qwen image-to-multiview, music (ACE), LTX 2.3 video-from-reference, LTX audio-driven, 360 video LoRA. Each row is a probe into "does ComfyQ stay zero-config when a new workflow lands?" — fixes land generally, not per-workflow.
 - ⏳ **Phase F — Multi-instance federation** *(final phase, design locked, implementation deferred)* — auto-discover peers on the LAN via mDNS, fleet-wide admin view (GPU / RAM / active workflow / queue per peer), student picker to pick a workshop station, optional orchestrator role for an instructor laptop with no GPU. Six sub-phases F1–F6, each shippable on its own; full design in [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
 
@@ -66,12 +66,12 @@ git clone <repo>
 cd ComfyQ
 git checkout v2
 npm install        # installs root + client + server deps
-npm run dev        # concurrently starts server (port 3000) + client (vite, HTTPS)
+npm run dev        # concurrently starts server (port 3000) + client (vite, HTTP)
 ```
 
-Open **`https://localhost:5173`** (or one of the `https://<lan-ip>:5173` URLs printed at boot). Vite serves HTTPS via a self-signed cert and proxies the backend, so the page, the API, and the websocket all share a single origin. **First time on each device, accept the cert warning** (Chrome: *Advanced → Proceed*; Safari: *Show Details → Visit Website*). On first boot the server starts in **admin mode** (no ComfyUI launched) and redirects to `/admin`.
+Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs printed at boot). Vite serves plain HTTP and proxies the backend, so the page, the API, and the websocket all share a single origin. No certificate, no warning — students just open the URL. On first boot the server starts in **admin mode** (no ComfyUI launched) and redirects to `/admin`.
 
-> Why HTTPS in dev? Browsers refuse to expose the webcam / phone camera (`getUserMedia`) on any non-loopback `http://` origin. Workshop students opening the LAN URL on a phone need a secure context, so Vite is configured with `@vitejs/plugin-basic-ssl` and acts as the only port students hit.
+> Why plain HTTP? A self-signed HTTPS cert can't be trusted across Safari + Chrome + phones in a BYOD workshop without installing a CA root on every device — and Safari won't even extend a click-through to the websocket or to downloads. HTTP removes all of that. The only feature HTTPS would have enabled — in-browser webcam capture (`getUserMedia`) — has been removed; image/video inputs are uploaded as files instead (a phone's file picker still offers "Take Photo").
 
 ## First-run setup (admin)
 
@@ -188,11 +188,8 @@ ComfyQ does **not** pass `--highvram` to ComfyUI. On a 24 GB card running a 23.8
 ### A ComfyUI browser tab pops open every time the server spawns ComfyUI
 ComfyQ passes `--disable-auto-launch`. If you still see the tab, you're either attached to an external ComfyUI instance (start ComfyQ first, then it spawns its own) or your ComfyUI build ignores the flag — verify with the spawn line in the server log.
 
-### "Use camera" only shows a file picker on desktop
-Webcam capture (`getUserMedia`) requires a **secure context**: `localhost` or `https://*`. If you're hitting plain `http://<lan-ip>:5173`, the browser silently refuses and `MediaCaptureField` falls back to the file picker. **Open `https://<host>:5173` instead** (Vite serves HTTPS via `@vitejs/plugin-basic-ssl`; accept the self-signed cert on first visit). If your browser's address bar shows `https://` and you still see only the file picker, open DevTools → Console — the secure-context check probably failed because the cert was rejected.
-
-### Browser says "Your connection is not private" on `https://...:5173`
-Expected — the cert is self-signed. Click **Advanced → Proceed to <host> (unsafe)** in Chrome / Edge, or **Show Details → Visit Website** in Safari. Trusts for the rest of the session.
+### How do students get a photo into an image-input workflow?
+Image and video parameters render a file-upload widget — click to browse or drag-and-drop. There's no in-app webcam capture (removed 2026-05-19; it needed an HTTPS secure context the plain-HTTP workshop setup can't provide). On a phone the OS file picker offers **Take Photo** directly, so camera input still works; on desktop, drag in any image file.
 
 ### `/admin` shows a blank page or 404
 The `/admin` path is overloaded — the SPA owns the bare path, the Express API owns every sub-path (`/admin/mode`, `/admin/config`, …). Vite's proxy needs a `bypass` hook to let the bare path fall through to the SPA; we ship one in [client/vite.config.js](client/vite.config.js). If you ever see a 404 here, check that vite.config.js still has the `bypass(req)` handler on the `/admin` proxy entry. The fix only takes effect after a dev-server restart (`Ctrl+C`, then `npm run dev` — HMR doesn't pick up vite.config.js changes).
