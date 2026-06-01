@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import Modal from '../components/ui/Modal';
@@ -38,6 +38,8 @@ const AdminConfig = ({ currentMode }) => {
     const [checkingPaths, setCheckingPaths] = useState(false);
     const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
     const [cleaningOutputs, setCleaningOutputs] = useState(false);
+    const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
+    const [clearingHistory, setClearingHistory] = useState(false);
 
     useEffect(() => { reloadConfig(); }, []);
 
@@ -214,6 +216,25 @@ const AdminConfig = ({ currentMode }) => {
             showToast(e.message, 'err');
         } finally {
             setCleaningOutputs(false);
+        }
+    };
+
+    const clearHistory = async () => {
+        setClearingHistory(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/clear-history`, {
+                method: 'POST', headers: adminHeaders()
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Clear history failed');
+            const files = data.filesDeleted ? `, ${data.filesDeleted} file(s) removed` : '';
+            const errs = data.errors?.length ? `, ${data.errors.length} error(s)` : '';
+            showToast(`Deleted ${data.jobsDeleted} job record(s)${files}${errs}`);
+            setShowClearHistoryConfirm(false);
+        } catch (e) {
+            showToast(e.message, 'err');
+        } finally {
+            setClearingHistory(false);
         }
     };
 
@@ -551,6 +572,42 @@ const AdminConfig = ({ currentMode }) => {
                         <Button variant="danger" icon={Eraser} onClick={cleanupOutputs}
                             isLoading={cleaningOutputs}>
                             {cleaningOutputs ? 'Cleaning…' : 'Yes, delete all outputs'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Card>
+                <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><History size={18} /> Clear job history</h2>
+                <p className="text-xs text-muted mb-3">
+                    Permanently delete all finished job records (completed, failed, cancelled) and their event logs, plus any output files they reference.
+                    Scheduled and in-flight jobs are kept so a running queue isn't interrupted.
+                </p>
+                <div className="flex justify-end">
+                    <Button variant="danger" icon={Trash2} onClick={() => setShowClearHistoryConfirm(true)}>
+                        Clear all history
+                    </Button>
+                </div>
+            </Card>
+
+            <Modal isOpen={showClearHistoryConfirm} onClose={() => !clearingHistory && setShowClearHistoryConfirm(false)}
+                title="Delete all job history?" maxWidth="max-w-md">
+                <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                        <AlertTriangle size={20} className="text-danger shrink-0 mt-0.5" />
+                        <p className="text-sm text-slate-300">
+                            This permanently removes every finished job record (prompts, timestamps, users, events) across all users, and deletes the output files those jobs produced. Scheduled and in-flight jobs are preserved.
+                        </p>
+                    </div>
+                    <p className="text-xs text-warning">
+                        This action cannot be undone. Make sure students have downloaded anything they want to keep.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                        <Button variant="ghost" onClick={() => setShowClearHistoryConfirm(false)}
+                            disabled={clearingHistory}>Cancel</Button>
+                        <Button variant="danger" icon={Trash2} onClick={clearHistory}
+                            isLoading={clearingHistory}>
+                            {clearingHistory ? 'Clearing…' : 'Yes, delete all history'}
                         </Button>
                     </div>
                 </div>

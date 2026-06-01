@@ -278,6 +278,39 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         }
     });
 
+    // Permanently delete terminal job records (completed/failed/cancelled) and
+    // their event logs, plus any output files those jobs referenced. Scheduled
+    // and in-flight jobs are preserved so a running queue isn't corrupted.
+    // Gated by admin password because it wipes everyone's history. Available in
+    // both admin and student mode (uses runtime.queue when present, otherwise
+    // opens the configured sqlite file directly).
+    router.post('/clear-history', adminGate, (req, res) => {
+        try {
+            const cfg = configManager.resolvePaths(configManager.load().config);
+            const queue = runtime?.queue || _openQueueAdHoc(cfg);
+            if (!queue) return res.status(500).json({ error: 'queue unavailable' });
+            const deleted = queue.clearHistory();
+            let filesDeleted = 0;
+            const errors = [];
+            for (const job of deleted) {
+                for (const o of job.outputs || []) {
+                    try {
+                        const abs = resolveOutputPath(o, cfg.comfy_ui);
+                        if (abs && fs.existsSync(abs)) { fs.unlinkSync(abs); filesDeleted++; }
+                    } catch (e) {
+                        errors.push(`${o.filename}: ${e.message}`);
+                    }
+                }
+            }
+            if (!runtime?.queue && queue._closeAdHoc) queue._closeAdHoc();
+            console.log(`[Admin] clear-history: ${deleted.length} job(s) deleted, ${filesDeleted} file(s) removed, ${errors.length} error(s)`);
+            res.json({ ok: true, jobsDeleted: deleted.length, filesDeleted, errors });
+        } catch (e) {
+            console.error('[Admin] clear-history err:', e);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     router.post('/reset-to-admin', adminGate, (req, res) => {
         configManager.update(c => { c.mode = 'admin'; return c; });
         res.json({ ok: true, mode: 'admin' });

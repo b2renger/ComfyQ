@@ -237,6 +237,28 @@ class JobQueue {
         this._emit();
     }
 
+    // Delete terminal job records (completed/failed/cancelled) and their event
+    // logs. Scheduled and in-flight jobs are preserved so a running queue isn't
+    // corrupted out from under the worker. Returns the deleted jobs (id +
+    // outputs) so the caller can also remove their files from disk.
+    clearHistory() {
+        const terminal = [...sm.TERMINAL_STATES];
+        const placeholders = terminal.map(() => '?').join(',');
+        const rows = this.db.prepare(
+            `SELECT id, outputs FROM jobs WHERE status IN (${placeholders})`
+        ).all(...terminal);
+        const deleted = rows.map(r => ({ id: r.id, outputs: JSON.parse(r.outputs || '[]') }));
+        const tx = this.db.transaction(() => {
+            for (const { id } of deleted) {
+                this.db.prepare(`DELETE FROM job_events WHERE job_id = ?`).run(id);
+                this.db.prepare(`DELETE FROM jobs WHERE id = ?`).run(id);
+            }
+        });
+        tx();
+        if (deleted.length > 0) this._emit();
+        return deleted;
+    }
+
     eventsFor(jobId) {
         return this.db.prepare(`SELECT * FROM job_events WHERE job_id = ? ORDER BY id ASC`).all(jobId);
     }
