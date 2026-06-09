@@ -86,6 +86,12 @@ const AppConfig = z.object({
         output_dir: z.string().default('output'),
         api_host: z.string().default('127.0.0.1'),
         api_port: z.number().int().positive().default(8188),
+        // When true, ComfyUI is bound to 0.0.0.0 (all interfaces) so people
+        // on the LAN can open ComfyUI's own web UI directly and run classic
+        // workflows on this machine's GPU. ComfyQ itself still talks to it
+        // over localhost regardless. Default off — don't expose the raw
+        // ComfyUI interface to the network unless an admin opts in.
+        lan_access: z.boolean().default(false),
         autoStart: z.boolean().default(true),
         vramBudgetGb: z.number().positive().default(24)
     }),

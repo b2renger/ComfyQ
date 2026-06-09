@@ -12,6 +12,7 @@
     "output_dir": "D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI\\output",
     "api_host": "127.0.0.1",
     "api_port": 8188,
+    "lan_access": true,
     "autoStart": true,
     "vramBudgetGb": 24
   },

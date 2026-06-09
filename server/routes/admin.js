@@ -51,13 +51,14 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     // First-run / admin: set ComfyUI paths and server settings.
     router.put('/comfy', express.json(), (req, res) => {
         try {
-            const { root_path, python_executable, output_dir, api_host, api_port, autoStart, vramBudgetGb, installation_type } = req.body || {};
+            const { root_path, python_executable, output_dir, api_host, api_port, lan_access, autoStart, vramBudgetGb, installation_type } = req.body || {};
             configManager.update(c => {
                 if (root_path !== undefined) c.comfy_ui.root_path = root_path;
                 if (python_executable !== undefined) c.comfy_ui.python_executable = python_executable;
                 if (output_dir !== undefined) c.comfy_ui.output_dir = output_dir;
                 if (api_host !== undefined) c.comfy_ui.api_host = api_host;
                 if (api_port !== undefined) c.comfy_ui.api_port = api_port;
+                if (lan_access !== undefined) c.comfy_ui.lan_access = lan_access;
                 if (autoStart !== undefined) c.comfy_ui.autoStart = autoStart;
                 if (vramBudgetGb !== undefined) c.comfy_ui.vramBudgetGb = vramBudgetGb;
                 if (installation_type !== undefined) c.comfy_ui.installation_type = installation_type;

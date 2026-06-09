@@ -48,6 +48,12 @@ const mediaStore = require('./media/mediaStore');
 // Safari, Chrome, and mobile. (Live in-browser webcam preview is the
 // one thing plain HTTP can't do off-localhost; the camera button falls
 // back to the phone's native camera app via a file picker.)
+// Set during student bootstrap when comfy_ui.lan_access is on, holding the
+// ComfyUI port. When non-null, logLanUrls() also advertises the raw ComfyUI
+// web UI per LAN IP so the banner (and its milestone reprints) shows the
+// direct-compute URL the admin asked for. Null → not advertised.
+let comfyLanPort = null;
+
 function logLanUrls(serverPort) {
     const ips = lanAddresses();
     if (ips.length === 0) {
@@ -58,7 +64,14 @@ function logLanUrls(serverPort) {
     for (const ip of ips) {
         console.log(`[ComfyQ]   http://${ip}:5173   (Vite dev server; proxies API + websocket to localhost:${serverPort})`);
     }
-    console.log('[ComfyQ] If a student gets a connection error, allow Node.js through Windows Firewall for "Private" networks.');
+    if (comfyLanPort != null) {
+        console.log('[ComfyQ] ComfyUI direct access (run classic workflows on this machine\'s GPU):');
+        for (const ip of ips) {
+            console.log(`[ComfyQ]   http://${ip}:${comfyLanPort}   (native ComfyUI web UI — remote compute)`);
+        }
+    }
+    const fwApps = comfyLanPort != null ? 'Node.js and ComfyUI\'s python.exe' : 'Node.js';
+    console.log(`[ComfyQ] If a student gets a connection error, allow ${fwApps} through Windows Firewall for "Private" networks.`);
 }
 
 // Wraps logLanUrls() in a visually distinct banner so reprints (after
@@ -137,8 +150,12 @@ async function main() {
     console.log(`[ComfyQ]   active workflow: ${config.workflows.activeWorkflowId || '(none)'}`);
     console.log(`[ComfyQ]   ComfyUI root:    ${config.comfy_ui.root_path}`);
     console.log(`[ComfyQ]   ComfyUI api:     http://${config.comfy_ui.api_host}:${config.comfy_ui.api_port}`);
+    console.log(`[ComfyQ]   ComfyUI LAN:     ${config.comfy_ui.lan_access ? `bound to 0.0.0.0 — reachable on the network at :${config.comfy_ui.api_port}` : 'loopback only (lan_access off)'}`);
     console.log(`[ComfyQ]   Python:          ${config.comfy_ui.python_executable}`);
     console.log(`[ComfyQ]   VRAM budget:     ${config.comfy_ui.vramBudgetGb} GB`);
+
+    // Advertise the raw ComfyUI web UI in the LAN-URL banner(s) when enabled.
+    if (config.comfy_ui.lan_access) comfyLanPort = config.comfy_ui.api_port;
 
     if (!config.comfy_ui.root_path || !config.comfy_ui.python_executable) {
         console.error('[ComfyQ] ComfyUI paths are not configured. Switching to admin mode.');

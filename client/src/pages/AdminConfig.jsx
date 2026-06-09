@@ -82,6 +82,7 @@ const AdminConfig = ({ currentMode }) => {
                 output_dir: data.config.comfy_ui.output_dir,
                 api_host: data.config.comfy_ui.api_host,
                 api_port: data.config.comfy_ui.api_port,
+                lan_access: data.config.comfy_ui.lan_access ?? false,
                 installation_type: data.config.comfy_ui.installation_type,
                 vramBudgetGb: data.config.comfy_ui.vramBudgetGb
             });
@@ -404,6 +405,24 @@ const AdminConfig = ({ currentMode }) => {
                         onChange={v => setPathDraft({ ...pathDraft, api_host: v })} />
                     <Field label="ComfyUI API port" type="number" value={pathDraft.api_port || 8188}
                         onChange={v => setPathDraft({ ...pathDraft, api_port: parseInt(v, 10) })} />
+                    <div className="space-y-1.5 sm:col-span-2">
+                        <label className="flex items-start gap-2.5 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={!!pathDraft.lan_access}
+                                onChange={(e) => setPathDraft({ ...pathDraft, lan_access: e.target.checked })}
+                                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                            />
+                            <span className="text-sm text-white">
+                                Expose ComfyUI to the LAN
+                                <span className="block text-xs text-muted">
+                                    Binds ComfyUI to 0.0.0.0 so people on the network can open its native web UI
+                                    (http://&lt;this-machine&gt;:{pathDraft.api_port || 8188}) and run classic workflows on this GPU.
+                                    ComfyQ still connects over localhost. Restart required after changing.
+                                </span>
+                            </span>
+                        </label>
+                    </div>
                 </div>
                 {pathChecks && (
                     <div className="mt-4 rounded-lg border border-border bg-surface/50 p-3 text-sm">

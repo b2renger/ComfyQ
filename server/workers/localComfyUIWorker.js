@@ -14,7 +14,14 @@ const CLIENT_ID_PREFIX = 'comfyq';
 class LocalComfyUIWorker extends Worker {
     constructor({ comfyConfig, queueConfig, onMilestone }) {
         super();
-        this.host = comfyConfig.api_host;
+        // Connect host: what ComfyQ's REST/WS clients dial. Must be a real
+        // loopback target — if an admin set api_host to a wildcard, fall back
+        // to 127.0.0.1 (you can't *connect* to 0.0.0.0).
+        const rawHost = comfyConfig.api_host;
+        this.host = (rawHost === '0.0.0.0' || rawHost === '::') ? '127.0.0.1' : rawHost;
+        // Bind host: what ComfyUI listens on. 0.0.0.0 when LAN access is enabled
+        // so peers can reach ComfyUI's native UI; otherwise the loopback host.
+        this.bindHost = comfyConfig.lan_access ? '0.0.0.0' : this.host;
         this.port = comfyConfig.api_port;
         this.clientId = `${CLIENT_ID_PREFIX}-${Math.random().toString(36).slice(2, 8)}`;
         // Boot-milestone callback. server/index.js uses it to reprint the
@@ -30,6 +37,7 @@ class LocalComfyUIWorker extends Worker {
             rootPath: comfyConfig.root_path,
             pythonExecutable: comfyConfig.python_executable,
             host: this.host,
+            bindHost: this.bindHost,
             port: this.port,
             installationType: comfyConfig.installation_type,
             onMilestone: this.onMilestone
@@ -68,6 +76,16 @@ class LocalComfyUIWorker extends Worker {
             const procStart = await this.process.start();
             if (procStart?.external) {
                 console.log('[Worker] using external ComfyUI (already responding)');
+                // We attached to a ComfyUI we didn't spawn, so our --listen
+                // setting was never applied — the external instance's own
+                // bind address governs LAN reachability. ComfyQ can't inspect
+                // that, so when lan_access is on, remind the operator that the
+                // launcher (not ComfyQ) must pass --listen 0.0.0.0.
+                if (this.bindHost === '0.0.0.0') {
+                    console.log('[Worker] lan_access is ON, but this is an EXTERNAL ComfyUI ComfyQ did not launch.');
+                    console.log('[Worker]   → LAN exposure depends on how it was started: it must include `--listen 0.0.0.0`.');
+                    console.log('[Worker]   → Verify with: Get-NetTCPConnection -LocalPort ' + this.port + ' -State Listen  (LocalAddress should be 0.0.0.0, not 127.0.0.1).');
+                }
             } else {
                 console.log('[Worker] waiting for ComfyUI API to come up (this can take 30–90s on first launch)…');
             }

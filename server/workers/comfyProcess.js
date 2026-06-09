@@ -8,11 +8,15 @@ const axios = require('axios');
 // If ComfyUI exits, we emit 'exited' and let the LocalComfyUIWorker decide
 // whether to respawn (default: yes, with backoff).
 class ComfyProcess extends EventEmitter {
-    constructor({ rootPath, pythonExecutable, host, port, installationType, onMilestone }) {
+    constructor({ rootPath, pythonExecutable, host, bindHost, port, installationType, onMilestone }) {
         super();
         this.rootPath = rootPath;
         this.pythonExecutable = pythonExecutable;
+        // `host` is the address ComfyQ *connects* to (always localhost-reachable).
+        // `bindHost` is what ComfyUI *listens* on via --listen: 0.0.0.0 to expose
+        // the native ComfyUI UI to the LAN, else the same loopback as `host`.
         this.host = host;
+        this.bindHost = bindHost || host;
         this.port = port;
         this.installationType = installationType || 'portable';
         this.proc = null;
@@ -70,7 +74,7 @@ class ComfyProcess extends EventEmitter {
         // near-budget cases properly.
         const pyArgs = [];
         const comfyArgs = [
-            '--listen', this.host,
+            '--listen', this.bindHost,
             '--port', String(this.port),
             '--disable-auto-launch'
         ];
