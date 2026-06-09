@@ -3,6 +3,9 @@
     "version": "2.0.0",
     "description": "ComfyQ — multi-user middleware for ComfyUI workflow scheduling",
     "main": "server/index.js",
+    "engines": {
+        "node": ">=22.0.0 <25.0.0"
+    },
     "scripts": {
         "start": "node server/index.js",
         "client": "npm run dev --prefix client",

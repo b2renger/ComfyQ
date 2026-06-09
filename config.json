@@ -7,9 +7,9 @@
   },
   "comfy_ui": {
     "installation_type": "portable",
-    "root_path": "F:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI",
-    "python_executable": "F:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\python_embeded\\python.exe",
-    "output_dir": "F:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI\\output",
+    "root_path": "D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI",
+    "python_executable": "D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\python_embeded\\python.exe",
+    "output_dir": "D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI\\output",
     "api_host": "127.0.0.1",
     "api_port": 8188,
     "autoStart": true,
@@ -25,6 +25,6 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "video_ltx2_3_i2v"
+    "activeWorkflowId": "flux2_klein_9b_t2i"
   }
 }

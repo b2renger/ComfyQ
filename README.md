@@ -55,9 +55,9 @@ This is the **v2 rebuild**. v1 lives on the `main` branch; v2 lives on the `v2` 
 
 ## Prerequisites
 
-- Node.js v16+
+- **Node.js 24 LTS ("Krypton")** — the supported version, pinned in [.nvmrc](.nvmrc). Node 22 LTS ("Jod") also works. ComfyQ deliberately tracks an **LTS** line for broad machine compatibility; the odd-numbered "Current" releases (23, 25, …) are not supported and `engines` will warn on them. With [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm), run `nvm use` / `fnm use` in the repo root to pick up `.nvmrc` automatically.
 - ComfyUI installed and able to run on the same machine. The lab targets RTX 3090 / 4080 / 4090 / 5090 with portable ComfyUI installs.
-- C++ build tools available to npm (needed by `better-sqlite3`). On Windows: Visual Studio Build Tools or `windows-build-tools`.
+- C++ build tools available to npm — only needed as a **fallback** for `better-sqlite3`. On Node 24/22 LTS it ships an N-API prebuilt binary (no compile), so most machines need nothing extra. If a prebuild isn't available for your platform, the install falls back to compiling from source: on Windows that needs Visual Studio Build Tools (C++ workload).
 
 ## Install & run
 
@@ -159,7 +159,10 @@ See [implementation_plan.md](implementation_plan.md#architecture) for module-by-
 ## Troubleshooting
 
 ### `'better-sqlite3' build failed during install`
-Native build tools missing. Install Visual Studio Build Tools (Windows) or `build-essential` + `python3` (Linux), then `npm install` again.
+On Node 24/22 LTS, `better-sqlite3` (v12+) normally installs a prebuilt N-API binary with no compilation. If you see this error you're either on an **unsupported Node version** (check `node --version` against [.nvmrc](.nvmrc) — run `nvm use`/`fnm use`) or on a platform with no prebuild, which falls back to a source build. For the source build, install the native toolchain: Visual Studio Build Tools with the C++ workload (Windows) or `build-essential` + `python3` (Linux), then `npm install` again.
+
+### `npm WARN EBADENGINE Unsupported engine` (or wrong Node version)
+ComfyQ targets an LTS Node line (24 "Krypton", or 22 "Jod"). If you're on an odd-numbered "Current" release like 23 or 25, npm warns and behavior is unsupported. Switch with `nvm use` / `fnm use` (reads [.nvmrc](.nvmrc)), or install Node 24 LTS from [nodejs.org](https://nodejs.org/).
 
 ### `Litegraph format detected. ComfyQ v2 requires API format.`
 You uploaded a workflow saved with the standard "Save" button. v2 deliberately does not auto-convert. Re-export with **Settings → Dev mode → Save (API Format)** in ComfyUI. (See [implementation_plan.md](implementation_plan.md#why-v2) for why.)
