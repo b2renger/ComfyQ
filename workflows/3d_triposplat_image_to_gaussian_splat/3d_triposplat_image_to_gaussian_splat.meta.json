@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "id": "3d_triposplat_image_to_gaussian_splat",
+  "name": "TripoSplat — image to 3D",
+  "description": "Upload a single image of an object and get back a 3D Gaussian splat plus an extracted polygon mesh. Use a clean, well-lit photo with the subject centered. Leave 'Auto-remove background' on for photos with a busy background; turn it off if your image already has a clean or transparent background. Outputs: a Gaussian splat (.spz) you can spin in the splat viewer, a .ply splat export, and a .glb mesh.",
+  "category": "3d",
+  "tags": [
+    "triposplat",
+    "gaussian-splat",
+    "3d",
+    "image-to-3d"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "3d_triposplat_image_to_gaussian_splat.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      { "type": "unet", "file": "triposplat_fp16.safetensors" },
+      { "type": "clip", "file": "dino_v3_vit_h.safetensors" },
+      { "type": "vae", "file": "triposplat_vae_decoder_fp16.safetensors" },
+      { "type": "vae", "file": "flux2-vae.safetensors" },
+      { "type": "other", "file": "birefnet.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 120,
+  "maxRuntimeSec": 1200,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_99",
+      "nodeId": "99",
+      "field": "image",
+      "type": "image",
+      "label": "Source image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "switch_mask_source_88_35",
+      "nodeId": "88:35",
+      "field": "switch",
+      "type": "checkbox",
+      "label": "Auto-remove background",
+      "default": true,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "ksampler_steps_88_6",
+      "nodeId": "88:6",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps",
+      "default": 20,
+      "min": 1,
+      "max": 60,
+      "step": 1,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "ksampler_seed_88_6",
+      "nodeId": "88:6",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "vaedecodetriposplat_num_gaussians_88_55",
+      "nodeId": "88:55",
+      "field": "num_gaussians",
+      "type": "number",
+      "label": "Number of gaussians",
+      "default": 1048576,
+      "min": 16384,
+      "max": 2097152,
+      "step": 16384,
+      "required": false,
+      "order": 4
+    }
+  ],
+  "warmupParams": {
+    "ksampler_steps_88_6": 8
+  },
+  "presets": {}
+}

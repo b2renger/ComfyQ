@@ -23,6 +23,10 @@ export const getDownloadUrl = (filename) => `${SERVER_URL}/download/${filename}`
 const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];
 const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
 const MODEL3D_EXTENSIONS = ['glb', 'gltf'];
+// Gaussian-splat container formats handled by SplatViewer (Spark), not GLTFLoader.
+const SPLAT_EXTENSIONS = ['spz', 'splat', 'ksplat'];
+
+const extOf = (filename) => (filename ? filename.split('.').pop().toLowerCase() : '');
 
 export const isVideo = (filename) => {
     if (!filename) return false;
@@ -38,8 +42,8 @@ export const isImage = (filename) => {
 
 // 3D model — only formats with a real browser loader (GLTFLoader). OBJ/FBX/PLY
 // are recognised server-side but the inline viewer would need extra loaders.
-export const isModel3d = (filename) => {
-    if (!filename) return false;
-    const ext = filename.split('.').pop().toLowerCase();
-    return MODEL3D_EXTENSIONS.includes(ext);
-};
+export const isModel3d = (filename) => MODEL3D_EXTENSIONS.includes(extOf(filename));
+
+// Gaussian splat — rendered by SplatViewer (Spark). `.spz` is what TripoSplat
+// ships as its headline splat; `.splat`/`.ksplat` are also recognised.
+export const isSplat = (filename) => SPLAT_EXTENSIONS.includes(extOf(filename));

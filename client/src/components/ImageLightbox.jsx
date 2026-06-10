@@ -1,35 +1,61 @@
-import React, { useEffect } from 'react';
-import { X, Download, User, Clock, Sparkles, RotateCw, Wand2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box } from 'lucide-react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import ModelViewer from './ui/ModelViewer';
+import SplatViewer from './ui/SplatViewer';
 import { useSocket } from '../context/SocketContext';
-import { getImageUrl, getDownloadUrl, isVideo, isModel3d } from '../utils/api';
+import { getImageUrl, getDownloadUrl, isVideo, isModel3d, isSplat } from '../utils/api';
 import { getDisplayPrompt, getPrimaryDownloadFilename } from '../utils/jobDisplay';
+
+const downloadFile = (filename) => {
+    if (!filename) return;
+    const link = document.createElement('a');
+    link.href = getDownloadUrl(filename);
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
 
 const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
     const { workflowsById } = useSocket();
+    // Gallery tab for 3D jobs that ship both a splat and a mesh (TripoSplat).
+    const [view, setView] = useState('splat'); // 'splat' | 'mesh'
     if (!job) return null;
     const wf = workflowsById?.[job.workflow_id];
     const displayPrompt = getDisplayPrompt(job);
 
-    // The wire job carries every output the executor collected. For 3D
-    // workflows (Hunyuan3D, …) the headline result is the GLB, not the
-    // preview PNG that `result_filename` picks for the grid thumbnail.
-    // Prefer persistent outputs over temp/ (Preview3D writes to temp).
-    const model3ds = (job.outputs || []).filter(o => isModel3d(o.filename));
-    const model3dOutput = model3ds.find(o => o.type !== 'temp') || model3ds[0] || null;
+    // The wire job carries every output the executor collected. A TripoSplat
+    // job ships a Gaussian splat (.spz) + an extracted mesh (.glb) + a .ply
+    // splat export — and (legacy) maybe a video, which we deliberately ignore
+    // here. Pick a persistent output over a temp/ one for each viewer.
+    const outputs = job.outputs || [];
+    const pick = (test) => outputs.find(o => test(o.filename) && o.type !== 'temp')
+        || outputs.find(o => test(o.filename)) || null;
+    const fileByExt = (rx) => (outputs.find(o => rx.test(o.filename || '') && o.type !== 'temp')
+        || outputs.find(o => rx.test(o.filename || '')))?.filename || null;
+
+    const splatOutput = pick(isSplat);
+    const meshOutput = pick(isModel3d);
+    const is3D = !!(splatOutput || meshOutput);
+
+    // Export targets — one button per format that the job actually produced.
+    const spzFile = fileByExt(/\.spz$/i);
+    const plyFile = fileByExt(/\.ply$/i);
+    const glbFile = fileByExt(/\.(glb|gltf)$/i);
+
+    // Which viewer the gallery shows. Falls back to whichever exists when only
+    // one is present, so the toggle never lands on an empty pane.
+    const activeView = !splatOutput ? 'mesh' : !meshOutput ? 'splat' : view;
+
+    // Non-3D jobs keep the original single-media + single-download behavior.
     const primaryFilename = getPrimaryDownloadFilename(job);
-    const isVid = !model3dOutput && isVideo(job.result_filename);
+    const isVid = !is3D && isVideo(job.result_filename);
 
     const downloadMedia = (e) => {
         e.stopPropagation();
-        const link = document.createElement('a');
-        link.href = getDownloadUrl(primaryFilename);
-        link.download = primaryFilename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        downloadFile(primaryFilename);
     };
 
     return (
@@ -37,9 +63,30 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
             <div className="flex flex-col lg:flex-row gap-6">
                 {/* Media Section */}
                 <div className="flex-1 relative group">
+                    {/* Gallery toggle — only when the job has both a splat and a mesh. */}
+                    {splatOutput && meshOutput && (
+                        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex rounded-lg overflow-hidden border border-white/10 bg-black/60 backdrop-blur-md text-xs">
+                            <button
+                                onClick={() => setView('splat')}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${activeView === 'splat' ? 'bg-primary text-white' : 'text-white/70 hover:text-white'}`}
+                            >
+                                <Sparkles size={12} /> Splat
+                            </button>
+                            <button
+                                onClick={() => setView('mesh')}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${activeView === 'mesh' ? 'bg-primary text-white' : 'text-white/70 hover:text-white'}`}
+                            >
+                                <Box size={12} /> Mesh
+                            </button>
+                        </div>
+                    )}
                     <div className="aspect-square bg-black rounded-xl overflow-hidden border border-white/10 shadow-2xl flex items-center justify-center">
-                        {model3dOutput ? (
-                            <ModelViewer url={getImageUrl(model3dOutput.filename)} />
+                        {is3D ? (
+                            activeView === 'splat' && splatOutput ? (
+                                <SplatViewer url={getImageUrl(splatOutput.filename)} />
+                            ) : (
+                                <ModelViewer url={getImageUrl((meshOutput || splatOutput).filename)} />
+                            )
                         ) : isVid ? (
                             <video
                                 src={getImageUrl(job.result_filename)}
@@ -141,14 +188,38 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                                 Use these settings
                             </Button>
                         )}
-                        <Button
-                            variant="primary"
-                            className="w-full"
-                            icon={Download}
-                            onClick={downloadMedia}
-                        >
-                            Download Creation
-                        </Button>
+                        {is3D ? (
+                            <div className="space-y-2">
+                                <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Export</label>
+                                {spzFile && (
+                                    <Button variant="primary" className="w-full" icon={Download}
+                                        onClick={() => downloadFile(spzFile)} title="Gaussian splat (Spark / .spz)">
+                                        Splat (.spz)
+                                    </Button>
+                                )}
+                                {plyFile && (
+                                    <Button variant="secondary" className="w-full" icon={Download}
+                                        onClick={() => downloadFile(plyFile)} title="Gaussian splat point cloud (.ply)">
+                                        Splat (.ply)
+                                    </Button>
+                                )}
+                                {glbFile && (
+                                    <Button variant="secondary" className="w-full" icon={Download}
+                                        onClick={() => downloadFile(glbFile)} title="Polygon mesh (.glb)">
+                                        Mesh (.glb)
+                                    </Button>
+                                )}
+                            </div>
+                        ) : (
+                            <Button
+                                variant="primary"
+                                className="w-full"
+                                icon={Download}
+                                onClick={downloadMedia}
+                            >
+                                Download Creation
+                            </Button>
+                        )}
                     </div>
                 </div>
             </div>

@@ -274,6 +274,25 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                         );
                     }
 
+                    // Checkbox / toggle Input
+                    if (type === 'checkbox') {
+                        const checked = !!formParams[key];
+                        return (
+                            <label key={key} className="flex items-center gap-3 cursor-pointer select-none py-1">
+                                <button
+                                    type="button"
+                                    role="switch"
+                                    aria-checked={checked}
+                                    onClick={() => setFormParams({ ...formParams, [key]: !checked })}
+                                    className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${checked ? 'bg-primary' : 'bg-surface border border-border'}`}
+                                >
+                                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-4' : ''}`} />
+                                </button>
+                                <span className="text-sm font-medium text-slate-300">{label}</span>
+                            </label>
+                        );
+                    }
+
                     // Textarea Input
                     if (type === 'textarea' || key === 'prompt') {
                         return (

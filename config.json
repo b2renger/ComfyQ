@@ -26,6 +26,6 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "flux2_klein_9b_t2i"
+    "activeWorkflowId": "3d_triposplat_image_to_gaussian_splat"
   }
 }

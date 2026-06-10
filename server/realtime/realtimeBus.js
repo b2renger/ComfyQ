@@ -196,9 +196,15 @@ class RealtimeBus {
         const progress = (job.progress?.stepsDone != null && job.progress?.stepsTotal != null)
             ? { value: job.progress.stepsDone, max: job.progress.stepsTotal }
             : null;
+        // Thumbnail filename for grid/sidebar cards. Prefer an image, then a
+        // GLB mesh (renders in the inline ModelViewer), then anything. The GLB
+        // preference is extension-based (not kind === 'model3d') so a splat
+        // `.ply` never becomes the thumbnail — the client has no inline .ply/.spz
+        // renderer; splats are viewed in the lightbox gallery only.
         const firstImage = job.outputs?.find(o => o.kind === 'image');
+        const firstGlb = job.outputs?.find(o => /\.(glb|gltf)$/i.test(o.filename || ''));
         const firstAny = job.outputs?.[0];
-        const resultFilename = (firstImage || firstAny)?.filename || null;
+        const resultFilename = (firstImage || firstGlb || firstAny)?.filename || null;
         return {
             id: job.id,
             user_id: job.userId,

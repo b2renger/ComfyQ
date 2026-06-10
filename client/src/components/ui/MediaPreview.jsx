@@ -1,12 +1,26 @@
 import React from 'react';
-import { isVideo, isModel3d, getImageUrl } from '../../utils/api';
-import { Play } from 'lucide-react';
+import { isVideo, isModel3d, isSplat, getImageUrl } from '../../utils/api';
+import { Play, Sparkles } from 'lucide-react';
 import ModelViewer from './ModelViewer';
 
 const MediaPreview = ({ filename, className = '', alt = 'Preview', showPlayIcon = true }) => {
     const isVid = isVideo(filename);
     const is3d = isModel3d(filename);
+    const splat = isSplat(filename);
     const url = getImageUrl(filename);
+
+    // Gaussian splats render live only in the lightbox gallery (one or two
+    // instances). In thumbnail grids/sidebars they'd be too costly to draw per
+    // card, so show a static placeholder. In practice the wire prefers a GLB
+    // thumbnail for splat jobs, so this is mostly a safety net.
+    if (splat) {
+        return (
+            <div className={`w-full h-full flex flex-col items-center justify-center gap-1 bg-black text-muted ${className}`}>
+                <Sparkles size={24} />
+                <span className="text-[10px] uppercase tracking-wider">Gaussian splat</span>
+            </div>
+        );
+    }
 
     // 3D models render an interactive viewer right in the card — same
     // ModelViewer component as the lightbox, in compact mode (no help-text
