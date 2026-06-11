@@ -239,9 +239,17 @@ class JobExecutor {
 
         const raw = oc.collectFromHistory(entry);
         const enriched = oc.enrich(raw, this.comfyConfig);
+        // Fold any ComfyUI subfolder into `filename` so it's an output-root-
+        // relative path (e.g. "audio/track_001.mp3"). The media route serves by
+        // this path via /images/:filename(*), and result_filename inherits it —
+        // otherwise a subfolder save (SaveAudioMP3 "audio/…", SaveGLB "3d/…")
+        // would 404 when served by basename. `subfolder` is emptied so
+        // resolveOutputPath (which joins baseDir/subfolder/filename) doesn't
+        // double-count. Non-subfolder outputs are unchanged.
         const wireOutputs = enriched.map(o => ({
-            kind: o.kind, mime: o.mime, filename: o.filename,
-            subfolder: o.subfolder, type: o.type, nodeId: o.nodeId,
+            kind: o.kind, mime: o.mime,
+            filename: o.subfolder ? `${o.subfolder}/${o.filename}` : o.filename,
+            subfolder: '', type: o.type, nodeId: o.nodeId,
             sizeBytes: o.sizeBytes
         }));
         this.queue.setOutputs(jobId, wireOutputs);

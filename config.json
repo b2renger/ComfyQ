@@ -26,6 +26,6 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "image_ideogram4_t2i"
+    "activeWorkflowId": "audio_stable_audio_3_medium"
   }
 }

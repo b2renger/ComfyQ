@@ -1,13 +1,20 @@
 import React from 'react';
-import { isVideo, isModel3d, isSplat, getImageUrl } from '../../utils/api';
+import { isVideo, isModel3d, isSplat, isAudio, getImageUrl } from '../../utils/api';
 import { Play, Sparkles } from 'lucide-react';
 import ModelViewer from './ModelViewer';
+import AudioPlayer from './AudioPlayer';
 
 const MediaPreview = ({ filename, className = '', alt = 'Preview', showPlayIcon = true }) => {
     const isVid = isVideo(filename);
     const is3d = isModel3d(filename);
     const splat = isSplat(filename);
+    const audio = isAudio(filename);
     const url = getImageUrl(filename);
+
+    // Audio outputs render a compact player right in the card/sidebar.
+    if (audio) {
+        return <AudioPlayer url={url} filename={filename} className={className} compact />;
+    }
 
     // Gaussian splats render live only in the lightbox gallery (one or two
     // instances). In thumbnail grids/sidebars they'd be too costly to draw per

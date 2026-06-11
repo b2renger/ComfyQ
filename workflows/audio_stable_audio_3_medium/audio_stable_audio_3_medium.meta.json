@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "audio_stable_audio_3_medium",
+  "name": "Stable Audio 3 Medium — text to audio",
+  "description": "Generate music, instrument loops, sound effects, or one-shots from a short text description. Pick a Category, type what you want (e.g. \"lofi hip-hop chill beat with mellow Rhodes and vinyl crackle\"), set a duration, and play the result.\n\nLeave 'Enhance prompt with AI' on: a local model rewrites your short description into a detailed, model-friendly prompt for the chosen category (more reliable results). Turn it off to send your exact words verbatim.",
+  "category": "audio",
+  "tags": [
+    "stable-audio",
+    "audio",
+    "music",
+    "sfx",
+    "text-to-audio"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "audio_stable_audio_3_medium.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 8,
+    "models": [
+      { "type": "checkpoint", "file": "stable_audio_3_medium.safetensors" },
+      { "type": "clip", "file": "t5gemma_b_b_ul2.safetensors" },
+      { "type": "clip", "file": "qwen3.5_2b_bf16.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "maxRuntimeSec": 600,
+  "exposedParameters": [
+    {
+      "key": "description_52_31",
+      "nodeId": "52:31",
+      "field": "value",
+      "type": "textarea",
+      "label": "Description",
+      "default": "Tropical house track with marimba, steel drums, soft synths, smooth bass, layered percussion, and light piano riffs for sunny chill dance vibes",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "category_52_43",
+      "nodeId": "52:43",
+      "field": "choice",
+      "type": "select",
+      "label": "Category",
+      "default": "Music",
+      "options": ["Music", "Instrument", "SFX", "One-shot"],
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "enhance_prompt_52_35",
+      "nodeId": "52:35",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Enhance prompt with AI",
+      "default": true,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "duration_seconds_52_36",
+      "nodeId": "52:36",
+      "field": "value",
+      "type": "number",
+      "label": "Duration (seconds)",
+      "default": 150,
+      "min": 1,
+      "max": 300,
+      "step": 1,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "steps_52_3",
+      "nodeId": "52:3",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps",
+      "default": 8,
+      "min": 1,
+      "max": 50,
+      "step": 1,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "seed_52_3",
+      "nodeId": "52:3",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 5
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

@@ -4,8 +4,9 @@ import Modal from './ui/Modal';
 import Button from './ui/Button';
 import ModelViewer from './ui/ModelViewer';
 import SplatViewer from './ui/SplatViewer';
+import AudioPlayer from './ui/AudioPlayer';
 import { useSocket } from '../context/SocketContext';
-import { getImageUrl, getDownloadUrl, isVideo, isModel3d, isSplat } from '../utils/api';
+import { getImageUrl, getDownloadUrl, isVideo, isModel3d, isSplat, isAudio } from '../utils/api';
 import { getDisplayPrompt, getPrimaryDownloadFilename } from '../utils/jobDisplay';
 
 const downloadFile = (filename) => {
@@ -52,6 +53,7 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
     // Non-3D jobs keep the original single-media + single-download behavior.
     const primaryFilename = getPrimaryDownloadFilename(job);
     const isVid = !is3D && isVideo(job.result_filename);
+    const isAud = !is3D && isAudio(job.result_filename);
 
     const downloadMedia = (e) => {
         e.stopPropagation();
@@ -87,6 +89,8 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                             ) : (
                                 <ModelViewer url={getImageUrl((meshOutput || splatOutput).filename)} />
                             )
+                        ) : isAud ? (
+                            <AudioPlayer url={getImageUrl(job.result_filename)} filename={job.result_filename} />
                         ) : isVid ? (
                             <video
                                 src={getImageUrl(job.result_filename)}

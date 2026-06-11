@@ -25,6 +25,7 @@ const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
 const MODEL3D_EXTENSIONS = ['glb', 'gltf'];
 // Gaussian-splat container formats handled by SplatViewer (Spark), not GLTFLoader.
 const SPLAT_EXTENSIONS = ['spz', 'splat', 'ksplat'];
+const AUDIO_EXTENSIONS = ['mp3', 'wav', 'flac', 'ogg', 'm4a', 'aac'];
 
 const extOf = (filename) => (filename ? filename.split('.').pop().toLowerCase() : '');
 
@@ -47,3 +48,6 @@ export const isModel3d = (filename) => MODEL3D_EXTENSIONS.includes(extOf(filenam
 // Gaussian splat — rendered by SplatViewer (Spark). `.spz` is what TripoSplat
 // ships as its headline splat; `.splat`/`.ksplat` are also recognised.
 export const isSplat = (filename) => SPLAT_EXTENSIONS.includes(extOf(filename));
+
+// Audio — rendered by AudioPlayer (<audio> element).
+export const isAudio = (filename) => AUDIO_EXTENSIONS.includes(extOf(filename));
