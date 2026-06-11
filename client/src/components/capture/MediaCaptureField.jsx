@@ -1,15 +1,13 @@
 import React, { useRef, useState } from 'react';
-import { Upload, X, Image as ImageIcon, Video as VideoIcon, Loader2 } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Video as VideoIcon, Loader2, AlertTriangle } from 'lucide-react';
 import { resizeImageFile } from '../../utils/imageResize';
 
-// Per-type fallback when the workflow's exposedParameter doesn't declare
-// `maxInputEdge`. Conservative defaults that match what most diffusion / i2v
-// nodes are happiest with at 5090-class throughput. Admins can override in
-// the workflow metadata editor.
-const DEFAULT_MAX_EDGE = {
-    image: 1024,
-    video: 1280
-};
+// Default image bounding box when the workflow's exposedParameter doesn't
+// declare `maxInputEdge`: 1920×1080 in EITHER orientation (long edge ≤ 1920,
+// short edge ≤ 1080). A per-parameter `maxInputEdge` overrides this with a
+// single square long-edge cap. Admins set maxInputEdge in the metadata editor.
+const DEFAULT_IMAGE_MAX_LONG = 1920;
+const DEFAULT_IMAGE_MAX_SHORT = 1080;
 
 // MediaCaptureField — image/video upload widget for BookingDialog.
 //
@@ -30,7 +28,7 @@ const MediaCaptureField = ({
     paramKey,
     label,
     type,           // 'image' | 'video'
-    maxInputEdge,   // optional; falls back to DEFAULT_MAX_EDGE[type]
+    maxInputEdge,   // optional; falls back to the 1920×1080 image box
     preview,        // dataURL string from parent's FileReader
     onChange,       // (file: File) => void
     onRemove        // () => void
@@ -38,19 +36,30 @@ const MediaCaptureField = ({
     const fileInputRef = useRef(null);
     const [processing, setProcessing] = useState(false);
     const [dragActive, setDragActive] = useState(false);
+    const [error, setError] = useState('');
     const isVideo = type === 'video';
-    const effectiveMaxEdge = maxInputEdge ?? DEFAULT_MAX_EDGE[type] ?? 1024;
+    // When maxInputEdge is set, use it as a square long-edge cap (legacy
+    // single-edge behavior); otherwise the 1920×1080 box.
+    const maxLong = maxInputEdge ?? DEFAULT_IMAGE_MAX_LONG;
+    const maxShort = maxInputEdge ?? DEFAULT_IMAGE_MAX_SHORT;
     const acceptPrefix = isVideo ? 'video/' : 'image/';
 
     const handleFile = async (file) => {
         if (!file) return;
+        setError('');
         // Reset the input value so picking the same file twice still fires.
         if (fileInputRef.current) fileInputRef.current.value = '';
         let processed = file;
         if (!isVideo) {
             setProcessing(true);
             try {
-                processed = await resizeImageFile(file, effectiveMaxEdge);
+                // Throws ImageProcessError on HEIC / undecodable / encode failure.
+                // We surface that instead of uploading the raw original, which is
+                // how an oversized phone photo used to reach (and crash) the rig.
+                processed = await resizeImageFile(file, maxLong, { maxShort });
+            } catch (e) {
+                setError(e?.message || 'Couldn’t process this image. Please use a smaller JPEG or PNG.');
+                return;
             } finally {
                 setProcessing(false);
             }
@@ -101,7 +110,9 @@ const MediaCaptureField = ({
                 <span>{label}</span>
                 {!isVideo && (
                     <span className="text-[10px] text-muted font-normal">
-                        — downsized to ≤{effectiveMaxEdge}px on the long edge before upload
+                        {maxLong === maxShort
+                            ? `— downsized to ≤${maxLong}px on the long edge before upload`
+                            : `— downsized to fit ${maxLong}×${maxShort} (either orientation) before upload`}
                     </span>
                 )}
             </label>
@@ -126,7 +137,7 @@ const MediaCaptureField = ({
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
                             <button
                                 type="button"
-                                onClick={onRemove}
+                                onClick={() => { setError(''); onRemove(); }}
                                 className="p-2 rounded-full bg-danger text-white hover:scale-110 transition-transform"
                                 title="Remove and pick another"
                             >
@@ -161,6 +172,12 @@ const MediaCaptureField = ({
                     </label>
                 )}
             </div>
+            {error && (
+                <div className="flex items-start gap-2 text-danger text-xs font-medium bg-danger/10 p-2.5 rounded-lg border border-danger/20">
+                    <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                    <span>{error}</span>
+                </div>
+            )}
         </div>
     );
 };

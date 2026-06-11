@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "id": "image_ideogram4_t2i",
+  "name": "Ideogram 4.0 — text to image",
+  "description": "Ideogram 4.0 text-to-image. The prompt is a structured JSON \"caption\" (high_level_description + style_description + compositional_deconstruction with per-element bboxes) — this is the format Ideogram 4 follows best. Edit the example JSON: change the descriptions, the 'text' of text elements, colors, and bboxes ([y1,x1,y2,x2], normalized 0–1000). The example is composed for a 9:16 portrait frame; if you change the aspect ratio, the bboxes won't line up perfectly.\n\nQuality presets: Turbo (12 steps, fast) / Default (20) / Quality (48, slow & best).",
+  "category": "t2i",
+  "tags": [
+    "ideogram",
+    "ideogram4",
+    "t2i",
+    "structured-prompt"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_ideogram4_t2i.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      {
+        "type": "unet",
+        "file": "ideogram4_fp8_scaled.safetensors"
+      },
+      {
+        "type": "unet",
+        "file": "ideogram4_unconditional_fp8_scaled.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_8b_fp8_scaled.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "flux2-vae.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "maxRuntimeSec": 600,
+  "exposedParameters": [
+    {
+      "key": "prompt_json_98_24",
+      "nodeId": "98:24",
+      "field": "text",
+      "type": "textarea",
+      "label": "Prompt (structured JSON)",
+      "default": "{\n    \"high_level_description\": \"A surreal streetwear mixed-media collage poster featuring a relaxed skateboarder mid-air against a vibrant blue sky, backed by giant puffy 3D letters spelling 'COMFY'. The composition blends retro magazine cutout aesthetics with grunge elements like torn paper banners and distressed red stamps, conveying an effortless, cozy vibe.\",\n    \"style_description\": {\n        \"aesthetics\": \"Retro magazine cutout style, mixed-media digital collage, high-contrast streetwear graphic, featuring rough ripped paper edges and distressed grunge textures.\",\n        \"lighting\": \"High-contrast flash mixed with harsh midday sunlight on the skater cutout, contrasting with flat, bright graphic lighting on the 3D typography.\",\n        \"photo\": \"Vintage grainy 35mm film with distressed halftone scan textures and subtle light leaks.\",\n        \"medium\": \"Mixed-media digital collage\",\n        \"color_palette\": [\"#1E73BE\", \"#FDFDFD\", \"#C82A2A\", \"#657C9C\", \"#EFEFEF\"]\n    },\n    \"compositional_deconstruction\": {\n        \"background\": \"A vibrant, clear blue sky layered with a vintage grainy film texture and subtle halftone dot patterns, transitioning down to an implied pale gray concrete ramp at the very bottom edge.\",\n        \"elements\": [\n            {\n                \"type\": \"obj\",\n                \"bbox\": [128, 149, 354, 810],\n                \"desc\": \"Massive 3D puffy, inflatable white typography spelling 'COMFY'. The letters stretch across the upper half of the canvas, acting as a surreal, soft cloud-like backdrop.\",\n                \"color_palette\": [\"#FDFDFD\", \"#E0E0E0\", \"#D3DBE2\"]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [459, 37, 727, 264],\n                \"desc\": \"A cluster of oversized, distressed red stamped circles and dots, applied loosely to the midground like a grunge ink stamp, partially obscuring the bottom left of the text.\",\n                \"color_palette\": [\"#C82A2A\", \"#A11D1D\"]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [23, 366, 153, 666],\n                \"desc\": \"A vertically oriented, torn paper side banner pinned to the left edge. The rough-edged paper displays the bold, stamped text 'STAY COZY' in high-contrast black ink.\",\n                \"color_palette\": [\"#EFEFEF\", \"#1A1A1A\", \"#C82A2A\"]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [287, 210, 756, 819],\n                \"desc\": \"A sharp photographic cutout of a skateboarder mid-air in a relaxed pose. He wears loose-fitting washed denim jeans and a plain white tee, appearing to effortlessly float above the concrete ramp. A distinct white cutout border surrounds his silhouette.\",\n                \"color_palette\": [\"#FDFDFD\", \"#657C9C\", \"#2B2B2B\", \"#DCA57D\"]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [773, 39, 973, 187],\n                \"desc\": \"A surreal, miniature floating skateboard cutout, positioned playfully in the upper right sky as if defying gravity.\",\n                \"color_palette\": [\"#D2A679\", \"#2B2B2B\", \"#C82A2A\"]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [105, 830, 905, 980],\n                \"desc\": \"A wide, horizontal strip of heavily textured torn paper spanning the lower third of the composition. It features the bold typographic phrase 'BEYOND THE COMFORT ZONE' intermixed with 'EFFORTLESS RIDE' alongside ripped edges that reveal the background.\",\n                \"color_palette\": [\"#EFEFEF\", \"#1A1A1A\", \"#999999\"]\n            }\n        ]\n    }\n}",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "aspect_ratio_37",
+      "nodeId": "37",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio",
+      "default": "9:16 (Portrait Widescreen)",
+      "options": [
+        "1:1 (Square)",
+        "16:9 (Landscape Widescreen)",
+        "9:16 (Portrait Widescreen)",
+        "4:3 (Landscape)",
+        "3:4 (Portrait)",
+        "3:2 (Landscape)",
+        "2:3 (Portrait)"
+      ],
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "megapixels_37",
+      "nodeId": "37",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Megapixels",
+      "default": 1,
+      "min": 0.25,
+      "max": 2,
+      "step": 0.25,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "quality_98_156",
+      "nodeId": "98:156",
+      "field": "choice",
+      "type": "select",
+      "label": "Quality preset",
+      "default": "Default",
+      "options": [
+        "Turbo",
+        "Default",
+        "Quality"
+      ],
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "cfg_98_155",
+      "nodeId": "98:155",
+      "field": "cfg",
+      "type": "number",
+      "label": "Guidance (CFG)",
+      "default": 7,
+      "min": 1,
+      "max": 20,
+      "step": 0.5,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "noise_seed_98_18",
+      "nodeId": "98:18",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 5
+    }
+  ],
+  "warmupParams": {
+    "quality_98_156": "Turbo"
+  },
+  "presets": {}
+}

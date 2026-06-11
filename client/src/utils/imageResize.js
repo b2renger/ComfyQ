@@ -1,66 +1,86 @@
-// Client-side image downscaling for capture / upload pipelines.
+// Client-side image downscaling for the upload pipeline.
 //
-// Why: phone cameras produce 12–48 megapixel JPEGs (3–15 MB). Sending
-// those over the LAN is slow and ComfyUI then has to load+process the full
-// resolution — most diffusion / i2v workflows internally clamp to ~1024px
-// anyway, so the extra pixels are wasted upload bandwidth and VRAM.
-// Downsizing to the workflow's `maxInputEdge` before the POST /upload call
-// removes both problems.
+// Why: phone cameras produce 12–48 megapixel JPEGs (3–15 MB). Sending those
+// over the LAN is slow and ComfyUI then has to load+process the full
+// resolution — the extra pixels are wasted upload bandwidth and VRAM, and a
+// big enough image OOMs the GPU box. We downscale to fit a bounding box
+// (default 1920×1080 in EITHER orientation: long edge ≤ 1920, short edge ≤
+// 1080) before POST /upload. A per-parameter `maxInputEdge` overrides it with
+// a single square long-edge cap.
 //
-// The resize is a no-op when:
-//   - file is missing, not an image, or HEIC/HEIF (browser usually can't decode)
-//   - maxEdge is unset / non-positive
-//   - the source's longest edge is already ≤ maxEdge
-//   - canvas.toBlob fails (some browsers / corrupt files)
-// In every fallback path we return the ORIGINAL file unchanged — never an
-// error. The user always gets to submit.
+// Failure policy (changed 2026-06-10): we no longer silently upload the
+// original on failure. A genuinely too-big / undecodable / HEIC image now
+// throws an ImageProcessError so the UI can tell the user to pick a smaller
+// or standard-format image — better a clear message than a crashed rig. The
+// server applies the same caps as a backstop (server/routes/uploads.js).
+//
+// Still a *successful pass-through* (returns the file unchanged) when the
+// source is already within `maxInputEdge` or `maxEdge` is unset — those aren't
+// failures.
 
-// Image types we know we can decode + re-encode safely. HEIC is intentionally
-// excluded; phone OS camera capture (via input capture="environment") returns
-// JPEG anyway, so HEIC only appears when a user picks from their gallery on
-// iOS — at which point we hand it off untouched and the server-side path
-// handles it (or doesn't, but at least we don't pretend to resize).
-const RESIZABLE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
-
-// Apply downscaling so the longer edge of `file` is ≤ maxEdge px. Preserves
-// aspect ratio; never upscales; honors EXIF orientation via createImageBitmap
-// (modern browsers — older Safari ignores the option and may end up rotated).
-// Returns a Promise<File>. Output format mirrors input (PNG stays PNG so
-// alpha survives; everything else becomes JPEG at the given quality).
-export async function resizeImageFile(file, maxEdge, { quality = 0.92 } = {}) {
-    if (!file || typeof file !== 'object') return file;
-    if (!file.type || !file.type.startsWith('image/')) return file;
-    if (!maxEdge || !Number.isFinite(maxEdge) || maxEdge <= 0) return file;
-    if (!RESIZABLE_TYPES.has(file.type)) {
-        console.info(`[imageResize] skip unsupported type: ${file.type}`);
-        return file;
+export class ImageProcessError extends Error {
+    constructor(code, message) {
+        super(message);
+        this.name = 'ImageProcessError';
+        this.code = code; // 'UNSUPPORTED_HEIC' | 'DECODE_FAILED' | 'ENCODE_FAILED'
     }
+}
+
+const HEIC_RX = /\.(heic|heif)$/i;
+function isHeic(file) {
+    return /image\/(heic|heif)/i.test(file.type || '') || HEIC_RX.test(file.name || '');
+}
+
+const HEIC_MSG = 'HEIC/HEIF images aren’t supported. On iPhone, take a new photo with the camera (it saves as JPEG), or pick a JPEG/PNG/WebP.';
+
+// Downscale so `file` fits a maxLong × maxShort box in either orientation
+// (long edge ≤ maxLong, short edge ≤ maxShort). `maxShort` unset → long-edge
+// cap only. Preserves aspect ratio; never upscales; honors EXIF orientation via
+// createImageBitmap on modern browsers. Returns a Promise<File>. PNG/WebP keep
+// an alpha-capable PNG output; everything else becomes JPEG. Throws
+// ImageProcessError on HEIC or a hard decode/encode failure.
+export async function resizeImageFile(file, maxLong, { maxShort = null, quality = 0.92 } = {}) {
+    if (!file || typeof file !== 'object') return file;
+    if (!file.type || !file.type.startsWith('image/')) return file; // not an image; caller decides
+    if (isHeic(file)) throw new ImageProcessError('UNSUPPORTED_HEIC', HEIC_MSG);
+    if (!maxLong || !Number.isFinite(maxLong) || maxLong <= 0) return file;
 
     let bitmap = null;
     try {
-        // createImageBitmap reads EXIF orientation when available; the fallback
-        // path (URL.createObjectURL + Image) doesn't honor it on older browsers,
-        // so prefer the bitmap path when present.
+        // createImageBitmap reads EXIF orientation; fall back to an <img> element
+        // (covers formats / browsers where createImageBitmap is unavailable or
+        // rejects the options object, e.g. older Safari).
         if (typeof createImageBitmap === 'function') {
             try {
                 bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
             } catch {
-                // older Safari rejects the option object — retry without it
                 bitmap = await createImageBitmap(file);
             }
         } else {
             bitmap = await _loadImageElement(file);
         }
+    } catch {
+        try {
+            bitmap = await _loadImageElement(file);
+        } catch {
+            throw new ImageProcessError('DECODE_FAILED', 'Couldn’t read this image. Please use a standard JPEG, PNG, or WebP.');
+        }
+    }
+
+    try {
         const sourceW = bitmap.width || bitmap.naturalWidth;
         const sourceH = bitmap.height || bitmap.naturalHeight;
-        const longestEdge = Math.max(sourceW, sourceH);
-        if (longestEdge <= maxEdge) {
-            // Source is already small enough — pass through untouched. Saves a
-            // re-encode round-trip (and a tiny quality loss on JPEG).
-            console.info(`[imageResize] no-op: source ${sourceW}×${sourceH} ≤ ${maxEdge}px`);
+        const longSide = Math.max(sourceW, sourceH);
+        const shortSide = Math.min(sourceW, sourceH);
+        // Fit within the maxLong × maxShort box in either orientation, preserving
+        // aspect ratio, never upscaling. One uniform scale satisfies both edges.
+        const shortLimit = (maxShort && Number.isFinite(maxShort) && maxShort > 0) ? maxShort : Infinity;
+        const scale = Math.min(maxLong / longSide, shortLimit / shortSide, 1);
+        if (scale >= 1) {
+            // Already within the box — pass through untouched (saves a re-encode
+            // and the tiny quality loss). Not a failure.
             return file;
         }
-        const scale = maxEdge / longestEdge;
         const targetW = Math.round(sourceW * scale);
         const targetH = Math.round(sourceH * scale);
         const canvas = document.createElement('canvas');
@@ -70,25 +90,18 @@ export async function resizeImageFile(file, maxEdge, { quality = 0.92 } = {}) {
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
         ctx.drawImage(bitmap, 0, 0, targetW, targetH);
-        // Keep PNG when source had alpha; JPEG otherwise (smaller, faster).
-        const outputType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        // Keep an alpha-capable PNG when the source could carry alpha; JPEG
+        // otherwise (smaller, faster).
+        const outputType = (file.type === 'image/png' || file.type === 'image/webp') ? 'image/png' : 'image/jpeg';
         const blob = await _canvasToBlob(canvas, outputType, quality);
         if (!blob) {
-            console.warn('[imageResize] canvas.toBlob returned null — using original');
-            return file;
+            throw new ImageProcessError('ENCODE_FAILED', 'Couldn’t process this image. Try a smaller JPEG or PNG.');
         }
-        const resized = new File(
+        return new File(
             [blob],
             _renameForOutput(file.name, outputType),
             { type: outputType, lastModified: Date.now() }
         );
-        const kbBefore = Math.round(file.size / 1024);
-        const kbAfter = Math.round(blob.size / 1024);
-        console.info(`[imageResize] ${sourceW}×${sourceH} → ${targetW}×${targetH} (${kbBefore} KB → ${kbAfter} KB)`);
-        return resized;
-    } catch (e) {
-        console.warn('[imageResize] failed, using original:', e?.message || e);
-        return file;
     } finally {
         if (bitmap && typeof bitmap.close === 'function') bitmap.close();
     }

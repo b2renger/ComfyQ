@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "id": "video_wan_rotate_lora",
+  "name": "Wan 2.1 — 360° rotate (image to video)",
+  "description": "Upload a single image of an object and get a short video of it rotating a full 360°. Works best with a centered subject on a plain background.\n\nThe prompt must keep the LoRA trigger phrase \"r0t4tion\" and \"360 degrees rotation\" (the odd spelling is the trigger the LoRA was trained on) — describe your object around it, e.g. \"realistic photo of a <your object> with no background. The object performs a r0t4tion 360 degrees rotation.\" Drop the trigger and the rotation effect weakens.",
+  "category": "i2v",
+  "tags": [
+    "wan",
+    "i2v",
+    "lora",
+    "rotate",
+    "360"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_wan_rotate_lora.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 12,
+    "models": [
+      { "type": "unet", "file": "wan2.1_i2v_480p_14B_fp8_scaled.safetensors" },
+      { "type": "clip", "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors" },
+      { "type": "clip", "file": "clip_vision_h.safetensors" },
+      { "type": "vae", "file": "wan_2.1_vae.safetensors" },
+      { "type": "lora", "file": "rotate_20_epochs.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 180,
+  "maxRuntimeSec": 1200,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_52",
+      "nodeId": "52",
+      "field": "image",
+      "type": "image",
+      "label": "Source image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "cliptextencode_text_6",
+      "nodeId": "6",
+      "field": "text",
+      "type": "textarea",
+      "label": "Prompt",
+      "default": "The video shows elevation realistic photo of a futuristic, white, organic residential tower with no background. The building performs a r0t4tion 360 degrees rotation.",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "cliptextencode_text_7",
+      "nodeId": "7",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt",
+      "default": "Overexposure, static, blurred details, subtitles, paintings, pictures, still, overall gray, worst quality, low quality, JPEG compression residue, ugly, mutilated, redundant fingers, poorly painted hands, poorly painted faces, deformed, disfigured, deformed limbs, fused fingers, cluttered background, three legs, a lot of people in the background, upside down",
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "ksampler_seed_3",
+      "nodeId": "3",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "ksampler_steps_3",
+      "nodeId": "3",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps",
+      "default": 20,
+      "min": 1,
+      "max": 40,
+      "step": 1,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "wanimagetovideo_length_50",
+      "nodeId": "50",
+      "field": "length",
+      "type": "number",
+      "label": "Length (frames)",
+      "default": 65,
+      "min": 17,
+      "max": 121,
+      "step": 4,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "vhs_videocombine_frame_rate_61",
+      "nodeId": "61",
+      "field": "frame_rate",
+      "type": "number",
+      "label": "Frame rate (playback fps)",
+      "default": 24,
+      "min": 8,
+      "max": 60,
+      "step": 1,
+      "required": false,
+      "order": 6
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

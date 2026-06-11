@@ -73,6 +73,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     const [mediaFiles, setMediaFiles] = useState({}); // { paramKey: File }
     const [mediaPreviews, setMediaPreviews] = useState({}); // { paramKey: dataURL }
     const [isUploading, setIsUploading] = useState(false);
+    const [uploadError, setUploadError] = useState(''); // server-side upload rejection (too big / HEIC)
 
     // Initialize form params once per dialog-open session. We deliberately do
     // NOT depend on state.workflow — the server rebroadcasts state_update on a
@@ -101,6 +102,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
             }
         });
         setFormParams(next);
+        setUploadError('');
     }, [isOpen, initialParams]);
 
     useEffect(() => {
@@ -148,22 +150,33 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         if (isCollision || isUploading || missingMedia.length > 0) return;
 
         setIsUploading(true);
+        setUploadError('');
         const uploadedFilenames = {};
 
         // Upload all media files
         for (const [key, file] of Object.entries(mediaFiles)) {
             const formData = new FormData();
             formData.append('file', file); // Use 'file' as per updated server route
+            const fieldLabel = state.workflow?.parameter_map?.[key]?.label || key;
 
             try {
                 const response = await fetch(`${SERVER_URL}/upload`, {
                     method: 'POST',
                     body: formData,
                 });
+                // The server caps image size/dimensions and rejects HEIC; surface
+                // its message instead of submitting a job with a missing input.
+                if (!response.ok) {
+                    const data = await response.json().catch(() => ({}));
+                    setUploadError(`${fieldLabel}: ${data.error || 'upload was rejected by the server.'}`);
+                    setIsUploading(false);
+                    return;
+                }
                 const data = await response.json();
                 uploadedFilenames[key] = data.filename;
             } catch (error) {
                 console.error(`Upload failed for ${key}:`, error);
+                setUploadError(`${fieldLabel}: upload failed — check your connection and try again.`);
                 setIsUploading(false);
                 return;
             }
@@ -435,6 +448,13 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                 {/* Dynamic Fields Rendering */}
                 {/* Dynamic Fields Rendering */}
                 {renderDynamicFields()}
+
+                {uploadError && (
+                    <div className="flex items-start gap-2 text-danger text-xs font-medium bg-danger/10 p-2.5 rounded-lg border border-danger/20">
+                        <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                        <span>{uploadError}</span>
+                    </div>
+                )}
 
                 <div className="pt-2 flex justify-end space-x-3">
                     <Button variant="ghost" onClick={onClose} type="button">

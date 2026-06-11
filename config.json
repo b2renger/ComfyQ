@@ -26,6 +26,6 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "3d_triposplat_image_to_gaussian_splat"
+    "activeWorkflowId": "image_ideogram4_t2i"
   }
 }
