@@ -26,6 +26,6 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "video_ltx2_3_flf2v"
+    "activeWorkflowId": "video_ltx2_3_id_lora_img_audio2vid"
   }
 }

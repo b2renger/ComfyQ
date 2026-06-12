@@ -142,9 +142,9 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Check for required media uploads (image or video)
+        // Check for required media uploads (image, video, or audio)
         const mediaParams = Object.entries(state.workflow?.parameter_map || {})
-            .filter(([k, v]) => v.type === 'image' || v.type === 'video');
+            .filter(([k, v]) => v.type === 'image' || v.type === 'video' || v.type === 'audio');
         const missingMedia = mediaParams.filter(([key]) => !mediaFiles[key]);
 
         if (isCollision || isUploading || missingMedia.length > 0) return;
@@ -250,11 +250,19 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                     const label = config.label || key.charAt(0).toUpperCase() + key.slice(1);
                     const type = config.type || 'text';
 
+                    // Conditional gray-out: a field can declare `disabledWhen`
+                    // ({ param, equals }) to render disabled while another param
+                    // (a toggle) holds a given value — e.g. either/or prompt
+                    // boxes gated by an "Enhance" checkbox.
+                    const dw = config.disabledWhen;
+                    const disabled = !!dw && formParams[dw.param] === dw.equals;
+                    const ctrlLabel = dw && (state.workflow.parameter_map[dw.param]?.label || 'the toggle above');
+
                     // Image / video input — delegated to MediaCaptureField,
                     // which renders the file-upload widget (click + drag-and-
                     // drop), then applies maxInputEdge resizing for images
                     // before handing the File back.
-                    if (type === 'image' || type === 'video') {
+                    if (type === 'image' || type === 'video' || type === 'audio') {
                         return (
                             <MediaCaptureField
                                 key={key}
@@ -309,10 +317,18 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                     // Textarea Input
                     if (type === 'textarea' || key === 'prompt') {
                         return (
-                            <div key={key} className="space-y-1.5">
-                                <label className="text-sm font-medium text-slate-300">{label}</label>
+                            <div key={key} className={`space-y-1.5 ${disabled ? 'opacity-50' : ''}`}>
+                                <label className="text-sm font-medium text-slate-300 flex items-center gap-2 flex-wrap">
+                                    {label}
+                                    {disabled && (
+                                        <span className="text-[10px] font-normal text-muted normal-case">
+                                            — disabled; change “{ctrlLabel}” to edit
+                                        </span>
+                                    )}
+                                </label>
                                 <textarea
-                                    className="w-full bg-background border border-border rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-muted/50 min-h-[100px] resize-none"
+                                    disabled={disabled}
+                                    className={`w-full bg-background border border-border rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-muted/50 min-h-[100px] resize-none ${disabled ? 'cursor-not-allowed' : ''}`}
                                     value={formParams[key] || ''}
                                     onChange={(e) => setFormParams({ ...formParams, [key]: e.target.value })}
                                     placeholder={`Enter ${label}...`}

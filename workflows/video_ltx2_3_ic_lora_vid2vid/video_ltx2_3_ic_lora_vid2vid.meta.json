@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "id": "video_ltx2_3_ic_lora_vid2vid",
+  "name": "LTX 2.3 IC-LoRA — video to video (depth + audio)",
+  "description": "Restyle a source video into a new scene while keeping its motion and structure. The source video is sliced to ~5s, depth is extracted (MoGe) and used as an IC-LoRA control; a reference image sets the look; LTX 2.3 generates the result with a matching audio track.\n\nTwo prompt boxes: with \"Enhance prompt with AI\" OFF, the \"Prompt (used as-is)\" box drives generation. With it ON, the \"Prompt (AI-enhanced)\" box is rewritten by an in-graph LLM using your reference image. The inactive box is greyed out.",
+  "category": "i2v",
+  "tags": [
+    "ltx",
+    "ltx2.3",
+    "ic-lora",
+    "vid2vid",
+    "depth",
+    "video",
+    "audio"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_ltx2_3_ic_lora_vid2vid.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      {
+        "type": "checkpoint",
+        "file": "ltx-2.3-22b-distilled-fp8.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "gemma_3_12B_it_fp4_mixed.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors"
+      },
+      {
+        "type": "other",
+        "file": "moge_2_vitl_normal_fp16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 180,
+  "maxRuntimeSec": 1800,
+  "exposedParameters": [
+    {
+      "key": "source_video_199",
+      "nodeId": "199",
+      "field": "file",
+      "type": "video",
+      "label": "Source video",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "reference_image_200",
+      "nodeId": "200",
+      "field": "image",
+      "type": "image",
+      "label": "Reference image (look)",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "enhance_prompt_129_212",
+      "nodeId": "129:212",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Enhance prompt with AI",
+      "default": false,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "prompt_raw_129_211",
+      "nodeId": "129:211",
+      "field": "on_false",
+      "type": "textarea",
+      "label": "Prompt (used as-is)",
+      "default": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-themed armor stands before a weathered stone arch overgrown with ivy. A textured marble sphere wrapped in twisting vines levitates in the arch’s center, spinning slowly. As the camera glides forward, vines sway softly, leaves flutter in the light breeze. Strong golden sunlight streams through the canopy, illuminating the mossy ruins with bright, clear light. The scene feels vibrant and peaceful, with subtle natural motion.",
+      "required": false,
+      "order": 3,
+      "disabledWhen": {
+        "param": "enhance_prompt_129_212",
+        "equals": true
+      }
+    },
+    {
+      "key": "prompt_ai_129_209",
+      "nodeId": "129:209",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Prompt (AI-enhanced)",
+      "default": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-themed armor stands before a weathered stone arch overgrown with ivy. A textured marble sphere wrapped in twisting vines levitates in the arch’s center, spinning slowly. As the camera glides forward, vines sway softly, leaves flutter in the light breeze. Strong golden sunlight streams through the canopy, illuminating the mossy ruins with bright, clear light. The scene feels vibrant and peaceful, with subtle natural motion.",
+      "required": false,
+      "order": 4,
+      "disabledWhen": {
+        "param": "enhance_prompt_129_212",
+        "equals": false
+      }
+    },
+    {
+      "key": "duration_692",
+      "nodeId": "692",
+      "field": "duration",
+      "type": "number",
+      "label": "Source clip length (seconds)",
+      "default": 5,
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "seed_129_704",
+      "nodeId": "129:704",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 6
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

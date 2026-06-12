@@ -110,6 +110,7 @@ function toParameterMap(exposedParameters) {
             min: p.min,
             max: p.max,
             step: p.step,
+            disabledWhen: p.disabledWhen,
             required: p.required
         };
     }

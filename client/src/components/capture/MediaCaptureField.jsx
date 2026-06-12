@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, X, Image as ImageIcon, Video as VideoIcon, Loader2, AlertTriangle } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Video as VideoIcon, Music, Loader2, AlertTriangle } from 'lucide-react';
 import { resizeImageFile } from '../../utils/imageResize';
 
 // Default image bounding box when the workflow's exposedParameter doesn't
@@ -27,7 +27,7 @@ const DEFAULT_IMAGE_MAX_SHORT = 1080;
 const MediaCaptureField = ({
     paramKey,
     label,
-    type,           // 'image' | 'video'
+    type,           // 'image' | 'video' | 'audio'
     maxInputEdge,   // optional; falls back to the 1920×1080 image box
     preview,        // dataURL string from parent's FileReader
     onChange,       // (file: File) => void
@@ -38,11 +38,14 @@ const MediaCaptureField = ({
     const [dragActive, setDragActive] = useState(false);
     const [error, setError] = useState('');
     const isVideo = type === 'video';
+    const isAudio = type === 'audio';
+    const isImage = type === 'image';
+    const noun = isAudio ? 'audio' : isVideo ? 'video' : 'image';
     // When maxInputEdge is set, use it as a square long-edge cap (legacy
     // single-edge behavior); otherwise the 1920×1080 box.
     const maxLong = maxInputEdge ?? DEFAULT_IMAGE_MAX_LONG;
     const maxShort = maxInputEdge ?? DEFAULT_IMAGE_MAX_SHORT;
-    const acceptPrefix = isVideo ? 'video/' : 'image/';
+    const acceptPrefix = `${type}/`;
 
     const handleFile = async (file) => {
         if (!file) return;
@@ -50,7 +53,8 @@ const MediaCaptureField = ({
         // Reset the input value so picking the same file twice still fires.
         if (fileInputRef.current) fileInputRef.current.value = '';
         let processed = file;
-        if (!isVideo) {
+        // Only images are resized; video/audio upload as-is (no in-browser transcode).
+        if (isImage) {
             setProcessing(true);
             try {
                 // Throws ImageProcessError on HEIC / undecodable / encode failure.
@@ -104,11 +108,13 @@ const MediaCaptureField = ({
     return (
         <div className="space-y-2">
             <label className="text-sm font-medium text-slate-300 flex items-center gap-2 flex-wrap">
-                {isVideo
-                    ? <VideoIcon size={14} className="text-primary" />
-                    : <ImageIcon size={14} className="text-primary" />}
+                {isAudio
+                    ? <Music size={14} className="text-primary" />
+                    : isVideo
+                        ? <VideoIcon size={14} className="text-primary" />
+                        : <ImageIcon size={14} className="text-primary" />}
                 <span>{label}</span>
-                {!isVideo && (
+                {isImage && (
                     <span className="text-[10px] text-muted font-normal">
                         {maxLong === maxShort
                             ? `— downsized to ≤${maxLong}px on the long edge before upload`
@@ -128,23 +134,38 @@ const MediaCaptureField = ({
                 onDrop={handleDrop}
             >
                 {preview ? (
-                    <div className="relative aspect-video rounded-lg overflow-hidden group/preview">
-                        {isVideo ? (
-                            <video src={preview} className="w-full h-full object-cover" muted loop autoPlay playsInline />
-                        ) : (
-                            <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                        )}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
+                    isAudio ? (
+                        <div className="flex items-center gap-3 p-1">
+                            <Music size={20} className="text-primary shrink-0" />
+                            <audio src={preview} controls className="flex-1 min-w-0 h-9" />
                             <button
                                 type="button"
                                 onClick={() => { setError(''); onRemove(); }}
-                                className="p-2 rounded-full bg-danger text-white hover:scale-110 transition-transform"
+                                className="p-1.5 rounded-full bg-danger text-white hover:scale-110 transition-transform shrink-0"
                                 title="Remove and pick another"
                             >
-                                <X size={20} />
+                                <X size={16} />
                             </button>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="relative aspect-video rounded-lg overflow-hidden group/preview">
+                            {isVideo ? (
+                                <video src={preview} className="w-full h-full object-cover" muted loop autoPlay playsInline />
+                            ) : (
+                                <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                            )}
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover/preview:opacity-100 transition-opacity flex items-center justify-center">
+                                <button
+                                    type="button"
+                                    onClick={() => { setError(''); onRemove(); }}
+                                    className="p-2 rounded-full bg-danger text-white hover:scale-110 transition-transform"
+                                    title="Remove and pick another"
+                                >
+                                    <X size={20} />
+                                </button>
+                            </div>
+                        </div>
+                    )
                 ) : (
                     <label
                         className={`group flex flex-col items-center justify-center gap-2 py-6 px-2 rounded-lg border border-border bg-background/30 cursor-pointer hover:border-primary/40 hover:bg-surface/60 transition-colors ${processing ? 'opacity-50 pointer-events-none' : ''}`}
@@ -158,15 +179,15 @@ const MediaCaptureField = ({
                             {processing
                                 ? 'Processing…'
                                 : dragActive
-                                    ? `Drop ${isVideo ? 'video' : 'image'} to upload`
-                                    : `Upload ${isVideo ? 'video' : 'image'}`}
+                                    ? `Drop ${noun} to upload`
+                                    : `Upload ${noun}`}
                         </span>
                         <span className="text-[10px] text-muted">click to browse or drag &amp; drop</span>
                         <input
                             ref={fileInputRef}
                             type="file"
                             className="hidden"
-                            accept={isVideo ? 'video/*' : 'image/*'}
+                            accept={`${type}/*`}
                             onChange={(e) => handleFile(e.target.files?.[0])}
                         />
                     </label>

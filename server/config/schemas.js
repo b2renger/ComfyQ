@@ -22,6 +22,12 @@ const ExposedParameter = z.object({
     // workflows degrade past 1280–2048 anyway). Undefined → client uses
     // its built-in defaults (1024 for image, 1280 for video).
     maxInputEdge: z.number().int().positive().optional(),
+    // Conditional gray-out: this field renders disabled when another exposed
+    // param's current value equals `equals`. Used for either/or fields gated by
+    // a toggle (e.g. a raw-prompt box vs an LLM-prompt box selected by an
+    // "Enhance" checkbox). The disabled field still submits its value — harmless
+    // when the workflow's switch ignores the unselected branch.
+    disabledWhen: z.object({ param: z.string().min(1), equals: z.any() }).optional(),
     required: z.boolean().default(false),
     order: z.number().int().default(0)
 });
