@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "video_ltx2_3_flf2v",
+  "name": "LTX 2.3 — first & last frame to video (with audio)",
+  "description": "Give a START image and an END image and LTX 2.3 generates a short video that morphs from the first frame to the last, with a matching audio track. Describe the camera motion and the sound/music in the prompt (the model generates both video and audio from it), e.g. \"The camera moves from a high position to a low position, keeping the subject centered. Music: calm ambient synthwave.\" Both frames are resized to 1280×720.",
+  "category": "i2v",
+  "tags": [
+    "ltx",
+    "ltx2.3",
+    "flf2v",
+    "i2v",
+    "video",
+    "audio"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_ltx2_3_flf2v.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      {
+        "type": "checkpoint",
+        "file": "ltx-2.3-22b-distilled-fp8.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "gemma_3_12B_it_fp4_mixed.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 120,
+  "maxRuntimeSec": 1200,
+  "exposedParameters": [
+    {
+      "key": "first_frame_31",
+      "nodeId": "31",
+      "field": "image",
+      "type": "image",
+      "label": "First frame",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "last_frame_39",
+      "nodeId": "39",
+      "field": "image",
+      "type": "image",
+      "label": "Last frame",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "prompt_129_128",
+      "nodeId": "129:128",
+      "field": "text",
+      "type": "textarea",
+      "label": "Prompt (motion + music)",
+      "default": "The camera move from a high position to a low position, keeping the character in the frame centered.\nMusic: Synthwave cyberpunk music with calm ambient synths and driving 80s beats.",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "negative_129_112",
+      "nodeId": "129:112",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt",
+      "default": "blurry, out of focus, overexposed, underexposed, low contrast, washed out colors, excessive noise, grainy texture, poor lighting, flickering, motion blur, distorted proportions, unnatural skin tones, deformed facial features, asymmetrical face, missing facial features, extra limbs, disfigured hands, wrong hand count, artifacts around text, unreadable text on shirt or hat, incorrect lettering on cap (“PNTR”), incorrect t-shirt slogan (“JUST DO IT”), missing microphone, misplaced microphone, inconsistent perspective, camera shake, incorrect depth of field, background too sharp, background clutter, distracting reflections, harsh shadows, inconsistent lighting direction, color banding, cartoonish rendering, 3D CGI look, unrealistic materials, uncanny valley effect, incorrect ethnicity, wrong gender, exaggerated expressions, smiling, laughing, exaggerated sadness, wrong gaze direction, eyes looking at camera, mismatched lip sync, silent or muted audio, distorted voice, robotic voice, echo, background noise, off-sync audio, missing sniff sounds, incorrect dialogue, added dialogue, repetitive speech, jittery movement, awkward pauses, incorrect timing, unnatural transitions, inconsistent framing, tilted camera, missing door or shelves, missing shallow depth of field, flat lighting, inconsistent tone, cinematic oversaturation, stylized filters, or AI artifacts.",
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "duration_129_102",
+      "nodeId": "129:102",
+      "field": "value",
+      "type": "number",
+      "label": "Duration (seconds)",
+      "default": 5,
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "frame_rate_129_114",
+      "nodeId": "129:114",
+      "field": "value",
+      "type": "number",
+      "label": "Frame rate",
+      "default": 25,
+      "min": 8,
+      "max": 30,
+      "step": 1,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "seed_129_100",
+      "nodeId": "129:100",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 6
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

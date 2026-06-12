@@ -523,6 +523,14 @@ const SchedulerPage = () => {
                                             {job.status === 'completed' ? (
                                                 <div className="relative w-full h-full group/img">
                                                     <MediaPreview filename={getPrimaryDownloadFilename(job) || job.result_filename} />
+                                                    {(() => {
+                                                        const imgCount = (job.outputs || []).filter(o => o.kind === 'image' && o.type !== 'temp').length;
+                                                        return imgCount > 1 ? (
+                                                            <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[10px] font-semibold backdrop-blur-md border border-white/10 pointer-events-none">
+                                                                {imgCount} views
+                                                            </span>
+                                                        ) : null;
+                                                    })()}
                                                     <button
                                                         onClick={(e) => {
                                                             e.stopPropagation();

@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "id": "image_qwen_multiple_angles",
+  "name": "Qwen Edit — multiple scene angles (1-click)",
+  "description": "Upload one scene image and get back 8 new camera angles of it in a single run: close-up, wide shot, 45° and 90° left/right, aerial view, and low angle. Powered by Qwen-Image-Edit 2509 with the multiple-angles LoRA. Works best with a clear subject and some surrounding space. Open the result to flip through all 8 angles in the gallery.",
+  "category": "image-edit",
+  "tags": [
+    "qwen",
+    "qwen-edit",
+    "multiview",
+    "multi-angle",
+    "image-edit"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_qwen_multiple_angles.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      { "type": "unet", "file": "qwen_image_edit_2509_fp8_e4m3fn.safetensors" },
+      { "type": "clip", "file": "qwen_2.5_vl_7b_fp8_scaled.safetensors" },
+      { "type": "vae", "file": "qwen_image_vae.safetensors" },
+      { "type": "lora", "file": "Qwen-Edit-2509-Multiple-angles.safetensors" },
+      { "type": "lora", "file": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 120,
+  "maxRuntimeSec": 1200,
+  "exposedParameters": [
+    {
+      "key": "scene_image_25",
+      "nodeId": "25",
+      "field": "image",
+      "type": "image",
+      "label": "Scene image",
+      "default": "",
+      "required": true,
+      "order": 0
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

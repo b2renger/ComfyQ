@@ -5,8 +5,9 @@ import Button from './ui/Button';
 import ModelViewer from './ui/ModelViewer';
 import SplatViewer from './ui/SplatViewer';
 import AudioPlayer from './ui/AudioPlayer';
+import ImageGallery from './ui/ImageGallery';
 import { useSocket } from '../context/SocketContext';
-import { getImageUrl, getDownloadUrl, isVideo, isModel3d, isSplat, isAudio } from '../utils/api';
+import { getImageUrl, getDownloadUrl, isVideo, isModel3d, isSplat, isAudio, isImage } from '../utils/api';
 import { getDisplayPrompt, getPrimaryDownloadFilename } from '../utils/jobDisplay';
 
 const downloadFile = (filename) => {
@@ -17,6 +18,20 @@ const downloadFile = (filename) => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+};
+
+// Derive a human label from a ComfyUI output filename's prefix, dropping the
+// trailing `_00001_` counter + extension and a leading "ComfyUI[-_]". Returns
+// '' when nothing meaningful remains (generic "ComfyUI_00001_.png"), so the
+// gallery only labels views when the workflow named them (e.g. the multi-angle
+// workflow's "ComfyUI-close_up", "ComfyUI-45_right").
+const deriveViewLabel = (filename) => {
+    if (!filename) return '';
+    const base = filename.split('/').pop();
+    const m = base.match(/^(.+?)_\d+_?\.\w+$/);
+    let p = (m ? m[1] : base.replace(/\.\w+$/, ''));
+    p = p.replace(/^ComfyUI[-_]?/i, '').replace(/[-_]+/g, ' ').trim();
+    return p;
 };
 
 const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
@@ -55,6 +70,19 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
     const isVid = !is3D && isVideo(job.result_filename);
     const isAud = !is3D && isAudio(job.result_filename);
 
+    // Multi-image jobs (Qwen multi-angle, batch outputs) → gallery. Prefer
+    // persistent outputs; a single image keeps the plain <img> path.
+    const imageOutputs = outputs.filter(o => isImage(o.filename) && o.type !== 'temp');
+    const isMultiImage = !is3D && !isAud && !isVid && imageOutputs.length > 1;
+    const galleryImages = imageOutputs.map(o => ({ filename: o.filename, label: deriveViewLabel(o.filename) }));
+
+    const downloadAll = (e) => {
+        e.stopPropagation();
+        // Best-effort sequential downloads (browsers may throttle past the
+        // first few; the gallery's per-image button is the reliable fallback).
+        galleryImages.forEach((im, k) => setTimeout(() => downloadFile(im.filename), k * 250));
+    };
+
     const downloadMedia = (e) => {
         e.stopPropagation();
         downloadFile(primaryFilename);
@@ -91,6 +119,8 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                             )
                         ) : isAud ? (
                             <AudioPlayer url={getImageUrl(job.result_filename)} filename={job.result_filename} />
+                        ) : isMultiImage ? (
+                            <ImageGallery images={galleryImages} />
                         ) : isVid ? (
                             <video
                                 src={getImageUrl(job.result_filename)}
@@ -214,6 +244,15 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                                     </Button>
                                 )}
                             </div>
+                        ) : isMultiImage ? (
+                            <Button
+                                variant="primary"
+                                className="w-full"
+                                icon={Download}
+                                onClick={downloadAll}
+                            >
+                                Download all ({galleryImages.length})
+                            </Button>
                         ) : (
                             <Button
                                 variant="primary"
