@@ -6,7 +6,9 @@ This document tracks the v2 rebuild: the architecture, the milestone sequence, w
 
 ## Why v2
 
-The v1 architecture (still on `main`) cannot serve the target workflow set:
+> **Branch note (2026-06-13):** the v2 rebuild described here is now the active code on the default **`main`** branch. The original v1 (the monolithic `server/scheduler.js`) is preserved on the **`poc1` / `poc2`** branches; the standalone `v2` branch is a stale snapshot, behind `main`. Historical "`main` = v1" phrasing below is kept as the rationale that drove the rewrite.
+
+The v1 architecture (preserved on `poc1` / `poc2`) cannot serve the target workflow set:
 
 - **Single-worker scheduler** with a fixed-duration boot benchmark
 - **Hard-coded save node whitelist** (`SaveImage`, `SaveVideo`, `VHS_VideoCombine`) — fatal for LTX video / depth preprocessors / audio outputs
@@ -15,7 +17,7 @@ The v1 architecture (still on `main`) cannot serve the target workflow set:
 - **No audio I/O** anywhere in parser / scheduler / BookingDialog
 - **No reconnection logic** on the ComfyUI WebSocket; jobs hang in `processing` if ComfyUI restarts
 
-`main` and `poc1` are byte-identical. Only `poc2` diverged, adding the workflow registry concept and `.config.meta.json` separation. v2 ports those ideas and rebuilds the rest.
+At the time of the rewrite, `main` and `poc1` were byte-identical (the v1 baseline); only `poc2` had diverged, adding the workflow registry concept and `.config.meta.json` separation. v2 ported those ideas and rebuilt the rest — and v2 is now what lives on `main` (the original v1 baseline remains on `poc1`).
 
 ## Target compatibility
 
@@ -258,7 +260,7 @@ No workflow-specific fields in `config.json`; that lives in the registry now.
 
 Smallest functional v2 covering only t2i, on the new architecture.
 
-- [x] Branch `v2` cut from `main`. Old v1 modules deleted.
+- [x] Branch `v2` cut from `main`. Old v1 modules deleted. *(v2 has since been promoted to `main`; the standalone `v2` branch is now a stale snapshot.)*
 - [x] New deps installed: `better-sqlite3`, `zod`, `mime-types`, `bcryptjs`, `multer`, `form-data`.
 - [x] Implemented: `configManager`, `schemas`, `workflowRegistry`, `workflowParser` (primitive-fallback), `workflowValidator`, `jobQueue` (sqlite), `jobStateMachine`, `jobExecutor`, `outputCollector` (generic), `workerInterface`, `localComfyUIWorker` + helpers, `comfyWsClient` (reconnection), `mediaStore`, `realtimeBus`, `authGate`, `benchmarkService`.
 - [x] Routes: `admin`, `workflows`, `jobs`, `uploads`.
@@ -475,7 +477,7 @@ Active queue (re-prioritized 2026-06-08, in rough priority order):
 
 **What we're really testing.** Each row is a probe into "does ComfyQ stay zero-config when a new workflow lands?" — that's the actual product promise. The headline failures we expect are around (a) output kinds the `MediaStore` classifier doesn't know yet (e.g. Gaussian-splat formats), (b) workflows that produce N>1 primary outputs (TripoSplat video+GLB, multiview, audio+video), and (c) media kinds with no client renderer yet (audio, splats). Each fix lands generally, not per-workflow.
 
-**Cross-cutting infra these rows depend on (state as of 2026-06-10):**
+**Cross-cutting infra these rows depend on (state as of 2026-06-13 — all target workflows registered):**
 - **Multi-output UX — DONE.** The wire sends the full `outputs[]` array ([server/realtime/realtimeBus.js](server/realtime/realtimeBus.js) `_toWireJob`). The Scheduler grid / `MyJobsPanel` thumbnails render a single `result_filename` (extension-prefers a GLB over a splat `.ply` so the thumbnail is always renderable) with a "{N} views" badge when a job has >1 image output. The **`ImageLightbox` has two galleries**: (a) a **3D gallery** — Splat⇄Mesh viewer toggle + per-format export buttons (.spz/.ply/.glb), video ignored; (b) an **N-image gallery** ([ImageGallery.jsx](client/src/components/ui/ImageGallery.jsx)) — main image + prev/next + counter + per-view labels + thumbnail strip + per-image/"Download all" (Qwen multi-angle). Audio jobs render the AudioPlayer.
 - **Audio I/O — DONE.** Output: server classifies `.mp3`/`.wav`/etc. and the client has [AudioPlayer.jsx](client/src/components/ui/AudioPlayer.jsx) (`isAudio` → styled `<audio>` in cards + lightbox), built 2026-06-11 for Stable Audio 3. Input: [MediaCaptureField.jsx](client/src/components/capture/MediaCaptureField.jsx) gained an **`audio` type** (2026-06-11, for the LTX ID-LoRA talking-video workflow) — `audio/*` file picker + drag-drop + inline `<audio>` preview, no resize; `BookingDialog` routes `audio` params to it and enforces required ones. Server needed **zero changes** — `/upload` stores any file in ComfyUI/input, `inspectUpload` only dimension-checks images, and the materializer injects the filename into the `LoadAudio` node generically.
 - **Gaussian-splat viewer — BUILT (2026-06-10).** [client/src/components/ui/SplatViewer.jsx](client/src/components/ui/SplatViewer.jsx) renders `.spz`/`.splat`/`.ksplat` via **Spark** (`@sparkjsdev/spark`, three.js-native, from the .spz authors). Same render-on-demand discipline as `ModelViewer` (draw only on load / OrbitControls `change` / Spark `onDirty` re-sort / resize — no permanent rAF loop). `.glb/.gltf` still → `ModelViewer`. New server kind `splat` in [server/media/mediaTypes.js](server/media/mediaTypes.js).
@@ -534,12 +536,12 @@ Final milestone of ComfyQ v2: let several ComfyQ instances on the same LAN auto-
 ## How to run / verify on a real ComfyUI rig
 
 ```
-git checkout v2
+git clone <repo>   # default `main` branch is the active line — no checkout needed
 npm install
 npm run dev
 ```
 
-Then open `http://<host>:3000/admin`:
+Then open `http://<host>:5173/admin` (the Vite dev server — it serves the admin SPA and proxies the API on :3000; opening :3000 directly won't serve the UI):
 
 1. **ComfyUI Settings** — root path, python executable, output dir, VRAM budget, port.
 2. **Add Workflow** (optional) — upload an API-format JSON. Or drop your saved API JSON directly into `workflows/<id>/<id>.api.json` next to the meta.
