@@ -112,7 +112,15 @@ const AppConfig = z.object({
     workflows: z.object({
         dir: z.string().default('./workflows'),
         activeWorkflowId: z.string().nullable().default(null)
-    }).default({ dir: './workflows', activeWorkflowId: null })
+    }).default({ dir: './workflows', activeWorkflowId: null }),
+    // Directory of sample media (images / videos / audio) used to auto-calibrate
+    // workflows without any admin upload: the BenchmarkService picks a file
+    // matching each exposed input's type and feeds it through a real cold+warm
+    // run. Empty → image inputs fall back to a built-in reference PNG and
+    // video/audio inputs can't be calibrated without meta.warmupParams.
+    assets: z.object({
+        dir: z.string().default('')
+    }).default({ dir: '' })
 });
 
 module.exports = {

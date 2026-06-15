@@ -13,6 +13,18 @@ const zlib = require('zlib');
 
 const CALIBRATION_IMAGE_NAME = '__comfyq_calibration.png';
 
+// Extensions the calibrator will accept from the assets dir for each input
+// type. Images are restricted to safe static formats (no animated webp/gif that
+// some LoadImage builds choke on). Videos/audio are real container formats.
+const ASSET_EXTS = {
+    image: ['.png', '.jpg', '.jpeg'],
+    video: ['.mp4', '.webm', '.mov', '.mkv', '.avi'],
+    audio: ['.mp3', '.wav', '.flac', '.ogg', '.m4a', '.aac']
+};
+// Skip tiny thumbnails / depth maps when picking an image so we don't feed a
+// degenerate 12×12 px file into a workflow that derives latent size from it.
+const IMAGE_MIN_BYTES = 50 * 1024;
+
 // Tiny PNG generator (no external deps). Used to seed a reference image into
 // ComfyUI's input/ dir so workflows with image inputs can be calibrated
 // without first uploading sample media.
@@ -59,10 +71,12 @@ function _makeSolidPng(width, height, [r, g, b]) {
 }
 
 class BenchmarkService {
-    constructor({ worker, registry, comfyConfig }) {
+    constructor({ worker, registry, comfyConfig, assetsDir }) {
         this.worker = worker;
         this.registry = registry;
         this.comfyConfig = comfyConfig;
+        // Directory of sample media for auto-calibration (config.assets.dir).
+        this.assetsDir = assetsDir || '';
     }
 
     _ensureCalibrationImage() {
@@ -74,6 +88,161 @@ class BenchmarkService {
         return CALIBRATION_IMAGE_NAME;
     }
 
+    // Pick a file from the assets dir matching `type` (image|video|audio).
+    // Deterministic: smallest video/audio (fastest to decode), smallest image
+    // above a size floor (skips depth-map thumbnails). Returns an absolute path
+    // or null when the dir is unset/missing or has no file of that type.
+    _resolveAsset(type) {
+        const dir = this.assetsDir;
+        if (!dir) return null;
+        const exts = ASSET_EXTS[type] || [];
+        let names;
+        try { names = fs.readdirSync(dir); } catch { return null; }
+        const cands = [];
+        for (const name of names) {
+            if (name === CALIBRATION_IMAGE_NAME || name.startsWith('comfyq__')) continue;
+            if (!exts.includes(path.extname(name).toLowerCase())) continue;
+            const full = path.join(dir, name);
+            let st; try { st = fs.statSync(full); } catch { continue; }
+            if (!st.isFile()) continue;
+            cands.push({ full, size: st.size });
+        }
+        if (cands.length === 0) return null;
+        cands.sort((a, b) => a.size - b.size);
+        if (type === 'image') {
+            // Median of the above-floor images → a "typical" photo rather than a
+            // tiny icon/line-drawing (degenerate for 3D / multi-view) or a huge
+            // file (slow upload). Falls back to all candidates if none clear the
+            // floor.
+            const pool = cands.filter(c => c.size >= IMAGE_MIN_BYTES);
+            const arr = pool.length ? pool : cands;
+            return arr[Math.floor((arr.length - 1) / 2)].full;
+        }
+        // Smallest video/audio = fastest to decode; content is irrelevant to timing.
+        return cands[0].full;
+    }
+
+    // Stage the assets each image/video/audio input needs into ComfyUI/input and
+    // return the paramValues map (basenames the Load* nodes will read). Reuses
+    // the worker's InputUploader so the copies are namespaced + sweepable.
+    _buildCalibrationParams(entry, benchJobId) {
+        const paramValues = { ...(entry.meta.warmupParams || {}) };
+        for (const p of entry.effective.exposedParameters) {
+            if (paramValues[p.key] !== undefined && paramValues[p.key] !== '') continue;
+            if (p.type !== 'image' && p.type !== 'video' && p.type !== 'audio') continue;
+            const asset = this._resolveAsset(p.type);
+            if (asset) {
+                const rec = this.worker.uploader.copy({
+                    jobId: benchJobId, paramKey: p.key,
+                    originalName: path.basename(asset), source: asset
+                });
+                paramValues[p.key] = rec.comfyFilename;
+                console.log(`[Benchmark]   ${p.type} input "${p.key}" ← ${path.basename(asset)}`);
+            } else if (p.type === 'image') {
+                paramValues[p.key] = this._ensureCalibrationImage();
+                console.log(`[Benchmark]   image input "${p.key}" ← built-in reference PNG (no asset found)`);
+            } else {
+                throw new Error(`Cannot calibrate: no ${p.type} asset available for input "${p.key}". Add a ${p.type} file to the assets dir (${this.assetsDir || 'not configured'}) or set meta.warmupParams.`);
+            }
+        }
+        // Randomize any EXPOSED seed param so the run can't hit ComfyUI's result
+        // cache — this covers seeds that live in a connected primitive node
+        // (field `value`) which `_randomizeSeeds` (literal `*seed` fields) misses.
+        // Overrides a warmupParams seed on purpose; calibration must always run.
+        for (const p of entry.effective.exposedParameters) {
+            const k = String(p.key || '').toLowerCase();
+            const f = String(p.field || '').toLowerCase();
+            if (k === 'seed' || k.endsWith('_seed') || f === 'seed' || f.endsWith('_seed')) {
+                paramValues[p.key] = Math.floor(Math.random() * 0x7fffffff);
+            }
+        }
+        return paramValues;
+    }
+
+    // Deep-clone the workflow with every numeric *seed field randomized. This is
+    // the cache-buster: ComfyUI caches each node's output keyed on its inputs, so
+    // re-submitting an identical graph returns the cached result instantly (no
+    // real sampling). A fresh seed forces the sampler (and everything downstream)
+    // to actually execute, while the model-loader nodes are untouched so loaded
+    // models stay resident. Only literal numeric seeds are bumped — `[nodeId,idx]`
+    // connections are left alone.
+    _randomizeSeeds(apiWorkflow) {
+        const wf = JSON.parse(JSON.stringify(apiWorkflow));
+        let n = 0;
+        for (const node of Object.values(wf)) {
+            const inputs = node && node.inputs;
+            if (!inputs) continue;
+            for (const [k, v] of Object.entries(inputs)) {
+                if (typeof v === 'number' && /seed$/i.test(k)) {
+                    inputs[k] = Math.floor(Math.random() * 0x7fffffff);
+                    n++;
+                }
+            }
+        }
+        return { wf, seedsRandomized: n };
+    }
+
+    // Submit the workflow once and resolve when ComfyUI reports the prompt
+    // finished. Returns timing (absolute timestamps + the sampler-step window).
+    // Always leaves the worker idle (finalize) so a later job/run can submit.
+    async _runOnce(entry, apiWorkflow, paramValues, runId) {
+        let stepsDone = 0, stepsTotal = 0, firstStepAt = null, lastStepAt = null;
+        let resolveDone, rejectDone;
+        const donePromise = new Promise((res, rej) => { resolveDone = res; rejectDone = rej; });
+        const onProgress = ({ stepsDone: d, stepsTotal: t }) => {
+            if (firstStepAt == null) firstStepAt = Date.now();
+            lastStepAt = Date.now();
+            stepsDone = d; stepsTotal = t;
+        };
+        const onFinished = () => resolveDone();
+        const onFailed = ({ errorReason }) => rejectDone(new Error(errorReason || 'benchmark-failed'));
+        this.worker.on('progress', onProgress);
+        this.worker.on('execution-finished', onFinished);
+        this.worker.on('failed', onFailed);
+
+        const startedAt = Date.now();
+        try {
+            await this.worker.submit(runId, apiWorkflow, {
+                workflowId: entry.id,
+                exposedParameters: entry.effective.exposedParameters,
+                paramValues,
+                inputs: [],
+                filenamePrefix: `bench_${entry.id}_${Date.now()}`,
+                requirements: entry.meta.requirements,
+                maxRuntimeSec: entry.meta.maxRuntimeSec
+            });
+            const cap = entry.meta.maxRuntimeSec * 1000;
+            await Promise.race([
+                donePromise,
+                new Promise((_, rej) => setTimeout(() => rej(new Error('benchmark timed out')), cap))
+            ]);
+            this.worker.finalize({ success: true });
+            const finishedAt = Date.now();
+            return { durationMs: finishedAt - startedAt, startedAt, finishedAt, firstStepAt, lastStepAt, stepsDone, stepsTotal };
+        } catch (e) {
+            // Release the worker so the next run (or a later job) can submit.
+            try { this.worker.finalize({ success: false }); } catch { /* ignore */ }
+            throw e;
+        } finally {
+            this.worker.off('progress', onProgress);
+            this.worker.off('execution-finished', onFinished);
+            this.worker.off('failed', onFailed);
+        }
+    }
+
+    // Run the workflow ONCE for real and write <id>.runtime.json. The single run
+    // is split at the first sampler step into:
+    //   • model load  (start → first step): the per-switch one-time cost
+    //   • generation  (first step → end):   the recurring cost a warm worker pays
+    // so we report BOTH a first-time figure (coldDurationSec, incl. load) and the
+    // optimal/warm figure (estimatedDurationSec, the timeline number) from one run.
+    //
+    // We deliberately do NOT do a second "warm" submission: ComfyUI would return
+    // its cached result for an identical graph in ~1s (which is what made
+    // calibration report 1s). Instead the run uses a fresh random seed so it
+    // always actually executes — even on re-calibration — and we derive the warm
+    // cost by subtracting the measured load phase. Inputs (image/video/audio) are
+    // auto-supplied from the assets dir, so no upload or warmupParams is required.
     async calibrate(workflowId) {
         const entry = this.registry.get(workflowId);
         if (!entry || entry.unavailable) {
@@ -83,95 +252,41 @@ class BenchmarkService {
             throw new Error('Worker is busy; calibrate after queue drains');
         }
 
-        // Build calibration paramValues. Start from admin-provided warmupParams,
-        // then fill any image-typed exposed parameter that has no value with a
-        // built-in reference image. Video/audio inputs without warmupParams are
-        // an error (we don't ship sample media for them).
-        const paramValues = { ...(entry.meta.warmupParams || {}) };
-        let needsImage = false;
-        for (const p of entry.effective.exposedParameters) {
-            if (paramValues[p.key] !== undefined && paramValues[p.key] !== '') continue;
-            if (p.type === 'image') {
-                paramValues[p.key] = CALIBRATION_IMAGE_NAME;
-                needsImage = true;
-            } else if (p.type === 'video' || p.type === 'audio') {
-                throw new Error(`Cannot calibrate: ${p.type} input "${p.key}" has no warmupParams entry. Add a sample filename to the workflow's meta.warmupParams.`);
-            }
-        }
-        if (needsImage) this._ensureCalibrationImage();
-
-        const startedAt = Date.now();
-        let stepsDone = 0;
-        let stepsTotal = 0;
-        let firstStepAt = null;
-        let lastStepAt = null;
-        let resolveDone, rejectDone;
-
-        const donePromise = new Promise((res, rej) => { resolveDone = res; rejectDone = rej; });
-        const onProgress = ({ stepsDone: d, stepsTotal: t }) => {
-            if (firstStepAt == null) firstStepAt = Date.now();
-            lastStepAt = Date.now();
-            stepsDone = d;
-            stepsTotal = t;
-        };
-        const onFinished = () => resolveDone();
-        const onFailed = ({ errorReason }) => rejectDone(new Error(errorReason || 'benchmark-failed'));
-        this.worker.on('progress', onProgress);
-        this.worker.on('execution-finished', onFinished);
-        this.worker.on('failed', onFailed);
-
         const benchJobId = `bench-${workflowId}-${Date.now()}`;
+        console.log(`[Benchmark] ${workflowId}: preparing calibration inputs…`);
+        const paramValues = this._buildCalibrationParams(entry, benchJobId);
+        const { wf, seedsRandomized } = this._randomizeSeeds(entry.apiWorkflow);
+
         try {
-            await this.worker.submit(benchJobId, entry.apiWorkflow, {
-                workflowId: entry.id,
-                exposedParameters: entry.effective.exposedParameters,
-                paramValues,
-                inputs: [],
-                filenamePrefix: `bench_${workflowId}_${Date.now()}`,
-                requirements: entry.meta.requirements,
-                maxRuntimeSec: entry.meta.maxRuntimeSec
-            });
+            // Evict everything first so the run pays the full model-load cost,
+            // exactly like the first job after a fresh start (→ coldDurationSec).
+            try {
+                await this.worker.rest.free({ unloadModels: true, freeMemory: true });
+            } catch (e) {
+                console.warn(`[Benchmark] pre-run /free failed (continuing): ${e.message}`);
+            }
+            console.log(`[Benchmark] ${workflowId}: timed run (load models → generate; ${seedsRandomized} seed(s) randomized to avoid the result cache)…`);
+            const run = await this._runOnce(entry, wf, paramValues, `${benchJobId}-run`);
 
-            // Wait for execution-finished or failure with a hard cap.
-            const cap = entry.meta.maxRuntimeSec * 1000;
-            await Promise.race([
-                donePromise,
-                new Promise((_, rej) => setTimeout(() => rej(new Error('benchmark timed out')), cap))
-            ]);
-
-            // Pull the final history once to ensure a real run completed.
-            const history = await this.worker.rest.getHistory(this.worker.currentPromptId || '');
-            // (We don't strictly need it; finalize either way.)
-            this.worker.finalize({ success: true });
-
-            const finishedAt = Date.now();
-            const durationMs = finishedAt - startedAt;
-            // Exclude model/VAE/CLIP loading. firstStepAt is when the sampler
-            // emits its first progress event — by then everything upstream is
-            // loaded, so (finishedAt - firstStepAt) ≈ sampling + decode + save,
-            // which matches the recurring per-job cost a warm worker pays.
-            const generationStartAt = firstStepAt || startedAt;
-            const generationMs = Math.max(0, finishedAt - generationStartAt);
-            const modelLoadMs = Math.max(0, generationStartAt - startedAt);
-            const samplePhaseMs = (firstStepAt && lastStepAt && stepsDone > 1)
-                ? lastStepAt - firstStepAt
+            // Split the single run. If the workflow emits no sampler progress at
+            // all (firstStepAt stays null), treat the whole run as generation.
+            const genStart = run.firstStepAt || run.startedAt;
+            const coldMs = run.durationMs;                           // first-time, incl. load
+            const generationMs = Math.max(0, run.finishedAt - genStart); // recurring / warm
+            const modelLoadMs = Math.max(0, genStart - run.startedAt);
+            const samplePhaseMs = (run.firstStepAt && run.lastStepAt && run.stepsDone > 1)
+                ? run.lastStepAt - run.firstStepAt
                 : 0;
-            const samplesPerSec = (samplePhaseMs > 0 && stepsDone > 1)
-                ? (stepsDone - 1) / (samplePhaseMs / 1000)
+            const samplesPerSec = (samplePhaseMs > 0 && run.stepsDone > 1)
+                ? (run.stepsDone - 1) / (samplePhaseMs / 1000)
                 : null;
 
-            // Capture the GPU that achieved this number so the result is
-            // attributable. /system_stats is the same endpoint ping() hits;
-            // best-effort — if it fails the runtime.json still gets written
-            // without the gpu field.
+            // Capture the GPU that produced these numbers (best-effort).
             let gpu = null;
             try {
                 const stats = await this.worker.rest.ping();
                 const dev = (stats?.devices || []).find(d => d?.type === 'cuda') || stats?.devices?.[0];
-                if (dev?.name) {
-                    // Normalize "cuda:0 NVIDIA GeForce RTX 5090" → "NVIDIA GeForce RTX 5090"
-                    gpu = String(dev.name).replace(/^cuda:\d+\s+/i, '').trim();
-                }
+                if (dev?.name) gpu = String(dev.name).replace(/^cuda:\d+\s+/i, '').trim();
             } catch (e) {
                 console.warn(`[Benchmark] could not capture GPU info: ${e.message}`);
             }
@@ -179,21 +294,24 @@ class BenchmarkService {
             const runtime = {
                 schemaVersion: 1,
                 calibratedAt: new Date().toISOString(),
+                // estimatedDurationSec drives the timeline → the warm/recurring cost
+                // (generation only, models already resident).
                 estimatedDurationSec: Math.max(1, Math.round(generationMs / 1000)),
-                coldDurationSec: Math.max(1, Math.round(durationMs / 1000)),
+                warmDurationSec: Math.max(1, Math.round(generationMs / 1000)),
+                coldDurationSec: Math.max(1, Math.round(coldMs / 1000)),  // first run, incl. model load
                 modelLoadSec: Math.round(modelLoadMs / 1000),
                 samplesPerSec,
-                steps: stepsTotal,
-                durationMs,
+                steps: run.stepsTotal || 0,
+                durationMs: coldMs,
                 gpu,
                 source: 'benchmark'
             };
             this.registry.writeRuntime(workflowId, runtime);
+            console.log(`[Benchmark] ${workflowId}: first run ${runtime.coldDurationSec}s = model-load ~${runtime.modelLoadSec}s + generation ~${runtime.estimatedDurationSec}s${gpu ? ` · ${gpu}` : ''}`);
             return runtime;
         } finally {
-            this.worker.off('progress', onProgress);
-            this.worker.off('execution-finished', onFinished);
-            this.worker.off('failed', onFailed);
+            // Remove the namespaced asset copies we staged into ComfyUI/input.
+            try { this.worker.uploader.cleanupJob(benchJobId); } catch { /* ignore */ }
         }
     }
 }

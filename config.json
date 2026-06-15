@@ -7,14 +7,14 @@
   },
   "comfy_ui": {
     "installation_type": "portable",
-    "root_path": "D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI",
-    "python_executable": "D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\python_embeded\\python.exe",
-    "output_dir": "D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI\\output",
+    "root_path": "G:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI",
+    "python_executable": "G:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\python_embeded\\python.exe",
+    "output_dir": "G:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI\\output",
     "api_host": "127.0.0.1",
     "api_port": 8188,
     "lan_access": true,
     "autoStart": true,
-    "vramBudgetGb": 24
+    "vramBudgetGb": 30
   },
   "auth": {
     "adminPasswordHash": "$2a$10$l0wwB6uOAEKn5S5wkrXmXesG92LfdPhX8GWOU0KXbmEpwGG5kRwby"
@@ -26,6 +26,9 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "video_ltx2_3_id_lora_img_audio2vid"
+    "activeWorkflowId": "flux2_klein_9b_t2i"
+  },
+  "assets": {
+    "dir": "D:\\_assets"
   }
 }

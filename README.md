@@ -104,7 +104,7 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
 
    It also bundles the **target workshop workflows** (TripoSplat, Qwen multi-angle, Stable Audio 3, Ideogram 4.0, Wan 360°, and the LTX 2.3 family — see [Status](#status)). Each needs its own models in `<comfy_root>/models/`; the workflow card shows `Unavailable` until they're present. Raw, unedited API exports for every bundled workflow live in `workflows/exported_api_workflow_comfy/` for reference.
 3. **Workflow library** — pick one → **Activate & start student mode**. The server restarts into student mode and launches (or attaches to) ComfyUI.
-4. **Calibrate** (optional but recommended) — click the gauge icon on a workflow card. ComfyQ runs one warmup, measures generation time *excluding* model loading, and writes `<id>.runtime.json`. The timeline cell length will then reflect actual run time. For workflows with image inputs, ComfyQ supplies a built-in reference image — no setup needed.
+4. **Calibrate** (optional but recommended) — click the gauge icon on a workflow card (works in admin **or** student mode; in admin mode ComfyUI is started on demand). ComfyQ does **one real run** (a fresh seed avoids ComfyUI's result cache) and writes `<id>.runtime.json` with the first-run cost (incl. model load), the recurring generation cost (what the timeline uses), and the GPU. Inputs are supplied automatically from the assets directory (`config.json` → `assets.dir`, default `D:\_assets`) — no upload needed. Image inputs fall back to a built-in reference image if the assets dir has none.
 5. **(Optional) Admin password** — required for any cross-user destructive action (deleting / cancelling another student's job, restarting, resetting, cleaning outputs). **Without a password set, cross-user deletes are refused entirely** — you can still manage your own jobs, but you can't interfere with anyone else's. Set one for classroom deployments.
 
 ### Operational controls (admin header)
@@ -198,6 +198,7 @@ See [implementation_plan.md](implementation_plan.md#architecture) for module-by-
 - **Random seed by default** — every BookingDialog re-rolls the seed automatically; dice icon re-rolls; manual entry still works
 - **Recall settings** — "Use these settings" on any completed job re-opens a fresh dialog pre-filled with the job's prompt and parameters
 - **Per-job workflow chip** — every recent-generations card, sidebar row, and lightbox shows which workflow produced the image
+- **Per-job generation time** — every completed card (grid + sidebar) shows the actual wall-clock time it took (pickup → done), and the lightbox adds it as a stat. Works for any workflow type (image / video / audio / 3D) since it's derived from the job's `started_at`/`finished_at`, not the calibration estimate
 - **Wire-compatible client** — `Scheduler`, `Dashboard`, `BookingDialog`, `MyJobsPanel` from v1 work against v2 unchanged
 
 ---
@@ -246,8 +247,11 @@ The `/admin` path is overloaded — the SPA owns the bare path, the Express API 
 ### Workflow validation: `Invalid image file: <filename>`
 ComfyUI couldn't find that filename in its `input/` directory. Two common causes: (1) the workflow's hardcoded default doesn't exist on this rig — re-upload an image via the BookingDialog before submitting, or (2) the file was swept by the input-retention TTL (default 30 min). Re-upload to refresh.
 
-### Calibration: `Cannot calibrate: video|audio input "<key>" has no warmupParams entry`
-Calibration auto-substitutes a built-in reference PNG for image inputs but can't ship sample video/audio. Add a representative filename to `meta.warmupParams` for that key (the file must exist in `<comfy_root>/input/`).
+### Calibration uses sample media from an assets directory
+Calibration runs the workflow for real, so workflows with image/video/audio inputs need a sample file. ComfyQ resolves one automatically from the **assets directory** (`assets.dir` in `config.json`, default `D:\_assets`) — it picks a file matching each input's type (a typical-sized image, the smallest video, an audio clip), so **no upload and no per-workflow setup is needed**. If a `video`/`audio` input can't be satisfied you'll see `Cannot calibrate: no <type> asset available …` — drop a file of that type into the assets dir (or set `meta.warmupParams` for that key). Image inputs fall back to a built-in reference PNG when the assets dir has no image.
+
+### Calibration can be run from the admin panel (ComfyUI is started on demand)
+The per-workflow **gauge** button works in admin mode too: the first calibrate lazily spawns (or attaches to) ComfyUI, and that instance is reused for subsequent calibrations and left running so activating a workflow afterwards attaches instantly. It does **one real run** (with all model VRAM freed first) and splits it at the first sampler step into **model-load** time and **generation** time — reporting a first-run figure (incl. load) and the recurring generation figure the timeline uses. The run gets a fresh random seed so it never returns ComfyUI's cached result (an identical re-submission would finish in ~1s and report a bogus duration). If the ComfyUI paths aren't set yet, you'll get `Configure the ComfyUI paths … before calibrating`. *(In student mode, calibrate while the queue is idle — the live executor and calibration share the one worker.)*
 
 ---
 

@@ -43,3 +43,27 @@ export function getPrimaryDownloadFilename(job) {
     }
     return job.result_filename || null;
 }
+
+// Actual wall-clock generation time (ms) for a finished job: from pickup
+// (`started_at`, set when the executor begins uploading inputs) to the terminal
+// state (`finished_at`). Workflow-agnostic — covers image/video/audio/3D the
+// same way. Returns null when the job isn't finished or the timestamps are
+// missing (records that pre-date these wire fields).
+export function getGenerationMs(job) {
+    if (!job) return null;
+    const s = job.started_at;
+    const f = job.finished_at;
+    if (typeof s === 'number' && typeof f === 'number' && f >= s) return f - s;
+    return null;
+}
+
+// Human-friendly duration: "<1s", "45s", "1m 23s", "2m".
+export function formatDuration(ms) {
+    if (ms == null || ms < 0) return '';
+    const totalSec = Math.round(ms / 1000);
+    if (totalSec < 1) return '<1s';
+    if (totalSec < 60) return `${totalSec}s`;
+    const m = Math.floor(totalSec / 60);
+    const s = totalSec % 60;
+    return s ? `${m}m ${s}s` : `${m}m`;
+}

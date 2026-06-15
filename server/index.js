@@ -33,6 +33,7 @@ const { JobQueue } = require('./queue/jobQueue');
 const { LocalComfyUIWorker } = require('./workers/localComfyUIWorker');
 const { JobExecutor } = require('./executor/jobExecutor');
 const { BenchmarkService } = require('./benchmark/benchmarkService');
+const { AdminCalibrator } = require('./benchmark/adminCalibrator');
 const { RealtimeBus } = require('./realtime/realtimeBus');
 const { adminGate } = require('./auth/authGate');
 const adminRoutes = require('./routes/admin');
@@ -130,10 +131,19 @@ async function main() {
     }));
 
     if (config.mode === 'admin') {
-        // Workflows route still needed (for selector). Calibration is gated.
-        const dummyBenchmark = { calibrate: () => Promise.reject(new Error('Calibrate from student mode')) };
+        // Calibration from the admin panel works by lazily spawning (or
+        // attaching to) ComfyUI on the first calibrate request — no need to
+        // flip to student mode first. The worker is reused across calibrations
+        // and left running on shutdown so a later activate attaches to it.
+        const adminCalibrator = new AdminCalibrator({
+            comfyConfig: config.comfy_ui,
+            queueConfig: config.queue,
+            registry,
+            assetsDir: config.assets?.dir || '',
+            onMilestone: (label) => printConnectionBanner(label, config.server.port)
+        });
         app.use('/workflows', workflowRoutes.makeRouter({
-            registry, configManager, benchmarkService: dummyBenchmark, adminGate: gate
+            registry, configManager, benchmarkService: adminCalibrator, adminGate: gate
         }));
         const port = config.server.port;
         const host = config.server.host;
@@ -141,6 +151,11 @@ async function main() {
             console.log(`[ComfyQ] admin mode — API on http://${host}:${port}  •  open the UI at http://localhost:5173`);
             logLanUrls(port);
             console.log('[ComfyQ] open the admin UI to configure ComfyUI and pick a workflow.');
+        });
+        process.on('SIGINT', async () => {
+            console.log('[ComfyQ] shutting down (admin mode)…');
+            try { await adminCalibrator.shutdown(); } catch { /* ignore */ }
+            process.exit(0);
         });
         return;
     }
@@ -194,7 +209,7 @@ async function main() {
     executor.start();
     console.log('[ComfyQ] executor loop started');
 
-    const benchmarkService = new BenchmarkService({ worker, registry, comfyConfig: config.comfy_ui });
+    const benchmarkService = new BenchmarkService({ worker, registry, comfyConfig: config.comfy_ui, assetsDir: config.assets?.dir || '' });
 
     const bus = new RealtimeBus({ httpServer: server, queue, executor, registry, configManager, worker, comfyConfig: config.comfy_ui });
 

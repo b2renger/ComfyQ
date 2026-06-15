@@ -8,7 +8,7 @@ import AudioPlayer from './ui/AudioPlayer';
 import ImageGallery from './ui/ImageGallery';
 import { useSocket } from '../context/SocketContext';
 import { getImageUrl, getDownloadUrl, isVideo, isModel3d, isSplat, isAudio, isImage } from '../utils/api';
-import { getDisplayPrompt, getPrimaryDownloadFilename } from '../utils/jobDisplay';
+import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration } from '../utils/jobDisplay';
 
 const downloadFile = (filename) => {
     if (!filename) return;
@@ -167,6 +167,15 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                                     <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Resolution</label>
                                     <p className="text-sm font-mono text-white">{job.params?.width}x{job.params?.height}</p>
                                 </div>
+                                {(() => {
+                                    const genMs = getGenerationMs(job);
+                                    return genMs != null ? (
+                                        <div className="space-y-1">
+                                            <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Generation time</label>
+                                            <p className="text-sm font-mono text-white">{formatDuration(genMs)}</p>
+                                        </div>
+                                    ) : null;
+                                })()}
                             </div>
 
                             {job.workflow_id && (

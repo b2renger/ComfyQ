@@ -13,8 +13,9 @@ const HEARTBEAT_MS = 5000;
 //   system_status: 'starting' | 'idle' | 'busy' | 'down' | 'ready',
 //   benchmark_ms,                              // active workflow's estimatedDurationSec * 1000
 //   connected_users: [{ socketId, userId }],
-//   jobs: [{ id, user_id, status, phase, time_slot, prompt, params,
-//            result_filename, outputs, progress: { value, max } | null,
+//   jobs: [{ id, user_id, status, phase, time_slot, started_at, finished_at,
+//            prompt, params, result_filename, outputs,
+//            progress: { value, max } | null,
 //            current_node, workflow_id, error_reason }],
 //   workflow: { parameter_map },               // for active workflow
 //   workflow_info: { id, name, description, category,
@@ -211,6 +212,11 @@ class RealtimeBus {
             status: sm.toWireStatus(job.status),
             phase: job.status,
             time_slot: job.scheduledAt,
+            // Actual run timing: started_at = executor pickup (uploading-inputs),
+            // finished_at = terminal state. The client shows finished−started as
+            // the real generation time on every job card, for any workflow type.
+            started_at: job.startedAt,
+            finished_at: job.finishedAt,
             prompt: job.prompt,
             params: job.paramValues,
             result_filename: resultFilename,

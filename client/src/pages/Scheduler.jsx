@@ -15,7 +15,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import ProgressViz from '../components/ui/ProgressViz';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 import { getUserColor } from '../utils/userColor';
-import { getDisplayPrompt, getPrimaryDownloadFilename } from '../utils/jobDisplay';
+import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration } from '../utils/jobDisplay';
 import { computeEtaSeconds } from '../utils/jobEta';
 
 /**
@@ -600,7 +600,17 @@ const SchedulerPage = () => {
                                                     </div>
                                                 );
                                             })()}
-                                            <WorkflowChip workflowId={job.workflow_id} workflowsById={workflowsById} />
+                                            <div className="flex items-center gap-2 shrink-0">
+                                                {(() => {
+                                                    const genMs = getGenerationMs(job);
+                                                    return job.status === 'completed' && genMs != null ? (
+                                                        <span className="flex items-center gap-1 text-[10px] text-muted whitespace-nowrap" title="Time to generate">
+                                                            <Clock size={10} />{formatDuration(genMs)}
+                                                        </span>
+                                                    ) : null;
+                                                })()}
+                                                <WorkflowChip workflowId={job.workflow_id} workflowsById={workflowsById} />
+                                            </div>
                                         </div>
                                     </div>
                                 </Card>

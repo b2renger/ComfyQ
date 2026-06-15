@@ -8,7 +8,7 @@ import WorkflowChip from './ui/WorkflowChip';
 import ProgressViz from './ui/ProgressViz';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 import { getUserColor } from '../utils/userColor';
-import { getDisplayPrompt, getPrimaryDownloadFilename } from '../utils/jobDisplay';
+import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration } from '../utils/jobDisplay';
 import { computeEtaSeconds } from '../utils/jobEta';
 
 /**
@@ -187,8 +187,16 @@ const MyJobsPanel = ({ onClose }) => {
                                     </p>
                                 );
                             })()}
-                            <div className="mt-2">
+                            <div className="mt-2 flex items-center justify-between gap-2">
                                 <WorkflowChip workflowId={job.workflow_id} workflowsById={workflowsById} />
+                                {(() => {
+                                    const genMs = getGenerationMs(job);
+                                    return job.status === 'completed' && genMs != null ? (
+                                        <span className="flex items-center gap-1 text-[10px] text-muted whitespace-nowrap shrink-0" title="Time to generate">
+                                            <Clock size={10} />{formatDuration(genMs)}
+                                        </span>
+                                    ) : null;
+                                })()}
                             </div>
 
                             {job.status === 'processing' && (

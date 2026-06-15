@@ -259,7 +259,8 @@ const AdminConfig = ({ currentMode }) => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Calibration failed');
             const r = data.runtime || {};
-            showToast(`Calibrated "${id}": ~${r.estimatedDurationSec}s generation${r.modelLoadSec ? ` (+${r.modelLoadSec}s first-load)` : ''}`);
+            const cold = r.coldDurationSec ?? null;
+            showToast(`Calibrated "${id}": ~${r.estimatedDurationSec}s generation${cold ? ` · first run ~${cold}s (incl. ~${r.modelLoadSec}s model load)` : ''}`);
             setRefreshKey(k => k + 1);
         } catch (err) {
             showToast(err.message, 'err');

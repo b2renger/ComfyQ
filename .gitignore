@@ -226,3 +226,4 @@ docs/.doctrees/
 
 # MkDocs
 site/
+config.json

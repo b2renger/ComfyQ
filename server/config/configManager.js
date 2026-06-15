@@ -32,7 +32,9 @@ function defaultConfig() {
             inputRetentionMinutes: 30,
             outputRetentionDays: 30
         },
-        workflows: { dir: './workflows', activeWorkflowId: null }
+        workflows: { dir: './workflows', activeWorkflowId: null },
+        // Sample media for one-click auto-calibration (see BenchmarkService).
+        assets: { dir: 'D:\\_assets' }
     };
 }
 
@@ -116,6 +118,7 @@ function resolvePaths(config) {
 
     if (out.queue.dbPath) out.queue.dbPath = resolveRel(out.queue.dbPath);
     if (out.workflows.dir) out.workflows.dir = resolveRel(out.workflows.dir);
+    if (out.assets && out.assets.dir) out.assets.dir = resolveRel(out.assets.dir);
     return out;
 }
 
