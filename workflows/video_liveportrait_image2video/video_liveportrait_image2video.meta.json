@@ -1,0 +1,73 @@
+{
+  "schemaVersion": 1,
+  "id": "video_liveportrait_image2video",
+  "name": "LivePortrait — animate a portrait from a driving video",
+  "description": "Bring a still portrait to life. Upload a clear, front-facing portrait photo and a short driving video of a face that moves and talks — LivePortrait transfers the video's head motion plus eye and lip movement onto your portrait, producing an animated (silent) video.\n\nWorks best when both the portrait and the driving face are centred, well-lit, and roughly head-and-shoulders. \"Max frames from driving video\" caps how much of the driving clip is used — higher means a longer result but a longer render.",
+  "category": "i2v",
+  "tags": [
+    "liveportrait",
+    "portrait",
+    "face",
+    "animation",
+    "talking-head",
+    "video",
+    "kj"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_liveportrait_image2video.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 8,
+    "models": [
+      {
+        "type": "other",
+        "file": "LivePortrait (auto-downloaded by (Down)Load LivePortraitModels)"
+      },
+      {
+        "type": "other",
+        "file": "InsightFace + MediaPipe face croppers (auto-downloaded)"
+      }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "maxRuntimeSec": 600,
+  "exposedParameters": [
+    {
+      "key": "portrait_image_196",
+      "nodeId": "196",
+      "field": "image",
+      "type": "image",
+      "label": "Portrait image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "driving_video_8",
+      "nodeId": "8",
+      "field": "video",
+      "type": "video",
+      "label": "Driving video (face motion)",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "max_frames_8",
+      "nodeId": "8",
+      "field": "frame_load_cap",
+      "type": "number",
+      "label": "Max frames from driving video",
+      "default": 128,
+      "min": 16,
+      "max": 600,
+      "step": 1,
+      "required": false,
+      "order": 2
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}
