@@ -26,7 +26,7 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "video_liveportrait_image2video"
+    "activeWorkflowId": "utility_video_segment_sam3"
   },
   "assets": {
     "dir": "D:\\_assets"
