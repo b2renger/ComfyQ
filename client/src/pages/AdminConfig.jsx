@@ -84,7 +84,8 @@ const AdminConfig = ({ currentMode }) => {
                 api_port: data.config.comfy_ui.api_port,
                 lan_access: data.config.comfy_ui.lan_access ?? false,
                 installation_type: data.config.comfy_ui.installation_type,
-                vramBudgetGb: data.config.comfy_ui.vramBudgetGb
+                vramBudgetGb: data.config.comfy_ui.vramBudgetGb,
+                assets_dir: data.config.assets?.dir || ''
             });
         } catch (e) {
             console.error(e);
@@ -406,6 +407,19 @@ const AdminConfig = ({ currentMode }) => {
                         onChange={v => setPathDraft({ ...pathDraft, api_host: v })} />
                     <Field label="ComfyUI API port" type="number" value={pathDraft.api_port || 8188}
                         onChange={v => setPathDraft({ ...pathDraft, api_port: parseInt(v, 10) })} />
+                    <div className="space-y-1.5 sm:col-span-2">
+                        <label className="text-xs uppercase tracking-wider text-muted font-semibold">Assets directory (calibration media)</label>
+                        <input
+                            type="text"
+                            value={pathDraft.assets_dir || ''}
+                            onChange={(e) => setPathDraft({ ...pathDraft, assets_dir: e.target.value })}
+                            placeholder="G:\\_assets"
+                            className="w-full bg-background border border-border rounded-lg p-2.5 text-white font-mono text-sm"
+                        />
+                        <p className="text-[11px] text-muted">
+                            Folder of sample images / videos / audio used to auto-calibrate workflow timing. Update this if the drive letter changes (e.g. <code>D:\_assets</code> → <code>G:\_assets</code>). Leave blank to fall back to a built-in image — video/audio workflows then can't auto-calibrate. Use <strong>Check paths</strong> to confirm the folder exists and has media.
+                        </p>
+                    </div>
                     <div className="space-y-1.5 sm:col-span-2">
                         <label className="flex items-start gap-2.5 cursor-pointer">
                             <input

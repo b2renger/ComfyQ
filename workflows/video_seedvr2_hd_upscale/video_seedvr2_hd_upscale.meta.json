@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "video_seedvr2_hd_upscale",
+  "name": "SeedVR2 — video upscale to HD (1080p)",
+  "description": "Upscale and restore a video to HD with SeedVR2, a diffusion-based super-resolution model that rebuilds detail frame-by-frame with temporal consistency. Upload a clip and it's re-rendered at the target resolution, keeping the original frame rate and audio.\n\nVery heavy — processing every frame at HD takes a while, so keep clips short. Change the seed to re-roll the generated detail.",
+  "category": "preprocessor",
+  "tags": [
+    "seedvr2",
+    "upscale",
+    "super-resolution",
+    "restore",
+    "video",
+    "hd"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_seedvr2_hd_upscale.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 12,
+    "models": [
+      {
+        "type": "other",
+        "file": "seedvr2_ema_3b_fp16.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "ema_vae_fp16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 600,
+  "maxRuntimeSec": 3600,
+  "exposedParameters": [
+    {
+      "key": "source_video_21",
+      "nodeId": "21",
+      "field": "file",
+      "type": "video",
+      "label": "Source video",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "resolution_10",
+      "nodeId": "10",
+      "field": "resolution",
+      "type": "number",
+      "label": "Target resolution (px, longest edge)",
+      "default": 1080,
+      "min": 480,
+      "max": 2160,
+      "step": 8,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "seed_10",
+      "nodeId": "10",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 42,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 2
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

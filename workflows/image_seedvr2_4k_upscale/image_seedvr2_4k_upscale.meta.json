@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "image_seedvr2_4k_upscale",
+  "name": "SeedVR2 — image upscale to 4K",
+  "description": "Upscale and restore a single image up to 4K with SeedVR2, a diffusion-based super-resolution model that adds realistic detail (skin, hair, textures) rather than just sharpening. Upload an image and it's rebuilt at the target resolution.\n\nHeavy model — expect a slow run, especially at 4096. If the added detail looks off, change the seed to re-roll.",
+  "category": "i2i",
+  "tags": [
+    "seedvr2",
+    "upscale",
+    "super-resolution",
+    "restore",
+    "image",
+    "4k"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_seedvr2_4k_upscale.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      {
+        "type": "other",
+        "file": "seedvr2_ema_7b_sharp_fp16.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "ema_vae_fp16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 120,
+  "maxRuntimeSec": 1200,
+  "exposedParameters": [
+    {
+      "key": "source_image_16",
+      "nodeId": "16",
+      "field": "image",
+      "type": "image",
+      "label": "Source image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "resolution_10",
+      "nodeId": "10",
+      "field": "resolution",
+      "type": "number",
+      "label": "Target resolution (px, longest edge)",
+      "default": 4096,
+      "min": 1024,
+      "max": 4096,
+      "step": 64,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "seed_10",
+      "nodeId": "10",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 42,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 2
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

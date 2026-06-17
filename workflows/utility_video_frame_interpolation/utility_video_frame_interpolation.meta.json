@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "id": "utility_video_frame_interpolation",
+  "name": "Frame interpolation (FILM) — smoother or slow-motion video",
+  "description": "Make a video smoother — or turn it into slow motion. FILM generates in-between frames, multiplying the frame count by your chosen factor (2× = twice as many frames).\n\n• **Keep real-time speed** checked → the clip plays at the same speed but looks smoother (higher frame rate).\n• Unchecked → the extra frames stretch the clip into **slow motion** at the original frame rate.\n\nThe original audio is carried through — best with 'keep real-time speed' on; in slow-motion mode the audio won't match the longer video.",
+  "category": "preprocessor",
+  "tags": [
+    "frame-interpolation",
+    "film",
+    "vfi",
+    "slow-motion",
+    "smooth",
+    "video",
+    "utility"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "utility_video_frame_interpolation.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 6,
+    "models": [
+      {
+        "type": "other",
+        "file": "film_net_fp16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "maxRuntimeSec": 600,
+  "exposedParameters": [
+    {
+      "key": "source_video_4",
+      "nodeId": "4",
+      "field": "file",
+      "type": "video",
+      "label": "Source video",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "multiplier_16_9",
+      "nodeId": "16:9",
+      "field": "value",
+      "type": "number",
+      "label": "Frame multiplier (×)",
+      "default": 2,
+      "min": 2,
+      "max": 8,
+      "step": 1,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "keep_realtime_speed_16_13",
+      "nodeId": "16:13",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Keep real-time speed (uncheck for slow-motion)",
+      "default": true,
+      "required": false,
+      "order": 2
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

@@ -43,7 +43,7 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
 - ✅ **M4** — File upload (click + drag-and-drop) with client-side image resize. Webcam capture removed 2026-05-19 (plain HTTP, no secure context); phones use OS file picker.
 - ✅ **Audio I/O** — Output: audio player in cards + lightbox. Input: audio upload widget (`audio/*` file picker + drag-drop).
 - ✅ **3D viewers** — GLB model viewer (three.js) + Gaussian-splat viewer (Spark), both in lightbox + cards with export buttons.
-- ✅ **Target workflows** *(bundled in `workflows/`; TripoSplat verified on rig 2026-06-10, LivePortrait on 2026-06-15 and SAM3 segmentation on 2026-06-16, the rest registered through 2026-06-13 and pending rig smoke-test):*
+- ✅ **Target workflows** *(bundled in `workflows/`; TripoSplat verified on rig 2026-06-10, LivePortrait on 2026-06-15, SAM3 segmentation on 2026-06-16 FILM frame interpolation and SeedVR2 upscalers on 2026-06-17, the rest registered through 2026-06-13 and pending rig smoke-test):*
   - TripoSplat (image → `.spz` + `.ply` + `.glb`) — **verified on rig**
   - Qwen-Edit multi-angle (1 image → 8 angle images, N-image gallery)
   - Stable Audio 3 (text → `.mp3`, in-graph magic-prompt LLM)
@@ -55,6 +55,9 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
   - LTX 2.3 ID-LoRA (character image + reference audio → lip-synced talking video; first **audio** input)
   - LivePortrait (portrait image + driving video → animated talking-head video; first **image + video** input) — **verified on rig**
   - SAM3 video segmentation (video + text prompt → black/white mask/matte video; first **preprocessor** workflow) — **verified on rig**
+  - Frame interpolation (FILM) (video → smoother or slow-motion video; `preprocessor` utility) — **verified on rig**
+  - SeedVR2 image upscale to 4K (diffusion super-resolution; first **i2i** workflow) — **verified on rig**
+  - SeedVR2 video upscale to HD (diffusion super-resolution; keeps source fps + audio) — **verified on rig**
 - ⏳ **Phase F** — Multi-instance federation *(final phase, design locked, implementation deferred).* Auto-discover peers on LAN via mDNS, fleet-wide admin view, student station picker. See [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
 
 ---

@@ -51,7 +51,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     // First-run / admin: set ComfyUI paths and server settings.
     router.put('/comfy', express.json(), (req, res) => {
         try {
-            const { root_path, python_executable, output_dir, api_host, api_port, lan_access, autoStart, vramBudgetGb, installation_type } = req.body || {};
+            const { root_path, python_executable, output_dir, api_host, api_port, lan_access, autoStart, vramBudgetGb, installation_type, assets_dir } = req.body || {};
             configManager.update(c => {
                 if (root_path !== undefined) c.comfy_ui.root_path = root_path;
                 if (python_executable !== undefined) c.comfy_ui.python_executable = python_executable;
@@ -62,6 +62,9 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 if (autoStart !== undefined) c.comfy_ui.autoStart = autoStart;
                 if (vramBudgetGb !== undefined) c.comfy_ui.vramBudgetGb = vramBudgetGb;
                 if (installation_type !== undefined) c.comfy_ui.installation_type = installation_type;
+                // Calibration media directory lives under config.assets (not comfy_ui).
+                // Editable here so admins can repoint it when the drive letter changes.
+                if (assets_dir !== undefined) { c.assets = c.assets || {}; c.assets.dir = assets_dir; }
                 return c;
             });
             res.json({ ok: true });
@@ -88,7 +91,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     // 5s timeout. Returns a per-check breakdown so the UI can show exactly
     // which path is wrong.
     router.post('/check-paths', express.json(), async (req, res) => {
-        const { root_path, python_executable, output_dir } = req.body || {};
+        const { root_path, python_executable, output_dir, assets_dir } = req.body || {};
         const checks = [];
 
         let rootOk = false;
@@ -161,6 +164,32 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 } catch {
                     checks.push({ label: 'Output directory', ok: false, detail: `${output_dir} is not writable` });
                 }
+            }
+        }
+
+        // Assets directory is optional (blank → calibration falls back to a
+        // built-in image; video/audio inputs then can't auto-calibrate). Only
+        // validate it when set. Report the media-file count so the admin can
+        // confirm they pointed at the right folder after a drive-letter change.
+        if (assets_dir) {
+            if (!fs.existsSync(assets_dir)) {
+                checks.push({ label: 'Assets directory', ok: false, detail: `does not exist: ${assets_dir}` });
+            } else if (!fs.statSync(assets_dir).isDirectory()) {
+                checks.push({ label: 'Assets directory', ok: false, detail: `not a directory: ${assets_dir}` });
+            } else {
+                let media = 0;
+                try {
+                    for (const f of fs.readdirSync(assets_dir)) {
+                        if (/\.(png|jpe?g|webp|bmp|gif|mp4|webm|mov|mkv|avi|wav|mp3|flac|ogg|aac|m4a)$/i.test(f)) media++;
+                    }
+                } catch { /* unreadable — leave media at 0 */ }
+                checks.push({
+                    label: 'Assets directory',
+                    ok: media > 0,
+                    detail: media > 0
+                        ? `${assets_dir} (${media} media file${media === 1 ? '' : 's'} for calibration)`
+                        : `${assets_dir} — no image/video/audio files found; calibration won't find inputs here`
+                });
             }
         }
 

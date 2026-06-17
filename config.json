@@ -26,9 +26,9 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "utility_video_segment_sam3"
+    "activeWorkflowId": "utility_video_frame_interpolation"
   },
   "assets": {
-    "dir": "D:\\_assets"
+    "dir": "G:\\_assets"
   }
 }
