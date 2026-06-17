@@ -54,10 +54,11 @@ error.log
 
 
 
-# Per-workflow runtime sidecars (created by BenchmarkService) and
-# per-deployment overrides (created by admin UI) are local state.
-# The workflow folders themselves (with .api.json + .meta.json) ARE tracked.
-workflows/*/*.runtime.json
+# Calibration sidecars (<id>.runtime.json, written by BenchmarkService) ARE
+# tracked/committed so per-workflow timing estimates travel with the repo. Each
+# records the GPU it was measured on — re-calibrate after moving to a different
+# rig. Per-deployment parameter overrides (<id>.config.meta.json, written by the
+# admin UI) stay local. The workflow folders (.api.json + .meta.json) ARE tracked.
 workflows/*/*.config.meta.json
 
 # Sqlite job queue and per-deployment state.
