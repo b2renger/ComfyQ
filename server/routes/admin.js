@@ -261,7 +261,8 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             });
             console.log(`[Admin] config updated; restarting…`);
             res.json({ ok: true, mode: 'student', workflowId });
-            if (exitForRestart) setTimeout(() => exitForRestart(), 250);
+            // Drop the one-shot student-boot flag; every other restart → admin.
+            if (exitForRestart) setTimeout(() => exitForRestart('student'), 250);
         } catch (e) { res.status(400).json({ error: e.message }); }
     });
 

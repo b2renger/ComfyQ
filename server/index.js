@@ -89,8 +89,41 @@ function printConnectionBanner(label, serverPort) {
     console.log('');
 }
 
-function exitForRestart() {
-    console.log('[ComfyQ] Exiting for restart');
+// One-shot "boot into student mode next time" marker. /activate-workflow is
+// the ONLY path into student mode, and it drops this flag right before it
+// restarts; boot consumes (deletes) it. Every other start — cold `npm run dev`,
+// machine reboot, reset-to-admin, emergency-stop, restart-server — leaves no
+// flag and so lands in admin mode ("ComfyQ always starts in admin"). Lives
+// under the gitignored server/data/ so it never travels with the repo.
+const STUDENT_BOOT_FLAG = path.join(__dirname, 'data', '.boot-student');
+
+function markNextBootStudent() {
+    try {
+        fs.mkdirSync(path.dirname(STUDENT_BOOT_FLAG), { recursive: true });
+        fs.writeFileSync(STUDENT_BOOT_FLAG, '');
+    } catch (e) {
+        console.warn('[ComfyQ] could not write student-boot flag:', e.message);
+    }
+}
+
+// True exactly once after markNextBootStudent(); deletes the flag so the
+// *following* boot is admin again.
+function consumeStudentBootFlag() {
+    try {
+        if (fs.existsSync(STUDENT_BOOT_FLAG)) {
+            fs.unlinkSync(STUDENT_BOOT_FLAG);
+            return true;
+        }
+    } catch (e) {
+        console.warn('[ComfyQ] could not clear student-boot flag:', e.message);
+    }
+    return false;
+}
+
+function exitForRestart(nextMode) {
+    // Any value other than 'student' restarts into admin (the default).
+    if (nextMode === 'student') markNextBootStudent();
+    console.log(`[ComfyQ] Exiting for restart → ${nextMode === 'student' ? 'student' : 'admin'} mode`);
     // nodemon does NOT auto-restart on a clean exit — it only restarts on a
     // watched-file change. Bumping the mtime of this file makes nodemon's
     // watcher pick up the "change" and re-spawn us. No content edit.
@@ -106,6 +139,16 @@ function exitForRestart() {
 async function main() {
     console.log('[ComfyQ] starting…');
     const { config: rawConfig } = configManager.load();
+    // "Always start in admin." config.mode persists the *running* mode (so the
+    // admin UI reports reality) but never decides the boot: student mode is
+    // entered only via the one-shot flag /activate-workflow drops. Resolve the
+    // boot mode from the flag, then sync the persisted mode to match.
+    const bootMode = consumeStudentBootFlag() ? 'student' : 'admin';
+    if (rawConfig.mode !== bootMode) {
+        try { configManager.setMode(bootMode); }
+        catch (e) { console.warn('[ComfyQ] could not persist boot mode:', e.message); }
+        rawConfig.mode = bootMode;
+    }
     const config = configManager.resolvePaths(rawConfig);
     console.log(`[ComfyQ] mode=${config.mode}`);
 
