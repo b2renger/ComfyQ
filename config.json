@@ -26,7 +26,7 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "utility_video_frame_interpolation"
+    "activeWorkflowId": "3d_triposplat_image_to_gaussian_splat"
   },
   "assets": {
     "dir": "G:\\_assets"

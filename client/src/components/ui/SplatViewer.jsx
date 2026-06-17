@@ -23,7 +23,9 @@ import { Sparkles, Loader2, AlertTriangle } from 'lucide-react';
 // nothing for splat accumulation and costs performance.
 //
 // `compact` mode hides the help overlay for small thumbnails. The wrapper
-// swallows pointer events so drag-to-rotate doesn't bubble to a parent onClick.
+// swallows only the click so a tap doesn't bubble to a parent onClick — it must
+// NOT swallow pointerup/pointerdown/wheel (see the note by `stop`), or
+// OrbitControls' document-level pointerup never fires and rotate/zoom/pan break.
 const SplatViewer = ({ url, className = '', compact = false }) => {
     const mountRef = useRef(null);
     const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
@@ -153,17 +155,22 @@ const SplatViewer = ({ url, className = '', compact = false }) => {
         };
     }, [url]);
 
+    // Stop ONLY the click — that's what bubbles to a parent's onClick (eg a
+    // Scheduler card that opens the lightbox). A real drag emits no click, so
+    // rotate/zoom/pan never trigger it. Do NOT also stop pointerdown/pointerup/
+    // wheel here: OrbitControls binds pointermove/pointerup on the canvas's
+    // ownerDocument (not the canvas) and only clears its drag state in the
+    // pointerup handler. React 17+ delegates events at the root container —
+    // above this wrapper — so stopping pointerup blocks that native event from
+    // ever reaching document. The drag then never ends (state stuck off-NONE),
+    // and since onMouseWheel bails while state !== NONE, wheel-zoom dies too.
+    // That was the "grabs the click but never releases, can't pan/zoom" bug.
     const stop = (e) => e.stopPropagation();
 
     return (
         <div
             className={`relative w-full h-full bg-black ${className}`}
-            onPointerDown={stop}
-            onPointerUp={stop}
             onClick={stop}
-            onWheel={stop}
-            onTouchStart={stop}
-            onTouchEnd={stop}
         >
             <div ref={mountRef} className="w-full h-full" />
             {status === 'loading' && (

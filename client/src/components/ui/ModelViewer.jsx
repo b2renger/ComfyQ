@@ -18,9 +18,10 @@ import { Box, Loader2, AlertTriangle } from 'lucide-react';
 // an interpolation loop, which would defeat the point.
 //
 // `compact` mode hides the help text overlay and tightens the loader for
-// small grid thumbnails. The canvas wrapper stops pointer events so a drag
-// to rotate the model doesn't bubble to a parent onClick (eg the Scheduler
-// card that would otherwise open the lightbox).
+// small grid thumbnails. The canvas wrapper stops only the click event so a
+// tap doesn't bubble to a parent onClick (eg the Scheduler card that would
+// otherwise open the lightbox) — see the note by `stop` for why it must NOT
+// also swallow pointerdown/pointerup/wheel.
 const ModelViewer = ({ url, className = '', compact = false }) => {
     const mountRef = useRef(null);
     const [status, setStatus] = useState('loading'); // 'loading' | 'ready' | 'error'
@@ -139,21 +140,22 @@ const ModelViewer = ({ url, className = '', compact = false }) => {
         };
     }, [url]);
 
-    // Pointer-event swallowing keeps drag-to-rotate from triggering parent
-    // click handlers (Scheduler card → open lightbox). Click events on the
-    // mount that *don't* turn into drags also stay here, which is fine: in
-    // grid cards the user can click outside the viewer to open the lightbox.
+    // Stop ONLY the click — that's what bubbles to a parent's onClick (eg a
+    // Scheduler card that opens the lightbox). A real drag emits no click, so
+    // rotate/zoom/pan never trigger it. Do NOT also stop pointerdown/pointerup/
+    // wheel here: OrbitControls binds pointermove/pointerup on the canvas's
+    // ownerDocument (not the canvas) and only clears its drag state in the
+    // pointerup handler. React 17+ delegates events at the root container —
+    // above this wrapper — so stopping pointerup blocks that native event from
+    // ever reaching document. The drag then never ends (state stuck off-NONE),
+    // and since onMouseWheel bails while state !== NONE, wheel-zoom dies too.
+    // That was the "grabs the click but never releases, can't pan/zoom" bug.
     const stop = (e) => e.stopPropagation();
 
     return (
         <div
             className={`relative w-full h-full bg-black ${className}`}
-            onPointerDown={stop}
-            onPointerUp={stop}
             onClick={stop}
-            onWheel={stop}
-            onTouchStart={stop}
-            onTouchEnd={stop}
         >
             <div ref={mountRef} className="w-full h-full" />
             {status === 'loading' && (
