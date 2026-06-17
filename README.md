@@ -2,7 +2,6 @@
 
 **ComfyQ** is a web-based job scheduler and workflow manager for [ComfyUI](https://github.com/comfyanonymous/ComfyUI) in multi-user environments (classrooms, labs, studios). It solves the problem of scheduling access to expensive GPU-bound generative-AI workflows when multiple students or researchers compete for a single GPU.
 
-> **Branch:** the active code is the **v2** rebuild, which now lives on the default **`main`** branch — just clone and go, no branch switch needed. (The original v1 monolith is preserved on the `poc1` / `poc2` branches; the old `v2` development branch is now behind `main` and no longer maintained.)
 
 ## What it does
 
