@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import Modal from '../components/ui/Modal';
@@ -36,12 +36,14 @@ const AdminConfig = ({ currentMode }) => {
     const [emergencyStopping, setEmergencyStopping] = useState(false);
     const [pathChecks, setPathChecks] = useState(null);
     const [checkingPaths, setCheckingPaths] = useState(false);
+    const [comfyStatus, setComfyStatus] = useState(null);
+    const [comfyBusy, setComfyBusy] = useState(false);
     const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
     const [cleaningOutputs, setCleaningOutputs] = useState(false);
     const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
     const [clearingHistory, setClearingHistory] = useState(false);
 
-    useEffect(() => { reloadConfig(); }, []);
+    useEffect(() => { reloadConfig(); reloadComfyStatus(); }, []);
 
     // Debounced password verification — hits the no-op /admin/verify-password
     // endpoint whenever the operator pauses typing, so the "Admin password is
@@ -143,6 +145,37 @@ const AdminConfig = ({ currentMode }) => {
         } finally {
             setCheckingPaths(false);
         }
+    };
+
+    const reloadComfyStatus = async () => {
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/comfyui/status`);
+            if (res.ok) setComfyStatus(await res.json());
+        } catch { /* leave previous status */ }
+    };
+
+    const launchComfy = async () => {
+        setComfyBusy(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/comfyui/launch`, { method: 'POST', headers: adminHeaders() });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Launch failed');
+            setComfyStatus(data);
+            showToast(data.external ? 'Attached to a running ComfyUI' : 'ComfyUI launched on the network');
+        } catch (e) { showToast(e.message, 'err'); }
+        finally { setComfyBusy(false); }
+    };
+
+    const stopComfy = async () => {
+        setComfyBusy(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/comfyui/stop`, { method: 'POST', headers: adminHeaders() });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Stop failed');
+            setComfyStatus(data);
+            showToast(data.stopped === false ? (data.note || 'Left external ComfyUI running') : 'ComfyUI stopped');
+        } catch (e) { showToast(e.message, 'err'); }
+        finally { setComfyBusy(false); }
     };
 
     const setPassword = async () => {
@@ -470,6 +503,66 @@ const AdminConfig = ({ currentMode }) => {
                     </Button>
                     <Button variant="primary" icon={Save} onClick={savePaths}>Save settings</Button>
                 </div>
+            </Card>
+
+            <Card>
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2"><Server size={18} /> ComfyUI backend</h2>
+                    {comfyStatus?.running
+                        ? <Badge variant="success">
+                            {comfyStatus.studentMode ? 'Running · active workflow'
+                                : comfyStatus.external ? 'Running · external'
+                                : comfyStatus.networkBound ? 'Running · network'
+                                : 'Running · localhost'}
+                          </Badge>
+                        : <Badge variant="warning">Stopped</Badge>}
+                </div>
+                <p className="text-sm text-muted mb-3">
+                    Launch ComfyUI bound to the network (<code>0.0.0.0:{comfyStatus?.port || config?.comfy_ui?.api_port || 8188}</code>) so anyone on the LAN can open its native web UI and run classic workflows on this GPU — no ComfyQ needed. It stays up across calibrations and a later workflow activation attaches to it.
+                </p>
+
+                {comfyStatus?.studentMode ? (
+                    <p className="text-xs text-muted">
+                        ComfyUI is currently managed by the active workflow (student mode). <strong className="text-white">Reset to admin</strong> to launch / stop it here.
+                    </p>
+                ) : (
+                    <>
+                        {comfyStatus?.running && (comfyStatus.networkBound || comfyStatus.external) && comfyStatus.urls?.length > 0 && (
+                            <div className="mb-3 rounded-lg border border-border bg-surface/50 p-3">
+                                <label className="text-[10px] uppercase tracking-wider text-muted font-semibold flex items-center gap-1.5"><Globe size={12} /> Open ComfyUI at</label>
+                                <ul className="mt-1.5 space-y-1">
+                                    {comfyStatus.urls.map(u => (
+                                        <li key={u}>
+                                            <a href={u} target="_blank" rel="noreferrer" className="text-sm font-mono text-primary hover:underline break-all">{u}</a>
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                        {comfyStatus?.running && !comfyStatus.networkBound && !comfyStatus.external && (
+                            <p className="text-[11px] text-warning mb-3">Bound to localhost only (started for calibration). Click <strong>Bind to network</strong> to expose it on the LAN.</p>
+                        )}
+                        {comfyStatus?.external ? (
+                            <p className="text-[11px] text-muted">Attached to a ComfyUI started outside ComfyQ — stop or relaunch it where you started it.</p>
+                        ) : (
+                            <div className="flex justify-end gap-2">
+                                {comfyStatus?.running && (
+                                    <Button variant="secondary" icon={Square} onClick={stopComfy} disabled={comfyBusy}>
+                                        {comfyBusy ? 'Working…' : 'Stop ComfyUI'}
+                                    </Button>
+                                )}
+                                {!(comfyStatus?.running && comfyStatus?.networkBound) && (
+                                    <Button variant="primary" icon={Globe} onClick={launchComfy} disabled={comfyBusy || !pathsConfigured}>
+                                        {comfyBusy ? 'Launching… (30–90s)' : comfyStatus?.running ? 'Bind to network' : 'Launch ComfyUI on network'}
+                                    </Button>
+                                )}
+                            </div>
+                        )}
+                        {!pathsConfigured && (
+                            <p className="text-[11px] text-warning mt-2 text-right">Set the ComfyUI paths above first.</p>
+                        )}
+                    </>
+                )}
             </Card>
 
             <Card>

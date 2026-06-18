@@ -2,6 +2,7 @@ const express = require('express');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+const os = require('os');
 const multer = require('multer');
 const { setAdminPassword, checkAdminPassword } = require('../auth/authGate');
 const { defaultConfig } = require('../config/configManager');
@@ -13,6 +14,19 @@ const sm = require('../queue/jobStateMachine');
 
 function sanitizeId(s) {
     return String(s).toLowerCase().replace(/[^a-z0-9_-]/g, '_').replace(/^_+|_+$/g, '');
+}
+
+// Build http://<lan-ip>:<port> URLs for every non-internal IPv4 — shown to the
+// admin so they can hand the network-bound ComfyUI URL to people on the LAN.
+function lanUrls(port) {
+    const urls = [];
+    const ifs = os.networkInterfaces();
+    for (const name of Object.keys(ifs)) {
+        for (const i of ifs[name] || []) {
+            if (i.family === 'IPv4' && !i.internal) urls.push(`http://${i.address}:${port}`);
+        }
+    }
+    return urls;
 }
 
 // Opens the persistent JobQueue on demand for admin-mode operations (where
@@ -84,6 +98,49 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             installation_type: d.installation_type,
             vramBudgetGb: d.vramBudgetGb
         });
+    });
+
+    // --- ComfyUI network backend (admin "Launch ComfyUI" button) ---
+    // Spawn (or reuse) a ComfyUI bound to 0.0.0.0 so its native web UI is
+    // reachable on the LAN. Admin-mode only — in student mode ComfyUI already
+    // runs for the active workflow. `runtime.comfyBackend` is the AdminCalibrator.
+    router.get('/comfyui/status', (req, res) => {
+        const backend = runtime?.comfyBackend;
+        if (backend) {
+            const s = backend.comfyStatus();
+            return res.json({ ...s, available: true, urls: s.running ? lanUrls(s.port) : [] });
+        }
+        // Student mode: ComfyUI runs as part of the active worker.
+        if (runtime?.worker) {
+            const st = runtime.worker.getStatus();
+            const port = configManager.load().config.comfy_ui.api_port;
+            return res.json({ running: st.state !== 'down', external: false, networkBound: null, studentMode: true, available: true, port, urls: lanUrls(port) });
+        }
+        res.json({ running: false, available: false });
+    });
+
+    router.post('/comfyui/launch', adminGate, async (req, res) => {
+        const backend = runtime?.comfyBackend;
+        if (!backend) {
+            return res.status(409).json({ error: 'ComfyUI backend launch is admin-mode only — in student mode ComfyUI already runs for the active workflow.' });
+        }
+        try {
+            const s = await backend.launchBackend();
+            res.json({ ok: true, ...s, urls: lanUrls(s.port) });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    router.post('/comfyui/stop', adminGate, async (req, res) => {
+        const backend = runtime?.comfyBackend;
+        if (!backend) return res.status(409).json({ error: 'No admin-mode ComfyUI backend to stop.' });
+        try {
+            const s = await backend.stopBackend();
+            res.json({ ok: true, ...s });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
     });
 
     // Validate a draft set of ComfyUI paths *before* the admin saves them.

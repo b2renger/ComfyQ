@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box } from 'lucide-react';
+import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box, Copy } from 'lucide-react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import ModelViewer from './ui/ModelViewer';
@@ -8,7 +8,7 @@ import AudioPlayer from './ui/AudioPlayer';
 import ImageGallery from './ui/ImageGallery';
 import { useSocket } from '../context/SocketContext';
 import { getImageUrl, getDownloadUrl, isVideo, isModel3d, isSplat, isAudio, isImage } from '../utils/api';
-import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration } from '../utils/jobDisplay';
+import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
 
 const downloadFile = (filename) => {
     if (!filename) return;
@@ -76,6 +76,11 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
     const isMultiImage = !is3D && !isAud && !isVid && imageOutputs.length > 1;
     const galleryImages = imageOutputs.map(o => ({ filename: o.filename, label: deriveViewLabel(o.filename) }));
 
+    // Text-output jobs (Gemma describe / captioning) have no media file — the
+    // result is an inline string. Render it as a readable, copyable panel.
+    const jobText = getJobText(job);
+    const isTextJob = !is3D && !isAud && !isVid && !isMultiImage && !job.result_filename && !!jobText;
+
     const downloadAll = (e) => {
         e.stopPropagation();
         // Best-effort sequential downloads (browsers may throttle past the
@@ -129,6 +134,10 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                                 autoPlay
                                 loop
                             />
+                        ) : isTextJob ? (
+                            <div className="w-full h-full overflow-y-auto custom-scrollbar p-5 text-left">
+                                <p className="text-sm text-slate-100 leading-relaxed whitespace-pre-wrap">{jobText}</p>
+                            </div>
                         ) : (
                             <img
                                 src={getImageUrl(job.result_filename)}
@@ -159,14 +168,18 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                             </div>
 
                             <div className="grid grid-cols-2 gap-4 pt-2">
-                                <div className="space-y-1">
-                                    <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Steps</label>
-                                    <p className="text-sm font-mono text-white">{job.params?.steps || 20}</p>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Resolution</label>
-                                    <p className="text-sm font-mono text-white">{job.params?.width}x{job.params?.height}</p>
-                                </div>
+                                {job.params?.steps != null && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Steps</label>
+                                        <p className="text-sm font-mono text-white">{job.params.steps}</p>
+                                    </div>
+                                )}
+                                {(job.params?.width != null && job.params?.height != null) && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Resolution</label>
+                                        <p className="text-sm font-mono text-white">{job.params.width}x{job.params.height}</p>
+                                    </div>
+                                )}
                                 {(() => {
                                     const genMs = getGenerationMs(job);
                                     return genMs != null ? (
@@ -261,6 +274,15 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                                 onClick={downloadAll}
                             >
                                 Download all ({galleryImages.length})
+                            </Button>
+                        ) : isTextJob ? (
+                            <Button
+                                variant="primary"
+                                className="w-full"
+                                icon={Copy}
+                                onClick={() => { try { navigator.clipboard?.writeText(jobText); } catch { /* clipboard may be blocked */ } }}
+                            >
+                                Copy text
                             </Button>
                         ) : (
                             <Button

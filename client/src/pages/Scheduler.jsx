@@ -15,7 +15,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import ProgressViz from '../components/ui/ProgressViz';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 import { getUserColor } from '../utils/userColor';
-import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration } from '../utils/jobDisplay';
+import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
 import { computeEtaSeconds } from '../utils/jobEta';
 
 /**
@@ -522,7 +522,7 @@ const SchedulerPage = () => {
                                         <div className="flex-1 aspect-video bg-background rounded-lg border border-border/50 flex items-center justify-center overflow-hidden relative shadow-inner">
                                             {job.status === 'completed' ? (
                                                 <div className="relative w-full h-full group/img">
-                                                    <MediaPreview filename={getPrimaryDownloadFilename(job) || job.result_filename} />
+                                                    <MediaPreview filename={getPrimaryDownloadFilename(job) || job.result_filename} text={getJobText(job)} />
                                                     {(() => {
                                                         const imgCount = (job.outputs || []).filter(o => o.kind === 'image' && o.type !== 'temp').length;
                                                         return imgCount > 1 ? (

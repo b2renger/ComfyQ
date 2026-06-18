@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "id": "llm_gemma4_image_description",
+  "name": "Gemma 4 — describe an image (caption)",
+  "description": "Ask Gemma 4 (a vision-language model running in ComfyUI) to describe an image in words. Upload an image and the model writes a caption / description as text — useful on its own, or to turn a picture into a prompt for another workflow.\n\nEdit the instruction to steer the output, e.g. \"Describe the image,\" / \"List the main objects.\" / \"Write a short caption.\" / \"Describe the mood and lighting.\" Change the seed to re-roll the wording.",
+  "category": "preprocessor",
+  "tags": [
+    "gemma",
+    "llm",
+    "vision",
+    "caption",
+    "describe",
+    "image-to-text"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "llm_gemma4_image_description.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 8,
+    "models": [
+      {
+        "type": "clip",
+        "file": "gemma4_e4b_it_fp8_scaled.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 30,
+  "maxRuntimeSec": 300,
+  "exposedParameters": [
+    {
+      "key": "source_image_2",
+      "nodeId": "2",
+      "field": "image",
+      "type": "image",
+      "label": "Source image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "instruction_1",
+      "nodeId": "1",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Instruction",
+      "default": "Describe the image,",
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "seed_1",
+      "nodeId": "1",
+      "field": "sampling_mode.seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 2
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

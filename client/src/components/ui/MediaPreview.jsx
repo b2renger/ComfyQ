@@ -1,10 +1,20 @@
 import React from 'react';
 import { isVideo, isModel3d, isSplat, isAudio, getImageUrl } from '../../utils/api';
-import { Play, Sparkles } from 'lucide-react';
+import { Play, Sparkles, FileText } from 'lucide-react';
 import ModelViewer from './ModelViewer';
 import AudioPlayer from './AudioPlayer';
 
-const MediaPreview = ({ filename, className = '', alt = 'Preview', showPlayIcon = true }) => {
+const MediaPreview = ({ filename, className = '', alt = 'Preview', showPlayIcon = true, text = null }) => {
+    // Text-output jobs (image captioning / LLM describe) have no media file —
+    // show a snippet tile instead of a broken <img>.
+    if (!filename && text) {
+        return (
+            <div className={`w-full h-full flex flex-col bg-surface ${className}`}>
+                <div className="px-2 pt-2 text-muted shrink-0"><FileText size={14} /></div>
+                <p className="px-2 pb-2 pt-1 text-[10px] leading-snug text-slate-300 overflow-hidden flex-1">{text}</p>
+            </div>
+        );
+    }
     const isVid = isVideo(filename);
     const is3d = isModel3d(filename);
     const splat = isSplat(filename);

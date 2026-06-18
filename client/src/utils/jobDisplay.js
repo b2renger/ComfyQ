@@ -26,6 +26,15 @@ export function getDisplayPrompt(job) {
     return candidates[0]?.[1] || '';
 }
 
+// Pull the inline text result from a text-output job (image captioning /
+// LLM describe). Returns the string, or null when the job produced no text
+// output. Keys off the `text` kind the server collector assigns to
+// PreviewAny-style outputs.
+export function getJobText(job) {
+    const t = (job?.outputs || []).find(o => o && o.kind === 'text' && typeof o.text === 'string' && o.text.trim());
+    return t ? t.text : null;
+}
+
 const MODEL3D_RX = /\.(glb|gltf)$/i;
 
 // Pick the file the user actually wants to download for a job. For 2D/video

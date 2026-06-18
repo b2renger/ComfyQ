@@ -185,6 +185,10 @@ async function main() {
             assetsDir: config.assets?.dir || '',
             onMilestone: (label) => printConnectionBanner(label, config.server.port)
         });
+        // Expose the calibrator's ComfyUI manager to the (already-mounted) admin
+        // router so the "Launch ComfyUI backend" button can spawn a network-bound
+        // instance. The router closure shares this `runtime` object by reference.
+        runtime.comfyBackend = adminCalibrator;
         app.use('/workflows', workflowRoutes.makeRouter({
             registry, configManager, benchmarkService: adminCalibrator, adminGate: gate
         }));

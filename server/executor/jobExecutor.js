@@ -248,9 +248,11 @@ class JobExecutor {
         // double-count. Non-subfolder outputs are unchanged.
         const wireOutputs = enriched.map(o => ({
             kind: o.kind, mime: o.mime,
-            filename: o.subfolder ? `${o.subfolder}/${o.filename}` : o.filename,
+            filename: o.filename ? (o.subfolder ? `${o.subfolder}/${o.filename}` : o.filename) : null,
             subfolder: '', type: o.type, nodeId: o.nodeId,
-            sizeBytes: o.sizeBytes
+            sizeBytes: o.sizeBytes,
+            // Inline text outputs (PreviewAny etc.) carry their content on the wire.
+            ...(o.text != null ? { text: o.text } : {})
         }));
         this.queue.setOutputs(jobId, wireOutputs);
         try {
@@ -263,7 +265,9 @@ class JobExecutor {
         for (const o of wireOutputs) {
             const sizeKb = o.sizeBytes ? `${Math.round(o.sizeBytes / 1024)} KB` : '?';
             const sub = o.subfolder ? `${o.subfolder}/` : '';
-            console.log(`[Executor]   → ${sub}${o.filename} (${o.kind}, ${sizeKb})`);
+            const label = o.filename ? `${sub}${o.filename}`
+                : (o.kind === 'text' ? `"${String(o.text).replace(/\s+/g, ' ').slice(0, 60)}…"` : '[inline]');
+            console.log(`[Executor]   → ${label} (${o.kind}, ${sizeKb})`);
         }
         this.worker.finalize({ success: true });
         this._currentJobId = null;
