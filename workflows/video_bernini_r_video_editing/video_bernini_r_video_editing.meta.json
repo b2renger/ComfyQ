@@ -1,0 +1,109 @@
+{
+  "schemaVersion": 1,
+  "id": "video_bernini_r_video_editing",
+  "name": "Wan 2.2 Bernini-R — AI video editing",
+  "description": "Edit or restyle a short video by describing the change in words. Upload a clip and type an instruction — the Bernini-R model (Wan 2.2) regenerates the clip following your prompt while keeping its motion and timing. The original audio is carried through.\n\n• Pick an **edit type** to steer the model (Style / Motion, Action / Position, Content Propagation, or general Video Editing).\n• **Fast mode** (Turbo LoRA) is on by default — ~6 steps, quick and light. Turn it off for slower, higher-quality 40-step runs.\n• Only the first few seconds are processed (set the clip length) — keep clips short, video editing is heavy.\n\nFor editing guided by a reference image, use the \"with reference\" version instead.",
+  "category": "i2v",
+  "tags": [
+    "wan",
+    "wan2.2",
+    "bernini",
+    "video-editing",
+    "vid2vid",
+    "restyle",
+    "video"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_bernini_r_video_editing.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      { "type": "unet", "file": "wan2.2_bernini_r_high_noise_fp8_scaled.safetensors" },
+      { "type": "unet", "file": "wan2.2_bernini_r_low_noise_fp8_scaled.safetensors" },
+      { "type": "vae", "file": "Wan2_1_VAE_bf16.safetensors" },
+      { "type": "clip", "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors" },
+      { "type": "lora", "file": "lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 180,
+  "maxRuntimeSec": 1800,
+  "exposedParameters": [
+    {
+      "key": "source_video_47",
+      "nodeId": "47",
+      "field": "file",
+      "type": "video",
+      "label": "Source video",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "edit_instruction_76_114",
+      "nodeId": "76:114",
+      "field": "value",
+      "type": "textarea",
+      "label": "Edit instruction",
+      "default": "Restyle the video in the style of a frame by frame claymotion animation",
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "task_type_76_54",
+      "nodeId": "76:54",
+      "field": "choice",
+      "type": "select",
+      "label": "Edit type",
+      "default": "Video Editing (Style / Motion)",
+      "options": [
+        "Video Editing",
+        "Video Editing (Content Propagation)",
+        "Video Editing (Action / Position)",
+        "Video Editing (Style / Motion)"
+      ],
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "fast_mode_76_70",
+      "nodeId": "76:70",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Fast mode (Turbo LoRA — faster, lower quality)",
+      "default": true,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "clip_length_109",
+      "nodeId": "109",
+      "field": "duration",
+      "type": "number",
+      "label": "Clip length (seconds)",
+      "default": 5,
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "seed_76_19",
+      "nodeId": "76:19",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 5
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}
