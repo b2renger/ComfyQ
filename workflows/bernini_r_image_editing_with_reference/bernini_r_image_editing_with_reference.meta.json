@@ -1,0 +1,104 @@
+{
+  "schemaVersion": 1,
+  "id": "bernini_r_image_editing_with_reference",
+  "name": "Wan 2.2 Bernini-R — image editing with a reference image",
+  "description": "Edit an image guided by a second reference image. Upload the image to edit, a reference image (a look, subject, or object to bring in), and a text instruction — the Bernini-R model (Wan 2.2) regenerates the image following the prompt and the reference while keeping the composition.\n\n• **Edit type**: \"Image Editing\" edits the first image guided by the reference; \"Subject to Image\" brings the reference subject into the scene.\n• **Fast mode** (Turbo LoRA) is on by default — ~6 steps. Turn it off for slower, higher-quality 40-step runs.\n\nFor editing by text alone (no reference image), use the plain image-editing version instead.",
+  "category": "image-edit",
+  "tags": [
+    "wan",
+    "wan2.2",
+    "bernini",
+    "image-edit",
+    "image-editing",
+    "reference",
+    "restyle"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "bernini_r_image_editing_with_reference.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      { "type": "unet", "file": "wan2.2_bernini_r_high_noise_fp8_scaled.safetensors" },
+      { "type": "unet", "file": "wan2.2_bernini_r_low_noise_fp8_scaled.safetensors" },
+      { "type": "vae", "file": "Wan2_1_VAE_bf16.safetensors" },
+      { "type": "clip", "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors" },
+      { "type": "lora", "file": "lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 90,
+  "maxRuntimeSec": 1200,
+  "exposedParameters": [
+    {
+      "key": "source_image_114",
+      "nodeId": "114",
+      "field": "image",
+      "type": "image",
+      "label": "Image to edit",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "reference_image_104",
+      "nodeId": "104",
+      "field": "image",
+      "type": "image",
+      "label": "Reference image",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "edit_instruction_76_120",
+      "nodeId": "76:120",
+      "field": "value",
+      "type": "textarea",
+      "label": "Edit instruction",
+      "default": "Restyle the image to match the reference image.",
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "task_type_76_54",
+      "nodeId": "76:54",
+      "field": "choice",
+      "type": "select",
+      "label": "Edit type",
+      "default": "Image Editing",
+      "options": [
+        "Image Editing",
+        "Subject to Image"
+      ],
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "fast_mode_76_70",
+      "nodeId": "76:70",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Fast mode (Turbo LoRA — faster, lower quality)",
+      "default": true,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "seed_76_19",
+      "nodeId": "76:19",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 5
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

@@ -59,6 +59,8 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
   - SeedVR2 video upscale to HD (diffusion super-resolution; keeps source fps + audio) — **verified on rig**
   - Gemma 4 image captioning (image → text description; first **text-output** workflow)
   - Gemma 4 video captioning (video → text description) — **verified on rig**
+  - Bernini-R video editing (video + instruction → edited/restyled video; Wan 2.2, Turbo "fast mode" toggle, edit-type selector) — **verified on rig**
+  - Bernini-R video editing with reference image (video + reference image + instruction → edited video; first image+video → video on a diffusion edit graph) — **verified on rig**
 - ⏳ **Phase F** — Multi-instance federation *(final phase, design locked, implementation deferred).* Auto-discover peers on LAN via mDNS, fleet-wide admin view, student station picker. See [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
 
 ---

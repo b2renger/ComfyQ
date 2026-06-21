@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "id": "bernini_r_image_editing",
+  "name": "Wan 2.2 Bernini-R — AI image editing",
+  "description": "Edit an image by describing the change in words. Upload an image and type an instruction (e.g. \"make it night\", \"add snow\", \"turn the car red\") — the Bernini-R model (Wan 2.2) regenerates the image following your prompt while keeping the composition.\n\n• **Edit type** steers the model — \"Image Editing\" for normal edits; \"Default\" is a more neutral prompt.\n• **Fast mode** (Turbo LoRA) is on by default — ~6 steps, quick and light. Turn it off for slower, higher-quality 40-step runs.\n\nFor editing guided by a second (reference) image, use the \"with reference\" version instead.",
+  "category": "image-edit",
+  "tags": [
+    "wan",
+    "wan2.2",
+    "bernini",
+    "image-edit",
+    "image-editing",
+    "restyle"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "bernini_r_image_editing.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      { "type": "unet", "file": "wan2.2_bernini_r_high_noise_fp8_scaled.safetensors" },
+      { "type": "unet", "file": "wan2.2_bernini_r_low_noise_fp8_scaled.safetensors" },
+      { "type": "vae", "file": "Wan2_1_VAE_bf16.safetensors" },
+      { "type": "clip", "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors" },
+      { "type": "lora", "file": "lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 90,
+  "maxRuntimeSec": 1200,
+  "exposedParameters": [
+    {
+      "key": "source_image_114",
+      "nodeId": "114",
+      "field": "image",
+      "type": "image",
+      "label": "Image to edit",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "edit_instruction_76_120",
+      "nodeId": "76:120",
+      "field": "value",
+      "type": "textarea",
+      "label": "Edit instruction",
+      "default": "make it night",
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "task_type_76_54",
+      "nodeId": "76:54",
+      "field": "choice",
+      "type": "select",
+      "label": "Edit type",
+      "default": "Image Editing",
+      "options": [
+        "Image Editing",
+        "Default"
+      ],
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "fast_mode_76_70",
+      "nodeId": "76:70",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Fast mode (Turbo LoRA — faster, lower quality)",
+      "default": true,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "seed_76_19",
+      "nodeId": "76:19",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 4
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}
