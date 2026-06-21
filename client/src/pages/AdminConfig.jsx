@@ -157,10 +157,17 @@ const AdminConfig = ({ currentMode }) => {
     const launchComfy = async () => {
         setComfyBusy(true);
         try {
+            // Persist the current path form first so the backend launches with the
+            // paths shown in Settings — not a previously-saved or boot-time value.
+            const saveRes = await fetch(`${SERVER_URL}/admin/comfy`, {
+                method: 'PUT', headers: adminHeaders(), body: JSON.stringify(pathDraft)
+            });
+            if (!saveRes.ok) throw new Error((await saveRes.json()).error || 'Failed to save paths');
             const res = await fetch(`${SERVER_URL}/admin/comfyui/launch`, { method: 'POST', headers: adminHeaders() });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Launch failed');
             setComfyStatus(data);
+            await reloadConfig();
             showToast(data.external ? 'Attached to a running ComfyUI' : 'ComfyUI launched on the network');
         } catch (e) { showToast(e.message, 'err'); }
         finally { setComfyBusy(false); }

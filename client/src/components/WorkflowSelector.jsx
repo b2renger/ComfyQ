@@ -2,11 +2,36 @@ import React, { useState, useEffect } from 'react';
 import {
     Image, Video, Wand2, Music, Box, LayoutGrid, List,
     RefreshCw, ChevronRight, Sparkles, Clock, Tag,
-    Pencil, Trash2, Gauge, Cpu
+    Pencil, Trash2, Gauge, Cpu, FileText, Wrench
 } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import { SERVER_URL } from '../utils/api';
+
+// "Type of workflow" buckets shown as filter chips in the admin library. Each
+// fine-grained meta category maps to exactly one group; this is the user-facing
+// taxonomy (3D / audio / description / image gen / video gen / utilities).
+const GROUPS = [
+    { key: '3d', label: '3D', icon: Box },
+    { key: 'audio', label: 'Audio', icon: Music },
+    { key: 'description', label: 'Description', icon: FileText },
+    { key: 'image', label: 'Image generation', icon: Wand2 },
+    { key: 'video', label: 'Video generation', icon: Video },
+    { key: 'utility', label: 'Utilities', icon: Wrench },
+    { key: 'other', label: 'Other', icon: LayoutGrid },
+];
+const CATEGORY_GROUP = {
+    '3d': '3d',
+    'audio': 'audio',
+    'description': 'description',
+    't2i': 'image', 'image-edit': 'image',
+    'i2v': 'video',
+    // Image-to-image (upscalers) and preprocessors (segmentation, frame
+    // interpolation, depth) are all "utilities" in the user-facing taxonomy.
+    'i2i': 'utility', 'preprocessor': 'utility',
+    'other': 'other',
+};
+const groupOf = (cat) => CATEGORY_GROUP[cat] || 'other';
 
 /**
  * WorkflowSelector
@@ -16,16 +41,16 @@ import { SERVER_URL } from '../utils/api';
  */
 const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set() }) => {
     const [workflows, setWorkflows] = useState([]);
-    const [categories, setCategories] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [viewMode, setViewMode] = useState('grid');
-    const [selectedCategory, setSelectedCategory] = useState('all');
+    const [selectedGroup, setSelectedGroup] = useState('all');
     const [selectedWorkflow, setSelectedWorkflow] = useState(null);
 
     const categoryIcons = {
         't2i': Wand2, 'image-edit': Image, 'i2v': Video, 'i2i': Image,
-        'audio': Music, '3d': Box, 'preprocessor': Box, 'other': LayoutGrid
+        'audio': Music, '3d': Box, 'preprocessor': Box,
+        'description': FileText, 'other': LayoutGrid
     };
 
     const fetchWorkflows = async () => {
@@ -35,7 +60,6 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
             if (!res.ok) throw new Error('Failed to fetch workflows');
             const data = await res.json();
             setWorkflows(data.workflows || []);
-            setCategories(data.categories || {});
         } catch (err) {
             setError(err.message);
         } finally {
@@ -82,8 +106,11 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
     };
 
     const usable = workflows.filter(w => !w.unavailable);
-    const filtered = selectedCategory === 'all' ? usable : usable.filter(w => w.category === selectedCategory);
-    const availableCategories = [...new Set(usable.map(w => w.category))];
+    const filtered = selectedGroup === 'all' ? usable : usable.filter(w => groupOf(w.category) === selectedGroup);
+    // Only show chips for groups that actually have a usable workflow, with counts.
+    const availableGroups = GROUPS
+        .map(g => ({ ...g, count: usable.filter(w => groupOf(w.category) === g.key).length }))
+        .filter(g => g.count > 0);
 
     if (loading) {
         return (
@@ -124,16 +151,6 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                     <Badge variant="default" className="ml-2">{usable.length}</Badge>
                 </div>
                 <div className="flex items-center gap-2">
-                    <select
-                        value={selectedCategory}
-                        onChange={(e) => setSelectedCategory(e.target.value)}
-                        className="bg-surface border border-border rounded-lg px-3 py-1.5 text-sm text-white"
-                    >
-                        <option value="all">All Categories</option>
-                        {availableCategories.map(cat => (
-                            <option key={cat} value={cat}>{categories[cat] || cat}</option>
-                        ))}
-                    </select>
                     <div className="flex bg-surface border border-border rounded-lg p-0.5">
                         <button onClick={() => setViewMode('grid')} className={`p-1.5 rounded ${viewMode === 'grid' ? 'bg-primary/20 text-primary' : 'text-muted hover:text-white'}`}>
                             <LayoutGrid size={16} />
@@ -146,6 +163,28 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                         <RefreshCw size={16} />
                     </button>
                 </div>
+            </div>
+
+            {/* Filter by type of workflow */}
+            <div className="flex flex-wrap items-center gap-2">
+                {[{ key: 'all', label: 'All', icon: Sparkles, count: usable.length }, ...availableGroups].map(g => {
+                    const Icon = g.icon;
+                    const active = selectedGroup === g.key;
+                    return (
+                        <button
+                            key={g.key}
+                            type="button"
+                            onClick={() => setSelectedGroup(g.key)}
+                            className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors
+                                ${active ? 'border-primary bg-primary/15 text-primary' : 'border-border bg-surface text-muted hover:text-white hover:border-primary/40'}`}
+                            title={`Show ${g.label} workflows`}
+                        >
+                            <Icon size={14} />
+                            <span>{g.label}</span>
+                            <span className={active ? 'text-primary/70' : 'text-muted/60'}>{g.count}</span>
+                        </button>
+                    );
+                })}
             </div>
 
             <div className={viewMode === 'grid'

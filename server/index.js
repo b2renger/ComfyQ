@@ -179,10 +179,8 @@ async function main() {
         // flip to student mode first. The worker is reused across calibrations
         // and left running on shutdown so a later activate attaches to it.
         const adminCalibrator = new AdminCalibrator({
-            comfyConfig: config.comfy_ui,
-            queueConfig: config.queue,
+            configManager,
             registry,
-            assetsDir: config.assets?.dir || '',
             onMilestone: (label) => printConnectionBanner(label, config.server.port)
         });
         // Expose the calibrator's ComfyUI manager to the (already-mounted) admin

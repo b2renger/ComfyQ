@@ -18,11 +18,14 @@ const IDLE_FREE_MS = 10 * 60 * 1000;
 // shutdown — exactly like student mode — so activating a workflow afterwards
 // attaches instantly instead of paying another cold boot.
 class AdminCalibrator {
-    constructor({ comfyConfig, queueConfig, registry, assetsDir, onMilestone }) {
-        this.comfyConfig = comfyConfig;
-        this.queueConfig = queueConfig;
+    constructor({ configManager, registry, onMilestone }) {
+        // Read ComfyUI / queue / assets config FRESH from the configManager on
+        // every use (see the getters below) rather than snapshotting it at
+        // construction. Admin mode builds this once at boot; without fresh reads,
+        // a path the admin edits + saves in the Settings panel afterwards would be
+        // ignored and the boot-time (often default/hardcoded) path used instead.
+        this.configManager = configManager;
         this.registry = registry;
-        this.assetsDir = assetsDir || '';
         this.onMilestone = onMilestone || (() => {});
         this.worker = null;
         this.bench = null;
@@ -33,20 +36,40 @@ class AdminCalibrator {
         // network (0.0.0.0) for the "Launch ComfyUI backend" admin button.
         this._external = false;
         this._workerNetwork = false;
+        // Signature (root|python|port) of the config the live worker was spawned
+        // with, so a later path change triggers a restart instead of silently
+        // reusing the process started with the old path.
+        this._spawnSig = null;
+    }
+
+    // Always reflect the latest saved config (config.json is the source of truth).
+    get _cfg() { return this.configManager.load().config; }
+    get comfyConfig() { return this._cfg.comfy_ui; }
+    get queueConfig() { return this._cfg.queue; }
+    get assetsDir() { return this._cfg.assets?.dir || ''; }
+
+    _comfySig(cfg) {
+        return `${cfg.root_path || ''}|${cfg.python_executable || ''}|${cfg.api_port || ''}`;
     }
 
     async _ensureWorker({ network = false } = {}) {
+        const cfg = this.comfyConfig; // fresh read for this call
+        const sig = this._comfySig(cfg);
         if (this.worker && this.worker.getStatus().state !== 'down') {
-            // Already up. If the caller now needs a network-bound backend but the
-            // running instance is loopback (and ours), restart it on 0.0.0.0.
-            if (network && !this._workerNetwork && !this._external) {
-                console.log('[AdminCalibrator] rebinding ComfyUI to the network — restarting it…');
+            // Already up. Restart a ComfyUI we own when either (a) the caller now
+            // needs a network-bound backend but the running instance is loopback,
+            // or (b) the saved ComfyUI paths changed since we spawned it. An
+            // externally-attached instance is always left alone.
+            const needRebind = network && !this._workerNetwork && !this._external;
+            const pathsChanged = !this._external && this._spawnSig && this._spawnSig !== sig;
+            if (needRebind || pathsChanged) {
+                console.log(`[AdminCalibrator] ${pathsChanged ? 'ComfyUI paths changed' : 'rebinding ComfyUI to the network'} — restarting it…`);
                 await this._stopWorker();
             } else {
                 return;
             }
         }
-        if (!this.comfyConfig.root_path || !this.comfyConfig.python_executable) {
+        if (!cfg.root_path || !cfg.python_executable) {
             throw new Error('Configure the ComfyUI paths (root + Python) in Settings first.');
         }
         // Coalesce concurrent first-start requests onto one boot.
@@ -54,8 +77,8 @@ class AdminCalibrator {
             this._starting = (async () => {
                 // Force --listen 0.0.0.0 for a network backend, without persisting
                 // lan_access — this launch is an explicit, one-off opt-in.
-                const comfyConfig = network ? { ...this.comfyConfig, lan_access: true } : this.comfyConfig;
-                console.log(`[AdminCalibrator] starting ComfyUI${network ? ' (network-bound)' : ''} (a cold boot can take 30–90s)…`);
+                const comfyConfig = network ? { ...cfg, lan_access: true } : cfg;
+                console.log(`[AdminCalibrator] starting ComfyUI${network ? ' (network-bound)' : ''} at ${cfg.root_path} (a cold boot can take 30–90s)…`);
                 const worker = new LocalComfyUIWorker({
                     comfyConfig, queueConfig: this.queueConfig, onMilestone: this.onMilestone
                 });
@@ -63,9 +86,10 @@ class AdminCalibrator {
                 this.worker = worker;
                 this._external = !!res?.external;
                 this._workerNetwork = network && !this._external;
+                this._spawnSig = sig;
                 this.bench = new BenchmarkService({
                     worker, registry: this.registry,
-                    comfyConfig: this.comfyConfig, assetsDir: this.assetsDir
+                    comfyConfig: cfg, assetsDir: this.assetsDir
                 });
                 console.log('[AdminCalibrator] ComfyUI ready');
             })();
@@ -81,6 +105,7 @@ class AdminCalibrator {
         this.bench = null;
         this._external = false;
         this._workerNetwork = false;
+        this._spawnSig = null;
         if (w) {
             try { await w.shutdown(); } catch { /* WS close */ }
             try { await w.process?.stop(); } catch { /* kill spawned ComfyUI */ }

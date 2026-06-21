@@ -13,7 +13,7 @@ function makeRouter({ registry, configManager, benchmarkService, adminGate }) {
                 't2i': 'Text to Image', 'image-edit': 'Image Editing',
                 'i2v': 'Image to Video', 'i2i': 'Image to Image',
                 'audio': 'Audio Generation', '3d': '3D Generation',
-                'preprocessor': 'Preprocessor', 'other': 'Other'
+                'preprocessor': 'Preprocessor', 'description': 'Description', 'other': 'Other'
             };
             const cfg = configManager.load().config;
             res.json({

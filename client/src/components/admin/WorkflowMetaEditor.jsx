@@ -12,6 +12,7 @@ const CATEGORIES = [
     { value: 'audio', label: 'Audio Generation' },
     { value: '3d', label: '3D Generation' },
     { value: 'preprocessor', label: 'Preprocessor' },
+    { value: 'description', label: 'Description (image/video → text)' },
     { value: 'other', label: 'Other' }
 ];
 

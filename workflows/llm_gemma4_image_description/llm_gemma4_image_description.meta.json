@@ -3,7 +3,7 @@
   "id": "llm_gemma4_image_description",
   "name": "Gemma 4 — describe an image (caption)",
   "description": "Ask Gemma 4 (a vision-language model running in ComfyUI) to describe an image in words. Upload an image and the model writes a caption / description as text — useful on its own, or to turn a picture into a prompt for another workflow.\n\nEdit the instruction to steer the output, e.g. \"Describe the image,\" / \"List the main objects.\" / \"Write a short caption.\" / \"Describe the mood and lighting.\" Change the seed to re-roll the wording.",
-  "category": "preprocessor",
+  "category": "description",
   "tags": [
     "gemma",
     "llm",

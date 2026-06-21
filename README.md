@@ -6,7 +6,7 @@
 ## What it does
 
 - **Timeline-based booking:** Students see a shared schedule, pick an empty slot, submit parameters (text prompt, images, video clips, audio), and watch generation happen in real time with live progress bars and ETAs.
-- **Zero-config workflows:** Drop any ComfyUI workflow in (API format), the system auto-detects inputs/outputs (images, video, audio, 3D models), exposes parameters to students, renders results in the right viewer (3D model rotator, Gaussian-splat viewer, audio player, multi-image gallery).
+- **Zero-config workflows:** Drop any ComfyUI workflow in (API format), the system auto-detects inputs/outputs (images, video, audio, 3D models, text captions), exposes parameters to students, renders results in the right viewer (3D model rotator, Gaussian-splat viewer, audio player, multi-image gallery, inline text).
 - **Admin controls:** Configure ComfyUI paths, calibrate per-workflow timing, upload new workflows, reorder exposed parameters, set an admin password for destructive actions.
 - **Persistent job queue:** Jobs survive server restarts; in-flight work reconciles safely. Full history is kept for reference and re-running past parameters.
 - **Multi-output UX:** Workflows that produce many files (3D generation, multi-angle scenes, audio+video) get dedicated galleries — students navigate and download each output separately.
@@ -42,7 +42,7 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
 - ✅ **M4** — File upload (click + drag-and-drop) with client-side image resize. Webcam capture removed 2026-05-19 (plain HTTP, no secure context); phones use OS file picker.
 - ✅ **Audio I/O** — Output: audio player in cards + lightbox. Input: audio upload widget (`audio/*` file picker + drag-drop).
 - ✅ **3D viewers** — GLB model viewer (three.js) + Gaussian-splat viewer (Spark), both in lightbox + cards with export buttons.
-- ✅ **Target workflows** *(bundled in `workflows/`; TripoSplat verified on rig 2026-06-10, LivePortrait on 2026-06-15, SAM3 segmentation on 2026-06-16 FILM frame interpolation and SeedVR2 upscalers on 2026-06-17, the rest registered through 2026-06-13 and pending rig smoke-test):*
+- ✅ **Target workflows** *(bundled in `workflows/`; TripoSplat verified on rig 2026-06-10, LivePortrait on 2026-06-15, SAM3 segmentation on 2026-06-16, FILM frame interpolation and SeedVR2 upscalers on 2026-06-17, the Gemma 4 captioners registered 2026-06-21, the rest registered through 2026-06-13 and pending rig smoke-test):*
   - TripoSplat (image → `.spz` + `.ply` + `.glb`) — **verified on rig**
   - Qwen-Edit multi-angle (1 image → 8 angle images, N-image gallery)
   - Stable Audio 3 (text → `.mp3`, in-graph magic-prompt LLM)
@@ -57,6 +57,8 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
   - Frame interpolation (FILM) (video → smoother or slow-motion video; `preprocessor` utility) — **verified on rig**
   - SeedVR2 image upscale to 4K (diffusion super-resolution; first **i2i** workflow) — **verified on rig**
   - SeedVR2 video upscale to HD (diffusion super-resolution; keeps source fps + audio) — **verified on rig**
+  - Gemma 4 image captioning (image → text description; first **text-output** workflow)
+  - Gemma 4 video captioning (video → text description) — **verified on rig**
 - ⏳ **Phase F** — Multi-instance federation *(final phase, design locked, implementation deferred).* Auto-discover peers on LAN via mDNS, fleet-wide admin view, student station picker. See [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
 
 ---
@@ -170,6 +172,7 @@ See [implementation_plan.md](implementation_plan.md#architecture) for module-by-
 - **Multi-workflow library** with folder-bundled workflows (`<id>/<id>.api.json` + `<id>.meta.json`)
 - **API-format only.** No fragile Litegraph auto-conversion. The admin UI rejects non-API JSON with a clear "Save (API Format)" message
 - **Generic output detection** — classifies by file extension (image / video / audio / model3d / json), not by `class_type`. Works with any save node, including LTX video, depth preprocessor temp outputs, and audio-driven workflows
+- **Text outputs (LLM / captioning)** — workflows whose result is text rather than media (e.g. a vision-language model describing an image or video) are collected generically: a `PreviewAny` / `ShowText` node's text is carried inline on the wire as a `text` output and rendered in the lightbox and result cards — no file, no `class_type` coupling. Powers the Gemma 4 image/video captioners
 - **3D viewers (mesh + Gaussian splat)** — `.glb`/`.gltf` meshes render in an inline three.js viewer; Gaussian splats (`.spz`/`.ply`/`.splat`) render in a [Spark](https://github.com/sparkjsdev/spark) viewer. Both support drag-to-rotate / scroll-to-zoom / right-click-pan in the lightbox. A job that produces both (e.g. TripoSplat) gets a **Splat⇄Mesh toggle** plus one download button per format (`.spz` / `.ply` / `.glb`)
 - **Multi-output galleries** — the wire carries *every* collected output, not just the first. A job that emits N images (e.g. Qwen multi-angle → 8 views) opens an **N-image gallery** (main image + thumbnail strip + prev/next + per-image and "Download all"); audio outputs get an inline player; the Scheduler card shows a "{N} views" badge
 - **Persistent job queue** (sqlite) — survives server restarts; in-flight jobs reconcile to `failed: server-restart` rather than hanging
@@ -182,6 +185,7 @@ See [implementation_plan.md](implementation_plan.md#architecture) for module-by-
 - **Workflow description visible to students** — the admin's Description field renders on the main Scheduler header AND at the top of the booking dialog, so prompting tips show up exactly when students need them
 - **Admin workflow editor** — drag-and-drop API JSON → auto-scaffold meta → modal editor lets you toggle parameter exposure, rename labels, set defaults, change types (with bulk "Hide infrastructure" / "Enable all" / "Disable all"). Onboard a workflow in under a minute
 - **Per-workflow card actions** — Calibrate / Edit / Delete on each workflow in the admin library. Confirmation modal on delete; active workflow can't be deleted accidentally
+- **Filter the workflow library by type** — the admin workflow picker groups everything into **3D / Audio / Description / Image generation / Video generation / Utilities** filter chips (each with a live count, shown only when non-empty), so a growing library stays navigable. Each workflow's fine-grained category maps to one of these user-facing buckets (upscalers / segmentation / frame-interpolation land under Utilities; image/video captioners under Description)
 - **My / All Jobs tabs** — Recent Generations defaults to the current user; an "All Jobs" tab plus per-user filter dropdown exposes everyone's results for the admin / room view. Sidebar shows only your own jobs
 - **Confirmation dialogs with admin-password gating** — deletes / cancels go through a proper modal. Own jobs: simple confirm. Foreign jobs: admin-password field required, with red toasts surfacing wrong-password / "password not set" rejections from the server. Cross-user actions are disabled outright when no admin password is configured. In the admin panel, the "Admin password is set" card turns green ("verified") the moment the correct password is entered, so you get live confirmation before attempting a gated action
 - **Cancel running jobs** — X button on your own in-flight job card REST-interrupts ComfyUI cleanly; the job lands in `cancelled` state (preserved as a record, not deleted)
