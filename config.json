@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "mode": "student",
+  "mode": "admin",
   "server": {
     "port": 3000,
     "host": "0.0.0.0"
