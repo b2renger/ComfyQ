@@ -92,6 +92,8 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
 
    On a freshly cloned workshop rig, all three paths are **pre-filled** to the standard portable-ComfyUI layout (`D:\ComfyUI_windows_portable_nvidia\ComfyUI_windows_portable\…`). If they don't match your install, edit them or click **Reset to defaults** to repopulate. Click **Check paths** to validate before saving — it verifies the root contains `main.py`, runs `python --version`, and confirms the output directory is writable, listing each result inline.
 
+   **Cloned the drive to a different letter?** Two shortcuts: ComfyQ **auto-detects** ComfyUI on `npm run dev` (it scans local drives for the install whenever the configured root is missing/stale, so a cloned or fresh drive Just Works), and there's an **Auto-detect** button to re-run it on demand. If only the drive letter changed, use the **Drive letter** dropdown to swap it across *every* path at once instead of editing each field.
+
    For a Windows portable ComfyUI install, the `root_path` must point at the directory containing `main.py`, **not** the wrapper folder. With a typical install that's `...\ComfyUI_windows_portable\ComfyUI` (and `python_executable: ../python_embeded/python.exe`, or absolute).
 2. **Add Workflow** — drag-and-drop an API-format JSON into the upload box. To get one from ComfyUI:
    - Open your workflow.
@@ -131,7 +133,7 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
    - The seed field auto-randomizes each time the dialog opens; click the dice icon to re-roll, or type a specific value to pin it.
 4. Watch progress in real time. Each card / sidebar entry / lightbox shows which workflow produced it.
 5. Recent Generations defaults to **My Generations** (your own results only). Switch to **All Jobs** to see everyone's work; use the user dropdown to filter to one specific contributor. The sidebar always shows just your own jobs.
-6. Click any completed card to open the lightbox. **Use these settings** re-opens the booking dialog pre-filled with that job's prompt and parameters (image inputs must be re-uploaded — session uploads are TTL-cleaned).
+6. Click any completed card to open the lightbox. **Use these settings** re-opens the booking dialog pre-filled with that job's prompt, parameters, **and the media it used** — images preview and video/audio play right in the form (keep them or Replace). Text captions have a **Copy text** button that works over plain HTTP too.
 7. Delete your own scheduled jobs (cancels the job) or completed images (also unlinks the file from disk) via the X on each card. The same X button on a **running** job interrupts ComfyUI and moves the job to `cancelled` (the record is kept; the X reappears so you can also delete it). A confirmation dialog appears for every destructive action.
 
 Deleting / cancelling **another user's job** opens the same dialog with an admin-password field. The server refuses cross-user actions outright when no admin password is configured.
@@ -204,11 +206,15 @@ See [implementation_plan.md](implementation_plan.md#architecture) for module-by-
 - **Headline-prompt resilience** — workflows that expose their text input under a non-`prompt` key (LTX i2v `positive_prompt`, primitive-fallback `text`, …) still display the user-typed text on cards / lightbox / search. Fix is two-sided: client picks the right key at submit time; render-time fallback mines `job.params` for historical rows
 - **Branded mark** — favicon and inline header glyph are a sober "Q" (ring + bold tilde wave bar). Distinct from a magnifier icon and reads as "queue / flow"
 - **Workshop-rig defaults** — `defaultConfig()` ships with the standard portable-ComfyUI paths pre-filled, so a freshly cloned classroom machine lands with all three paths populated; **Check paths** validates them in-place (root, main.py, python `--version`, output writability) and **Reset to defaults** repopulates the form one-click
+- **ComfyUI auto-detect + drive-letter swap** — on boot, if the configured root has no `main.py` (stale path / cloned drive / fresh clone), ComfyQ scans local drives for the portable ComfyUI install and adopts it, so `npm run dev` self-heals; an **Auto-detect** button re-runs it on demand. When only the drive letter changed, a **Drive letter** dropdown rewrites the drive on every absolute path at once (root / python / output / assets)
 - **Hardened ComfyUI spawn** — matches `run_nvidia_gpu.bat`: `python.exe -s main.py --windows-standalone-build --disable-auto-launch …`. The Node parent's Python/conda env vars (`PYTHONPATH`, `PYTHONHOME`, `VIRTUAL_ENV`, `CONDA_PREFIX`, etc.) are stripped and conda-prefix directories are scrubbed from `PATH` before spawn, so an active `(base)` shell can no longer drag a CPU-only torch into the portable runtime
 - **Verbose generation logs** — every job pickup logs workflow + params + inputs; sampler progress is throttled to 2s + first/last step; node transitions, completion duration, output filenames, and failure phase/reason all surface on the server console
 - **Live-time timeline** — auto-follows current time with a sliding window; auto-disables when you pan
 - **Random seed by default** — every BookingDialog re-rolls the seed automatically; dice icon re-rolls; manual entry still works
-- **Recall settings** — "Use these settings" on any completed job re-opens a fresh dialog pre-filled with the job's prompt and parameters
+- **Recall settings** — "Use these settings" on any completed job re-opens a fresh dialog pre-filled with the job's prompt, parameters, **and the media it used** (image preview / video + audio playback, with a Replace option). The original uploads aren't TTL-swept, so no re-upload is needed
+- **Book ASAP or at a time** — the BookingDialog has an **As soon as possible / Pick a time** toggle. ASAP (the default for "Schedule a job") queues the job into the next free slot in the queue with no slot-collision friction; picking a time keeps the collision-checked timeline slot
+- **Clipboard on plain HTTP** — "Copy text" on caption jobs works even on `http://<lan-ip>` (where `navigator.clipboard` is unavailable) via an `execCommand('copy')` fallback
+- **Light + dark mode polish** — solid-accent UI (primary buttons, active tabs, toggles, the text-caption panel) now keeps correct contrast in light mode via a dedicated `on-primary` token
 - **Per-job workflow chip** — every recent-generations card, sidebar row, and lightbox shows which workflow produced the image
 - **Per-job generation time** — every completed card (grid + sidebar) shows the actual wall-clock time it took (pickup → done), and the lightbox adds it as a stat. Works for any workflow type (image / video / audio / 3D) since it's derived from the job's `started_at`/`finished_at`, not the calibration estimate
 - **Wire-compatible client** — `Scheduler`, `Dashboard`, `BookingDialog`, `MyJobsPanel` from v1 work against v2 unchanged
