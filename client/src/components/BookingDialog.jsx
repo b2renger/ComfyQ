@@ -3,7 +3,7 @@ import Modal from './ui/Modal';
 import Button from './ui/Button';
 import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronRight, Upload, X, Image as ImageIcon, Video as VideoIcon, Dices, Info } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
-import { SERVER_URL } from '../utils/api';
+import { SERVER_URL, getInputUrl } from '../utils/api';
 import MediaCaptureField from './capture/MediaCaptureField';
 
 /**
@@ -65,6 +65,12 @@ const isSeedParam = (key, config) => {
 };
 const randomSeed = () => Math.floor(Math.random() * 4294967295);
 
+// Strip the upload prefix from a comfy input filename to show the user's
+// original name (comfyq_session__<ts>_<rand>__photo.png → photo.png).
+const prettyInputName = (fn) => String(fn || '')
+    .replace(/^comfyq_session__\d+_\d+__/, '')
+    .replace(/^comfyq__[a-f0-9]+__/i, '');
+
 const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams }) => {
     const { state } = useSocket();
     const [scheduledTime, setScheduledTime] = useState(initialTime);
@@ -72,6 +78,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     const [formParams, setFormParams] = useState({});
     const [mediaFiles, setMediaFiles] = useState({}); // { paramKey: File }
     const [mediaPreviews, setMediaPreviews] = useState({}); // { paramKey: dataURL }
+    const [recalledMedia, setRecalledMedia] = useState({}); // { paramKey: comfyFilename } reused from a prior job
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState(''); // server-side upload rejection (too big / HEIC)
 
@@ -87,13 +94,17 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         const wf = stateRef.current.workflow;
         if (!wf?.parameter_map) return;
         const next = {};
+        const recalledM = {};
         Object.entries(wf.parameter_map).forEach(([key, config]) => {
-            // Recall path: an explicit initialParams takes precedence — except
-            // for image/video/audio inputs (those filenames are session-scoped
-            // and may have been swept; force the user to re-upload).
             const recalled = initialParams?.[key];
             const isMedia = ['image', 'video', 'audio'].includes(config.type);
-            if (recalled !== undefined && !isMedia) {
+            if (isMedia) {
+                // Recall path for media: reuse the asset the recalled job used.
+                // Its uploaded filename is still in ComfyUI/input (session uploads
+                // aren't TTL-swept), so the new job can reference it directly —
+                // no re-upload needed. The user can still Replace it.
+                if (typeof recalled === 'string' && recalled) recalledM[key] = recalled;
+            } else if (recalled !== undefined) {
                 next[key] = recalled;
             } else if (isSeedParam(key, config)) {
                 next[key] = randomSeed();
@@ -101,7 +112,15 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                 next[key] = config.default !== undefined ? config.default : '';
             }
         });
+        // Show the reused asset right away: its file is still served from
+        // ComfyUI/input, so we point the preview at it (image renders, video/
+        // audio play) instead of leaving the field empty.
+        const recalledPreviews = {};
+        Object.entries(recalledM).forEach(([k, fn]) => { recalledPreviews[k] = getInputUrl(fn); });
         setFormParams(next);
+        setRecalledMedia(recalledM);
+        setMediaFiles({});
+        setMediaPreviews(recalledPreviews);
         setUploadError('');
     }, [isOpen, initialParams]);
 
@@ -116,7 +135,8 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
      * Uses the global job state and benchmark duration to calculate start/end times.
      */
     useEffect(() => {
-        if (!scheduledTime) return;
+        // ASAP mode (no slot picked) can't collide — the server queues it next.
+        if (!scheduledTime) { setIsCollision(false); return; }
 
         const duration = state.benchmark_ms || 30000;
         const endTime = scheduledTime + duration;
@@ -145,7 +165,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         // Check for required media uploads (image, video, or audio)
         const mediaParams = Object.entries(state.workflow?.parameter_map || {})
             .filter(([k, v]) => v.type === 'image' || v.type === 'video' || v.type === 'audio');
-        const missingMedia = mediaParams.filter(([key]) => !mediaFiles[key]);
+        const missingMedia = mediaParams.filter(([key]) => !mediaFiles[key] && !recalledMedia[key]);
 
         if (isCollision || isUploading || missingMedia.length > 0) return;
 
@@ -182,8 +202,10 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
             }
         }
 
-        // Prepare final params
-        const finalParams = { ...formParams, ...uploadedFilenames };
+        // Prepare final params. recalledMedia carries comfy filenames reused
+        // from a prior job (no re-upload); a freshly uploaded file for the same
+        // key overrides it.
+        const finalParams = { ...formParams, ...recalledMedia, ...uploadedFilenames };
 
         // Pick the user-visible "headline" prompt. Workflows expose textarea
         // inputs under different keys — `prompt` for Flux, `positive_prompt`
@@ -214,6 +236,11 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
             delete newPreviews[paramKey];
             return newPreviews;
         });
+        setRecalledMedia(prev => {
+            const n = { ...prev };
+            delete n[paramKey];
+            return n;
+        });
     };
 
     // Called by MediaCaptureField with a (possibly already-resized) File.
@@ -223,6 +250,12 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     const handleMediaChange = (paramKey) => (file) => {
         if (!file) return;
         setMediaFiles(prev => ({ ...prev, [paramKey]: file }));
+        // A fresh upload supersedes any recalled (reused) asset for this key.
+        setRecalledMedia(prev => {
+            const n = { ...prev };
+            delete n[paramKey];
+            return n;
+        });
         const reader = new FileReader();
         reader.onloadend = () => {
             setMediaPreviews(prev => ({ ...prev, [paramKey]: reader.result }));
@@ -271,6 +304,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                                 type={type}
                                 maxInputEdge={config.maxInputEdge}
                                 preview={mediaPreviews[key]}
+                                recalledName={recalledMedia[key] ? prettyInputName(recalledMedia[key]) : null}
                                 onChange={handleMediaChange(key)}
                                 onRemove={handleMediaRemove(key)}
                             />
@@ -307,7 +341,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                                     onClick={() => setFormParams({ ...formParams, [key]: !checked })}
                                     className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${checked ? 'bg-primary' : 'bg-surface border border-border'}`}
                                 >
-                                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${checked ? 'translate-x-4' : ''}`} />
+                                    <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-on-primary shadow transition-transform ${checked ? 'translate-x-4' : ''}`} />
                                 </button>
                                 <span className="text-sm font-medium text-slate-300">{label}</span>
                             </label>
@@ -393,7 +427,9 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         setScheduledTime(newDate.getTime());
     };
 
-    const timeValue = new Date(scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+    const timeValue = scheduledTime
+        ? new Date(scheduledTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
+        : '';
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Book Generation Slot" maxWidth="max-w-lg">
@@ -421,41 +457,66 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                     <div className="flex flex-col space-y-3">
                         <label className="text-sm font-medium text-slate-300 flex items-center gap-2">
                             <Clock size={14} className="text-primary" />
-                            Schedule Time
+                            When to run
                         </label>
-                        <div className="flex items-center space-x-2">
+                        {/* Segmented toggle — ASAP (no slot) vs a specific time. */}
+                        <div className="grid grid-cols-2 gap-1 bg-surface border border-border rounded-lg p-1">
                             <button
                                 type="button"
-                                onClick={() => adjustTime(-1)}
-                                className="p-2 rounded-lg bg-surface border border-border hover:bg-white/5 transition-colors text-muted hover:text-white"
+                                onClick={() => setScheduledTime(null)}
+                                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold transition-colors ${!scheduledTime ? 'bg-primary text-on-primary shadow' : 'text-muted hover:text-foreground'}`}
                             >
-                                <ChevronLeft size={20} />
+                                <Sparkles size={13} /> As soon as possible
                             </button>
-                            <div className="relative flex-1">
-                                <input
-                                    type="time"
-                                    value={timeValue}
-                                    onChange={handleTimeChange}
-                                    className="w-full bg-background border border-border rounded-lg p-2.5 text-white font-mono text-center focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
-                                />
-                            </div>
                             <button
                                 type="button"
-                                onClick={() => adjustTime(1)}
-                                className="p-2 rounded-lg bg-surface border border-border hover:bg-white/5 transition-colors text-muted hover:text-white"
+                                onClick={() => { if (!scheduledTime) setScheduledTime(Date.now()); }}
+                                className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-semibold transition-colors ${scheduledTime ? 'bg-primary text-on-primary shadow' : 'text-muted hover:text-foreground'}`}
                             >
-                                <ChevronRight size={20} />
+                                <Clock size={13} /> Pick a time
                             </button>
                         </div>
+                        {scheduledTime ? (
+                            <>
+                                <div className="flex items-center space-x-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => adjustTime(-1)}
+                                        className="p-2 rounded-lg bg-surface border border-border hover:bg-white/5 transition-colors text-muted hover:text-white"
+                                    >
+                                        <ChevronLeft size={20} />
+                                    </button>
+                                    <div className="relative flex-1">
+                                        <input
+                                            type="time"
+                                            value={timeValue}
+                                            onChange={handleTimeChange}
+                                            className="w-full bg-background border border-border rounded-lg p-2.5 text-white font-mono text-center focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                                        />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => adjustTime(1)}
+                                        className="p-2 rounded-lg bg-surface border border-border hover:bg-white/5 transition-colors text-muted hover:text-white"
+                                    >
+                                        <ChevronRight size={20} />
+                                    </button>
+                                </div>
 
-                        {isCollision ? (
-                            <div className="flex items-center gap-2 text-danger text-xs font-medium bg-danger/10 p-2.5 rounded-lg border border-danger/20 animate-in fade-in slide-in-from-top-1">
-                                <AlertTriangle size={14} />
-                                This time slot is already taken. Please choose another one.
-                            </div>
+                                {isCollision ? (
+                                    <div className="flex items-center gap-2 text-danger text-xs font-medium bg-danger/10 p-2.5 rounded-lg border border-danger/20 animate-in fade-in slide-in-from-top-1">
+                                        <AlertTriangle size={14} />
+                                        This time slot is already taken. Please choose another one.
+                                    </div>
+                                ) : (
+                                    <p className="text-[10px] text-muted uppercase tracking-wider font-semibold ml-1">
+                                        Slot is available
+                                    </p>
+                                )}
+                            </>
                         ) : (
-                            <p className="text-[10px] text-muted uppercase tracking-wider font-semibold ml-1">
-                                Slot is available
+                            <p className="text-[11px] text-muted ml-1">
+                                Runs as soon as the queue is free — the next open spot.
                             </p>
                         )}
                     </div>
@@ -482,7 +543,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                         icon={Sparkles}
                         disabled={isCollision || isUploading}
                     >
-                        {isUploading ? 'Uploading...' : 'Book Slot'}
+                        {isUploading ? 'Uploading...' : scheduledTime ? 'Book Slot' : 'Start ASAP'}
                     </Button>
                 </div>
             </form>

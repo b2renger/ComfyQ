@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react';
-import { Upload, X, Image as ImageIcon, Video as VideoIcon, Music, Loader2, AlertTriangle } from 'lucide-react';
+import { Upload, X, Image as ImageIcon, Video as VideoIcon, Music, Loader2, AlertTriangle, RotateCw } from 'lucide-react';
 import { resizeImageFile } from '../../utils/imageResize';
 
 // Default image bounding box when the workflow's exposedParameter doesn't
@@ -30,6 +30,7 @@ const MediaCaptureField = ({
     type,           // 'image' | 'video' | 'audio'
     maxInputEdge,   // optional; falls back to the 1920×1080 image box
     preview,        // dataURL string from parent's FileReader
+    recalledName,   // optional: display name of an asset reused from a prior job
     onChange,       // (file: File) => void
     onRemove        // () => void
 }) => {
@@ -138,10 +139,15 @@ const MediaCaptureField = ({
                         <div className="flex items-center gap-3 p-1">
                             <Music size={20} className="text-primary shrink-0" />
                             <audio src={preview} controls className="flex-1 min-w-0 h-9" />
+                            {recalledName && (
+                                <span className="text-[9px] font-semibold text-primary inline-flex items-center gap-1 shrink-0" title={recalledName}>
+                                    <RotateCw size={10} /> Reused
+                                </span>
+                            )}
                             <button
                                 type="button"
                                 onClick={() => { setError(''); onRemove(); }}
-                                className="p-1.5 rounded-full bg-danger text-white hover:scale-110 transition-transform shrink-0"
+                                className="p-1.5 rounded-full bg-danger text-on-primary hover:scale-110 transition-transform shrink-0"
                                 title="Remove and pick another"
                             >
                                 <X size={16} />
@@ -149,6 +155,11 @@ const MediaCaptureField = ({
                         </div>
                     ) : (
                         <div className="relative aspect-video rounded-lg overflow-hidden group/preview">
+                            {recalledName && (
+                                <span className="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-md bg-primary/90 text-on-primary text-[9px] font-semibold inline-flex items-center gap-1" title={recalledName}>
+                                    <RotateCw size={9} /> Reused
+                                </span>
+                            )}
                             {isVideo ? (
                                 <video src={preview} className="w-full h-full object-cover" muted loop autoPlay playsInline />
                             ) : (
@@ -158,7 +169,7 @@ const MediaCaptureField = ({
                                 <button
                                     type="button"
                                     onClick={() => { setError(''); onRemove(); }}
-                                    className="p-2 rounded-full bg-danger text-white hover:scale-110 transition-transform"
+                                    className="p-2 rounded-full bg-danger text-on-primary hover:scale-110 transition-transform"
                                     title="Remove and pick another"
                                 >
                                     <X size={20} />

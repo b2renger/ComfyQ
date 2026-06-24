@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box, Copy } from 'lucide-react';
+import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box, Copy, Check } from 'lucide-react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
+import { copyToClipboard } from '../utils/clipboard';
 import ModelViewer from './ui/ModelViewer';
 import SplatViewer from './ui/SplatViewer';
 import AudioPlayer from './ui/AudioPlayer';
@@ -38,6 +39,7 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
     const { workflowsById } = useSocket();
     // Gallery tab for 3D jobs that ship both a splat and a mesh (TripoSplat).
     const [view, setView] = useState('splat'); // 'splat' | 'mesh'
+    const [copied, setCopied] = useState(false); // transient "Copied!" feedback for text jobs
     if (!job) return null;
     const wf = workflowsById?.[job.workflow_id];
     const displayPrompt = getDisplayPrompt(job);
@@ -103,13 +105,13 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                         <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex rounded-lg overflow-hidden border border-white/10 bg-black/60 backdrop-blur-md text-xs">
                             <button
                                 onClick={() => setView('splat')}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${activeView === 'splat' ? 'bg-primary text-white' : 'text-white/70 hover:text-white'}`}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${activeView === 'splat' ? 'bg-primary text-on-primary' : 'text-white/70 hover:text-white'}`}
                             >
                                 <Sparkles size={12} /> Splat
                             </button>
                             <button
                                 onClick={() => setView('mesh')}
-                                className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${activeView === 'mesh' ? 'bg-primary text-white' : 'text-white/70 hover:text-white'}`}
+                                className={`flex items-center gap-1.5 px-3 py-1.5 transition-colors ${activeView === 'mesh' ? 'bg-primary text-on-primary' : 'text-white/70 hover:text-white'}`}
                             >
                                 <Box size={12} /> Mesh
                             </button>
@@ -135,8 +137,8 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                                 loop
                             />
                         ) : isTextJob ? (
-                            <div className="w-full h-full overflow-y-auto custom-scrollbar p-5 text-left">
-                                <p className="text-sm text-slate-100 leading-relaxed whitespace-pre-wrap">{jobText}</p>
+                            <div className="w-full h-full overflow-y-auto custom-scrollbar p-5 text-left bg-background">
+                                <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{jobText}</p>
                             </div>
                         ) : (
                             <img
@@ -279,10 +281,13 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                             <Button
                                 variant="primary"
                                 className="w-full"
-                                icon={Copy}
-                                onClick={() => { try { navigator.clipboard?.writeText(jobText); } catch { /* clipboard may be blocked */ } }}
+                                icon={copied ? Check : Copy}
+                                onClick={async () => {
+                                    const ok = await copyToClipboard(jobText);
+                                    if (ok) { setCopied(true); setTimeout(() => setCopied(false), 1500); }
+                                }}
                             >
-                                Copy text
+                                {copied ? 'Copied!' : 'Copy text'}
                             </Button>
                         ) : (
                             <Button

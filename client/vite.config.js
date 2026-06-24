@@ -44,6 +44,7 @@ export default defineConfig({
       '/jobs':         { target: BACKEND, changeOrigin: true, secure: false },
       '/upload':       { target: BACKEND, changeOrigin: true, secure: false },
       '/upload-image': { target: BACKEND, changeOrigin: true, secure: false },
+      '/input-media':  { target: BACKEND, changeOrigin: true, secure: false },
       '/media':        { target: BACKEND, changeOrigin: true, secure: false },
       '/images':       { target: BACKEND, changeOrigin: true, secure: false },
       '/download':     { target: BACKEND, changeOrigin: true, secure: false },

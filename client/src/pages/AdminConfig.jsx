@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import Modal from '../components/ui/Modal';
@@ -36,6 +36,8 @@ const AdminConfig = ({ currentMode }) => {
     const [emergencyStopping, setEmergencyStopping] = useState(false);
     const [pathChecks, setPathChecks] = useState(null);
     const [checkingPaths, setCheckingPaths] = useState(false);
+    const [drives, setDrives] = useState([]); // mounted Windows drive letters
+    const [detecting, setDetecting] = useState(false);
     const [comfyStatus, setComfyStatus] = useState(null);
     const [comfyBusy, setComfyBusy] = useState(false);
     const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
@@ -43,7 +45,7 @@ const AdminConfig = ({ currentMode }) => {
     const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
     const [clearingHistory, setClearingHistory] = useState(false);
 
-    useEffect(() => { reloadConfig(); reloadComfyStatus(); }, []);
+    useEffect(() => { reloadConfig(); reloadComfyStatus(); reloadDrives(); }, []);
 
     // Debounced password verification — hits the no-op /admin/verify-password
     // endpoint whenever the operator pauses typing, so the "Admin password is
@@ -127,6 +129,52 @@ const AdminConfig = ({ currentMode }) => {
             setPathChecks(null);
             showToast('Form reset to workshop defaults — click Save settings to apply');
         } catch (e) { showToast(e.message, 'err'); }
+    };
+
+    const reloadDrives = async () => {
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/drives`);
+            if (res.ok) setDrives((await res.json()).drives || []);
+        } catch { /* non-Windows or unreachable — drive picker just hides */ }
+    };
+
+    // Rewrite the drive letter on every absolute Windows path in the form at
+    // once (root / python / output / assets). Relative paths are left alone.
+    const applyDriveLetter = (letter) => {
+        if (!letter) return;
+        const swap = (p) => (typeof p === 'string' ? p.replace(/^[A-Za-z]:/, `${letter}:`) : p);
+        setPathDraft(prev => ({
+            ...prev,
+            root_path: swap(prev.root_path),
+            python_executable: swap(prev.python_executable),
+            output_dir: swap(prev.output_dir),
+            assets_dir: swap(prev.assets_dir),
+        }));
+        setPathChecks(null);
+        showToast(`Switched all absolute paths to ${letter}:\\ — click Save settings to apply`);
+    };
+
+    // Ask the server to scan local drives for a ComfyUI install and drop the
+    // detected paths into the form.
+    const autodetectPaths = async () => {
+        setDetecting(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/autodetect-paths`, { method: 'POST', headers: adminHeaders() });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Auto-detect failed');
+            if (!data.found) { showToast('No ComfyUI install found on local drives — set the path manually', 'err'); return; }
+            setPathDraft(prev => ({
+                ...prev,
+                root_path: data.root_path,
+                python_executable: data.python_executable,
+                output_dir: data.output_dir,
+                installation_type: data.installation_type || prev.installation_type,
+                ...(data.assets_dir ? { assets_dir: data.assets_dir } : {}),
+            }));
+            setPathChecks(null);
+            showToast(`Found ComfyUI at ${data.root_path} — review and Save settings`);
+        } catch (e) { showToast(e.message, 'err'); }
+        finally { setDetecting(false); }
     };
 
     const checkPaths = async () => {
@@ -357,6 +405,9 @@ const AdminConfig = ({ currentMode }) => {
     }
 
     const pathsConfigured = !!(config?.comfy_ui?.root_path && config?.comfy_ui?.python_executable);
+    const currentDrive = (pathDraft.root_path || '').match(/^([A-Za-z]):/)?.[1]?.toUpperCase() || '';
+    // Always include the currently-configured drive even if it isn't mounted now.
+    const driveOptions = Array.from(new Set([currentDrive, ...drives].filter(Boolean)));
 
     return (
         <div className="min-h-screen bg-background text-foreground p-4 sm:p-8 space-y-6">
@@ -421,6 +472,20 @@ const AdminConfig = ({ currentMode }) => {
                     <h2 className="text-lg font-semibold flex items-center gap-2"><Settings size={18} /> ComfyUI Settings</h2>
                     {pathsConfigured && <Badge variant="success">Configured</Badge>}
                 </div>
+                {driveOptions.length > 0 && (
+                    <div className="mb-4 flex items-center gap-2 flex-wrap rounded-lg border border-border bg-surface/40 p-3">
+                        <HardDrive size={16} className="text-primary shrink-0" />
+                        <span className="text-sm font-medium">Drive letter</span>
+                        <select
+                            value={currentDrive}
+                            onChange={(e) => applyDriveLetter(e.target.value)}
+                            className="bg-background border border-border rounded-md px-2 py-1.5 text-sm text-white"
+                        >
+                            {driveOptions.map(d => <option key={d} value={d}>{d}:\</option>)}
+                        </select>
+                        <span className="text-xs text-muted">Swaps the drive on every absolute path below at once — handy when this machine cloned the drive to a different letter.</span>
+                    </div>
+                )}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Field label="ComfyUI root path" value={pathDraft.root_path || ''}
                         onChange={v => setPathDraft({ ...pathDraft, root_path: v })}
@@ -499,7 +564,10 @@ const AdminConfig = ({ currentMode }) => {
                         </ul>
                     </div>
                 )}
-                <div className="mt-4 flex justify-end gap-2">
+                <div className="mt-4 flex flex-wrap justify-end gap-2">
+                    <Button variant="ghost" icon={ScanSearch} disabled={detecting} onClick={autodetectPaths}>
+                        {detecting ? 'Detecting…' : 'Auto-detect'}
+                    </Button>
                     <Button variant="ghost" icon={RotateCcw} onClick={resetPathsToDefaults}>
                         Reset to defaults
                     </Button>

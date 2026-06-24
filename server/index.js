@@ -139,6 +139,32 @@ function exitForRestart(nextMode) {
 async function main() {
     console.log('[ComfyQ] starting…');
     const { config: rawConfig } = configManager.load();
+
+    // Auto-detect ComfyUI on boot when the configured root isn't a real ComfyUI
+    // dir (e.g. the workshop drive was cloned to a different letter, or it's a
+    // fresh clone). Only runs when the path is missing/invalid, so it never
+    // overrides a working config — keeps `npm run dev` working with no manual
+    // reconfiguration.
+    try {
+        const root = rawConfig.comfy_ui?.root_path;
+        const rootOk = root && fs.existsSync(path.join(root, 'main.py'));
+        if (!rootOk) {
+            const detected = configManager.detectComfyPaths();
+            if (detected) {
+                console.log(`[ComfyQ] Auto-detected ComfyUI at ${detected.root_path}`);
+                rawConfig.comfy_ui.root_path = detected.root_path;
+                rawConfig.comfy_ui.python_executable = detected.python_executable;
+                rawConfig.comfy_ui.output_dir = detected.output_dir;
+                rawConfig.comfy_ui.installation_type = detected.installation_type;
+                if (detected.assets_dir) { rawConfig.assets = rawConfig.assets || {}; rawConfig.assets.dir = detected.assets_dir; }
+                configManager.save(rawConfig);
+            } else if (root) {
+                console.log(`[ComfyQ] configured ComfyUI root has no main.py (${root}) and none was auto-detected — set it in the admin UI.`);
+            }
+        }
+    } catch (e) {
+        console.warn('[ComfyQ] ComfyUI auto-detect failed:', e.message);
+    }
     // "Always start in admin." config.mode persists the *running* mode (so the
     // admin UI reports reality) but never decides the boot: student mode is
     // entered only via the one-shot flag /activate-workflow drops. Resolve the

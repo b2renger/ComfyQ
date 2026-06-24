@@ -37,6 +37,14 @@
        dark without sweeping 150+ `text-white` usages. New code
        should prefer `text-foreground` for clarity. */
     --color-white: var(--text);
+
+    /* Genuinely-light foreground for text/icons that sit on a SOLID
+       accent fill (primary buttons, active tabs, the toggle knob). These
+       must stay light in light mode too — `text-white` can't be used there
+       because the compat override above remaps it to the dark foreground,
+       which made primary buttons dark-on-dark. `primary` is a mid/dark grey
+       in both modes, so a constant light works for both. */
+    --color-on-primary: #fafafa;
 }
 
 /* Dark mode is the original look — keeping the previously-shipped

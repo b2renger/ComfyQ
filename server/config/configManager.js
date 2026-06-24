@@ -96,6 +96,58 @@ function setActiveWorkflow(workflowId) {
     return update(c => { c.workflows.activeWorkflowId = workflowId; return c; });
 }
 
+// Best-effort auto-detection of a local ComfyUI install (Windows). Scans mounted
+// drives for the portable layout — a directory containing main.py, ideally with a
+// sibling python_embeded\python.exe. Returns { root_path, python_executable,
+// output_dir, assets_dir, installation_type } for the first match, or null.
+// Bounded: a readdir per drive + a handful of existsSync — no deep filesystem walk.
+function detectComfyPaths() {
+    if (process.platform !== 'win32') return null;
+    const exists = (p) => { try { return fs.existsSync(p); } catch { return false; } };
+
+    const drives = [];
+    for (let c = 67; c <= 90; c++) {                 // C..Z (skip floppy A/B)
+        const letter = String.fromCharCode(c);
+        if (exists(`${letter}:\\`)) drives.push(letter);
+    }
+
+    for (const drive of drives) {
+        const candidates = [
+            `${drive}:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI`,
+            `${drive}:\\ComfyUI_windows_portable\\ComfyUI`,
+            `${drive}:\\ComfyUI\\ComfyUI`,
+            `${drive}:\\ComfyUI`,
+        ];
+        // Plus a shallow scan of the drive root for any ComfyUI* folder.
+        try {
+            for (const name of fs.readdirSync(`${drive}:\\`)) {
+                if (!/comfyui/i.test(name)) continue;
+                const base = path.join(`${drive}:\\`, name);
+                candidates.push(
+                    path.join(base, 'ComfyUI_windows_portable', 'ComfyUI'),
+                    path.join(base, 'ComfyUI'),
+                    base,
+                );
+            }
+        } catch { /* unreadable drive (empty CD, disconnected) — skip */ }
+
+        for (const root of candidates) {
+            if (!exists(path.join(root, 'main.py'))) continue;
+            const portablePy = path.resolve(root, '..', 'python_embeded', 'python.exe');
+            const hasPortablePy = exists(portablePy);
+            const assets = `${drive}:\\_assets`;
+            return {
+                root_path: root,
+                python_executable: hasPortablePy ? portablePy : 'python',
+                output_dir: path.join(root, 'output'),
+                assets_dir: exists(assets) ? assets : '',
+                installation_type: hasPortablePy ? 'portable' : 'system',
+            };
+        }
+    }
+    return null;
+}
+
 // Resolve all relative paths to absolute, given a (validated) config.
 function resolvePaths(config) {
     const out = JSON.parse(JSON.stringify(config));
@@ -131,5 +183,6 @@ module.exports = {
     setMode,
     setActiveWorkflow,
     resolvePaths,
-    defaultConfig
+    defaultConfig,
+    detectComfyPaths
 };

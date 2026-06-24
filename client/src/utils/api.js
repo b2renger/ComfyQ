@@ -18,6 +18,9 @@ export const SERVER_URL = getServerUrl();
 // Helper functions for constructing URLs
 export const getImageUrl = (filename) => `${SERVER_URL}/images/${filename}`;
 export const getDownloadUrl = (filename) => `${SERVER_URL}/download/${filename}`;
+// Serve a user-uploaded INPUT file (ComfyUI/input/comfyq_*) — used to preview
+// an asset reused from a prior job in "Use these settings".
+export const getInputUrl = (filename) => `${SERVER_URL}/input-media/${encodeURIComponent(filename)}`;
 
 // Media type helpers
 const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];

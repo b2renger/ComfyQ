@@ -75,8 +75,17 @@ class RealtimeBus {
                     if (!entry || entry.unavailable) throw new Error(`Workflow unavailable: ${entry?.reason || wfId}`);
 
                     const duration = (entry.summary?.estimatedDurationSec || entry.meta.estimatedDurationSec) * 1000;
-                    const collisions = this.queue.findCollisions(scheduledTime, duration);
-                    if (collisions.length > 0) throw new Error('Time slot collision detected');
+                    // No slot picked (or a stale/past time) → run ASAP: drop the
+                    // job into the earliest free slot after whatever's pending,
+                    // instead of rejecting it on a collision. An explicit future
+                    // slot still gets the normal collision guard.
+                    let scheduledAt = scheduledTime;
+                    if (!scheduledAt || scheduledAt < Date.now()) {
+                        scheduledAt = this.queue.nextFreeSlot(Date.now(), duration);
+                    } else {
+                        const collisions = this.queue.findCollisions(scheduledAt, duration);
+                        if (collisions.length > 0) throw new Error('Time slot collision detected');
+                    }
 
                     // Stitch prompt into paramValues so the worker materializer
                     // doesn't have to special-case it. If a parameter exists
@@ -96,7 +105,7 @@ class RealtimeBus {
                         userId,
                         workflowId: wfId,
                         workflowVersion: entry.meta.version,
-                        scheduledAt: scheduledTime,
+                        scheduledAt,
                         prompt: prompt || '',
                         paramValues,
                         createdBy: socket.id

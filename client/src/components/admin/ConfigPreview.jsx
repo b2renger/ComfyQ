@@ -105,7 +105,7 @@ const ConfigPreview = ({ parameters }) => {
                 <button disabled className="px-4 py-2 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition-colors">
                     Cancel
                 </button>
-                <button disabled className="px-6 py-2 rounded-lg text-sm font-medium bg-primary text-white shadow-lg shadow-primary/20">
+                <button disabled className="px-6 py-2 rounded-lg text-sm font-medium bg-primary text-on-primary shadow-lg shadow-primary/20">
                     Confirm Booking
                 </button>
             </div>

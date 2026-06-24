@@ -94,7 +94,7 @@ const WorkflowUpload = ({ onUploadSuccess }) => {
                 <div className="flex flex-col items-center text-center space-y-6">
                     <div className={`
                         p-6 rounded-full transition-all duration-500
-                        ${isDragging ? 'bg-primary text-white shadow-lg shadow-primary/30' : 'bg-surface border border-white/10 text-slate-400 group-hover:text-primary group-hover:border-primary/30'}
+                        ${isDragging ? 'bg-primary text-on-primary shadow-lg shadow-primary/30' : 'bg-surface border border-white/10 text-slate-400 group-hover:text-primary group-hover:border-primary/30'}
                     `}>
                         {isUploading ? (
                             <Upload className="animate-bounce" size={40} />

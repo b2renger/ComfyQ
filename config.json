@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "mode": "admin",
+  "mode": "student",
   "server": {
     "port": 3000,
     "host": "0.0.0.0"
@@ -26,7 +26,7 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "video_bernini_r_video_editing_with_reference"
+    "activeWorkflowId": "llm_gemma4_image_description"
   },
   "assets": {
     "dir": "J:\\_assets"

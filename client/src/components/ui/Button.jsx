@@ -12,7 +12,7 @@ const Button = ({
     const baseStyles = 'inline-flex items-center justify-center font-medium transition-all duration-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50 disabled:cursor-not-allowed';
 
     const variants = {
-        primary: 'bg-primary hover:bg-primary-hover text-white shadow-lg shadow-primary/20',
+        primary: 'bg-primary hover:bg-primary-hover text-on-primary shadow-lg shadow-primary/20',
         secondary: 'bg-surface hover:bg-border text-white border border-border',
         ghost: 'bg-transparent hover:bg-white/5 text-muted hover:text-white',
         danger: 'bg-danger/10 text-danger hover:bg-danger/20 border border-danger/20',

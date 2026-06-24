@@ -66,8 +66,9 @@ const SchedulerPage = () => {
 
     const reuseJob = (job) => {
         setPrefillParams(job.params || {});
-        // Find the next un-collided slot at or after now.
-        setBookingTime(Date.now());
+        // No slot picked → run ASAP (null time). The server drops it into the
+        // next free slot in the queue.
+        setBookingTime(null);
         setIsBookingOpen(true);
     };
 
@@ -289,7 +290,9 @@ const SchedulerPage = () => {
                             size="lg"
                             icon={Sparkles}
                             onClick={() => {
-                                setBookingTime(Date.now());
+                                // No slot → ASAP (null). Double-clicking the timeline
+                                // still books an explicit slot.
+                                setBookingTime(null);
                                 setIsBookingOpen(true);
                             }}
                             className="shadow-lg shadow-primary/20"
@@ -347,7 +350,7 @@ const SchedulerPage = () => {
                     onClose={() => { setIsBookingOpen(false); setPrefillParams(null); }}
                     initialTime={bookingTime}
                     initialParams={prefillParams}
-                    onConfirm={({ prompt, params, time }) => bookJob(time || bookingTime, prompt, params)}
+                    onConfirm={({ prompt, params, time }) => bookJob(time, prompt, params)}
                 />
 
                 <ImageLightbox
@@ -362,13 +365,13 @@ const SchedulerPage = () => {
                         <div className="flex items-center gap-1 bg-surface rounded-lg p-1 border border-border">
                             <button
                                 onClick={() => setActiveTab('mine')}
-                                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'mine' ? 'bg-primary text-white shadow' : 'text-muted hover:text-white'}`}
+                                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'mine' ? 'bg-primary text-on-primary shadow' : 'text-muted hover:text-white'}`}
                             >
                                 My Generations
                             </button>
                             <button
                                 onClick={() => setActiveTab('all')}
-                                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'all' ? 'bg-primary text-white shadow' : 'text-muted hover:text-white'}`}
+                                className={`px-3 py-1.5 rounded-md text-xs font-semibold uppercase tracking-wider transition-colors ${activeTab === 'all' ? 'bg-primary text-on-primary shadow' : 'text-muted hover:text-white'}`}
                             >
                                 All Jobs
                             </button>
@@ -441,7 +444,7 @@ const SchedulerPage = () => {
                                         ? `No jobs match "${searchQuery}"`
                                         : activeTab === 'mine' ? "You haven't generated anything yet" : 'No jobs match this filter'}
                                 </p>
-                                {activeTab === 'mine' && !q && <Button variant="ghost" onClick={() => setIsBookingOpen(true)}>Book your first slot</Button>}
+                                {activeTab === 'mine' && !q && <Button variant="ghost" onClick={() => { setBookingTime(null); setIsBookingOpen(true); }}>Book your first slot</Button>}
                             </div>
                         ) : (
                             filtered.sort((a, b) => b.time_slot - a.time_slot).map((job) => (
@@ -489,7 +492,7 @@ const SchedulerPage = () => {
                                                                 e.stopPropagation();
                                                                 setPendingAction({ jobId: job.id, kind, isMine, title, message, userId: job.user_id });
                                                             }}
-                                                            className="p-1.5 bg-danger/10 text-danger hover:bg-danger hover:text-white transition-colors rounded-bl-lg border-l border-b border-danger/20"
+                                                            className="p-1.5 bg-danger/10 text-danger hover:bg-danger hover:text-on-primary transition-colors rounded-bl-lg border-l border-b border-danger/20"
                                                             title={isMine ? title : `${title} (admin password required)`}
                                                         >
                                                             <X size={12} />

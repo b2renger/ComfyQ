@@ -146,9 +146,31 @@ class JobQueue {
 
     findReady(now = Date.now()) {
         const r = this.db.prepare(`
-            SELECT * FROM jobs WHERE status = ? AND scheduled_at <= ? ORDER BY scheduled_at ASC LIMIT 1
+            SELECT * FROM jobs WHERE status = ? AND scheduled_at <= ?
+            ORDER BY scheduled_at ASC, created_at ASC LIMIT 1
         `).get(sm.STATES.SCHEDULED, now);
         return rowToJob(r);
+    }
+
+    // Earliest time >= `from` at which a job of `durationMs` doesn't overlap any
+    // active (scheduled / in-flight) job — used for "ASAP" bookings where the
+    // user picked no slot. Greedy: active jobs are walked in start order and `t`
+    // is pushed past any it collides with (mirrors findCollisions' single-
+    // duration model). The executor still serializes execution; this just keeps
+    // the timeline non-overlapping and the job queued right after what's pending.
+    nextFreeSlot(from = Date.now(), durationMs = 0) {
+        const rows = this.db.prepare(`
+            SELECT scheduled_at FROM jobs
+            WHERE status NOT IN ('failed', 'cancelled', 'completed')
+            ORDER BY scheduled_at ASC
+        `).all();
+        let t = from;
+        for (const r of rows) {
+            const start = r.scheduled_at;
+            const end = start + durationMs;
+            if (t < end && (t + durationMs) > start) t = end;
+        }
+        return t;
     }
 
     findCollisions(scheduledAt, durationMs, excludeJobId = null) {

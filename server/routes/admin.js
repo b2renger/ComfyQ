@@ -100,6 +100,28 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         });
     });
 
+    // List mounted drive letters (Windows) so the admin UI can offer a one-click
+    // "swap the drive letter on every path" — the common case when a workshop
+    // machine cloned the drive to a different letter. Read-only.
+    router.get('/drives', (req, res) => {
+        const drives = [];
+        if (process.platform === 'win32') {
+            for (let c = 67; c <= 90; c++) {                 // C..Z
+                const letter = String.fromCharCode(c);
+                try { if (fs.existsSync(`${letter}:\\`)) drives.push(letter); } catch { /* skip */ }
+            }
+        }
+        res.json({ drives });
+    });
+
+    // Auto-detect a local ComfyUI install and return the paths for the admin
+    // UI's "Auto-detect" button to drop into the form. Read-only (doesn't save).
+    router.post('/autodetect-paths', (req, res) => {
+        const detected = configManager.detectComfyPaths();
+        if (!detected) return res.json({ found: false });
+        res.json({ found: true, ...detected });
+    });
+
     // --- ComfyUI network backend (admin "Launch ComfyUI" button) ---
     // Spawn (or reuse) a ComfyUI bound to 0.0.0.0 so its native web UI is
     // reachable on the LAN. Admin-mode only — in student mode ComfyUI already

@@ -148,6 +148,18 @@ function makeRouter({ comfyConfig }) {
     // Backward compat with v1 client (still hits /upload-image).
     router.post('/upload-image', runUpload('image'), handleUpload);
 
+    // Serve a previously-uploaded INPUT file back to the client so "Use these
+    // settings" can preview/play the reused asset. Restricted to ComfyQ's own
+    // uploads (the `comfyq_` prefix) and pinned inside the input dir — never a
+    // path-traversal vector or a way to read arbitrary ComfyUI inputs.
+    router.get('/input-media/:filename', (req, res) => {
+        const name = path.basename(req.params.filename || '');
+        if (!name.startsWith('comfyq_')) return res.status(404).end();
+        const full = path.join(inputDir, name);
+        if (!full.startsWith(inputDir + path.sep) || !fs.existsSync(full)) return res.status(404).end();
+        res.sendFile(full);
+    });
+
     return router;
 }
 
