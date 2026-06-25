@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     Image, Video, Wand2, Music, Box, LayoutGrid, List,
     RefreshCw, ChevronRight, Sparkles, Clock, Tag,
-    Pencil, Trash2, Gauge, Cpu, FileText, Wrench
+    Pencil, Trash2, Gauge, Cpu, FileText, Wrench, Search, X
 } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
@@ -45,6 +45,7 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
     const [error, setError] = useState(null);
     const [viewMode, setViewMode] = useState('grid');
     const [selectedGroup, setSelectedGroup] = useState('all');
+    const [query, setQuery] = useState('');
     const [selectedWorkflow, setSelectedWorkflow] = useState(null);
 
     const categoryIcons = {
@@ -106,10 +107,21 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
     };
 
     const usable = workflows.filter(w => !w.unavailable);
-    const filtered = selectedGroup === 'all' ? usable : usable.filter(w => groupOf(w.category) === selectedGroup);
-    // Only show chips for groups that actually have a usable workflow, with counts.
+    // Keyword search: every whitespace-separated term must appear somewhere in
+    // the name / description / tags / category / id (AND match). Runs before the
+    // group filter so the chip counts reflect the current search.
+    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    const matchesQuery = (w) => {
+        if (terms.length === 0) return true;
+        const hay = [w.name, w.description, w.category, w.id, ...(w.tags || [])]
+            .filter(Boolean).join(' ').toLowerCase();
+        return terms.every(t => hay.includes(t));
+    };
+    const searched = usable.filter(matchesQuery);
+    const filtered = selectedGroup === 'all' ? searched : searched.filter(w => groupOf(w.category) === selectedGroup);
+    // Only show chips for groups that have a match under the current search, with counts.
     const availableGroups = GROUPS
-        .map(g => ({ ...g, count: usable.filter(w => groupOf(w.category) === g.key).length }))
+        .map(g => ({ ...g, count: searched.filter(w => groupOf(w.category) === g.key).length }))
         .filter(g => g.count > 0);
 
     if (loading) {
@@ -165,9 +177,31 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                 </div>
             </div>
 
+            {/* Keyword search */}
+            <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none" />
+                <input
+                    type="text"
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    placeholder="Search workflows by name, tag, or description…"
+                    className="w-full bg-surface border border-border rounded-lg pl-9 pr-9 py-2 text-sm text-foreground placeholder:text-muted focus:ring-2 focus:ring-primary/40 focus:border-primary outline-none transition-all"
+                />
+                {query && (
+                    <button
+                        type="button"
+                        onClick={() => setQuery('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 rounded text-muted hover:text-foreground transition-colors"
+                        title="Clear search"
+                    >
+                        <X size={14} />
+                    </button>
+                )}
+            </div>
+
             {/* Filter by type of workflow */}
             <div className="flex flex-wrap items-center gap-2">
-                {[{ key: 'all', label: 'All', icon: Sparkles, count: usable.length }, ...availableGroups].map(g => {
+                {[{ key: 'all', label: 'All', icon: Sparkles, count: searched.length }, ...availableGroups].map(g => {
                     const Icon = g.icon;
                     const active = selectedGroup === g.key;
                     return (
@@ -187,6 +221,23 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                 })}
             </div>
 
+            {filtered.length === 0 ? (
+                <div className="text-center py-10 text-muted">
+                    <Search className="w-8 h-8 mx-auto mb-3 opacity-50" />
+                    <p className="text-sm">
+                        No workflows match{query ? <> “<span className="text-foreground">{query.trim()}</span>”</> : ''}
+                        {selectedGroup !== 'all' ? ' in this category' : ''}.
+                    </p>
+                    {(query || selectedGroup !== 'all') && (
+                        <button
+                            onClick={() => { setQuery(''); setSelectedGroup('all'); }}
+                            className="mt-3 text-primary text-sm hover:underline"
+                        >
+                            Clear filters
+                        </button>
+                    )}
+                </div>
+            ) : (
             <div className={viewMode === 'grid'
                 ? 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4'
                 : 'space-y-2'}>
@@ -275,6 +326,7 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                     );
                 })}
             </div>
+            )}
 
             {selectedWorkflow && selectedWorkflow.metadata?.presets && Object.keys(selectedWorkflow.metadata.presets).length > 0 && (
                 <Card className="mt-4 border-primary/30">

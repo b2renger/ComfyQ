@@ -5,6 +5,12 @@ import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronR
 import { useSocket } from '../context/SocketContext';
 import { SERVER_URL, getInputUrl } from '../utils/api';
 import MediaCaptureField from './capture/MediaCaptureField';
+import MaskDrawField from './capture/MaskDrawField';
+
+// Param types whose value is an uploaded file (handled via mediaFiles + /upload
+// + recall), as opposed to a plain form value. 'mask' is an image the user
+// paints in-browser (MaskDrawField) but is otherwise an image upload.
+const MEDIA_TYPES = ['image', 'video', 'audio', 'mask'];
 
 /**
  * Booking Dialog Component
@@ -97,7 +103,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         const recalledM = {};
         Object.entries(wf.parameter_map).forEach(([key, config]) => {
             const recalled = initialParams?.[key];
-            const isMedia = ['image', 'video', 'audio'].includes(config.type);
+            const isMedia = MEDIA_TYPES.includes(config.type);
             if (isMedia) {
                 // Recall path for media: reuse the asset the recalled job used.
                 // Its uploaded filename is still in ComfyUI/input (session uploads
@@ -164,7 +170,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
 
         // Check for required media uploads (image, video, or audio)
         const mediaParams = Object.entries(state.workflow?.parameter_map || {})
-            .filter(([k, v]) => v.type === 'image' || v.type === 'video' || v.type === 'audio');
+            .filter(([, v]) => MEDIA_TYPES.includes(v.type));
         const missingMedia = mediaParams.filter(([key]) => !mediaFiles[key] && !recalledMedia[key]);
 
         if (isCollision || isUploading || missingMedia.length > 0) return;
@@ -290,6 +296,25 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                     const dw = config.disabledWhen;
                     const disabled = !!dw && formParams[dw.param] === dw.equals;
                     const ctrlLabel = dw && (state.workflow.parameter_map[dw.param]?.label || 'the toggle above');
+
+                    // Mask input — the user paints a region on an uploaded
+                    // image; MaskDrawField composites it into an RGBA PNG and
+                    // hands that File up the SAME path as a normal upload (it
+                    // stashes into mediaFiles and is POSTed on submit).
+                    if (type === 'mask') {
+                        return (
+                            <MaskDrawField
+                                key={key}
+                                paramKey={key}
+                                label={label}
+                                maxInputEdge={config.maxInputEdge}
+                                preview={mediaPreviews[key]}
+                                recalledName={recalledMedia[key] ? prettyInputName(recalledMedia[key]) : null}
+                                onChange={handleMediaChange(key)}
+                                onRemove={handleMediaRemove(key)}
+                            />
+                        );
+                    }
 
                     // Image / video input — delegated to MediaCaptureField,
                     // which renders the file-upload widget (click + drag-and-

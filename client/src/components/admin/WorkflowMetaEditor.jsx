@@ -16,7 +16,7 @@ const CATEGORIES = [
     { value: 'other', label: 'Other' }
 ];
 
-const PARAM_TYPES = ['text', 'textarea', 'number', 'select', 'checkbox', 'image', 'video', 'audio'];
+const PARAM_TYPES = ['text', 'textarea', 'number', 'select', 'checkbox', 'image', 'video', 'audio', 'mask'];
 
 // Field names that are usually infrastructure, not student-facing.
 const INFRASTRUCTURE_FIELDS = new Set([
@@ -124,7 +124,7 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                     step: p.step,
                     // Only persisted when set on image/video params. Stored as
                     // an int; the schema rejects 0/negatives.
-                    maxInputEdge: (p.type === 'image' || p.type === 'video') && p.maxInputEdge
+                    maxInputEdge: (p.type === 'image' || p.type === 'video' || p.type === 'mask') && p.maxInputEdge
                         ? Math.max(1, parseInt(p.maxInputEdge, 10))
                         : undefined,
                     required: p.required ?? false,
@@ -330,20 +330,20 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                                                             <NumField label="step" value={p.step} onChange={v => updateParam(idx, { step: v })} />
                                                         </div>
                                                     )}
-                                                    {(p.type === 'image' || p.type === 'video') && p.enabled && (
+                                                    {(p.type === 'image' || p.type === 'video' || p.type === 'mask') && p.enabled && (
                                                         <div className="md:col-span-12 space-y-1">
                                                             <label className="text-[10px] uppercase tracking-wider text-muted font-semibold">
                                                                 Max input edge (px)
                                                             </label>
                                                             <input type="number" min="64" step="64"
-                                                                placeholder={p.type === 'image' ? '1024 (default)' : '1280 (default)'}
+                                                                placeholder={p.type === 'video' ? '1280 (default)' : '1024 (default)'}
                                                                 value={p.maxInputEdge ?? ''}
                                                                 onChange={e => updateParam(idx, {
                                                                     maxInputEdge: e.target.value === '' ? undefined : parseInt(e.target.value, 10)
                                                                 })}
                                                                 className="w-full bg-background border border-border rounded px-2 py-1.5 text-sm text-white" />
                                                             <p className="text-[10px] text-muted leading-snug">
-                                                                Client downsizes the longer edge to this many pixels before upload — saves LAN bandwidth and matches the workflow's working resolution. Leave blank to use the {p.type === 'image' ? '1024' : '1280'}px default. Aspect ratio is preserved; never upscales.
+                                                                Client downsizes the longer edge to this many pixels before upload — saves LAN bandwidth and matches the workflow's working resolution. Leave blank to use the {p.type === 'video' ? '1280' : '1024'}px default. Aspect ratio is preserved; never upscales.
                                                             </p>
                                                         </div>
                                                     )}

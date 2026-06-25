@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "id": "image_flux2_inpaint_with_reference",
+  "name": "Flux.2 inpainting — paint a mask + reference image",
+  "description": "Replace part of an image with the help of a second reference image. Upload the picture you want to change, paint over the area to replace, upload a reference image (the look, subject, or object to bring in), and type a short instruction — Flux.2 Klein regenerates only the painted region, guided by the reference and your prompt, and blends it back into the original.\n\n• **Paint the mask**: brush over the region you want the model to redo. Only the painted area changes; everything else is kept.\n• **Reference image**: the object/subject/style to insert (e.g. a pair of sunglasses, a new background).\n• **What to put there**: a short instruction describing the result.\n\nRuns fast (4-step distilled Klein model).",
+  "category": "image-edit",
+  "tags": [
+    "flux",
+    "flux2",
+    "klein",
+    "inpaint",
+    "inpainting",
+    "mask",
+    "reference",
+    "image-edit"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_flux2_inpaint_with_reference.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      { "type": "unet", "file": "flux-2-klein-9b-fp8.safetensors" },
+      { "type": "clip", "file": "qwen_3_8b_fp8mixed.safetensors" },
+      { "type": "vae", "file": "flux2-vae.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 45,
+  "maxRuntimeSec": 600,
+  "exposedParameters": [
+    {
+      "key": "source_image_76",
+      "nodeId": "76",
+      "field": "image",
+      "type": "mask",
+      "label": "Image to edit — paint the area to replace",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "reference_image_105",
+      "nodeId": "105",
+      "field": "image",
+      "type": "image",
+      "label": "Reference image",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "prompt_75_74",
+      "nodeId": "75:74",
+      "field": "text",
+      "type": "textarea",
+      "label": "What to put in the masked area",
+      "default": "Add the reference image's subject into the masked area, matching the lighting and perspective.",
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "seed_75_73",
+      "nodeId": "75:73",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 3
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

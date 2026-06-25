@@ -1,6 +1,6 @@
 {
   "schemaVersion": 2,
-  "mode": "student",
+  "mode": "admin",
   "server": {
     "port": 3000,
     "host": "0.0.0.0"
@@ -26,7 +26,7 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "llm_gemma4_image_description"
+    "activeWorkflowId": "image_flux2_inpaint"
   },
   "assets": {
     "dir": "J:\\_assets"

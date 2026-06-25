@@ -26,6 +26,7 @@ function isPrimitive(v) {
 
 function inferType(field, value) {
     const f = field.toLowerCase();
+    if (f.includes('mask')) return 'mask';
     if (f.includes('image')) return 'image';
     if (f.includes('video')) return 'video';
     if (f.includes('audio')) return 'audio';
@@ -78,7 +79,7 @@ function parseWorkflow(apiWorkflow) {
                 label: humanizeLabel(field, nodeTitle),
                 default: value,
                 options: COMMON_OPTIONS[field],
-                required: ['image', 'video', 'audio'].includes(type),
+                required: ['image', 'video', 'audio', 'mask'].includes(type),
                 order: order++
             });
         }

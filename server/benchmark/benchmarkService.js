@@ -18,6 +18,11 @@ const CALIBRATION_IMAGE_NAME = '__comfyq_calibration.png';
 // some LoadImage builds choke on). Videos/audio are real container formats.
 const ASSET_EXTS = {
     image: ['.png', '.jpg', '.jpeg'],
+    // A 'mask' input is a painted base image (RGBA PNG); for calibration we
+    // stage a plain image just like 'image' — a file without an alpha channel
+    // yields an empty mask, which inpaints nothing but still runs the full
+    // sampler, so the timing is valid.
+    mask: ['.png', '.jpg', '.jpeg'],
     video: ['.mp4', '.webm', '.mov', '.mkv', '.avi'],
     audio: ['.mp3', '.wav', '.flac', '.ogg', '.m4a', '.aac']
 };
@@ -109,7 +114,7 @@ class BenchmarkService {
         }
         if (cands.length === 0) return null;
         cands.sort((a, b) => a.size - b.size);
-        if (type === 'image') {
+        if (type === 'image' || type === 'mask') {
             // Median of the above-floor images → a "typical" photo rather than a
             // tiny icon/line-drawing (degenerate for 3D / multi-view) or a huge
             // file (slow upload). Falls back to all candidates if none clear the
@@ -129,7 +134,7 @@ class BenchmarkService {
         const paramValues = { ...(entry.meta.warmupParams || {}) };
         for (const p of entry.effective.exposedParameters) {
             if (paramValues[p.key] !== undefined && paramValues[p.key] !== '') continue;
-            if (p.type !== 'image' && p.type !== 'video' && p.type !== 'audio') continue;
+            if (!['image', 'video', 'audio', 'mask'].includes(p.type)) continue;
             const asset = this._resolveAsset(p.type);
             if (asset) {
                 const rec = this.worker.uploader.copy({
@@ -138,9 +143,9 @@ class BenchmarkService {
                 });
                 paramValues[p.key] = rec.comfyFilename;
                 console.log(`[Benchmark]   ${p.type} input "${p.key}" ← ${path.basename(asset)}`);
-            } else if (p.type === 'image') {
+            } else if (p.type === 'image' || p.type === 'mask') {
                 paramValues[p.key] = this._ensureCalibrationImage();
-                console.log(`[Benchmark]   image input "${p.key}" ← built-in reference PNG (no asset found)`);
+                console.log(`[Benchmark]   ${p.type} input "${p.key}" ← built-in reference PNG (no asset found)`);
             } else {
                 throw new Error(`Cannot calibrate: no ${p.type} asset available for input "${p.key}". Add a ${p.type} file to the assets dir (${this.assetsDir || 'not configured'}) or set meta.warmupParams.`);
             }

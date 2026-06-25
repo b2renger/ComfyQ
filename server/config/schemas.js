@@ -2,7 +2,13 @@ const { z } = require('zod');
 
 const ParamType = z.enum([
     'text', 'textarea', 'number', 'select', 'checkbox',
-    'image', 'video', 'audio'
+    'image', 'video', 'audio',
+    // 'mask' is an image input whose widget lets the user PAINT a mask onto a
+    // base image instead of uploading a finished file. The wire value is still
+    // a plain image filename (an RGBA PNG with the painted region transparent),
+    // so the materializer / upload / recall / calibration paths treat it exactly
+    // like 'image'; only the BookingDialog input widget differs (MaskDrawField).
+    'mask'
 ]);
 
 const ExposedParameter = z.object({
