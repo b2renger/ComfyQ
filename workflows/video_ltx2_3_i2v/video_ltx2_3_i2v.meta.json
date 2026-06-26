@@ -28,54 +28,14 @@
       "order": 0
     },
     {
-      "key": "randomnoise_noise_seed_267_237",
-      "nodeId": "267:237",
-      "field": "noise_seed",
-      "type": "number",
-      "label": "Noise Seed (RandomNoise)",
-      "default": 519681071352364,
+      "key": "primitivestringmultiline_value_267_266",
+      "nodeId": "267:266",
+      "field": "value",
+      "type": "textarea",
+      "label": "Positive prompt",
+      "default": "Egyptian royal in blue-and-gold headdress and high collar, white dress with golden embroidery and armbands, desert, robot soldiers in formation left and right. She walks steadily forward, head held level and gaze fixed ahead—no dipping or lowering of the head. The camera performs a single, smooth push-in only: starting in a wider shot of her, the robots, and the desert, it moves steadily forward until she is in a medium or medium-close frame, then holds. She stops, posture and head still upright, and says: “The old gods are silent. I am not.” Robot soldiers shift or march in place; sand and fabric move with the wind. No pull-back; the only camera move is the continuous push-in.",
       "required": false,
       "order": 1
-    },
-    {
-      "key": "primitiveint_value_267_258",
-      "nodeId": "267:258",
-      "field": "value",
-      "type": "number",
-      "label": "Value (Height)",
-      "default": 720,
-      "required": false,
-      "order": 2
-    },
-    {
-      "key": "primitiveint_value_267_260",
-      "nodeId": "267:260",
-      "field": "value",
-      "type": "number",
-      "label": "Frame Rate",
-      "default": 25,
-      "required": false,
-      "order": 3
-    },
-    {
-      "key": "primitiveint_value_267_225",
-      "nodeId": "267:225",
-      "field": "value",
-      "type": "number",
-      "label": "Duration (frames)",
-      "default": 121,
-      "required": false,
-      "order": 4
-    },
-    {
-      "key": "primitiveint_value_267_257",
-      "nodeId": "267:257",
-      "field": "value",
-      "type": "number",
-      "label": "Value (Width)",
-      "default": 1280,
-      "required": false,
-      "order": 5
     },
     {
       "key": "cliptextencode_text_267_247",
@@ -85,15 +45,55 @@
       "label": "Negative prompt",
       "default": "pc game, console game, video game, cartoon, childish, ugly",
       "required": false,
+      "order": 2
+    },
+    {
+      "key": "primitiveint_value_267_257",
+      "nodeId": "267:257",
+      "field": "value",
+      "type": "number",
+      "label": "Value (Width)",
+      "default": 1280,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "primitiveint_value_267_258",
+      "nodeId": "267:258",
+      "field": "value",
+      "type": "number",
+      "label": "Value (Height)",
+      "default": 720,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "primitiveint_value_267_260",
+      "nodeId": "267:260",
+      "field": "value",
+      "type": "number",
+      "label": "Frame Rate",
+      "default": 25,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "randomnoise_noise_seed_267_237",
+      "nodeId": "267:237",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Noise Seed (RandomNoise)",
+      "default": 519681071352364,
+      "required": false,
       "order": 6
     },
     {
-      "key": "primitivestringmultiline_value_267_266",
-      "nodeId": "267:266",
+      "key": "primitiveint_value_267_225",
+      "nodeId": "267:225",
       "field": "value",
-      "type": "textarea",
-      "label": "Positive prompt",
-      "default": "Egyptian royal in blue-and-gold headdress and high collar, white dress with golden embroidery and armbands, desert, robot soldiers in formation left and right. She walks steadily forward, head held level and gaze fixed ahead—no dipping or lowering of the head. The camera performs a single, smooth push-in only: starting in a wider shot of her, the robots, and the desert, it moves steadily forward until she is in a medium or medium-close frame, then holds. She stops, posture and head still upright, and says: “The old gods are silent. I am not.” Robot soldiers shift or march in place; sand and fabric move with the wind. No pull-back; the only camera move is the continuous push-in.",
+      "type": "number",
+      "label": "Duration (frames)",
+      "default": 121,
       "required": false,
       "order": 7
     }
