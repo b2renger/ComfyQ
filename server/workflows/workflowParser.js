@@ -77,6 +77,11 @@ function parseWorkflow(apiWorkflow) {
                 field,
                 type,
                 label: humanizeLabel(field, nodeTitle),
+                // Node identity, surfaced to the admin editor for display + search
+                // (lets you cross-reference a param against the ComfyUI graph by
+                // the node's title / class). Not persisted into exposedParameters.
+                nodeTitle,
+                classType: nodeType,
                 default: value,
                 options: COMMON_OPTIONS[field],
                 required: ['image', 'video', 'audio', 'mask'].includes(type),

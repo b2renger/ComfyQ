@@ -26,7 +26,7 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "image_flux2_inpaint"
+    "activeWorkflowId": "video_bernini_r_video_editing_ref_autoprompt"
   },
   "assets": {
     "dir": "J:\\_assets"

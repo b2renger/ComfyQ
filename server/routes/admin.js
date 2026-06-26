@@ -570,7 +570,9 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 }
                 return { ...d, enabled: false };
             });
-            res.json({ meta: entry.meta, detectedParameters: merged });
+            // apiWorkflow lets the editor offer a "Download JSON" (drag it into
+            // the ComfyUI canvas to inspect the node graph) without a second route.
+            res.json({ meta: entry.meta, detectedParameters: merged, apiWorkflow: entry.apiWorkflow });
         } catch (e) { res.status(400).json({ error: e.message }); }
     });
 

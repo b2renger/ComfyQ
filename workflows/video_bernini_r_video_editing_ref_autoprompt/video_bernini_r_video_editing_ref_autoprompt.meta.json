@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "id": "video_bernini_r_video_editing_ref_autoprompt",
+  "name": "Wan 2.2 Bernini-R — video editing with reference (auto-prompt)",
+  "description": "Restyle a video using a reference image, with the edit prompt written for you. Upload a clip and a reference image (a character, look, or setting to bring in) — a Gemma-4 vision model describes the video and the reference, then writes the Bernini-R edit instruction automatically. The result keeps the motion of your video while importing the character and setting from the reference image.\n\n• **No prompt to type** — the instruction is generated from your two inputs. To write the instruction yourself, use the plain \"video editing with a reference image\" version instead.\n• **Edit type**: pick how the reference is used.\n• **Fast mode** (Turbo LoRA) is on by default — ~6 steps. Turn it off for slower, higher-quality 40-step runs.\n\nHeavy (dual 14B Wan models + a vision model) — keep clips short.",
+  "category": "i2v",
+  "tags": [
+    "wan",
+    "wan2.2",
+    "bernini",
+    "video-editing",
+    "vid2vid",
+    "reference",
+    "auto-prompt",
+    "gemma",
+    "video"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_bernini_r_video_editing_ref_autoprompt.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      {
+        "type": "unet",
+        "file": "wan2.2_bernini_r_high_noise_fp8_scaled.safetensors"
+      },
+      {
+        "type": "unet",
+        "file": "wan2.2_bernini_r_low_noise_fp8_scaled.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "Wan2_1_VAE_bf16.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "gemma4_e4b_it_fp8_scaled.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 240,
+  "maxRuntimeSec": 1800,
+  "exposedParameters": [
+    {
+      "key": "loadvideo_file_115",
+      "nodeId": "115",
+      "field": "file",
+      "type": "video",
+      "label": "Source video",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_123",
+      "nodeId": "123",
+      "field": "image",
+      "type": "image",
+      "label": "Reference image (character / look / setting to bring in)",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "video_slice_duration_124",
+      "nodeId": "124",
+      "field": "duration",
+      "type": "number",
+      "label": "Clip length (seconds)",
+      "default": 5,
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "stringconcatenate_string_a_135",
+      "nodeId": "135",
+      "field": "string_a",
+      "type": "textarea",
+      "label": "String A (Concatenate Text)",
+      "default": "You have a description of a video and a movement, and the descritption of a reference image, seperated by a '/\". Combine them as a video prompt for bernini video edit with reference image and refence video.The final video should keep the movement of the video and import the character and the setting of the reference image",
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "samplercustom_noise_seed_117_19",
+      "nodeId": "117:19",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "customcombo_choice_117_54",
+      "nodeId": "117:54",
+      "field": "choice",
+      "type": "select",
+      "label": "Edit type",
+      "default": "Video Editing with Reference",
+      "options": [
+        "Video Editing with Reference",
+        "Ads / Content Insertion"
+      ],
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "primitiveboolean_value_117_70",
+      "nodeId": "117:70",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Fast mode (Turbo LoRA — faster, lower quality)",
+      "default": true,
+      "required": false,
+      "order": 6
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}
