@@ -28,7 +28,6 @@
     ]
   },
   "estimatedDurationSec": 45,
-  "maxRuntimeSec": 600,
   "exposedParameters": [
     {
       "key": "source_image_76",

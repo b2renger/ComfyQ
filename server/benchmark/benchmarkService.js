@@ -12,6 +12,11 @@ const zlib = require('zlib');
 // and observe WS events directly here for timing precision.
 
 const CALIBRATION_IMAGE_NAME = '__comfyq_calibration.png';
+// Safety cap so a stuck calibration can't hang the admin gauge forever. This is
+// NOT a per-job time budget (real jobs run to completion / until cancelled) — it
+// only bounds the admin calibration run, and is deliberately generous since
+// calibration normally finishes in seconds-to-minutes.
+const CALIBRATION_TIMEOUT_MS = 2 * 60 * 60 * 1000; // 2h
 
 // Extensions the calibrator will accept from the assets dir for each input
 // type. Images are restricted to safe static formats (no animated webp/gif that
@@ -213,13 +218,11 @@ class BenchmarkService {
                 paramValues,
                 inputs: [],
                 filenamePrefix: `bench_${entry.id}_${Date.now()}`,
-                requirements: entry.meta.requirements,
-                maxRuntimeSec: entry.meta.maxRuntimeSec
+                requirements: entry.meta.requirements
             });
-            const cap = entry.meta.maxRuntimeSec * 1000;
             await Promise.race([
                 donePromise,
-                new Promise((_, rej) => setTimeout(() => rej(new Error('benchmark timed out')), cap))
+                new Promise((_, rej) => setTimeout(() => rej(new Error('benchmark timed out')), CALIBRATION_TIMEOUT_MS))
             ]);
             this.worker.finalize({ success: true });
             const finishedAt = Date.now();

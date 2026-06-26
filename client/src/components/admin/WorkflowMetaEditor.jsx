@@ -281,9 +281,6 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                             <Field label="Estimated duration (s)" type="number"
                                 value={meta.estimatedDurationSec}
                                 onChange={v => updateMeta({ estimatedDurationSec: parseFloat(v) || 60 })} />
-                            <Field label="Max runtime (s)" type="number"
-                                value={meta.maxRuntimeSec}
-                                onChange={v => updateMeta({ maxRuntimeSec: parseFloat(v) || 600 })} />
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-xs uppercase tracking-wider text-muted font-semibold">Description</label>

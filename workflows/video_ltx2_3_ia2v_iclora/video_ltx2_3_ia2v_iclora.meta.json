@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "video_ltx2_3_ia2v_iclora",
   "name": "LTX 2.3 IC-LoRA — image + audio to video (auto-prompt)",
-  "description": "Bring a character image to life with a voice clip. Upload an image and a reference audio (speech), describe the shot, and LTX 2.3 generates a talking video synced to the audio. An in-graph Gemma model rewrites your prompt into an LTX-optimized one (toggle \"Enhance prompt with AI\" off to use your text as-is).\n\nThis is the IC-LoRA / creative variant (distilled model, no identity LoRA). To keep a real person's identity (lip-synced talking head), use the ID-LoRA version (video_ltx2_3_id_lora_img_audio2vid) instead.\n\nSet the duration to roughly match your audio clip.",
+  "description": "Bring a character image to life with a voice clip. Upload an image and a reference audio (speech), describe the shot, and LTX 2.3 generates a talking video synced to the audio. An in-graph Gemma model rewrites your prompt into an LTX-optimized one (toggle \"Enhance prompt with AI\" off to use your text as-is).\n\nThis is the IC-LoRA / creative variant — it uses the distilled model and no identity LoRA, so it follows your prompt freely rather than locking to a real person's face.\n\nSet the duration to roughly match your audio clip.",
   "category": "i2v",
   "tags": [
     "ltx",
@@ -30,7 +30,6 @@
     ]
   },
   "estimatedDurationSec": 180,
-  "maxRuntimeSec": 1800,
   "exposedParameters": [
     {
       "key": "character_image_269",

@@ -19,7 +19,6 @@ class Worker extends EventEmitter {
      * @param {object} opts
      * @param {Array<{paramKey,nodeId,field,filename}>} opts.inputs
      * @param {string} opts.filenamePrefix
-     * @param {number} opts.maxRuntimeSec
      * @param {object} opts.requirements  { minVRAM, models }
      * @returns {Promise<{promptId:string}>}
      */

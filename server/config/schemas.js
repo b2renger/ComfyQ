@@ -61,7 +61,6 @@ const WorkflowMeta = z.object({
         })).default([])
     }).default({ minVRAM: 0, models: [] }),
     estimatedDurationSec: z.number().positive().default(60),
-    maxRuntimeSec: z.number().positive().default(600),
     exposedParameters: z.array(ExposedParameter).default([]),
     warmupParams: z.record(z.any()).default({}),
     presets: z.record(z.object({

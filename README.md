@@ -51,8 +51,7 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
   - LTX 2.3 i2v (image → video)
   - LTX 2.3 FLF2V (first + last frame → video with audio)
   - LTX 2.3 IC-LoRA vid2vid (video + reference image → depth-guided restyle + audio; first **video** input)
-  - LTX 2.3 ID-LoRA (character image + reference audio → lip-synced talking video; first **audio** input)
-  - LTX 2.3 IC-LoRA image + audio → video (character image + audio → talking video; auto-prompt enhancer; the non-identity sibling of the ID-LoRA one) *(registered 2026-06-26, pending rig verification)*
+  - LTX 2.3 IC-LoRA image + audio → video (character image + audio → talking video; auto-prompt enhancer) *(registered 2026-06-26, pending rig verification)*
   - LivePortrait (portrait image + driving video → animated talking-head video; first **image + video** input) — **verified on rig**
   - SAM3 video segmentation (video + text prompt → black/white mask/matte video; first **preprocessor** workflow) — **verified on rig**
   - Frame interpolation (FILM) (video → smoother or slow-motion video; `preprocessor` utility) — **verified on rig**
@@ -201,6 +200,7 @@ See [implementation_plan.md](implementation_plan.md#architecture) for module-by-
 - **Open in ComfyUI** — one button in the editor **starts ComfyUI if it isn't running**, opens its node editor in a new tab, and downloads the workflow JSON to drop on the canvas — so you can visualize the node graph and its connections while deciding what to expose
 - **My / All Jobs tabs** — Recent Generations defaults to the current user; an "All Jobs" tab plus per-user filter dropdown exposes everyone's results for the admin / room view. Sidebar shows only your own jobs
 - **Confirmation dialogs with admin-password gating** — deletes / cancels go through a proper modal. Own jobs: simple confirm. Foreign jobs: admin-password field required, with red toasts surfacing wrong-password / "password not set" rejections from the server. Cross-user actions are disabled outright when no admin password is configured. In the admin panel, the "Admin password is set" card turns green ("verified") the moment the correct password is entered, so you get live confirmation before attempting a gated action
+- **No time limit on jobs** — a running job is never auto-killed by a timer; it runs until ComfyUI finishes. Deciding a job is taking too long is left to a human — the user or an admin cancels it with the X button. (Only the admin calibration gauge keeps a generous internal safety cap so it can't hang.)
 - **Cancel running jobs** — X button on your own in-flight job card REST-interrupts ComfyUI cleanly; the job lands in `cancelled` state (preserved as a record, not deleted)
 - **Clean all outputs** — admin button purges every output file on disk for terminal jobs and clears the `outputs` field, keeping job history. Skips in-flight jobs
 - **Emergency stop** — one button cancels every job, kills ComfyUI (only what we spawned), and restarts in admin mode

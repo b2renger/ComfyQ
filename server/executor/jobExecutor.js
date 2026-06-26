@@ -18,7 +18,6 @@ class JobExecutor {
         this.tickMs = 1000;
         this._listeners = new Set();
         this._currentJobId = null;
-        this._historyDeadline = null;
         this._historyStartedAt = null;
         this._wsHasFired = false;
         this._jobStartedAt = null;
@@ -58,7 +57,6 @@ class JobExecutor {
             const truncReason = String(errorReason).split('\n')[0].slice(0, 200);
             console.warn(`[Executor] job ${jobId.slice(0, 8)} FAILED after ${dur}s — ${errorPhase}: ${truncReason}`);
             this._currentJobId = null;
-            this._historyDeadline = null;
             this._wsHasFired = false;
             this._jobStartedAt = null;
             this._lastLoggedNodeId = null;
@@ -168,12 +166,12 @@ class JobExecutor {
                 paramValues: job.paramValues,
                 inputs: job.inputFiles,
                 filenamePrefix,
-                requirements: workflowEntry.meta.requirements,
-                maxRuntimeSec: workflowEntry.meta.maxRuntimeSec
+                requirements: workflowEntry.meta.requirements
             });
-            // Worker.submit emits 'submitted' which transitions → EXECUTING
+            // Worker.submit emits 'submitted' which transitions → EXECUTING.
+            // No runtime budget: a job runs until ComfyUI finishes or a user/admin
+            // cancels it. `_historyStartedAt` only drives the poll-interval ramp.
             this._historyStartedAt = Date.now();
-            this._historyDeadline = Date.now() + (workflowEntry.meta.maxRuntimeSec * 1000);
         } catch (e) {
             console.error('[Executor] submit err:', e.message);
             try {
@@ -205,10 +203,6 @@ class JobExecutor {
         if (this._lastPollAt && (Date.now() - this._lastPollAt) < interval) return;
         this._lastPollAt = Date.now();
 
-        if (this._historyDeadline && Date.now() > this._historyDeadline) {
-            this._failCurrent('runtime-budget-exceeded', 'executing');
-            return;
-        }
         try {
             const data = await this.worker.rest.getHistory(job.promptId);
             if (data && data[job.promptId]) {
@@ -272,7 +266,6 @@ class JobExecutor {
         }
         this.worker.finalize({ success: true });
         this._currentJobId = null;
-        this._historyDeadline = null;
         this._historyStartedAt = null;
         this._wsHasFired = false;
         this._jobStartedAt = null;
@@ -293,7 +286,6 @@ class JobExecutor {
         console.warn(`[Executor] job ${id.slice(0, 8)} FAILED after ${dur}s — ${phase}: ${truncReason}`);
         try { this.worker.finalize({ success: false }); } catch { /* ignore */ }
         this._currentJobId = null;
-        this._historyDeadline = null;
         this._historyStartedAt = null;
         this._wsHasFired = false;
         this._jobStartedAt = null;

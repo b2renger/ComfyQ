@@ -32,7 +32,6 @@
     ]
   },
   "estimatedDurationSec": 60,
-  "maxRuntimeSec": 600,
   "exposedParameters": [
     {
       "key": "portrait_image_196",

@@ -526,7 +526,6 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 apiFormat: true,
                 requirements: { minVRAM: 0, models: [] },
                 estimatedDurationSec: 60,
-                maxRuntimeSec: 600,
                 exposedParameters: parsed.parameters,
                 warmupParams: {},
                 presets: {}

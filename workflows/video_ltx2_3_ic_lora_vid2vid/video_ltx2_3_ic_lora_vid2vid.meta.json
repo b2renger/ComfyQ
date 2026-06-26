@@ -44,7 +44,6 @@
     ]
   },
   "estimatedDurationSec": 180,
-  "maxRuntimeSec": 1800,
   "exposedParameters": [
     {
       "key": "source_video_199",

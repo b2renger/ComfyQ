@@ -37,7 +37,6 @@
     ]
   },
   "estimatedDurationSec": 60,
-  "maxRuntimeSec": 600,
   "exposedParameters": [
     {
       "key": "prompt_json_98_24",

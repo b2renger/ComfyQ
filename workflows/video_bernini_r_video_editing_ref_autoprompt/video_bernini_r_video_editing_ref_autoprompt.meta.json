@@ -50,7 +50,6 @@
     ]
   },
   "estimatedDurationSec": 240,
-  "maxRuntimeSec": 1800,
   "exposedParameters": [
     {
       "key": "loadvideo_file_115",

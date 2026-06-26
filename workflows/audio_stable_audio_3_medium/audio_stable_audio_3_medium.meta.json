@@ -25,7 +25,6 @@
     ]
   },
   "estimatedDurationSec": 60,
-  "maxRuntimeSec": 600,
   "exposedParameters": [
     {
       "key": "description_52_31",

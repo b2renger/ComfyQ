@@ -19,7 +19,6 @@
     ]
   },
   "estimatedDurationSec": 16,
-  "maxRuntimeSec": 600,
   "exposedParameters": [
     {
       "key": "primitivestringmultiline_value_76",
