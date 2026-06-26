@@ -1,5 +1,6 @@
 const sm = require('../queue/jobStateMachine');
 const oc = require('./outputCollector');
+const { humanizeFailure } = require('./errorMessages');
 
 const FAST_POLL_MS = 1000;        // first 60s
 const SLOW_POLL_MS = 5000;        // after 60s
@@ -228,8 +229,8 @@ class JobExecutor {
         // ComfyUI may report execution status; check for failure.
         const statusObj = entry.status;
         if (statusObj && statusObj.status_str === 'error') {
-            const reason = statusObj.messages?.find(m => m[0] === 'execution_error')?.[1]?.exception_message
-                || 'execution_error';
+            const errMsg = statusObj.messages?.find(m => m[0] === 'execution_error')?.[1];
+            const reason = humanizeFailure(errMsg?.exception_message, errMsg?.node_type);
             return this._failCurrent(reason, 'executing');
         }
 

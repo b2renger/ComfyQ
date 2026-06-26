@@ -26,7 +26,7 @@
   },
   "workflows": {
     "dir": "./workflows",
-    "activeWorkflowId": "video_bernini_r_video_editing_ref_autoprompt"
+    "activeWorkflowId": "video_ltx2_3_id_lora_img_audio2vid"
   },
   "assets": {
     "dir": "J:\\_assets"

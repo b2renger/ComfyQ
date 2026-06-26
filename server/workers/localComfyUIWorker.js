@@ -4,6 +4,7 @@ const { ComfyRestClient } = require('./comfyRestClient');
 const { ComfyWsClient } = require('./comfyWsClient');
 const { InputUploader } = require('./inputUploader');
 const { ModelLifecycle } = require('./modelLifecycle');
+const { humanizeFailure } = require('../executor/errorMessages');
 
 const CLIENT_ID_PREFIX = 'comfyq';
 
@@ -150,7 +151,7 @@ class LocalComfyUIWorker extends Worker {
                 this.emit('node-executing', { jobId, promptId, nodeId: String(data.node), nodeTitle: null });
             }
         } else if (type === 'execution_error') {
-            const reason = data.exception_message || data.traceback || 'execution_error';
+            const reason = humanizeFailure(data.exception_message || data.traceback, data.node_type);
             this._resetCurrent();
             this._setState('idle');
             this.emit('failed', { jobId, promptId, errorReason: reason, errorPhase: 'executing' });

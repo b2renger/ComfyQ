@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "id": "video_ltx2_3_ia2v_iclora",
+  "name": "LTX 2.3 IC-LoRA — image + audio to video (auto-prompt)",
+  "description": "Bring a character image to life with a voice clip. Upload an image and a reference audio (speech), describe the shot, and LTX 2.3 generates a talking video synced to the audio. An in-graph Gemma model rewrites your prompt into an LTX-optimized one (toggle \"Enhance prompt with AI\" off to use your text as-is).\n\nThis is the IC-LoRA / creative variant (distilled model, no identity LoRA). To keep a real person's identity (lip-synced talking head), use the ID-LoRA version (video_ltx2_3_id_lora_img_audio2vid) instead.\n\nSet the duration to roughly match your audio clip.",
+  "category": "i2v",
+  "tags": [
+    "ltx",
+    "ltx2.3",
+    "ic-lora",
+    "image-audio",
+    "talking",
+    "auto-prompt",
+    "audio",
+    "video"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_ltx2_3_ia2v_iclora.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      { "type": "checkpoint", "file": "ltx-2.3-22b-dev-fp8.safetensors" },
+      { "type": "clip", "file": "gemma_3_12B_it_fp4_mixed.safetensors" },
+      { "type": "lora", "file": "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors" },
+      { "type": "lora", "file": "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors" },
+      { "type": "other", "file": "ltx-2.3-spatial-upscaler-x2-1.1.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 180,
+  "maxRuntimeSec": 1800,
+  "exposedParameters": [
+    {
+      "key": "character_image_269",
+      "nodeId": "269",
+      "field": "image",
+      "type": "image",
+      "label": "Character image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "reference_audio_276",
+      "nodeId": "276",
+      "field": "audio",
+      "type": "audio",
+      "label": "Reference audio (speech)",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "prompt_340_319",
+      "nodeId": "340:319",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt (scene / character / action / camera)",
+      "default": "The fuzzy cactus creature is talking to the viewer as it grips the steering wheel with one hand, the other hand gestures naturally as it speaks. The car is moving, revealing the sunlit coastal background, static camera fixed on character, smooth side-tracking shot matching the car speed\n\nscene: Sunlit coastal road trip, clear coastal background\ncharacter: Fuzzy cactus creature with big square sunglasses and a Hawaiian shirt\naction: One hand grips the steering wheel, the other gestures naturally while talking to the camera\ncamera: Fixed on character, smooth side-tracking shot matching car speed",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "enhance_prompt_340_349",
+      "nodeId": "340:349",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Enhance prompt with AI",
+      "default": true,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "negative_340_314",
+      "nodeId": "340:314",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt",
+      "default": "pc game, console game, video game, cartoon, childish, ugly",
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "duration_340_331",
+      "nodeId": "340:331",
+      "field": "value",
+      "type": "number",
+      "label": "Duration (seconds)",
+      "default": 9,
+      "min": 1,
+      "max": 30,
+      "step": 1,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "seed_340_286",
+      "nodeId": "340:286",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 6
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}
