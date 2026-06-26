@@ -562,6 +562,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                         max: found.max,
                         step: found.step,
                         maxInputEdge: found.maxInputEdge,
+                        disabledWhen: found.disabledWhen,
                         required: found.required ?? d.required,
                         order: found.order ?? d.order,
                         enabled: true

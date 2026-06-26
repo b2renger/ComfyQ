@@ -48,6 +48,7 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
   - Stable Audio 3 (text → `.mp3`, in-graph magic-prompt LLM)
   - Ideogram 4.0 t2i (structured-JSON prompt)
   - Wan 2.1 360° rotate LoRA (image → video)
+  - LTX 2.3 t2v (text → video; built-in Gemma auto-prompt enhancer; no input image) *(registered 2026-06-26, pending rig verification)*
   - LTX 2.3 i2v (image → video)
   - LTX 2.3 FLF2V (first + last frame → video with audio)
   - LTX 2.3 IC-LoRA vid2vid (video + reference image → depth-guided restyle + audio; first **video** input)
@@ -198,6 +199,7 @@ See [implementation_plan.md](implementation_plan.md#architecture) for module-by-
 - **Keyword search in the workflow library** — a search box above the type chips filters by name, tag, description, or category (multi-word AND match). It combines with the type chips — the chip counts track the current search — so finding one workflow in a large library is instant, with a "no matches → Clear filters" fallback
 - **Parameter search + node titles in the editor** — the metadata editor has a search box over the detected parameters (matches display name, node id, the ComfyUI node title, field, or type) and shows each node's title inline — so finding the one widget to expose on a 100-node graph is quick
 - **Open in ComfyUI** — one button in the editor **starts ComfyUI if it isn't running**, opens its node editor in a new tab, and downloads the workflow JSON to drop on the canvas — so you can visualize the node graph and its connections while deciding what to expose
+- **Live student preview** — a "Student preview" toggle in the workflow editor renders the *exact* booking form students will see, side-by-side and updating live as you change labels, types, defaults, options, order, or which parameters are exposed. It's driven by the same field-rendering component the real booking form uses, so the preview can never drift from what students actually get
 - **My / All Jobs tabs** — Recent Generations defaults to the current user; an "All Jobs" tab plus per-user filter dropdown exposes everyone's results for the admin / room view. Sidebar shows only your own jobs
 - **Confirmation dialogs with admin-password gating** — deletes / cancels go through a proper modal. Own jobs: simple confirm. Foreign jobs: admin-password field required, with red toasts surfacing wrong-password / "password not set" rejections from the server. Cross-user actions are disabled outright when no admin password is configured. In the admin panel, the "Admin password is set" card turns green ("verified") the moment the correct password is entered, so you get live confirmation before attempting a gated action
 - **No time limit on jobs** — a running job is never auto-killed by a timer; it runs until ComfyUI finishes. Deciding a job is taking too long is left to a human — the user or an admin cancels it with the X button. (Only the admin calibration gauge keeps a generous internal safety cap so it can't hang.)

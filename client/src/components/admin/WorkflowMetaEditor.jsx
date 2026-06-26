@@ -1,8 +1,9 @@
-import React, { useEffect, useState, useMemo } from 'react';
-import { Save, X, Eye, EyeOff, AlertTriangle, RefreshCw, CheckCircle2, Filter, ArrowUp, ArrowDown, Search, ExternalLink, Download } from 'lucide-react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { Save, X, Eye, EyeOff, AlertTriangle, RefreshCw, CheckCircle2, Filter, ArrowUp, ArrowDown, Search, ExternalLink, Download, Monitor } from 'lucide-react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { SERVER_URL } from '../../utils/api';
+import DynamicParamFields, { isSeedParam, randomSeed } from '../DynamicParamFields';
 
 const CATEGORIES = [
     { value: 't2i', label: 'Text to Image' },
@@ -38,6 +39,7 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
     const [paramQuery, setParamQuery] = useState('');
     const [comfyMsg, setComfyMsg] = useState('');
     const [comfyBusy, setComfyBusy] = useState(false);
+    const [showPreview, setShowPreview] = useState(false);
 
     const headers = useMemo(() => {
         const h = { 'Content-Type': 'application/json' };
@@ -202,6 +204,9 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                     maxInputEdge: (p.type === 'image' || p.type === 'video' || p.type === 'mask') && p.maxInputEdge
                         ? Math.max(1, parseInt(p.maxInputEdge, 10))
                         : undefined,
+                    // Preserved through edit/save (there's no UI to edit it yet, but a
+                    // re-save must not drop a workflow's existing field gating).
+                    disabledWhen: p.disabledWhen,
                     required: p.required ?? false,
                     order: i
                 }));
@@ -227,7 +232,7 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
     if (!workflowId) return null;
 
     return (
-        <Modal isOpen={!!workflowId} onClose={onClose} title={`Edit workflow: ${workflowId}`} maxWidth="max-w-5xl">
+        <Modal isOpen={!!workflowId} onClose={onClose} title={`Edit workflow: ${workflowId}`} maxWidth={showPreview ? 'max-w-7xl' : 'max-w-5xl'}>
             {loading && (
                 <div className="flex items-center justify-center py-12 text-muted">
                     <RefreshCw className="w-5 h-5 animate-spin mr-2" />
@@ -305,6 +310,12 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                                 </span>
                             </div>
                             <div className="flex items-center gap-2 text-xs">
+                                <button onClick={() => setShowPreview(v => !v)}
+                                    className={`px-2 py-1 rounded border inline-flex items-center gap-1 transition-colors ${showPreview ? 'bg-primary/15 border-primary/40 text-primary' : 'bg-surface border-border text-muted hover:border-primary/40 hover:text-white'}`}
+                                    title="Show a live preview of the booking form students will see">
+                                    <Monitor size={12} />
+                                    {showPreview ? 'Hide preview' : 'Student preview'}
+                                </button>
                                 <button onClick={hideInfrastructure}
                                     className="px-2 py-1 rounded bg-surface border border-border hover:border-primary/40 text-muted hover:text-white">
                                     <Filter size={12} className="inline -mt-0.5 mr-1" />
@@ -348,7 +359,8 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                         <p className="text-[10px] text-muted">
                             Drag-equivalent: use the ▲/▼ buttons to reorder. The order set here is exactly the order students see in the booking dialog.
                         </p>
-                        <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2">
+                        <div className={showPreview ? 'grid grid-cols-1 lg:grid-cols-2 gap-5 items-start' : ''}>
+                        <div className="space-y-2 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2 min-w-0">
                             {visibleParams.map((p, visibleIdx) => {
                                 const idx = params.indexOf(p);
                                 const isFirst = visibleIdx === 0;
@@ -479,6 +491,12 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                                 <p className="text-sm text-muted text-center py-8">No parameters match the filter.</p>
                             )}
                         </div>
+                        {showPreview && (
+                            <div className="lg:sticky lg:top-2 self-start min-w-0">
+                                <StudentPreview params={params} />
+                            </div>
+                        )}
+                        </div>
                     </section>
 
                     <div className="flex justify-end gap-2 pt-2 border-t border-border">
@@ -491,6 +509,101 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                 </div>
             )}
         </Modal>
+    );
+};
+
+// Live preview of the student booking form, rendered through the SAME
+// DynamicParamFields the real BookingDialog uses — so it can't drift. Builds a
+// parameter_map from the editor's current (unsaved) params (enabled only, in
+// the admin's order) and drives it with throwaway local state.
+const StudentPreview = ({ params }) => {
+    // Editor param shape → wire `parameter_map` shape DynamicParamFields expects.
+    const paramMap = useMemo(() => {
+        const map = {};
+        params.filter(p => p.enabled).forEach((p, i) => {
+            map[p.key] = {
+                type: p.type,
+                label: p.label,
+                default: p.default,
+                options: p.options,
+                min: p.min,
+                max: p.max,
+                step: p.step,
+                maxInputEdge: p.maxInputEdge,
+                disabledWhen: p.disabledWhen,
+                required: p.required,
+                field: p.field,        // needed for seed detection
+                order: i,
+                enabled: true,
+            };
+        });
+        return map;
+    }, [params]);
+
+    // Re-seed the form values when the *structure* changes (keys / types /
+    // options / defaults) — NOT on label/order edits, so reordering or renaming
+    // doesn't reset the preview. Seeds keep their value across re-seeds (no
+    // flicker); media previews for still-present keys are kept.
+    const sig = useMemo(
+        () => JSON.stringify(Object.entries(paramMap).map(([k, c]) => [k, c.type, c.default, c.options])),
+        [paramMap]
+    );
+    const [values, setValues] = useState({});
+    const [previews, setPreviews] = useState({});
+    const filesRef = useRef({});
+    useEffect(() => {
+        setValues(prev => {
+            const next = {};
+            for (const [k, c] of Object.entries(paramMap)) {
+                next[k] = isSeedParam(k, c) ? (k in prev ? prev[k] : randomSeed()) : (c.default ?? '');
+            }
+            return next;
+        });
+        setPreviews(prev => {
+            const next = {};
+            for (const k of Object.keys(paramMap)) if (k in prev) next[k] = prev[k];
+            return next;
+        });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [sig]);
+
+    const onValueChange = (k, v) => setValues(prev => ({ ...prev, [k]: v }));
+    const mediaChangeHandler = (k) => (file) => {
+        if (!file) return;
+        filesRef.current[k] = file;
+        const reader = new FileReader();
+        reader.onloadend = () => setPreviews(prev => ({ ...prev, [k]: reader.result }));
+        reader.readAsDataURL(file);
+    };
+    const mediaRemoveHandler = (k) => () => {
+        delete filesRef.current[k];
+        setPreviews(prev => { const n = { ...prev }; delete n[k]; return n; });
+    };
+
+    const count = Object.keys(paramMap).length;
+    return (
+        <div className="rounded-xl border border-border bg-background/60 overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-border bg-surface/60">
+                <Monitor size={14} className="text-primary" />
+                <span className="text-xs font-semibold text-foreground">Student preview</span>
+                <span className="text-[10px] text-muted">— the booking form, live as you edit</span>
+            </div>
+            <div className="p-4 max-w-md mx-auto">
+                {count === 0 ? (
+                    <p className="text-sm text-muted text-center py-8">No exposed parameters — students would see an empty form.</p>
+                ) : (
+                    <DynamicParamFields
+                        paramMap={paramMap}
+                        values={values}
+                        onValueChange={onValueChange}
+                        mediaPreviews={previews}
+                        recalledMedia={{}}
+                        mediaChangeHandler={mediaChangeHandler}
+                        mediaRemoveHandler={mediaRemoveHandler}
+                    />
+                )}
+            </div>
+        </div>
     );
 };
 

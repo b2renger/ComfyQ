@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "id": "video_ltx2_3_t2v",
+  "name": "LTX 2.3 — text to video (auto-prompt)",
+  "description": "Type a prompt and LTX 2.3 generates a short video from scratch — no input image needed. Describe the scene, the action as it unfolds over time, the camera move, and any sounds or dialogue. An in-graph Gemma model rewrites your prompt into an LTX-optimized one (toggle \"Enhance prompt with AI\" off to use your text as-is).\n\nLTX-2.3 prompting tips: describe events and actions as they happen over time, list the visual details you want to appear, and describe the sounds for the scene.\n\nSet the width and height to choose the aspect ratio, and keep clips short — duration is in seconds.",
+  "category": "i2v",
+  "tags": [
+    "ltx",
+    "ltx2.3",
+    "text-to-video",
+    "t2v",
+    "auto-prompt",
+    "audio",
+    "video"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_ltx2_3_t2v.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      { "type": "checkpoint", "file": "ltx-2.3-22b-dev-fp8.safetensors" },
+      { "type": "clip", "file": "gemma_3_12B_it_fp4_mixed.safetensors" },
+      { "type": "lora", "file": "ltx_2.3_22b_distilled_1.1_lora_dynamic_fro09_avg_rank_111_bf16.safetensors" },
+      { "type": "lora", "file": "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors" },
+      { "type": "other", "file": "ltx-2.3-spatial-upscaler-x2-1.1.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 180,
+  "exposedParameters": [
+    {
+      "key": "prompt_267_266",
+      "nodeId": "267:266",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt (scene / action / camera / sound)",
+      "default": "Dynamic cinematic close-up of high-tech modular machinery self-assembling in midair, precision robotic parts, magnetic connectors, and glowing circuits clicking together, subtle smoke and light flares, extremely detailed titanium textures. The final product displays a clean, clear surface with large glowing engraved text “LTX-2.3” centered and unobstructed, dramatic lighting, photorealism, 8K, sharp focus.",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "enhance_prompt_267_330",
+      "nodeId": "267:330",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Enhance prompt with AI",
+      "default": true,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "negative_267_247",
+      "nodeId": "267:247",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt",
+      "default": "pc game, console game, video game, cartoon, childish, ugly",
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "duration_267_225",
+      "nodeId": "267:225",
+      "field": "value",
+      "type": "number",
+      "label": "Duration (seconds)",
+      "default": 5,
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "width_267_257",
+      "nodeId": "267:257",
+      "field": "value",
+      "type": "number",
+      "label": "Width",
+      "default": 1280,
+      "min": 256,
+      "max": 1920,
+      "step": 16,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "height_267_258",
+      "nodeId": "267:258",
+      "field": "value",
+      "type": "number",
+      "label": "Height",
+      "default": 720,
+      "min": 256,
+      "max": 1920,
+      "step": 16,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "frame_rate_267_260",
+      "nodeId": "267:260",
+      "field": "value",
+      "type": "number",
+      "label": "Frame rate (fps)",
+      "default": 25,
+      "min": 8,
+      "max": 60,
+      "step": 1,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "seed_267_237",
+      "nodeId": "267:237",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 7
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}
