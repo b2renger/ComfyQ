@@ -7,14 +7,29 @@
 
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const dgram = require('dgram');
+const os = require('os');
 const path = require('path');
 
 // Must match server config.federation defaults (group/port).
 const GROUP = process.env.COMFYQ_FED_GROUP || '239.255.42.99';
 const PORT = Number(process.env.COMFYQ_FED_PORT || 41999);
 
-const STALE_MS = 45_000;     // 3 missed 15s beacons → mark stale
+const STALE_MS = 30_000;     // ~6 missed 5s beacons → mark stale
 const DROP_MS = 120_000;     // gone this long → remove from the list
+
+// Non-internal IPv4 interface addresses — used to join the multicast group on
+// every interface (a Wi-Fi machine may have several; the default join often
+// picks the wrong one).
+function ipv4Addresses() {
+    const out = [];
+    const ifs = os.networkInterfaces();
+    for (const name of Object.keys(ifs)) {
+        for (const i of ifs[name] || []) {
+            if (i.family === 'IPv4' && !i.internal) out.push(i.address);
+        }
+    }
+    return out;
+}
 
 let win = null;
 let socket = null;
@@ -54,12 +69,16 @@ function startSocket() {
     });
 
     socket.bind(PORT, () => {
-        try {
-            socket.addMembership(GROUP);
-            socketError = null;
-        } catch (e) {
-            socketError = `Could not join multicast group ${GROUP}: ${e.message}`;
+        // Broadcast datagrams are received automatically once bound to
+        // 0.0.0.0:PORT. For multicast we join the group on every interface
+        // (and the default) so a multi-homed / Wi-Fi machine doesn't miss it.
+        let joined = 0;
+        try { socket.addMembership(GROUP); joined++; } catch { /* default join may fail; per-iface below */ }
+        for (const addr of ipv4Addresses()) {
+            try { socket.addMembership(GROUP, addr); joined++; } catch { /* already joined / unsupported */ }
         }
+        socketError = joined === 0 ? `Could not join multicast group ${GROUP} on any interface` : null;
+        console.log(`[FleetMonitor] listening on ${GROUP}:${PORT} (multicast joins: ${joined}; broadcast: on)`);
         pushToRenderer();
     });
 }

@@ -146,8 +146,8 @@ const AppConfig = z.object({
         enabled: z.boolean().default(true),
         group: z.string().default('239.255.42.99'),
         port: z.number().int().positive().default(41999),
-        intervalSec: z.number().int().positive().default(15)
-    }).default({ enabled: true, group: '239.255.42.99', port: 41999, intervalSec: 15 })
+        intervalSec: z.number().int().positive().default(5)
+    }).default({ enabled: true, group: '239.255.42.99', port: 41999, intervalSec: 5 })
 });
 
 module.exports = {

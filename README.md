@@ -150,10 +150,11 @@ A standalone cross-platform desktop app (`desktop/`, Electron — Windows + macO
 **every ComfyQ machine on the LAN at a glance** — no configuration, no central server. Open it on
 an instructor's laptop (or any machine on the same network) to see the whole room.
 
-Each ComfyQ server **multicasts a small JSON status snapshot every ~15 s** (UDP, group
-`239.255.42.99:41999`); the app listens and renders one card per machine. Machines appear and
-disappear on their own — a card goes dim ~45 s after the last beacon and drops after ~2 min. It
-works even for **idle rigs in admin mode with nothing launched**.
+Each ComfyQ server **sends a small JSON status snapshot every ~5 s** over UDP — to the multicast
+group `239.255.42.99:41999` **and** to the subnet broadcast address (belt-and-suspenders, since
+consumer Wi-Fi/APs often drop multicast); the app listens and renders one card per machine.
+Machines appear and disappear on their own — a card goes dim ~30 s after the last beacon and drops
+after ~2 min. It works even for **idle rigs in admin mode with nothing launched**.
 
 Per machine the card shows:
 - **Name** and **IP address**
