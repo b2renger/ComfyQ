@@ -23,12 +23,11 @@ class StatusBeacon {
 
     start() {
         const fed = this.configManager.load().config.federation || {};
-        if (fed.enabled === false) {
-            console.log('[Federation] beacon disabled (config.federation.enabled = false)');
-            return;
-        }
-        const group = fed.group || '239.255.42.99';
-        const port = fed.port || 41999;
+        // The socket + timer always run; whether a beacon is actually SENT is
+        // re-checked from config on every tick (_send), so the admin toggle takes
+        // effect live without a restart.
+        this.group = fed.group || '239.255.42.99';
+        this.port = fed.port || 41999;
         const intervalMs = (fed.intervalSec || 15) * 1000;
 
         const socket = dgram.createSocket({ type: 'udp4', reuseAddr: true });
@@ -41,16 +40,25 @@ class StatusBeacon {
         socket.bind(() => {
             try { socket.setBroadcast(true); } catch { /* ignore */ }
             try { socket.setMulticastTTL(1); } catch { /* same-LAN only */ }
-            this._send(group, port);                       // immediate first beacon
-            console.log(`[Federation] status beacon → ${group}:${port} every ${intervalMs / 1000}s (id=${this.sysInfo?.id?.slice(0, 8) || '?'})`);
+            this._send();                                  // immediate first beacon (no-op if disabled)
+            console.log(`[Federation] status beacon → ${this.group}:${this.port} every ${intervalMs / 1000}s — ${fed.enabled === false ? 'currently DISABLED (config.federation.enabled=false)' : 'active'} (id=${this.sysInfo?.id?.slice(0, 8) || '?'})`);
         });
         this.socket = socket;
-        this.timer = setInterval(() => this._send(group, port), intervalMs);
+        this.timer = setInterval(() => this._send(), intervalMs);
         if (this.timer.unref) this.timer.unref();
     }
 
-    _send(group, port) {
+    // Send one beacon now (used by the admin toggle so enabling is reflected
+    // immediately rather than at the next interval tick).
+    kick() { this._send(); }
+
+    _send() {
         if (!this.socket) return;
+        // Re-read enable state each send so the toggle is live.
+        const fed = this.configManager.load().config.federation || {};
+        if (fed.enabled === false) return;
+        const group = this.group;
+        const port = this.port;
         let buf;
         try {
             const snap = buildSnapshot({

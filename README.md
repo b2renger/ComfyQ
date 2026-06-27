@@ -175,8 +175,9 @@ npm run desktop           # launch the monitor
 ```
 
 The beacon is **on by default** on every ComfyQ instance (admin and student mode). To opt a machine
-out, set `federation.enabled: false` in its `config.json`; behavior is then identical to a
-single-instance ComfyQ. The group/port and interval are configurable under `config.federation`
+out, flip the **Network presence** toggle in the admin panel (**Admin → Network presence** — takes
+effect live, no restart) or set `federation.enabled: false` in its `config.json`; behavior is then
+identical to a single-instance ComfyQ. The group/port and interval are configurable under `config.federation`
 (match them with `COMFYQ_FED_GROUP` / `COMFYQ_FED_PORT` env vars for the app if you change them).
 A `GET /federation/self` endpoint returns the same snapshot over HTTP for scripting/debugging.
 

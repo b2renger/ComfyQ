@@ -85,6 +85,23 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         } catch (e) { res.status(400).json({ error: e.message }); }
     });
 
+    // Federation: toggle this machine's presence on the LAN status beacon.
+    // Takes effect live (the beacon re-reads enabled state each tick; kick()
+    // sends one immediately so enabling shows up right away in the monitor).
+    router.put('/federation', express.json(), (req, res) => {
+        try {
+            const { enabled } = req.body || {};
+            if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be a boolean' });
+            configManager.update(c => {
+                c.federation = c.federation || {};
+                c.federation.enabled = enabled;
+                return c;
+            });
+            try { if (enabled) runtime?.beacon?.kick(); } catch { /* ignore */ }
+            res.json({ ok: true, enabled });
+        } catch (e) { res.status(400).json({ error: e.message }); }
+    });
+
     // Return the hardcoded workshop-rig path defaults so the admin UI can
     // offer a "Reset to defaults" action without duplicating the constants.
     router.get('/default-paths', (req, res) => {

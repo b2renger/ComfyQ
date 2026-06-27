@@ -120,6 +120,19 @@ const AdminConfig = ({ currentMode }) => {
         } catch (e) { showToast(e.message, 'err'); }
     };
 
+    // Toggle this machine's presence on the LAN status beacon (fleet monitor).
+    // Saves immediately and takes effect live (no restart).
+    const toggleFederation = async (enabled) => {
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/federation`, {
+                method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ enabled })
+            });
+            if (!res.ok) throw new Error((await res.json()).error || 'Failed to update network presence');
+            setConfig(c => ({ ...c, federation: { ...(c?.federation || {}), enabled } }));
+            showToast(enabled ? 'This machine is now visible on the network' : 'This machine is now hidden from the network');
+        } catch (e) { showToast(e.message, 'err'); }
+    };
+
     const resetPathsToDefaults = async () => {
         try {
             const res = await fetch(`${SERVER_URL}/admin/default-paths`);
@@ -578,6 +591,35 @@ const AdminConfig = ({ currentMode }) => {
                     </Button>
                     <Button variant="primary" icon={Save} onClick={savePaths}>Save settings</Button>
                 </div>
+            </Card>
+
+            <Card>
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2"><Globe size={18} /> Network presence</h2>
+                    {(config?.federation?.enabled !== false)
+                        ? <Badge variant="success">Visible</Badge>
+                        : <Badge variant="warning">Hidden</Badge>}
+                </div>
+                <p className="text-sm text-muted mb-3">
+                    When on, this machine broadcasts a small status update on the LAN every ~15&nbsp;s so the
+                    <strong className="text-white"> ComfyQ Fleet Monitor</strong> app can list it (name, GPU/RAM, IP, status,
+                    active workflow, planned jobs) alongside the other rigs. Turn off to hide this machine from the network.
+                </p>
+                <label className="flex items-start gap-2.5 cursor-pointer">
+                    <input
+                        type="checkbox"
+                        checked={config?.federation?.enabled !== false}
+                        onChange={(e) => toggleFederation(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                    />
+                    <span className="text-sm text-white">
+                        Show this machine on the network
+                        <span className="block text-xs text-muted">
+                            Takes effect immediately — no restart. Read-only broadcast (status only); it never lets
+                            another machine control this one.
+                        </span>
+                    </span>
+                </label>
             </Card>
 
             <Card>

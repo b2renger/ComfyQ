@@ -239,6 +239,7 @@ async function main() {
         // launched) still appear in the fleet monitor.
         const beacon = new StatusBeacon({ configManager, registry, runtime, sysInfo });
         beacon.start();
+        runtime.beacon = beacon;     // so the admin toggle can kick an immediate beacon
         const port = config.server.port;
         const host = config.server.host;
         server.listen(port, host, () => {
@@ -318,6 +319,7 @@ async function main() {
     // the active workflow + planned/running jobs.
     const beacon = new StatusBeacon({ configManager, registry, runtime, sysInfo });
     beacon.start();
+    runtime.beacon = beacon;     // so the admin toggle can kick an immediate beacon
 
     // Mount remaining routes.
     app.use('/workflows', workflowRoutes.makeRouter({
