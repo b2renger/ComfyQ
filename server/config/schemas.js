@@ -125,7 +125,29 @@ const AppConfig = z.object({
     // video/audio inputs can't be calibrated without meta.warmupParams.
     assets: z.object({
         dir: z.string().default('')
-    }).default({ dir: '' })
+    }).default({ dir: '' }),
+    // Federation (Phase F) — persistent identity for this machine, captured at
+    // boot (see server/federation/systemInfo.js) and broadcast on the LAN status
+    // beacon. All optional/defaulted so an existing config.json validates
+    // unchanged; load() re-saves with these filled in on first boot.
+    instance: z.object({
+        id: z.string().default(''),          // uuid v4, generated once on first boot
+        name: z.string().default(''),        // friendly label; defaults to os.hostname()
+        gpu: z.string().default(''),         // cached last-known GPU model
+        vramGb: z.number().nonnegative().default(0),
+        ramGb: z.number().nonnegative().default(0)
+    }).default({ id: '', name: '', gpu: '', vramGb: 0, ramGb: 0 }),
+    // LAN status beacon — each instance multicasts a JSON status snapshot every
+    // `intervalSec` so a standalone fleet-monitor app (desktop/) can list every
+    // machine on the network. On by default (workshop goal: machines "just
+    // appear"); set enabled:false to opt a machine out (then it behaves exactly
+    // like today's single-instance ComfyQ).
+    federation: z.object({
+        enabled: z.boolean().default(true),
+        group: z.string().default('239.255.42.99'),
+        port: z.number().int().positive().default(41999),
+        intervalSec: z.number().int().positive().default(15)
+    }).default({ enabled: true, group: '239.255.42.99', port: 41999, intervalSec: 15 })
 });
 
 module.exports = {

@@ -11,6 +11,8 @@
         "client": "npm run dev --prefix client",
         "server": "nodemon server/index.js --watch server",
         "dev": "concurrently --kill-others-on-fail \"npm run server\" \"npm run client\"",
+        "desktop": "npm --prefix desktop start",
+        "desktop:install": "npm install --prefix desktop",
         "postinstall": "npm install --prefix client && npm install --prefix server"
     },
     "dependencies": {

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <!-- No CSP meta: this is a fully local file:// app (opaque origin, where a
+         `script-src 'self'` policy can block same-folder scripts in Chromium).
+         The renderer makes no network requests and all beacon-derived text is
+         HTML-escaped (esc() in renderer.js); contextIsolation + nodeIntegration:false
+         (main.js) remain the real isolation boundary. -->
+    <title>ComfyQ Fleet Monitor</title>
+    <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <svg class="logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" aria-label="ComfyQ">
+                <rect width="64" height="64" rx="16" fill="#27272a"/>
+                <circle cx="32" cy="24" r="13" fill="none" stroke="#fafafa" stroke-width="5"/>
+                <path d="M 12 50 Q 22 38 32 50 T 52 50" fill="none" stroke="#fafafa"
+                      stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <div>
+                <div class="title">ComfyQ Fleet Monitor</div>
+                <div class="subtitle" id="subtitle">Listening for machines on the LAN…</div>
+            </div>
+        </div>
+        <div class="count" id="count">0 machines</div>
+    </header>
+
+    <div class="banner hidden" id="banner"></div>
+
+    <main id="app" class="grid"></main>
+
+    <div class="empty" id="empty">
+        <p>No ComfyQ machines found yet.</p>
+        <p class="hint">Each machine broadcasts every ~15&nbsp;s. If nothing appears, make sure
+        ComfyQ is running on the LAN and that Node.js is allowed through the firewall (UDP).</p>
+    </div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>

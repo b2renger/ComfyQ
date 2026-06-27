@@ -8,6 +8,7 @@ node_modules/
 package-lock.json
 client/node_modules/
 server/node_modules/
+desktop/node_modules/
 
 # Python dependencies
 __pycache__/
@@ -31,6 +32,9 @@ client/build/
 # Server build artifacts (if any)
 server/dist/
 server/build/
+
+# Desktop (Electron fleet monitor) packaged installers
+desktop/dist/
 
 # ============ Logs ============
 logs/

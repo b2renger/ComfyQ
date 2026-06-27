@@ -1,0 +1,21 @@
+appId: com.comfyq.fleetmonitor
+productName: ComfyQ Fleet Monitor
+# Installer build is deferred (dev-runnable first); this config is wired so
+# `npm run dist` produces a Windows NSIS installer + a macOS dmg when needed.
+files:
+  - main.js
+  - preload.js
+  - renderer/**
+  - assets/**
+directories:
+  output: dist
+win:
+  target: nsis
+  icon: assets/icon.png
+mac:
+  target: dmg
+  category: public.app-category.utilities
+  icon: assets/icon.png
+linux:
+  target: AppImage
+  icon: assets/icon.png

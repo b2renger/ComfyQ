@@ -67,7 +67,7 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
   - Bernini-R video editing with reference image, **auto-prompt** (video + reference image → edited video; a Gemma-4 chain writes the edit instruction for you — no prompt to type) *(registered 2026-06-25, pending rig verification)*
   - Flux.2 Klein inpainting — **paint a mask** + prompt (paint the area to replace; first **paint-a-mask** input) *(registered 2026-06-25, pending rig verification)*
   - Flux.2 Klein inpainting with reference image — paint a mask + prompt + a reference image to bring in *(registered 2026-06-25, pending rig verification)*
-- ⏳ **Phase F** — Multi-instance federation *(final phase, design locked, implementation deferred).* Auto-discover peers on LAN via mDNS, fleet-wide admin view, student station picker. See [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
+- 🚧 **Phase F** — Multi-instance federation *(first slice in progress 2026-06-27).* A **LAN status beacon** + a standalone **[Fleet Monitor desktop app](#fleet-monitor-desktop-app)** (Electron, Win/Mac) that lists every ComfyQ machine on the network — name, GPU/RAM, IP, status, active workflow, planned jobs — with a one-click "open this rig's booking page". Remaining locked design (mDNS, cross-instance admin actions, in-browser panel, student station picker, orchestrator role) still deferred. See [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
 
 ---
 
@@ -141,6 +141,50 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
 7. Delete your own scheduled jobs (cancels the job) or completed images (also unlinks the file from disk) via the X on each card. The same X button on a **running** job interrupts ComfyUI and moves the job to `cancelled` (the record is kept; the X reappears so you can also delete it). A confirmation dialog appears for every destructive action.
 
 Deleting / cancelling **another user's job** opens the same dialog with an admin-password field. The server refuses cross-user actions outright when no admin password is configured.
+
+---
+
+## Fleet Monitor (desktop app)
+
+A standalone cross-platform desktop app (`desktop/`, Electron — Windows + macOS) that shows
+**every ComfyQ machine on the LAN at a glance** — no configuration, no central server. Open it on
+an instructor's laptop (or any machine on the same network) to see the whole room.
+
+Each ComfyQ server **multicasts a small JSON status snapshot every ~15 s** (UDP, group
+`239.255.42.99:41999`); the app listens and renders one card per machine. Machines appear and
+disappear on their own — a card goes dim ~45 s after the last beacon and drops after ~2 min. It
+works even for **idle rigs in admin mode with nothing launched**.
+
+Per machine the card shows:
+- **Name** and **IP address**
+- **Hardware** — GPU model (+ VRAM) and system RAM
+- **Status** — ComfyQ panel running (admin/student mode), ComfyUI backend running, and which
+  workflow (if any) is being served
+- When a workflow is served — the **planned/running jobs** with their times and the user
+- A **"Schedule a job ↗"** button that opens that rig's booking page (`http://<ip>:5173`) in your
+  default browser
+
+The app is **read-only** (it never commands a remote machine — the only action is opening a browser
+tab).
+
+### Run it
+
+```bash
+npm run desktop:install   # once — installs Electron in desktop/ (not pulled by the root install)
+npm run desktop           # launch the monitor
+```
+
+The beacon is **on by default** on every ComfyQ instance (admin and student mode). To opt a machine
+out, set `federation.enabled: false` in its `config.json`; behavior is then identical to a
+single-instance ComfyQ. The group/port and interval are configurable under `config.federation`
+(match them with `COMFYQ_FED_GROUP` / `COMFYQ_FED_PORT` env vars for the app if you change them).
+A `GET /federation/self` endpoint returns the same snapshot over HTTP for scripting/debugging.
+
+> **Firewall:** the beacon is UDP. If machines don't appear, allow **Node.js** (and Electron, for
+> the app) through Windows Firewall on **Private** networks. Multicast must be permitted on the LAN.
+
+Producing signed installers (`.exe` / `.dmg`) is wired via `npm run dist --prefix desktop`
+(electron-builder) but deferred — run from source for now.
 
 ---
 

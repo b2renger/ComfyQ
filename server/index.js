@@ -41,6 +41,9 @@ const workflowRoutes = require('./routes/workflows');
 const jobRoutes = require('./routes/jobs');
 const uploadRoutes = require('./routes/uploads');
 const mediaStore = require('./media/mediaStore');
+const federationRoutes = require('./routes/federation');
+const { detectSystemInfo } = require('./federation/systemInfo');
+const { StatusBeacon } = require('./federation/beacon');
 
 // Prints the URLs students should use from another machine on the LAN.
 // They open Vite (5173) in their browser; Vite serves plain HTTP and
@@ -178,6 +181,18 @@ async function main() {
     const config = configManager.resolvePaths(rawConfig);
     console.log(`[ComfyQ] mode=${config.mode}`);
 
+    // Federation (Phase F): detect this machine's identity + hardware once at
+    // boot (persisted to config.instance) so the LAN status beacon can report it
+    // even when ComfyUI isn't running. Resolved object is shared with the beacon
+    // and GET /federation/self via the getSysInfo closure below.
+    let sysInfo = null;
+    try {
+        sysInfo = await detectSystemInfo(configManager);
+        console.log(`[ComfyQ] this machine: "${sysInfo.name}"  ${sysInfo.gpu}${sysInfo.vramGb ? ` (${sysInfo.vramGb}GB VRAM)` : ''}  ${sysInfo.ramGb}GB RAM`);
+    } catch (e) {
+        console.warn('[ComfyQ] system-info detection failed:', e.message);
+    }
+
     const registry = new WorkflowRegistry(config.workflows.dir);
     registry.discover();
     console.log(`[ComfyQ] registry: ${registry.summaries({ includeUnavailable: false }).length} usable workflow(s)`);
@@ -198,6 +213,10 @@ async function main() {
     app.use('/admin', adminRoutes.makeRouter({
         configManager, registry, adminGate: gate, exitForRestart, runtime
     }));
+    // Federation status (read-only; same snapshot the beacon multicasts).
+    app.use('/federation', federationRoutes.makeRouter({
+        configManager, registry, runtime, getSysInfo: () => sysInfo
+    }));
 
     if (config.mode === 'admin') {
         // Calibration from the admin panel works by lazily spawning (or
@@ -216,6 +235,10 @@ async function main() {
         app.use('/workflows', workflowRoutes.makeRouter({
             registry, configManager, benchmarkService: adminCalibrator, adminGate: gate
         }));
+        // LAN status beacon — runs in admin mode too so idle rigs (nothing
+        // launched) still appear in the fleet monitor.
+        const beacon = new StatusBeacon({ configManager, registry, runtime, sysInfo });
+        beacon.start();
         const port = config.server.port;
         const host = config.server.host;
         server.listen(port, host, () => {
@@ -225,6 +248,7 @@ async function main() {
         });
         process.on('SIGINT', async () => {
             console.log('[ComfyQ] shutting down (admin mode)…');
+            try { beacon.stop(); } catch { /* ignore */ }
             try { await adminCalibrator.shutdown(); } catch { /* ignore */ }
             process.exit(0);
         });
@@ -284,10 +308,16 @@ async function main() {
 
     const bus = new RealtimeBus({ httpServer: server, queue, executor, registry, configManager, worker, comfyConfig: config.comfy_ui });
 
-    // Expose student-mode runtime to the admin router (emergency-stop).
+    // Expose student-mode runtime to the admin router (emergency-stop) and the
+    // federation snapshot (queue + worker liveness).
     runtime.queue = queue;
     runtime.executor = executor;
     runtime.worker = worker;
+
+    // LAN status beacon — now that the queue/worker are live, snapshots include
+    // the active workflow + planned/running jobs.
+    const beacon = new StatusBeacon({ configManager, registry, runtime, sysInfo });
+    beacon.start();
 
     // Mount remaining routes.
     app.use('/workflows', workflowRoutes.makeRouter({
@@ -325,6 +355,7 @@ async function main() {
     // Graceful shutdown
     process.on('SIGINT', async () => {
         console.log('[ComfyQ] shutting down…');
+        try { beacon.stop(); } catch { /* ignore */ }
         executor.stop();
         await worker.shutdown();
         queue.close();

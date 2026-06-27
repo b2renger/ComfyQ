@@ -21,6 +21,7 @@
         "mime-types": "^2.1.35",
         "multer": "^2.0.2",
         "socket.io": "^4.7.2",
+        "systeminformation": "^5.23.5",
         "uuid": "^9.0.1",
         "ws": "^8.14.2",
         "zod": "^3.23.8"
