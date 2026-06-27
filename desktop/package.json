@@ -9,10 +9,10 @@
     },
     "scripts": {
         "start": "electron .",
+        "_comment_dist": "Packaging installers is optional/deferred. It needs electron-builder, which is NOT a default dependency (its transitive tree is large + carries advisories we don't want in the run-time install). To build: `npm i -D electron-builder` here, then `npm run dist`.",
         "dist": "electron-builder"
     },
     "devDependencies": {
-        "electron": "^33.2.0",
-        "electron-builder": "^25.1.8"
+        "electron": "^42.5.0"
     }
 }

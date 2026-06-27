@@ -184,8 +184,15 @@ A `GET /federation/self` endpoint returns the same snapshot over HTTP for script
 > **Firewall:** the beacon is UDP. If machines don't appear, allow **Node.js** (and Electron, for
 > the app) through Windows Firewall on **Private** networks. Multicast must be permitted on the LAN.
 
-Producing signed installers (`.exe` / `.dmg`) is wired via `npm run dist --prefix desktop`
-(electron-builder) but deferred — run from source for now.
+> **"Electron failed to install correctly"?** Electron's binary-download step occasionally gets
+> skipped during `npm install`. `npm run desktop:install` runs that step explicitly so this
+> shouldn't happen; if it ever does, re-run `npm run desktop:install` (or, directly,
+> `node desktop/node_modules/electron/install.js`).
+
+Only `electron` is installed for running the app — `electron-builder` is intentionally **not** a
+default dependency (its large transitive tree carries advisories we don't want at runtime; the
+runtime install reports **0 vulnerabilities**). To produce installers (`.exe` / `.dmg`) later, run
+`npm i -D electron-builder` inside `desktop/` then `npm run dist --prefix desktop`.
 
 ---
 
