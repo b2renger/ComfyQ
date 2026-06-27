@@ -7,6 +7,9 @@ const emptyEl = document.getElementById('empty');
 const countEl = document.getElementById('count');
 const subtitleEl = document.getElementById('subtitle');
 const bannerEl = document.getElementById('banner');
+const peerChipsEl = document.getElementById('peerChips');
+const addPeerForm = document.getElementById('addPeerForm');
+const peerInput = document.getElementById('peerInput');
 
 function esc(s) {
     return String(s == null ? '' : s)
@@ -106,7 +109,7 @@ function cardHtml(p) {
             ${jobsHtml}
 
             <button class="btn" data-url="${esc(url)}" ${url ? '' : 'disabled'}>Schedule a job ↗</button>
-            <div class="footer">Last seen ${esc(ago(p._ageMs || 0))}</div>
+            <div class="footer">Last seen ${esc(ago(p._ageMs || 0))}${p._source === 'poll' ? ' · via IP' : ''}</div>
         </div>`;
 }
 
@@ -136,10 +139,44 @@ function render(data) {
         if (!url) continue;
         btn.addEventListener('click', () => window.fleet.openUrl(url));
     }
+
+    if (data.staticPeers) renderStaticChips(data.staticPeers);
 }
+
+// Which configured static hosts currently resolve to a live card (so we can
+// show reachable vs. waiting).
+function liveHostSet(peers) {
+    const s = new Set();
+    for (const p of peers) for (const ip of (p.ips || [])) s.add(ip);
+    return s;
+}
+
+function renderStaticChips(hosts) {
+    const live = liveHostSet(last.peers || []);
+    peerChipsEl.innerHTML = (hosts || []).map(h => {
+        const ip = String(h).split(':')[0];
+        const ok = live.has(ip);
+        return `<span class="chip-peer ${ok ? 'ok' : 'wait'}" title="${ok ? 'reachable' : 'waiting for response'}">
+            <span class="dot-mini ${ok ? 'ok' : 'wait'}"></span>${esc(h)}
+            <button class="chip-x" data-host="${esc(h)}" title="Remove">×</button>
+        </span>`;
+    }).join('');
+    for (const x of peerChipsEl.querySelectorAll('.chip-x')) {
+        x.addEventListener('click', () => window.fleet.removeStaticPeer(x.getAttribute('data-host')));
+    }
+}
+
+addPeerForm.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const v = peerInput.value.trim();
+    if (v) { window.fleet.addStaticPeer(v); peerInput.value = ''; }
+});
 
 // Keep the latest payload so we can re-render between beacons to tick the
 // "last seen" / running-elapsed clocks.
-let last = { peers: [], group: '', port: '' };
+let last = { peers: [], staticPeers: [], group: '', port: '' };
 window.fleet.onPeers((d) => { last = d; render(d); });
 setInterval(() => render(last), 1000);
+
+// Seed the chips immediately (before the first peer push).
+window.fleet.getStaticPeers().then(renderStaticChips);

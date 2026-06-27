@@ -57,6 +57,66 @@ body {
 }
 .hidden { display: none; }
 
+.peerbar {
+    margin: 12px 20px 0;
+    padding: 12px 14px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+.peerbar-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
+.peerbar-label { font-weight: 600; font-size: 13px; }
+.peerbar-hint { font-size: 11px; color: var(--muted); }
+.peerbar-form { display: flex; gap: 8px; }
+.peerbar-form input {
+    flex: 1;
+    background: var(--background);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--text);
+    font-family: inherit;
+    font-size: 13px;
+}
+.peerbar-form input::placeholder { color: var(--grey); }
+.peerbar-form button {
+    border: 1px solid var(--accent);
+    background: var(--accent);
+    color: #fff;
+    font-weight: 600;
+    font-size: 13px;
+    padding: 8px 16px;
+    border-radius: 8px;
+    cursor: pointer;
+}
+.peerbar-form button:hover { filter: brightness(1.08); }
+.peerchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+.chip-peer {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px 6px 3px 10px;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+.dot-mini { width: 7px; height: 7px; border-radius: 50%; }
+.dot-mini.ok { background: var(--green); }
+.dot-mini.wait { background: var(--amber); }
+.chip-x {
+    border: none;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0 4px;
+    border-radius: 4px;
+}
+.chip-x:hover { color: var(--text); background: var(--border); }
+
 .grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));

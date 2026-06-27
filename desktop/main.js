@@ -1,21 +1,28 @@
 // ComfyQ Fleet Monitor — Electron main process.
 //
-// Joins the LAN status-beacon multicast group and collects a JSON snapshot from
-// every ComfyQ machine (see server/federation/beacon.js). Maintains the peer
-// map + stale/expiry here and forwards the list to the renderer over IPC. The
-// only outbound action is opening a machine's web UI in the default browser.
+// Discovers ComfyQ machines two ways and merges them into one list:
+//   1. UDP status beacons (multicast + broadcast) — zero-config on friendly LANs.
+//   2. Static peers — unicast HTTP poll of http://<ip>:<port>/federation/self.
+//      Needed on managed/school Wi-Fi that blocks broadcast/multicast between
+//      clients (client isolation) but still allows normal unicast TCP.
+// Peer map + stale/expiry live here; the list is pushed to the renderer over IPC.
+// The only outbound action is opening a machine's web UI in the default browser.
 
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const dgram = require('dgram');
+const http = require('http');
 const os = require('os');
+const fs = require('fs');
 const path = require('path');
 
 // Must match server config.federation defaults (group/port).
 const GROUP = process.env.COMFYQ_FED_GROUP || '239.255.42.99';
 const PORT = Number(process.env.COMFYQ_FED_PORT || 41999);
+const POLL_MS = 5_000;       // unicast poll cadence for static peers
+const DEFAULT_API_PORT = 3000;
 
-const STALE_MS = 30_000;     // ~6 missed 5s beacons → mark stale
-const DROP_MS = 120_000;     // gone this long → remove from the list
+const STALE_MS = 30_000;     // ~6 missed 5s updates → mark stale
+const DROP_MS = 120_000;     // gone this long (and not a static peer) → remove
 
 // Non-internal IPv4 interface addresses — used to join the multicast group on
 // every interface (a Wi-Fi machine may have several; the default join often
@@ -34,7 +41,57 @@ function ipv4Addresses() {
 let win = null;
 let socket = null;
 let socketError = null;
-const peers = new Map();      // id -> { snap, lastSeen }
+const peers = new Map();       // id -> { snap, lastSeen, source }
+
+// ---- static peers (unicast poll) ----
+let staticPeers = [];          // array of host strings ("10.10.16.174" or "host:3000")
+let peersFile = null;
+
+function loadStaticPeers() {
+    try {
+        peersFile = path.join(app.getPath('userData'), 'static-peers.json');
+        if (fs.existsSync(peersFile)) {
+            const arr = JSON.parse(fs.readFileSync(peersFile, 'utf8'));
+            if (Array.isArray(arr)) staticPeers = arr.filter(s => typeof s === 'string');
+        }
+    } catch { /* start empty */ }
+    // Seed from env on first run (comma-separated).
+    const env = (process.env.COMFYQ_FED_PEERS || '').split(',').map(s => s.trim()).filter(Boolean);
+    for (const h of env) if (!staticPeers.includes(h)) staticPeers.push(h);
+}
+
+function saveStaticPeers() {
+    try { if (peersFile) fs.writeFileSync(peersFile, JSON.stringify(staticPeers, null, 2)); }
+    catch (e) { console.warn('[FleetMonitor] could not save static peers:', e.message); }
+}
+
+function parseHost(entry) {
+    const [host, port] = String(entry).split(':');
+    return { host: host.trim(), port: Number(port) || DEFAULT_API_PORT };
+}
+
+function pollStaticPeers() {
+    for (const entry of staticPeers) {
+        const { host, port } = parseHost(entry);
+        if (!host) continue;
+        const req = http.get({ host, port, path: '/federation/self', timeout: 4000 }, (res) => {
+            if (res.statusCode !== 200) { res.resume(); return; }
+            let body = '';
+            res.on('data', (c) => { body += c; if (body.length > 1_000_000) req.destroy(); });
+            res.on('end', () => {
+                let snap;
+                try { snap = JSON.parse(body); } catch { return; }
+                if (!snap || snap.v == null) return;
+                if (!Array.isArray(snap.ips) || snap.ips.length === 0) snap.ips = [host];
+                const id = snap.id || `${host}:${snap.apiPort || port}`;
+                peers.set(id, { snap, lastSeen: Date.now(), source: 'poll' });
+                pushToRenderer();
+            });
+        });
+        req.on('timeout', () => req.destroy());
+        req.on('error', () => { /* peer offline / unreachable — just skip */ });
+    }
+}
 
 function pushToRenderer() {
     if (!win || win.isDestroyed()) return;
@@ -42,9 +99,9 @@ function pushToRenderer() {
     const list = [];
     for (const [, rec] of peers) {
         const age = now - rec.lastSeen;
-        list.push({ ...rec.snap, _lastSeen: rec.lastSeen, _ageMs: age, _stale: age > STALE_MS });
+        list.push({ ...rec.snap, _lastSeen: rec.lastSeen, _ageMs: age, _stale: age > STALE_MS, _source: rec.source });
     }
-    win.webContents.send('peers', { peers: list, socketError, group: GROUP, port: PORT });
+    win.webContents.send('peers', { peers: list, staticPeers: staticPeers.slice(), socketError, group: GROUP, port: PORT });
 }
 
 function startSocket() {
@@ -54,8 +111,7 @@ function startSocket() {
         socketError = e.message;
         pushToRenderer();
         try { socket.close(); } catch { /* ignore */ }
-        // Retry after a short delay (e.g. interface not ready yet).
-        setTimeout(startSocket, 3000);
+        setTimeout(startSocket, 3000);   // retry (e.g. interface not ready yet)
     });
 
     socket.on('message', (msg, rinfo) => {
@@ -64,14 +120,13 @@ function startSocket() {
         if (!snap || snap.v == null) return;
         if (!Array.isArray(snap.ips) || snap.ips.length === 0) snap.ips = [rinfo.address];
         const id = snap.id || `${rinfo.address}:${snap.apiPort || ''}`;
-        peers.set(id, { snap, lastSeen: Date.now() });
+        peers.set(id, { snap, lastSeen: Date.now(), source: 'beacon' });
         pushToRenderer();
     });
 
     socket.bind(PORT, () => {
         // Broadcast datagrams are received automatically once bound to
-        // 0.0.0.0:PORT. For multicast we join the group on every interface
-        // (and the default) so a multi-homed / Wi-Fi machine doesn't miss it.
+        // 0.0.0.0:PORT. For multicast we join the group on every interface.
         let joined = 0;
         try { socket.addMembership(GROUP); joined++; } catch { /* default join may fail; per-iface below */ }
         for (const addr of ipv4Addresses()) {
@@ -83,11 +138,14 @@ function startSocket() {
     });
 }
 
-// Sweep: drop long-gone peers and refresh stale flags / "last seen" ages.
+// Sweep: drop long-gone peers (but keep static peers in the list even when
+// offline so the user still sees what they configured) and refresh ages.
 setInterval(() => {
     const now = Date.now();
+    const staticHosts = new Set(staticPeers.map(e => parseHost(e).host));
     for (const [id, rec] of peers) {
-        if (now - rec.lastSeen > DROP_MS) peers.delete(id);
+        const isStatic = rec.source === 'poll' || (rec.snap.ips || []).some(ip => staticHosts.has(ip));
+        if (!isStatic && now - rec.lastSeen > DROP_MS) peers.delete(id);
     }
     pushToRenderer();
 }, 5000);
@@ -117,8 +175,31 @@ ipcMain.handle('open-url', (_e, url) => {
     return false;
 });
 
+ipcMain.handle('get-static-peers', () => staticPeers.slice());
+
+ipcMain.handle('add-static-peer', (_e, host) => {
+    const h = String(host || '').trim();
+    if (h && !staticPeers.includes(h)) {
+        staticPeers.push(h);
+        saveStaticPeers();
+        pollStaticPeers();          // surface it immediately
+    }
+    pushToRenderer();
+    return staticPeers.slice();
+});
+
+ipcMain.handle('remove-static-peer', (_e, host) => {
+    staticPeers = staticPeers.filter(h => h !== host);
+    saveStaticPeers();
+    pushToRenderer();
+    return staticPeers.slice();
+});
+
 app.whenReady().then(() => {
+    loadStaticPeers();
     startSocket();
+    pollStaticPeers();
+    setInterval(pollStaticPeers, POLL_MS);
     createWindow();
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) createWindow();

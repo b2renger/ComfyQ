@@ -185,6 +185,13 @@ A `GET /federation/self` endpoint returns the same snapshot over HTTP for script
 > **Firewall:** the beacon is UDP. If machines don't appear, allow **Node.js** (and Electron, for
 > the app) through Windows Firewall on **Private** networks. Multicast must be permitted on the LAN.
 
+> **Managed / school Wi-Fi (broadcast & multicast blocked)?** Many managed networks enable *client
+> isolation* for broadcast/multicast, so the auto-discovery beacons never arrive even though the
+> machines can reach each other directly. Use **Add machine by IP** in the app: type each rig's IP
+> (e.g. `10.10.16.174`) and the monitor polls `http://<ip>:3000/federation/self` over plain unicast
+> HTTP — the same path students already use, so it needs no extra firewall rule and the entries are
+> remembered between launches. A green dot means the machine answered.
+
 > **"Electron failed to install correctly"?** Electron's binary-download step occasionally gets
 > skipped during `npm install`. `npm run desktop:install` runs that step explicitly so this
 > shouldn't happen; if it ever does, re-run `npm run desktop:install` (or, directly,

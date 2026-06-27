@@ -29,6 +29,18 @@
 
     <div class="banner hidden" id="banner"></div>
 
+    <section class="peerbar">
+        <div class="peerbar-head">
+            <span class="peerbar-label">Add machine by IP</span>
+            <span class="peerbar-hint">Use this on networks that block broadcast/multicast (e.g. managed Wi-Fi). The app then polls each machine directly.</span>
+        </div>
+        <form id="addPeerForm" class="peerbar-form" autocomplete="off">
+            <input id="peerInput" type="text" placeholder="e.g. 10.10.16.174  (or 10.10.16.174:3000)" spellcheck="false" />
+            <button type="submit">Add</button>
+        </form>
+        <div class="peerchips" id="peerChips"></div>
+    </section>
+
     <main id="app" class="grid"></main>
 
     <div class="empty" id="empty">
