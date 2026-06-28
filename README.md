@@ -186,11 +186,13 @@ A `GET /federation/self` endpoint returns the same snapshot over HTTP for script
 > the app) through Windows Firewall on **Private** networks. Multicast must be permitted on the LAN.
 
 > **Managed / school Wi-Fi (broadcast & multicast blocked)?** Many managed networks enable *client
-> isolation* for broadcast/multicast, so the auto-discovery beacons never arrive even though the
-> machines can reach each other directly. Use **Add machine by IP** in the app: type each rig's IP
-> (e.g. `10.10.16.174`) and the monitor polls `http://<ip>:3000/federation/self` over plain unicast
-> HTTP — the same path students already use, so it needs no extra firewall rule and the entries are
-> remembered between launches. A green dot means the machine answered.
+> isolation* for broadcast/multicast, so the UDP beacons never arrive even though the machines can
+> reach each other directly over unicast. For that case the app also **auto-discovers** machines by
+> sweeping the local subnet: it probes `http://<ip>:3000/federation/self` across your subnet (the
+> same path students already use, so no extra firewall rule), and lists everything that answers. It's
+> on by default — toggle **Auto-discover machines on this network** or hit **Rescan now**. A full
+> sweep of a /23 (~510 hosts) takes ~15 s; found machines then refresh every 5 s. For a machine on a
+> *different* subnet, use **Add machine by IP** (it's polled directly and remembered between launches).
 
 > **"Electron failed to install correctly"?** Electron's binary-download step occasionally gets
 > skipped during `npm install`. `npm run desktop:install` runs that step explicitly so this

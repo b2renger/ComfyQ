@@ -9,5 +9,8 @@ contextBridge.exposeInMainWorld('fleet', {
     // Static peers (unicast poll) — for networks that block broadcast/multicast.
     getStaticPeers: () => ipcRenderer.invoke('get-static-peers'),
     addStaticPeer: (host) => ipcRenderer.invoke('add-static-peer', host),
-    removeStaticPeer: (host) => ipcRenderer.invoke('remove-static-peer', host)
+    removeStaticPeer: (host) => ipcRenderer.invoke('remove-static-peer', host),
+    // Subnet auto-scan controls.
+    rescan: () => ipcRenderer.invoke('rescan'),
+    setAutoScan: (on) => ipcRenderer.invoke('set-auto-scan', on)
 });

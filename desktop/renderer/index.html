@@ -30,9 +30,17 @@
     <div class="banner hidden" id="banner"></div>
 
     <section class="peerbar">
+        <div class="scanrow">
+            <label class="scan-toggle">
+                <input type="checkbox" id="autoScanChk" />
+                <span>Auto-discover machines on this network</span>
+            </label>
+            <span class="scan-status" id="scanStatus"></span>
+            <button id="rescanBtn" class="scan-btn">Rescan now</button>
+        </div>
         <div class="peerbar-head">
             <span class="peerbar-label">Add machine by IP</span>
-            <span class="peerbar-hint">Use this on networks that block broadcast/multicast (e.g. managed Wi-Fi). The app then polls each machine directly.</span>
+            <span class="peerbar-hint">Optional — for a machine on a different subnet, or if auto-discovery is off. The app polls it directly.</span>
         </div>
         <form id="addPeerForm" class="peerbar-form" autocomplete="off">
             <input id="peerInput" type="text" placeholder="e.g. 10.10.16.174  (or 10.10.16.174:3000)" spellcheck="false" />

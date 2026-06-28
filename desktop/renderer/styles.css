@@ -64,6 +64,31 @@ body {
     border: 1px solid var(--border);
     border-radius: 10px;
 }
+.scanrow {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    padding-bottom: 10px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--border);
+}
+.scan-toggle { display: inline-flex; align-items: center; gap: 7px; cursor: pointer; font-size: 13px; }
+.scan-toggle input { width: 15px; height: 15px; accent-color: var(--accent); }
+.scan-status { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.scan-btn {
+    margin-left: auto;
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    color: var(--text);
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 7px;
+    cursor: pointer;
+}
+.scan-btn:hover:not(:disabled) { border-color: var(--accent); }
+.scan-btn:disabled { color: var(--muted); cursor: default; }
+
 .peerbar-head { display: flex; flex-direction: column; gap: 2px; margin-bottom: 8px; }
 .peerbar-label { font-weight: 600; font-size: 13px; }
 .peerbar-hint { font-size: 11px; color: var(--muted); }

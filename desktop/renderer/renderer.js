@@ -10,6 +10,9 @@ const bannerEl = document.getElementById('banner');
 const peerChipsEl = document.getElementById('peerChips');
 const addPeerForm = document.getElementById('addPeerForm');
 const peerInput = document.getElementById('peerInput');
+const autoScanChk = document.getElementById('autoScanChk');
+const scanStatusEl = document.getElementById('scanStatus');
+const rescanBtn = document.getElementById('rescanBtn');
 
 function esc(s) {
     return String(s == null ? '' : s)
@@ -141,6 +144,20 @@ function render(data) {
     }
 
     if (data.staticPeers) renderStaticChips(data.staticPeers);
+    if (data.scan) renderScanStatus(data.scan);
+}
+
+function renderScanStatus(scan) {
+    if (autoScanChk && document.activeElement !== autoScanChk) autoScanChk.checked = !!scan.enabled;
+    const cidr = (scan.cidrs && scan.cidrs[0]) || 'local subnet';
+    if (!scan.enabled) {
+        scanStatusEl.textContent = 'auto-discovery off';
+    } else if (scan.scanning) {
+        scanStatusEl.textContent = `scanning ${cidr} (${scan.candidateCount} hosts)…`;
+    } else {
+        scanStatusEl.textContent = `${cidr} · ${scan.discoveredCount} found`;
+    }
+    if (rescanBtn) rescanBtn.disabled = !scan.enabled || scan.scanning;
 }
 
 // Which configured static hosts currently resolve to a live card (so we can
@@ -171,6 +188,9 @@ addPeerForm.addEventListener('submit', (e) => {
     const v = peerInput.value.trim();
     if (v) { window.fleet.addStaticPeer(v); peerInput.value = ''; }
 });
+
+autoScanChk.addEventListener('change', () => window.fleet.setAutoScan(autoScanChk.checked));
+rescanBtn.addEventListener('click', () => window.fleet.rescan());
 
 // Keep the latest payload so we can re-render between beacons to tick the
 // "last seen" / running-elapsed clocks.
