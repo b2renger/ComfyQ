@@ -25,6 +25,9 @@ const controlsEl = document.getElementById('controls');
 const toastEl = document.getElementById('toast');
 const appVersionEl = document.getElementById('appVersion');
 const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
+const tabbarEl = document.getElementById('tabbar');
+const machinesViewEl = document.getElementById('machinesView');
+const webviewsEl = document.getElementById('webviews');
 
 // Light / dark theme — same behaviour as the ComfyQ web client (honor the OS
 // preference first, then remember the user's choice).
@@ -215,7 +218,7 @@ function cardHtml(p, selfIps) {
                 <div class="jobs-label">Queue${jobs.scheduled && jobs.scheduled.length ? ` · ${jobs.scheduled.length} waiting` : ''}</div>
                 ${parts.length ? parts.join('') : '<div class="no-jobs">Nothing queued</div>'}
             </div>
-            <button class="btn" data-url="${esc(url)}" ${url ? '' : 'disabled'}>Schedule a job ↗</button>`;
+            <button class="btn" data-url="${esc(url)}" data-id="${esc(p.id || url)}" data-name="${esc(p.name || 'Machine')}" ${url ? '' : 'disabled'}>Schedule a job ↗</button>`;
     } else {
         workHtml = `<div class="standby">${isAdmin ? 'Not serving a workflow right now.' : 'Ready — no workflow active.'}</div>`;
     }
@@ -398,6 +401,78 @@ rangeApply.addEventListener('click', () => {
     });
 });
 
+// ---- In-app machine tabs (embedded webviews) -------------------------------
+// "Schedule a job" opens the rig's web UI inside the app as a named, closable
+// tab; a persistent "Machines" home chip is the clear way back to the list.
+const MACHINES_KEY = '__machines__';
+const tabs = new Map();          // key -> { key, name, url, wv }
+let activeTabKey = MACHINES_KEY;
+
+function renderTabbar() {
+    const open = tabs.size > 0;
+    tabbarEl.classList.toggle('hidden', !open);
+    if (!open) { tabbarEl.innerHTML = ''; return; }
+    const homeActive = activeTabKey === MACHINES_KEY ? ' active' : '';
+    let html = `<div class="tab tab-home${homeActive}" data-key="${MACHINES_KEY}" title="Back to the machine list">`
+        + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Machines</div>`;
+    for (const t of tabs.values()) {
+        const active = t.key === activeTabKey ? ' active' : '';
+        html += `<div class="tab${active}" data-key="${esc(t.key)}" title="${esc(t.name)}">`
+            + `<span class="tab-name">${esc(t.name)}</span>`
+            + `<button class="tab-close" data-close="${esc(t.key)}" title="Close tab">✕</button></div>`;
+    }
+    tabbarEl.innerHTML = html;
+}
+
+function showActiveView() {
+    const onMachines = activeTabKey === MACHINES_KEY;
+    machinesViewEl.classList.toggle('hidden', !onMachines);
+    webviewsEl.classList.toggle('hidden', onMachines);
+    for (const t of tabs.values()) t.wv.classList.toggle('hidden', t.key !== activeTabKey);
+    renderTabbar();
+}
+
+function openMachineTab(key, name, url) {
+    if (!url) return;
+    key = key || url;
+    name = name || 'Machine';
+    if (!tabs.has(key)) {
+        const wv = document.createElement('webview');
+        wv.className = 'tabview';
+        wv.setAttribute('src', url);
+        wv.setAttribute('partition', 'persist:comfyq');   // keep the chosen username across tabs + launches
+        wv.addEventListener('did-fail-load', (e) => {
+            if (e.errorCode && e.errorCode !== -3) showToast(`Couldn't reach ${name}`);
+        });
+        webviewsEl.appendChild(wv);
+        tabs.set(key, { key, name, url, wv });
+    }
+    activeTabKey = key;
+    showActiveView();
+}
+
+function closeMachineTab(key) {
+    const t = tabs.get(key);
+    if (!t) return;
+    t.wv.remove();
+    tabs.delete(key);
+    if (activeTabKey === key) activeTabKey = MACHINES_KEY;   // fall back to the machine list
+    showActiveView();
+}
+
+function switchTab(key) {
+    if (key !== MACHINES_KEY && !tabs.has(key)) return;
+    activeTabKey = key;
+    showActiveView();
+}
+
+tabbarEl.addEventListener('click', (e) => {
+    const close = e.target.closest && e.target.closest('.tab-close[data-close]');
+    if (close) { e.stopPropagation(); closeMachineTab(close.getAttribute('data-close')); return; }
+    const tab = e.target.closest && e.target.closest('.tab[data-key]');
+    if (tab) switchTab(tab.getAttribute('data-key'));
+});
+
 // Event delegation on stable parents — listeners attached ONCE, so a card/chip
 // rebuild can't drop them (and clicks aren't tied to per-render elements).
 appEl.addEventListener('click', (e) => {
@@ -409,7 +484,9 @@ appEl.addEventListener('click', (e) => {
         return;
     }
     const sched = e.target.closest && e.target.closest('.btn[data-url]');
-    if (sched && sched.getAttribute('data-url')) window.fleet.openUrl(sched.getAttribute('data-url'));
+    if (sched && sched.getAttribute('data-url')) {
+        openMachineTab(sched.getAttribute('data-id'), sched.getAttribute('data-name'), sched.getAttribute('data-url'));
+    }
 });
 peerChipsEl.addEventListener('click', (e) => {
     const x = e.target.closest && e.target.closest('.chip-x[data-host]');

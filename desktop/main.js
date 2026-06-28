@@ -238,8 +238,16 @@ function createWindow() {
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
-            nodeIntegration: false
+            nodeIntegration: false,
+            webviewTag: true            // machine UIs open in embedded <webview> tabs
         }
+    });
+    // Embedded machine UIs are LAN ComfyQ instances — keep every <webview>
+    // sandboxed (no preload, no node integration).
+    win.webContents.on('will-attach-webview', (_e, webPreferences) => {
+        delete webPreferences.preload;
+        webPreferences.nodeIntegration = false;
+        webPreferences.contextIsolation = true;
     });
     win.removeMenu();
     win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
@@ -323,6 +331,17 @@ ipcMain.handle('set-scan-range', (_e, r) => {
     }
     pushToRenderer();
     return scanRange;
+});
+
+// A popup or external link opened from inside an embedded machine UI goes to the
+// system browser instead of spawning an uncontrolled in-app window.
+app.on('web-contents-created', (_e, contents) => {
+    if (contents.getType && contents.getType() === 'webview') {
+        contents.setWindowOpenHandler(({ url }) => {
+            if (/^https?:\/\//i.test(url)) shell.openExternal(url);
+            return { action: 'deny' };
+        });
+    }
 });
 
 app.whenReady().then(() => {

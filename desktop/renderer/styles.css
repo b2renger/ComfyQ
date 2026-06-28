@@ -38,6 +38,7 @@
 
 * { box-sizing: border-box; }
 
+html, body { height: 100%; }
 body {
     margin: 0;
     background: var(--bg);
@@ -47,7 +48,15 @@ body {
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
+    /* App is a flex column: the topbar + tab bar are fixed rows, and the active
+       view (machine list OR an embedded webview) fills + scrolls below them. */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
+#machinesView { flex: 1 1 auto; min-height: 0; overflow-y: auto; }
+.webviews { flex: 1 1 auto; min-height: 0; display: flex; background: var(--bg); }
+.webviews webview { flex: 1 1 auto; width: 100%; }
 
 .topbar {
     display: flex;
@@ -366,3 +375,42 @@ body {
 .btn:disabled { background: transparent; color: var(--muted); border-color: var(--border); cursor: default; }
 
 .footer { color: var(--muted); font-size: 11px; }
+
+/* ---- In-app machine tabs (embedded webviews) ---- */
+.topbar { flex: 0 0 auto; }
+.tabbar {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: stretch;
+    gap: 4px;
+    padding: 6px 10px 0;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+}
+.tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 220px;
+    padding: 7px 8px 7px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    border-radius: 8px 8px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.tab:hover { color: var(--text); }
+.tab.active { background: var(--bg); color: var(--text); border-color: var(--accent); }
+.tab-name { overflow: hidden; text-overflow: ellipsis; }
+.tab-home { font-weight: 600; padding-right: 12px; }
+.tab-home svg { width: 15px; height: 15px; margin-right: 2px; }
+.tab-close {
+    border: none; background: transparent; color: var(--muted);
+    cursor: pointer; font-size: 13px; line-height: 1;
+    padding: 2px 4px; border-radius: 4px;
+}
+.tab-close:hover { color: var(--text); background: var(--border); }
