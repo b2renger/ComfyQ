@@ -1,7 +1,8 @@
 appId: com.comfyq.discovery
 productName: ComfyQ Discovery
-# Installer build is deferred (dev-runnable first); this config is wired so
-# `npm run dist` produces a Windows NSIS installer + a macOS dmg when needed.
+# `npm run dist` builds an unsigned installer for the host OS. Releases (all
+# platforms) are published to GitHub Releases by CI on a version tag; installed
+# apps auto-update from there via electron-updater (see main.js).
 files:
   - main.js
   - preload.js
@@ -9,13 +10,25 @@ files:
   - assets/**
 directories:
   output: dist
+# Where electron-updater looks for new versions (public repo → no token needed).
+publish:
+  provider: github
+  owner: b2renger
+  repo: ComfyQ
+  releaseType: release          # full release, not draft/prerelease (drafts are ignored by the updater)
 win:
   target: nsis
   icon: assets/icon.png
 mac:
-  target: dmg
+  target:                       # zip is REQUIRED for macOS auto-update metadata (latest-mac.yml)
+    - dmg
+    - zip
   category: public.app-category.utilities
   icon: assets/icon.png
 linux:
   target: AppImage
   icon: assets/icon.png
+nsis:
+  oneClick: true
+  perMachine: false             # per-user install → silent updates need no UAC prompt
+  deleteAppDataOnUninstall: false

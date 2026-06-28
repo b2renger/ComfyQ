@@ -16,5 +16,10 @@ contextBridge.exposeInMainWorld('fleet', {
     rescan: () => ipcRenderer.invoke('rescan'),
     setAutoScan: (on) => ipcRenderer.invoke('set-auto-scan', on),
     getScanRange: () => ipcRenderer.invoke('get-scan-range'),
-    setScanRange: (range) => ipcRenderer.invoke('set-scan-range', range)
+    setScanRange: (range) => ipcRenderer.invoke('set-scan-range', range),
+    // App version + auto-update (electron-updater driven from main.js).
+    getVersion: () => ipcRenderer.invoke('app:get-version'),
+    checkForUpdates: () => ipcRenderer.invoke('app:check-for-updates'),
+    quitAndInstall: () => ipcRenderer.invoke('app:quit-and-install'),
+    onUpdateStatus: (cb) => ipcRenderer.on('update-status', (_e, data) => cb(data))
 });

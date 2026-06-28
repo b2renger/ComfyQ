@@ -9,10 +9,17 @@
     },
     "scripts": {
         "start": "electron .",
-        "_comment_dist": "Packaging installers is optional/deferred. It needs electron-builder, which is NOT a default dependency (its transitive tree is large + carries advisories we don't want in the run-time install). To build: `npm i -D electron-builder` here, then `npm run dist`.",
-        "dist": "electron-builder"
+        "_comment_dist": "`npm run dist` builds an unsigned installer for the host OS only (no upload). Releases for all platforms are cut by CI: `npm run release:patch` bumps the version, tags it, and pushes — .github/workflows/release.yml then builds + publishes to GitHub Releases.",
+        "dist": "electron-builder",
+        "release:patch": "npm version patch && git push --follow-tags",
+        "release:minor": "npm version minor && git push --follow-tags",
+        "release:major": "npm version major && git push --follow-tags"
+    },
+    "dependencies": {
+        "electron-updater": "^6.6.2"
     },
     "devDependencies": {
-        "electron": "^42.5.0"
+        "electron": "^42.5.0",
+        "electron-builder": "^25.1.8"
     }
 }

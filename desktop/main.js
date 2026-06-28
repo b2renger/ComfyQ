@@ -30,6 +30,7 @@ const STALE_MS = 30_000;
 const DROP_MS = 120_000;
 
 let win = null;
+let autoUpdater = null;          // electron-updater, lazily loaded (see initAutoUpdater)
 let socket = null;
 let socketError = null;
 const peers = new Map();         // id -> { snap, lastSeen, source }
@@ -245,6 +246,44 @@ function createWindow() {
     win.webContents.on('did-finish-load', pushToRenderer);
 }
 
+// ---- Auto-update (electron-updater, GitHub provider; see electron-builder.yml) ----
+// Forward updater lifecycle to the renderer over a single channel (mirrors the
+// 'peers' push). The renderer surfaces these through its toast + a settings row.
+function sendUpdate(status, payload = {}) {
+    if (!win || win.isDestroyed()) return;
+    win.webContents.send('update-status', { status, ...payload });
+}
+
+// Loaded lazily (and only when packaged): requiring electron-updater eagerly
+// constructs the updater, which reads app.getVersion() at construction time, so
+// we defer it until the app is ready and packaged. Idempotent.
+function initAutoUpdater() {
+    if (autoUpdater) return autoUpdater;
+    autoUpdater = require('electron-updater').autoUpdater;
+    autoUpdater.autoDownload = true;          // download in the background as soon as found
+    autoUpdater.autoInstallOnAppQuit = true;  // apply on next quit if the user doesn't restart now
+    autoUpdater.on('checking-for-update', () => sendUpdate('checking'));
+    autoUpdater.on('update-available',     (info) => sendUpdate('available',     { version: info && info.version }));
+    autoUpdater.on('update-not-available', (info) => sendUpdate('not-available', { version: info && info.version }));
+    autoUpdater.on('download-progress',    (p)    => sendUpdate('downloading',   { percent: Math.round((p && p.percent) || 0) }));
+    autoUpdater.on('update-downloaded',    (info) => sendUpdate('downloaded',    { version: info && info.version }));
+    autoUpdater.on('error',                (err)  => sendUpdate('error',         { message: String((err && err.message) || err) }));
+    return autoUpdater;
+}
+
+ipcMain.handle('app:get-version', () => app.getVersion());
+ipcMain.handle('app:check-for-updates', async () => {
+    if (!app.isPackaged) { sendUpdate('not-available', { dev: true }); return { dev: true }; }
+    try {
+        const r = await initAutoUpdater().checkForUpdates();
+        return { ok: true, version: r && r.updateInfo && r.updateInfo.version };
+    } catch (e) {
+        sendUpdate('error', { message: String((e && e.message) || e) });
+        return { ok: false, error: String((e && e.message) || e) };
+    }
+});
+ipcMain.handle('app:quit-and-install', () => { if (autoUpdater) autoUpdater.quitAndInstall(); });
+
 ipcMain.handle('open-url', (_e, url) => {
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) return shell.openExternal(url);
     return false;
@@ -294,6 +333,15 @@ app.whenReady().then(() => {
     setTimeout(scanRange_sweep, 800);
     setInterval(scanRange_sweep, SCAN_MS);
     createWindow();
+
+    // Look for a new release on GitHub at startup. Guarded to packaged builds:
+    // electron-updater throws ("not packed") in dev and has no manifest to read.
+    // The short delay lets the window load so it can receive update-status events.
+    if (app.isPackaged) {
+        initAutoUpdater();
+        setTimeout(() => { autoUpdater.checkForUpdates().catch(() => {}); }, 3000);
+    }
+
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });
 

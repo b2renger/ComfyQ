@@ -6,6 +6,8 @@
 # Node.js dependencies
 node_modules/
 package-lock.json
+# ...but DO commit the desktop lockfile — the release CI uses `npm ci`.
+!desktop/package-lock.json
 client/node_modules/
 server/node_modules/
 desktop/node_modules/

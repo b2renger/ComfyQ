@@ -1,0 +1,40 @@
+name: Release desktop
+
+# Cut a release by pushing a version tag from the desktop app:
+#   cd desktop && npm run release:patch   (bumps version, tags vX.Y.Z, pushes)
+# This workflow then builds the installers for every OS and publishes them to a
+# GitHub Release. Installed apps auto-update from there (electron-updater).
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write          # needed to create/upload the GitHub Release
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Build and publish installers
+        working-directory: desktop
+        run: npx --no-install electron-builder --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # No signing identity configured yet → don't let electron-builder try
+          # to auto-discover one on macOS (it would fail the build).
+          CSC_IDENTITY_AUTO_DISCOVERY: false

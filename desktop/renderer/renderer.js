@@ -23,6 +23,8 @@ const settingsBtn = document.getElementById('settingsBtn');
 const themeBtn = document.getElementById('themeBtn');
 const controlsEl = document.getElementById('controls');
 const toastEl = document.getElementById('toast');
+const appVersionEl = document.getElementById('appVersion');
+const checkUpdatesBtn = document.getElementById('checkUpdatesBtn');
 
 // Light / dark theme — same behaviour as the ComfyQ web client (honor the OS
 // preference first, then remember the user's choice).
@@ -375,6 +377,17 @@ addPeerForm.addEventListener('submit', (e) => {
     if (v) { window.fleet.addStaticPeer(v); peerInput.value = ''; }
 });
 settingsBtn.addEventListener('click', () => controlsEl.classList.toggle('hidden'));
+// Once an update is downloaded the button becomes "Restart to update"; the same
+// click then installs instead of re-checking (single handler, flag-driven).
+let updateReady = false;
+checkUpdatesBtn.addEventListener('click', () => {
+    if (updateReady) { window.fleet.quitAndInstall(); return; }
+    checkUpdatesBtn.disabled = true;
+    showToast('Checking for updates…');
+    Promise.resolve(window.fleet.checkForUpdates())
+        .then((r) => { if (r && r.dev) showToast('Updates only work in the installed app'); })
+        .finally(() => { setTimeout(() => { checkUpdatesBtn.disabled = false; }, 1500); });
+});
 autoScanChk.addEventListener('change', () => window.fleet.setAutoScan(autoScanChk.checked));
 rescanBtn.addEventListener('click', () => window.fleet.rescan());
 rangeApply.addEventListener('click', () => {
@@ -410,3 +423,23 @@ window.fleet.onPeers((d) => { last = d; render(d); });
 setInterval(tickTimes, 1000);   // refresh relative-time text only — no DOM rebuild
 
 window.fleet.getStaticPeers().then(renderStaticChips);
+
+// App version + auto-update lifecycle (events pushed from main.js).
+window.fleet.getVersion().then((v) => { if (appVersionEl) appVersionEl.textContent = `v${v}`; }).catch(() => {});
+window.fleet.onUpdateStatus((d) => {
+    switch (d && d.status) {
+        case 'checking':      showToast('Checking for updates…'); break;
+        case 'available':     showToast(`Update v${d.version} found — downloading…`); break;
+        case 'not-available': if (!d.dev) showToast('You’re on the latest version'); break;
+        case 'downloading':   showToast(`Downloading update… ${d.percent}%`); break;
+        case 'downloaded':
+            showToast(`Update v${d.version} ready — restart to apply`);
+            updateReady = true;
+            if (checkUpdatesBtn) {
+                checkUpdatesBtn.disabled = false;
+                checkUpdatesBtn.textContent = 'Restart to update';
+            }
+            break;
+        case 'error':         showToast('Update check failed'); break;
+    }
+});
