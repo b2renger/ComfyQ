@@ -76,9 +76,26 @@ const GROUP_LABEL = {
     '3d': '3D', 'audio': 'Audio', 'description': 'Description',
     'image': 'Image generation', 'video': 'Video generation', 'utility': 'Utilities', 'other': 'Other'
 };
-const groupOf = (category) => CATEGORY_GROUP[category] || 'other';
-function catIconSvg(category) {
-    const body = ICON[GROUP_ICON[groupOf(category)]] || ICON.grid;
+// Fallback when a (stale) server doesn't send `category`: infer the group from
+// the workflow id. Order matters — utilities (upscale/segment/interpolation)
+// before image/video so e.g. *_seedvr2_*_upscale lands in Utilities.
+function groupFromId(id) {
+    const s = String(id || '').toLowerCase();
+    if (!s) return null;
+    if (/upscale|seedvr2|interpolat|segment|preprocess|depth/.test(s)) return 'utility';
+    if (/(^|_)3d|triposplat|splat|gaussian|hunyuan3d/.test(s)) return '3d';
+    if (/(^|_)audio|stable_audio|music/.test(s)) return 'audio';
+    if (/description|caption|(^|_)llm/.test(s)) return 'description';
+    if (/(^|_)video|i2v|flf2v|vid2vid|liveportrait|ltx|wan|bernini_r_video/.test(s)) return 'video';
+    if (/(^|_)image|t2i|image[-_]edit|inpaint|ideogram|qwen|flux|bernini_r_image/.test(s)) return 'image';
+    return null;
+}
+function groupOfWf(wf) {
+    wf = wf || {};
+    return CATEGORY_GROUP[wf.category] || groupFromId(wf.id) || 'other';
+}
+function catIconSvg(wf) {
+    const body = ICON[GROUP_ICON[groupOfWf(wf)]] || ICON.grid;
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }
 
@@ -176,7 +193,7 @@ function cardHtml(p, selfIps) {
     const wf = p.activeWorkflow || {};
     const servingBanner = isServing ? `
         <div class="serving-banner">
-            <span class="wf-icon" title="${esc(GROUP_LABEL[groupOf(wf.category)] || 'Workflow')}">${catIconSvg(wf.category)}</span>
+            <span class="wf-icon" title="${esc(GROUP_LABEL[groupOfWf(wf)] || 'Workflow')}">${catIconSvg(wf)}</span>
             <div class="serving-text">
                 <div class="wf-label">Now serving</div>
                 <div class="wf-name">${esc(wf.name || 'a workflow')}</div>
