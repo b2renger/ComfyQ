@@ -255,6 +255,16 @@ async function main() {
         const beacon = new StatusBeacon({ configManager, registry, runtime, sysInfo });
         beacon.start();
         runtime.beacon = beacon;     // so the admin toggle can kick an immediate beacon
+
+        // Start the ComfyUI backend by default (network-bound) so an idle rig is
+        // already "engine on" and ready — and shows as such in the fleet monitor.
+        // Non-blocking: the admin UI is reachable immediately while ComfyUI warms
+        // up. Reuses/attaches to an existing instance if one is already running.
+        if (config.comfy_ui.autoStart !== false && config.comfy_ui.root_path && config.comfy_ui.python_executable) {
+            adminCalibrator.launchBackend()
+                .then(() => console.log('[ComfyQ] ComfyUI backend started (admin default)'))
+                .catch(e => console.warn('[ComfyQ] could not auto-start ComfyUI backend:', e.message));
+        }
         const port = config.server.port;
         const host = config.server.host;
         server.listen(port, host, () => {

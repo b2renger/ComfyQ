@@ -8,7 +8,7 @@
 //   3. Manually added machines (a machine on another network).
 // Peer map + expiry live here; the list is pushed to the renderer over IPC.
 
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, clipboard } = require('electron');
 const dgram = require('dgram');
 const http = require('http');
 const os = require('os');
@@ -176,6 +176,7 @@ function pushToRenderer() {
     win.webContents.send('peers', {
         peers: list,
         staticPeers: staticPeers.slice(),
+        selfIps: localIPv4s().map(i => i.address),   // to mark "this machine"
         socketError, group: GROUP, port: PORT,
         scan: {
             enabled: autoScan,
@@ -246,6 +247,10 @@ function createWindow() {
 
 ipcMain.handle('open-url', (_e, url) => {
     if (typeof url === 'string' && /^https?:\/\//i.test(url)) return shell.openExternal(url);
+    return false;
+});
+ipcMain.handle('copy-text', (_e, text) => {
+    if (typeof text === 'string') { clipboard.writeText(text); return true; }
     return false;
 });
 ipcMain.handle('get-static-peers', () => staticPeers.slice());

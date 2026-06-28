@@ -157,7 +157,11 @@ Machines appear and disappear on their own — a card goes dim ~30 s after the l
 after ~2 min. It works even for **idle rigs in admin mode with nothing launched**.
 
 Per machine the card shows:
-- **Name** and **IP address**
+- **Name** and **IP address** (with a **copy button** that copies that rig's admin-panel link,
+  `http://<ip>:5173/admin`), plus a **"This machine"** marker on the rig you're running the app from
+- **When a workflow is being served**, a prominent banner right under the IP with a **category icon**
+  (the same icon the ComfyQ admin library uses — image / video / audio / 3D / text / utility) so you
+  can tell at a glance what kind of workflow it is, and the workflow's name
 - **Hardware** — GPU model (+ VRAM) and system RAM
 - **Plain-language state** (Running a workflow / Ready / On standby) and **usage** — how many users
   are connected and how long since the last activity (shown for every machine, including idle
@@ -169,8 +173,15 @@ Per machine the card shows:
 - **Admin-mode machines** hide the workflow/schedule (nothing is being served) and instead show just
   the connected-users + last-activity info
 
-The app is **read-only** (it never commands a remote machine — the only action is opening a browser
-tab).
+Discovery controls (automatic search on/off, **Search range**, and **Add a machine**) live behind the
+**⚙ Settings** button in the top-right to keep the main view uncluttered.
+
+The app is **read-only** (it never commands a remote machine — the only actions are opening a browser
+tab and copying a link).
+
+> **Tip:** ComfyQ now starts its **ComfyUI backend by default** (admin mode included, when paths are
+> configured and `comfy_ui.autoStart` is on), so a rig shows up "engine on" and ready without anyone
+> having to launch it first. Set `comfy_ui.autoStart: false` to opt out.
 
 ### Run it
 

@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('fleet', {
     onPeers: (cb) => ipcRenderer.on('peers', (_e, data) => cb(data)),
     // Open a machine's web UI in the default browser.
     openUrl: (url) => ipcRenderer.invoke('open-url', url),
+    // Copy text (e.g. a machine's admin-panel link) to the clipboard.
+    copyText: (text) => ipcRenderer.invoke('copy-text', text),
     // Static peers (unicast poll) — for networks that block broadcast/multicast.
     getStaticPeers: () => ipcRenderer.invoke('get-static-peers'),
     addStaticPeer: (host) => ipcRenderer.invoke('add-static-peer', host),

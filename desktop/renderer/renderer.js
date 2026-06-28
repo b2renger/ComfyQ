@@ -19,6 +19,39 @@ const rangeT1 = document.getElementById('rangeT1');
 const rangeF0 = document.getElementById('rangeF0');
 const rangeF1 = document.getElementById('rangeF1');
 const rangeApply = document.getElementById('rangeApply');
+const settingsBtn = document.getElementById('settingsBtn');
+const controlsEl = document.getElementById('controls');
+const toastEl = document.getElementById('toast');
+
+// Category → icon, matching the ComfyQ admin workflow library (lucide icons):
+//   t2i→wand, image-edit/i2i→image, i2v→video, audio→music, 3d/preprocessor→box,
+//   description→file-text, else→grid. Gives an at-a-glance cue of what the
+//   served workflow does.
+const ICON = {
+    wand: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
+    image: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
+    video: '<path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/>',
+    music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+    box: '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
+    file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+    grid: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>'
+};
+const CAT_ICON = {
+    't2i': 'wand', 'image-edit': 'image', 'i2i': 'image', 'i2v': 'video',
+    'audio': 'music', '3d': 'box', 'preprocessor': 'box', 'description': 'file'
+};
+function catIconSvg(category) {
+    const body = ICON[CAT_ICON[category] || 'grid'] || ICON.grid;
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+}
+
+let toastTimer = null;
+function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.remove('hidden');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toastEl.classList.add('hidden'), 1800);
+}
 
 function esc(s) {
     return String(s == null ? '' : s)
@@ -79,13 +112,15 @@ function jobRow(j, running) {
         </div>`;
 }
 
-function cardHtml(p) {
+function cardHtml(p, selfIps) {
     const kind = classify(p);
     const ip = (p.ips && p.ips[0]) || '';
     const uiPort = p.uiPort || 5173;
     const url = ip ? `http://${ip}:${uiPort}` : '';
+    const adminUrl = ip ? `http://${ip}:${uiPort}/admin` : '';
     const isServing = kind === 'serving';
     const isAdmin = p.mode === 'admin';
+    const isSelf = (p.ips || []).some(x => (selfIps || []).includes(x));
 
     const hw = [];
     if (p.gpu) hw.push(`<span class="chip">${esc(p.gpu)}${p.vramGb ? ` · ${p.vramGb} GB` : ''}</span>`);
@@ -99,43 +134,54 @@ function cardHtml(p) {
             <span class="usage-item">${esc(idleText(u.idleSec))}</span>
         </div>`;
 
-    // Workflow block (serving machines only): name + what-it-does + jobs.
+    // Serving banner — prominent, right under the IP: category icon + workflow name.
+    const wf = p.activeWorkflow || {};
+    const servingBanner = isServing ? `
+        <div class="serving-banner">
+            <span class="wf-icon" title="${esc(wf.category || 'workflow')}">${catIconSvg(wf.category)}</span>
+            <div class="serving-text">
+                <div class="wf-label">Now serving</div>
+                <div class="wf-name">${esc(wf.name || 'a workflow')}</div>
+            </div>
+        </div>` : '';
+
+    // Lower block: description + queue + schedule (serving) or standby note.
     let workHtml = '';
     if (isServing) {
-        const wf = p.activeWorkflow || {};
         const jobs = p.jobs || {};
         const parts = [];
         if (jobs.running) parts.push(jobRow(jobs.running, true));
         for (const j of (jobs.scheduled || [])) parts.push(jobRow(j, false));
         workHtml = `
-            <div class="wf">
-                <div class="wf-label">Now serving</div>
-                <div class="wf-name">${esc(wf.name || 'a workflow')}</div>
-                ${wf.description ? `<div class="wf-desc">${esc(wf.description)}</div>` : ''}
-            </div>
+            ${wf.description ? `<div class="wf-desc">${esc(wf.description)}</div>` : ''}
             <div class="jobs">
                 <div class="jobs-label">Queue${jobs.scheduled && jobs.scheduled.length ? ` · ${jobs.scheduled.length} waiting` : ''}</div>
                 ${parts.length ? parts.join('') : '<div class="no-jobs">Nothing queued</div>'}
             </div>
             <button class="btn" data-url="${esc(url)}" ${url ? '' : 'disabled'}>Schedule a job ↗</button>`;
-    } else if (isAdmin) {
-        workHtml = `<div class="standby">Not serving a workflow right now.</div>`;
     } else {
-        workHtml = `<div class="standby">Ready — no workflow active.</div>`;
+        workHtml = `<div class="standby">${isAdmin ? 'Not serving a workflow right now.' : 'Ready — no workflow active.'}</div>`;
     }
 
     const sourceTag = p._source === 'added' ? ' · added by IP'
         : p._source === 'scan' ? ' · found by search' : '';
 
+    const copyBtn = adminUrl
+        ? `<button class="copy-btn" data-copy="${esc(adminUrl)}" title="Copy admin panel link">
+               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+           </button>` : '';
+
     return `
-        <div class="card ${kind === 'stale' ? 'stale' : ''}">
+        <div class="card ${kind === 'stale' ? 'stale' : ''}${isSelf ? ' self' : ''}">
             <div class="card-head">
-                <div>
-                    <div class="machine-name">${esc(p.name || 'Unknown machine')}</div>
-                    <div class="machine-ip">${esc((p.ips || []).join(', ') || '—')}</div>
+                <div class="head-main">
+                    <div class="machine-name">${esc(p.name || 'Unknown machine')}${isSelf ? '<span class="self-tag">This machine</span>' : ''}</div>
+                    <div class="machine-ip">${esc((p.ips || []).join(', ') || '—')}${copyBtn}</div>
                 </div>
                 <span class="dot ${kind}" title="${esc(stateLabel(p, kind))}"></span>
             </div>
+
+            ${servingBanner}
 
             ${hw.length ? `<div class="hw">${hw.join('')}</div>` : ''}
 
@@ -165,10 +211,17 @@ function render(data) {
     }
 
     emptyEl.style.display = peers.length ? 'none' : 'block';
-    appEl.innerHTML = peers.map(cardHtml).join('');
+    const selfIps = data.selfIps || [];
+    appEl.innerHTML = peers.map(p => cardHtml(p, selfIps)).join('');
     for (const btn of appEl.querySelectorAll('.btn[data-url]')) {
         const url = btn.getAttribute('data-url');
         if (url) btn.addEventListener('click', () => window.fleet.openUrl(url));
+    }
+    for (const btn of appEl.querySelectorAll('.copy-btn[data-copy]')) {
+        btn.addEventListener('click', () => {
+            window.fleet.copyText(btn.getAttribute('data-copy'));
+            showToast('Admin panel link copied');
+        });
     }
 
     if (data.staticPeers) renderStaticChips(data.staticPeers);
@@ -226,6 +279,7 @@ addPeerForm.addEventListener('submit', (e) => {
     const v = peerInput.value.trim();
     if (v) { window.fleet.addStaticPeer(v); peerInput.value = ''; }
 });
+settingsBtn.addEventListener('click', () => controlsEl.classList.toggle('hidden'));
 autoScanChk.addEventListener('change', () => window.fleet.setAutoScan(autoScanChk.checked));
 rescanBtn.addEventListener('click', () => window.fleet.rescan());
 rangeApply.addEventListener('click', () => {

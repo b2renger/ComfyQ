@@ -24,12 +24,20 @@
                 <div class="subtitle" id="subtitle">Listening for machines on the LAN…</div>
             </div>
         </div>
-        <div class="count" id="count">0 machines</div>
+        <div class="topbar-right">
+            <span class="count" id="count">0 machines</span>
+            <button id="settingsBtn" class="icon-btn" title="Settings">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                </svg>
+            </button>
+        </div>
     </header>
 
     <div class="banner hidden" id="banner"></div>
 
-    <section class="controls">
+    <section class="controls hidden" id="controls">
         <div class="ctl-row">
             <label class="scan-toggle">
                 <input type="checkbox" id="autoScanChk" />
@@ -67,9 +75,12 @@
 
     <div class="empty" id="empty">
         <p>No ComfyQ machines found yet.</p>
-        <p class="hint">Each machine broadcasts every ~15&nbsp;s. If nothing appears, make sure
-        ComfyQ is running on the LAN and that Node.js is allowed through the firewall (UDP).</p>
+        <p class="hint">Machines are discovered automatically on your network. If nothing appears,
+        open <strong>Settings</strong> (top-right) to check the search range or add a machine by its
+        IP address. Make sure ComfyQ is running on the other machines.</p>
     </div>
+
+    <div class="toast hidden" id="toast"></div>
 
     <script src="renderer.js"></script>
 </body>
