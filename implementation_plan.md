@@ -519,9 +519,11 @@ Active queue (re-prioritized 2026-06-08, in rough priority order):
 - **Long-job robustness — READY.** Adaptive history polling (1 s → 5 s) and WS auto-reconnect exist in [server/executor/jobExecutor.js](server/executor/jobExecutor.js) + [server/workers/comfyWsClient.js](server/workers/comfyWsClient.js). **No per-job time budget (2026-06-26):** the old `maxRuntimeSec` deadline that auto-killed a job was removed — a job runs until ComfyUI finishes or a user/admin cancels it; only calibration keeps a fixed 2 h safety cap so the admin gauge can't hang. Not a blocker for the long-running 3D/video rows.
 - **Text outputs — DONE (2026-06-21).** Workflows whose result is text rather than media (LLM captioners — the Gemma describe-it pair). [outputCollector.js](server/executor/outputCollector.js) `_collectText` collects a node's `text`/`string` UI array (`PreviewAny` "Preview as Text", `ShowText`, …) as `kind:'text'` carried **inline on the wire** (no file to serve); [jobExecutor.js](server/executor/jobExecutor.js) forwards `o.text`; `ImageLightbox`/`MediaPreview` render the caption. No `class_type` coupling — any text-emitting node Just Works, so image/video→text workflows land zero-code.
 
-### Phase F — Multi-instance federation *(final phase — design locked 2026-05-16, implementation deferred)*
+### Phase F — Multi-instance federation *(final phase — design locked 2026-05-16; first slice F1+F2 SHIPPED 2026-06-28, in user testing)*
 
 Final milestone of ComfyQ v2: let several ComfyQ instances on the same LAN auto-discover each other, expose a fleet-wide admin view (GPU / RAM / active workflow / queue per peer), and let students pick which rig to book against. Different machines run *different* workflows in parallel; students manually choose their station — there is no cross-instance job routing. Full plan lives at `~/.claude/plans/iridescent-wondering-lagoon.md`; key decisions captured below so the project's design intent travels with the repo.
+
+> **✅ Shipped 2026-06-28 — packaged, self-updating desktop app.** The fleet monitor (`desktop/`) is now distributed as a **downloadable installer that auto-updates from GitHub Releases** (electron-builder + electron-updater; public repo → no client token). One-command release: `cd desktop && npm run release:patch` bumps + tags + pushes → [.github/workflows/release.yml](.github/workflows/release.yml) builds Win/Mac/Linux and publishes installers + `latest*.yml`. The app's ⚙ settings show the version + a "Check for updates" button; updates download in the background and prompt "Restart to update". Validated end-to-end on a real machine (an installed v2.0.1 self-updated to v2.0.2). **Caveats:** unsigned for now → SmartScreen/Gatekeeper on first run; **Windows + Linux auto-update, macOS does not until signed** (Squirrel.Mac needs a signature); macOS builds are arm64-only. See CLAUDE.md "Desktop app — installers + GitHub auto-update" for the full build/release detail and the `npm version` git-step workaround ([desktop/scripts/release.mjs](desktop/scripts/release.mjs)).
 
 > **★ Implementation path chosen (2026-06-27) — beacon + standalone monitor app.** The first federation work being built realizes F1+F2 via a **UDP multicast status beacon** consumed by a **standalone cross-platform Electron "fleet monitor" app** (`desktop/`), *not* via the originally-locked mDNS + in-browser-panel approach. Rationale (owner decision): the goal is a single pane of glass an instructor opens to see the whole room — including **idle admin-mode rigs with nothing launched** — so each server simply **multicasts a JSON status snapshot every ~15 s** (`239.255.42.99:41999`, built-in `dgram`, zero new transport dep) and the desktop app **listens** (no per-peer polling; peers appear/expire automatically). It is **on by default** (`federation.enabled: true`, both admin and student mode) so machines "just appear" with no per-rig setup, and **read-only** — the only action is a "Schedule a job" button that opens `http://<rig-ip>:5173` in the default browser. A `GET /federation/self` REST endpoint serves the same snapshot for on-demand detail / a future web panel. Identity (UUID + name + GPU + VRAM + RAM) is detected at boot via `systeminformation` (cross-platform; `/system_stats` can't report GPU on an idle rig) and persisted to `config.instance`. **Still deferred / unchanged below:** mDNS discovery, cluster-secret auth, cross-instance admin actions (F4), the in-AdminConfig panel (F3), the student peer-picker page (F5), and the orchestrator role (F6). See the dedicated plan file for file-by-file detail.
 
@@ -537,8 +539,8 @@ Final milestone of ComfyQ v2: let several ComfyQ instances on the same LAN auto-
 
 **Phased delivery** (each phase shippable on its own; previous behavior preserved throughout):
 
-- [~] **F1 — Instance identity + system-info capture.** *(Delivered 2026-06-27 via the beacon path.)* UUID + name + GPU + VRAM + RAM detected at boot (`server/federation/systemInfo.js`, `systeminformation` + nvidia-smi fallback) and persisted to `config.instance`. Exposed via `GET /federation/self` rather than `GET /admin/system-info`; CUDA version + the AdminConfig "this machine" card remain unbuilt.
-- [~] **F2 — discovery + read-only `/federation/*` API.** *(Delivered 2026-06-27 as a UDP multicast beacon, not mDNS.)* `server/federation/beacon.js` multicasts `buildSnapshot()` every ~15 s; `GET /federation/self` returns the same snapshot. Consumed by the standalone `desktop/` Electron monitor (peer map + expiry live in the app, not the server). `bonjour-service` mDNS, `GET /federation/peers`, `POST /federation/peers/refresh`, and the Socket.IO `federation_update` event remain deferred.
+- [x] **F1 — Instance identity + system-info capture.** *(Delivered 2026-06-27 via the beacon path; shipping to users 2026-06-28.)* UUID + name + GPU + VRAM + RAM detected at boot (`server/federation/systemInfo.js`, `systeminformation` + nvidia-smi fallback) and persisted to `config.instance`. Exposed via `GET /federation/self` rather than `GET /admin/system-info`; CUDA version + the AdminConfig "this machine" card remain unbuilt.
+- [x] **F2 — discovery + read-only `/federation/*` API.** *(Delivered 2026-06-27 as a UDP multicast beacon, not mDNS; the desktop monitor is now a packaged, auto-updating installer as of 2026-06-28.)* `server/federation/beacon.js` multicasts `buildSnapshot()` every ~15 s; `GET /federation/self` returns the same snapshot. Consumed by the standalone `desktop/` Electron monitor (peer map + expiry live in the app, not the server). `bonjour-service` mDNS, `GET /federation/peers`, `POST /federation/peers/refresh`, and the Socket.IO `federation_update` event remain deferred.
 - [ ] **F3 — Admin federation panel (read-only).** New "Federation" section in AdminConfig: enable toggle, static-peer textarea, cluster-secret input, peer table (hostname / IP / role / GPU / VRAM / RAM / active workflow / queue summary / last-seen / "ping"). Vite proxy entry for `/federation` added.
 - [ ] **F4 — Cross-instance admin actions.** `POST /federation/peers/:id/activate-workflow` proxies the call to the named peer's `POST /admin/activate-workflow` (with cluster-secret header). Extend `/federation/self` to advertise `availableWorkflowIds`. Admin UI grows "Launch workflow on peer" dropdown per peer row. Handle the disconnect window during peer restart gracefully ("Peer restarting…" until it reappears in mDNS).
 - [ ] **F5 — Student peer picker.** New `/user/workshop` page lists all `role=runner` peers + their active workflow + ETA-till-free. "Use this station" opens the peer's Vite URL in a new tab (one-time cert prompt per device, documented).
@@ -552,6 +554,95 @@ Final milestone of ComfyQ v2: let several ComfyQ instances on the same LAN auto-
 - Replacing admin-password with cluster-secret (the two coexist — different scopes).
 
 **Verification matrix** (when phase work begins): each phase must keep `federation.enabled: false` behavior identical to today's single-instance ComfyQ. Two-instance dev validation can run both instances on a single host with different ports (3000 + 3001 bound to `0.0.0.0`); mDNS works on a single host fine.
+
+---
+
+## Planned features (post-federation)
+
+Two features scoped 2026-06-28. Both are **additive** — they reuse the existing job pipeline and must not change single-instance behavior when unused. Designs below are the starting point; ★ marks open decisions to confirm before building.
+
+### Phase G — Batch processing *(admin-only; planned)*
+
+**Goal:** an admin points ComfyQ at a **folder of input files + a manifest of prompts/parameters**, picks a workflow, and ComfyQ enqueues **one job per item** — running the workflow across the whole set unattended. Pure reuse of the single-job pipeline; no new execution path.
+
+**Why it's mostly reuse (verified against the code):** a booked job is just `queue.insert({ workflowId, paramValues, prompt, scheduledAt, … })` → the executor materializes the graph (`localComfyUIWorker._materializeWorkflow` injects `paramValues[key]` into `node.inputs[field]` per `meta.exposedParameters`, and input-file refs into `LoadImage/LoadVideo/LoadAudio` nodes) → `outputCollector` gathers results. A batch is **N of those inserts** with per-item params + staged files. No change to the state machine, executor, upload validation, or output collection.
+
+**The structure (prompts / files / parameters) — the core deliverable.** A batch is a folder:
+
+```
+my_batch/
+├── batch.json            the manifest (or batch.csv — see below)
+└── inputs/               the input files the manifest references
+    ├── photo01.jpg
+    └── photo02.jpg
+```
+
+`batch.json` (recommended — power form):
+```jsonc
+{
+  "workflowId": "bernini_r_image_editing",   // or omit → active workflow
+  "label": "studio_portraits_june",
+  "defaults": {                               // applied to every item
+    "prompt": "make it a watercolor painting",
+    "params": { "edit_type": "Image Editing", "seed": 0 }
+  },
+  "items": [
+    { "file": "photo01.jpg" },                                  // uses all defaults
+    { "file": "photo02.jpg", "prompt": "charcoal sketch" },     // overrides the prompt
+    { "file": "photo03.jpg", "params": { "seed": 42 } }         // overrides one param
+  ]
+}
+```
+- `defaults` + per-item overrides keeps the common case (same prompt, many files) a one-liner per item while still allowing per-file prompts/params.
+- `file` maps to the workflow's single media param; multi-input workflows use `"files": { "<paramKey>": "name.ext" }`.
+- `prompt` is folded into the workflow's headline text param (same `pickHeadlinePrompt` logic as booking); `params` keys are `exposedParameters[].key`.
+
+`batch.csv` (for non-technical admins — one row per job, header = `file` + param keys/labels):
+```
+file,prompt,seed
+photo01.jpg,make it a watercolor painting,0
+photo02.jpg,charcoal sketch,1
+```
+
+**Server work:**
+- `server/batch/batchImporter.js` — parse JSON/CSV, **validate every item against the workflow's `effective.exposedParameters`** (unknown key / missing required / bad type → reject before enqueuing, with the row number), stage each item's files into `<comfy>/input` via a new `comfyq_batch__` prefix (reuse `InputUploader`), then `queue.insert(...)` per item with `scheduledAt = queue.nextFreeSlot(...)` (back-to-back) and `createdBy: 'batch'`.
+- Tag jobs with a `batch_id` (lightweight: add a nullable `batch_id` column to `jobs`; optionally a `batches` table for label/counts) so a batch's progress is queryable.
+- Routes (admin-gated via `authGate`): `POST /admin/batch` (multipart: manifest + files, **or** a server-side folder path the admin's machine can see), `GET /admin/batches`, `GET /admin/batches/:id`.
+- Output grouping: set `filename_prefix` to `batch_<label>_<itemId>` so a batch's outputs are recognizable.
+
+**Client work:** an admin **Batch** card — pick workflow → upload folder (or manifest + files) → for CSV, map columns → params → **preview the N jobs** (reuse `DynamicParamFields` to show the first item's resolved form) → **Enqueue batch** → a progress row (n queued / done / failed) reading job events.
+
+**★ Open decisions:** (1) CSV vs JSON as the *primary* admin path (lean: support both, JSON canonical); (2) browser folder-upload vs ingesting a server-side folder path (admin rigs already have the files locally → a path is simpler and avoids re-uploading GBs); (3) scheduling — all ASAP back-to-back (recommended) vs a fixed cadence; (4) input retention — batch inputs likely should survive the 30-min TTL until the batch completes (use a non-swept prefix or pin until done).
+
+**Non-goals:** cross-instance batch distribution (that's Phase H territory), per-item retries UI (a failed item is just a failed job — re-enqueue from the manifest).
+
+### Phase H — Instance mode *(planned)*
+
+**Goal:** run **2–3 independent ComfyQ instances on one machine, each driving its own ComfyUI backend** (typically one per GPU). Each instance is independently bookable and shows up as its own machine in the [ComfyQ Discovery](#) fleet monitor; together they let one box serve several workflows/GPUs at once. Federation (Phase F) already renders multiple peers — instance mode is mostly making every **singular/hardcoded port, path, and identity per-instance**.
+
+**Audit (what's already per-instance vs what must change) — verified in code:**
+
+| Concern | Today | For instance mode |
+|---|---|---|
+| API/Socket.IO port | `config.server.port` (3000) ✅ configurable | per-instance (3000/3001/3002) |
+| ComfyUI API host/port | `config.comfy_ui.api_host/api_port` (127.0.0.1:8188) ✅ | per-instance (8188/8189/8190) |
+| Federation group/port, instance id/name | `config.federation.*`, `config.instance.*` ✅ | shared group/port is fine; **id/name must differ** |
+| **Config file path** | hardcoded `./config.json` ❌ | load from `COMFYQ_CONFIG` env / CLI |
+| **SQLite db** | relative `./server/data/comfyq.sqlite` ❌ collides | per-instance path (in the per-instance config) |
+| **Boot flag** | hardcoded `server/data/.boot-student` ❌ collides | per-instance path |
+| **Vite backend target** | hardcoded `localhost:3000` in `vite.config.js` ❌ | from env, or serve the built client from Express |
+| **UI port in beacon snapshot** | hardcoded `5173` in `statusSnapshot.js` ❌ | new `config.server.uiPort`, reported per-instance |
+| **GPU selection** | none | new `config.comfy_ui.gpuIndex` → `CUDA_VISIBLE_DEVICES` on spawn |
+
+**Phased delivery:**
+- **H1 — per-instance config + state.** `configManager` reads `CONFIG_PATH` from `COMFYQ_CONFIG` (default `./config.json`). Make `queue.dbPath` and the boot-flag path derive from the loaded config (each instance config points at its own `server/data/<name>/`). Single-instance behavior unchanged when the env var is unset.
+- **H2 — per-instance UI port + GPU.** Add `server.uiPort` (default 5173) and `comfy_ui.gpuIndex` to the schema; replace the hardcoded `5173` in `statusSnapshot.js` with `config.server.uiPort` (so the fleet monitor's "Schedule a job" opens the right UI), and set `CUDA_VISIBLE_DEVICES=<gpuIndex>` in `ComfyProcess` spawn env so each instance pins its own GPU.
+- **H3 — client knows its backend.** Parameterize Vite's `BACKEND`/port via env for dev (`VITE_BACKEND`, `--port`), **or** (cleaner for multi-instance) have Express serve the built `client/dist` so no per-instance Vite is needed and the UI is same-origin on `server.port`. ★ Decide dev-Vite-per-instance vs serve-static.
+- **H4 — launcher + docs.** `start-instance` script (sets `COMFYQ_CONFIG` + ports + GPU) and/or an `instances.json` that spawns N; document GPU/port/VRAM-budget assignment. Verify 2–3 instances + backends boot, each books independently, and the fleet monitor lists them as distinct machines.
+
+**★ Open decisions:** (1) **separate ComfyUI install per instance vs one shared install** — sharing requires per-instance `input/`/`output/` dirs (they collide otherwise); separate roots are simplest and what the config already assumes; (2) GPU assignment via config field vs launcher env; (3) `vramBudgetGb` must be split across co-resident instances so they don't oversubscribe one GPU's VRAM; (4) whether to also support the Phase-F **orchestrator** role (a GPU-less control node) alongside instance mode.
+
+**Relationship to federation:** instance mode and Phase F compose — each instance beacons separately, so the existing Discovery app shows them with no app change (once `uiPort` is per-instance). This also revives the deferred two-instance validation (the verification matrix below already anticipates "two instances on one host, different ports").
 
 ---
 

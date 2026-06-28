@@ -67,7 +67,8 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
   - Bernini-R video editing with reference image, **auto-prompt** (video + reference image → edited video; a Gemma-4 chain writes the edit instruction for you — no prompt to type) *(registered 2026-06-25, pending rig verification)*
   - Flux.2 Klein inpainting — **paint a mask** + prompt (paint the area to replace; first **paint-a-mask** input) *(registered 2026-06-25, pending rig verification)*
   - Flux.2 Klein inpainting with reference image — paint a mask + prompt + a reference image to bring in *(registered 2026-06-25, pending rig verification)*
-- 🚧 **Phase F** — Multi-instance federation *(first slice in progress 2026-06-27).* A **LAN status beacon** + a standalone **[ComfyQ Discovery desktop app](#comfyq-discovery-desktop-app)** (Electron, Win/Mac) that lists every ComfyQ machine on the network — name, GPU/RAM, IP, status, active workflow, planned jobs — with a one-click "open this rig's booking page". Remaining locked design (mDNS, cross-instance admin actions, in-browser panel, student station picker, orchestrator role) still deferred. See [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
+- ✅ **Phase F — Multi-instance federation (fleet monitor)** *(first slice shipped 2026-06-28; now in user testing).* A **LAN status beacon** + a standalone **[ComfyQ Discovery desktop app](#comfyq-discovery-desktop-app)** (Electron — Windows / macOS / Linux) that lists every ComfyQ machine on the network — name, GPU/RAM, IP, status, active workflow, planned jobs — with a one-click "open this rig's booking page". The desktop app now ships as a **downloadable installer that auto-updates itself** from GitHub Releases (version number + "Check for updates" button in its settings). Remaining locked design (mDNS, cross-instance admin actions, in-browser panel, student station picker, orchestrator role) still deferred. See [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
+- 🚧 **Next** — two planned features: **batch processing** (admin runs a workflow over a folder of inputs from a manifest) and **instance mode** (2–3 ComfyQ instances + backends on one machine). See [implementation_plan.md](implementation_plan.md) → Phase G / Phase H.
 
 ---
 
@@ -185,7 +186,23 @@ tab and copying a link).
 > configured and `comfy_ui.autoStart` is on), so a rig shows up "engine on" and ready without anyone
 > having to launch it first. Set `comfy_ui.autoStart: false` to opt out.
 
-### Run it
+### Install & auto-update (end users)
+
+Grab the latest installer from the repo's **[Releases](https://github.com/b2renger/ComfyQ/releases)**
+page and run it — Windows `.exe`, macOS `.dmg`, or Linux `.AppImage`. Builds are **unsigned for now**:
+
+- **Windows:** on first run SmartScreen shows *"Windows protected your PC"* → click **More info → Run
+  anyway** (one time). Updates afterwards install silently.
+- **macOS:** Gatekeeper blocks the first launch → **right-click the app → Open** (one time).
+- **Linux:** mark the `.AppImage` executable, then run it.
+
+**Auto-update is automatic.** On every launch the app checks GitHub for a newer release, downloads it
+in the background, and shows *"Update ready — restart to apply"* (it also installs on next quit). The
+⚙ **Settings** panel shows the **current version** and a **"Check for updates"** button for an
+on-demand check. *(Windows + Linux auto-update end-to-end; macOS auto-update needs code signing — see
+"Building & releasing" below — so for now Mac users re-download from Releases to update.)*
+
+### Run from source (development)
 
 ```bash
 npm run desktop:install   # once — installs Electron in desktop/ (not pulled by the root install)
@@ -218,10 +235,32 @@ A `GET /federation/self` endpoint returns the same snapshot over HTTP for script
 > shouldn't happen; if it ever does, re-run `npm run desktop:install` (or, directly,
 > `node desktop/node_modules/electron/install.js`).
 
-Only `electron` is installed for running the app — `electron-builder` is intentionally **not** a
-default dependency (its large transitive tree carries advisories we don't want at runtime; the
-runtime install reports **0 vulnerabilities**). To produce installers (`.exe` / `.dmg`) later, run
-`npm i -D electron-builder` inside `desktop/` then `npm run dist --prefix desktop`.
+### Building & releasing (maintainers)
+
+The desktop app is packaged with **electron-builder** and updates via **electron-updater**, pulling
+releases from this public GitHub repo (no token needed on the client). Cutting a release is one
+command, run from `desktop/` on `main`:
+
+```bash
+cd desktop
+npm run release:patch     # or release:minor / release:major
+```
+
+That bumps `desktop/package.json`, commits, tags `vX.Y.Z`, and pushes the tag. A GitHub Actions
+workflow ([.github/workflows/release.yml](.github/workflows/release.yml)) then builds installers for
+**Windows, macOS, and Linux** in parallel and publishes them — with the `latest*.yml` update
+manifests — to a GitHub Release. Installed apps pick the update up on their next launch.
+
+Notes:
+- **`npm version`'s git step is unreliable here**, so `release:*` bumps with `--no-git-tag-version`
+  and does the commit/tag/push explicitly via [desktop/scripts/release.mjs](desktop/scripts/release.mjs)
+  (which also leaves a dirty `config.json` untouched).
+- A local `npm run dist` (in `desktop/`) builds an unsigned installer for the host OS only — handy for
+  a quick check, though on Windows it needs **Developer Mode** (or an elevated shell) so electron-builder
+  can extract its code-signing tools; CI is unaffected.
+- **Code signing is not configured yet.** Unsigned builds trigger SmartScreen/Gatekeeper on first run,
+  and **macOS auto-update won't apply** until the app is signed + notarized (Apple Developer ID) — add
+  the certs as CI secrets when available. Windows + Linux auto-update fine unsigned.
 
 ---
 
@@ -256,60 +295,6 @@ HTTP/Socket.IO  →  RealtimeBus  →  JobExecutor  →  LocalComfyUIWorker  →
 
 See [implementation_plan.md](implementation_plan.md#architecture) for module-by-module responsibilities and the job state machine.
 
----
-
-## Highlights (v2)
-
-- **Multi-workflow library** with folder-bundled workflows (`<id>/<id>.api.json` + `<id>.meta.json`)
-- **API-format only.** No fragile Litegraph auto-conversion. The admin UI rejects non-API JSON with a clear "Save (API Format)" message
-- **Generic output detection** — classifies by file extension (image / video / audio / model3d / json), not by `class_type`. Works with any save node, including LTX video, depth preprocessor temp outputs, and audio-driven workflows
-- **Text outputs (LLM / captioning)** — workflows whose result is text rather than media (e.g. a vision-language model describing an image or video) are collected generically: a `PreviewAny` / `ShowText` node's text is carried inline on the wire as a `text` output and rendered in the lightbox and result cards — no file, no `class_type` coupling. Powers the Gemma 4 image/video captioners
-- **3D viewers (mesh + Gaussian splat)** — `.glb`/`.gltf` meshes render in an inline three.js viewer; Gaussian splats (`.spz`/`.ply`/`.splat`) render in a [Spark](https://github.com/sparkjsdev/spark) viewer. Both support drag-to-rotate / scroll-to-zoom / right-click-pan in the lightbox. A job that produces both (e.g. TripoSplat) gets a **Splat⇄Mesh toggle** plus one download button per format (`.spz` / `.ply` / `.glb`)
-- **Multi-output galleries** — the wire carries *every* collected output, not just the first. A job that emits N images (e.g. Qwen multi-angle → 8 views) opens an **N-image gallery** (main image + thumbnail strip + prev/next + per-image and "Download all"); audio outputs get an inline player; the Scheduler card shows a "{N} views" badge
-- **Persistent job queue** (sqlite) — survives server restarts; in-flight jobs reconcile to `failed: server-restart` rather than hanging
-- **Auto-reconnecting ComfyUI WebSocket** — jobs no longer get stuck in `processing` if ComfyUI restarts mid-run
-- **Real per-workflow timing** — `BenchmarkService` runs each workflow's warmup and stores `estimatedDurationSec` measured from the *first sampler step* (model/VAE load excluded), so the timeline reflects the recurring per-job cost. Built-in reference image lets image-edit workflows calibrate without prep
-- **Calibration captures the GPU** — `runtime.json` records which CUDA device achieved the measured time. The admin workflow card shows it (e.g. `NVIDIA GeForce RTX 5090`) so you know whether to re-calibrate after moving to a different rig
-- **Reorder parameters in the workflow editor** — per-row ▲/▼ buttons in the metadata editor reorder exposed parameters. Position chips (`#1, #2 …`) reflect the live order; the saved `order` field follows admin intent, so students see fields in exactly the order set in admin
-- **Generic parameter detection** — surfaces every primitive widget on every node (no class_type whitelist), so new node types (Flux2, LTX, depth, custom LoRAs) can be exposed without code changes
-- **Conditional fields (`disabledWhen`)** — a parameter can declare `disabledWhen: { param, equals }` to grey itself out while another field holds a value, e.g. a raw-prompt box vs. an AI-enhanced one gated by an "Enhance with AI" toggle (the disabled box still submits; the workflow's switch node ignores the unused branch)
-- **Workflow description visible to students** — the admin's Description field renders on the main Scheduler header AND at the top of the booking dialog, so prompting tips show up exactly when students need them
-- **Admin workflow editor** — drag-and-drop API JSON → auto-scaffold meta → modal editor lets you toggle parameter exposure, rename labels, set defaults, change types (with bulk "Hide infrastructure" / "Enable all" / "Disable all"). Onboard a workflow in under a minute
-- **Per-workflow card actions** — Calibrate / Edit / Delete on each workflow in the admin library. Confirmation modal on delete; active workflow can't be deleted accidentally
-- **Filter the workflow library by type** — the admin workflow picker groups everything into **3D / Audio / Description / Image generation / Video generation / Utilities** filter chips (each with a live count, shown only when non-empty), so a growing library stays navigable. Each workflow's fine-grained category maps to one of these user-facing buckets (upscalers / segmentation / frame-interpolation land under Utilities; image/video captioners under Description)
-- **Keyword search in the workflow library** — a search box above the type chips filters by name, tag, description, or category (multi-word AND match). It combines with the type chips — the chip counts track the current search — so finding one workflow in a large library is instant, with a "no matches → Clear filters" fallback
-- **Parameter search + node titles in the editor** — the metadata editor has a search box over the detected parameters (matches display name, node id, the ComfyUI node title, field, or type) and shows each node's title inline — so finding the one widget to expose on a 100-node graph is quick
-- **Open in ComfyUI** — one button in the editor **starts ComfyUI if it isn't running**, opens its node editor in a new tab, and downloads the workflow JSON to drop on the canvas — so you can visualize the node graph and its connections while deciding what to expose
-- **Live student preview** — a "Student preview" toggle in the workflow editor renders the *exact* booking form students will see, side-by-side and updating live as you change labels, types, defaults, options, order, or which parameters are exposed. It's driven by the same field-rendering component the real booking form uses, so the preview can never drift from what students actually get
-- **My / All Jobs tabs** — Recent Generations defaults to the current user; an "All Jobs" tab plus per-user filter dropdown exposes everyone's results for the admin / room view. Sidebar shows only your own jobs
-- **Confirmation dialogs with admin-password gating** — deletes / cancels go through a proper modal. Own jobs: simple confirm. Foreign jobs: admin-password field required, with red toasts surfacing wrong-password / "password not set" rejections from the server. Cross-user actions are disabled outright when no admin password is configured. In the admin panel, the "Admin password is set" card turns green ("verified") the moment the correct password is entered, so you get live confirmation before attempting a gated action
-- **No time limit on jobs** — a running job is never auto-killed by a timer; it runs until ComfyUI finishes. Deciding a job is taking too long is left to a human — the user or an admin cancels it with the X button. (Only the admin calibration gauge keeps a generous internal safety cap so it can't hang.)
-- **Cancel running jobs** — X button on your own in-flight job card REST-interrupts ComfyUI cleanly; the job lands in `cancelled` state (preserved as a record, not deleted)
-- **Clean all outputs** — admin button purges every output file on disk for terminal jobs and clears the `outputs` field, keeping job history. Skips in-flight jobs
-- **Emergency stop** — one button cancels every job, kills ComfyUI (only what we spawned), and restarts in admin mode
-- **File uploads for image / video / audio inputs** — any `image`-, `video`-, or `audio`-typed parameter renders an upload widget: click to browse or drag-and-drop, with MIME filtering, a hover highlight, and an inline preview (image thumbnail / `<video>` / `<audio>`). On a phone the OS file picker itself offers "Take Photo", so camera input still works without any in-app webcam code
-- **Paint-a-mask input (inpainting)** — a `mask`-typed parameter lets students **brush a region directly on an uploaded image** (adjustable brush size, eraser, undo, clear, and a choice of brush colours) instead of uploading a mask file. The painted area is exported as transparency in a single PNG that feeds both the image and the mask into ComfyUI, so inpainting "replace this part" workflows need no external mask tool. Powers the Flux.2 Klein inpainting bundles
-- **Oversized-image guard** — uploaded images are downscaled in the browser to a **1920×1080 box** (either orientation; or a per-parameter `maxInputEdge` long-edge cap set in the workflow editor) before they leave the device. HEIC and over-budget files are rejected by a three-layer guard (client throw → inline error → server backstop with magic-byte sniff), so a raw 12 MP phone photo can no longer OOM the rig
-- **Clear failure messages** — common ComfyUI execution errors are rewritten into plain language for the student. For example, a face-animation workflow given a photo with no detectable face now fails with *"No face was detected — upload a clear photo with a single, fully visible face"* instead of a raw Python traceback. Unrecognized errors are still shown verbatim
-- **Plain-HTTP dev server** — Vite serves HTTP and proxies the backend, so the page, REST, and websocket all share one origin with zero certificate friction — identical on Safari, Chrome, and phones. (A self-signed HTTPS cert can't be trusted across a BYOD workshop without installing a CA on every device)
-- **Light + dark mode** — sober grayscale palette, sun/moon toggle in the nav. First visit honors `prefers-color-scheme`; selection persists to `localStorage`. Dark mode is the polished default; light mode is functional v0 (some hardcoded utility classes still need migration to semantic `text-foreground`)
-- **Per-user colors** — every student is mapped via FNV-1a hash to one of 12 curated hues, surfaced on the timeline stripe, grid cards, and sidebar so the same user is visually grouped at a glance
-- **Prompt search** — case-insensitive substring across `prompt` + `user_id` on the main grid; prompt-only on the MyJobs sidebar
-- **Headline-prompt resilience** — workflows that expose their text input under a non-`prompt` key (LTX i2v `positive_prompt`, primitive-fallback `text`, …) still display the user-typed text on cards / lightbox / search. Fix is two-sided: client picks the right key at submit time; render-time fallback mines `job.params` for historical rows
-- **Branded mark** — favicon and inline header glyph are a sober "Q" (ring + bold tilde wave bar). Distinct from a magnifier icon and reads as "queue / flow"
-- **Workshop-rig defaults** — `defaultConfig()` ships with the standard portable-ComfyUI paths pre-filled, so a freshly cloned classroom machine lands with all three paths populated; **Check paths** validates them in-place (root, main.py, python `--version`, output writability) and **Reset to defaults** repopulates the form one-click
-- **ComfyUI auto-detect + drive-letter swap** — on boot, if the configured root has no `main.py` (stale path / cloned drive / fresh clone), ComfyQ scans local drives for the portable ComfyUI install and adopts it, so `npm run dev` self-heals; an **Auto-detect** button re-runs it on demand. When only the drive letter changed, a **Drive letter** dropdown rewrites the drive on every absolute path at once (root / python / output / assets)
-- **Hardened ComfyUI spawn** — matches `run_nvidia_gpu.bat`: `python.exe -s main.py --windows-standalone-build --disable-auto-launch …`. The Node parent's Python/conda env vars (`PYTHONPATH`, `PYTHONHOME`, `VIRTUAL_ENV`, `CONDA_PREFIX`, etc.) are stripped and conda-prefix directories are scrubbed from `PATH` before spawn, so an active `(base)` shell can no longer drag a CPU-only torch into the portable runtime
-- **Verbose generation logs** — every job pickup logs workflow + params + inputs; sampler progress is throttled to 2s + first/last step; node transitions, completion duration, output filenames, and failure phase/reason all surface on the server console
-- **Live-time timeline** — auto-follows current time with a sliding window; auto-disables when you pan
-- **Random seed by default** — every BookingDialog re-rolls the seed automatically; dice icon re-rolls; manual entry still works
-- **Recall settings** — "Use these settings" on any completed job re-opens a fresh dialog pre-filled with the job's prompt, parameters, **and the media it used** (image preview / video + audio playback, with a Replace option). The original uploads aren't TTL-swept, so no re-upload is needed
-- **Book ASAP or at a time** — the BookingDialog has an **As soon as possible / Pick a time** toggle. ASAP (the default for "Schedule a job") queues the job into the next free slot in the queue with no slot-collision friction; picking a time keeps the collision-checked timeline slot
-- **Clipboard on plain HTTP** — "Copy text" on caption jobs works even on `http://<lan-ip>` (where `navigator.clipboard` is unavailable) via an `execCommand('copy')` fallback
-- **Light + dark mode polish** — solid-accent UI (primary buttons, active tabs, toggles, the text-caption panel) now keeps correct contrast in light mode via a dedicated `on-primary` token
-- **Per-job workflow chip** — every recent-generations card, sidebar row, and lightbox shows which workflow produced the image
-- **Per-job generation time** — every completed card (grid + sidebar) shows the actual wall-clock time it took (pickup → done), and the lightbox adds it as a stat. Works for any workflow type (image / video / audio / 3D) since it's derived from the job's `started_at`/`finished_at`, not the calibration estimate
-- **Wire-compatible client** — `Scheduler`, `Dashboard`, `BookingDialog`, `MyJobsPanel` from v1 work against v2 unchanged
 
 ---
 
