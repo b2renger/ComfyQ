@@ -1,5 +1,5 @@
-appId: com.comfyq.fleetmonitor
-productName: ComfyQ Fleet Monitor
+appId: com.comfyq.discovery
+productName: ComfyQ Discovery
 # Installer build is deferred (dev-runnable first); this config is wired so
 # `npm run dist` produces a Windows NSIS installer + a macOS dmg when needed.
 files:

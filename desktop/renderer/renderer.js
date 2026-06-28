@@ -20,8 +20,31 @@ const rangeF0 = document.getElementById('rangeF0');
 const rangeF1 = document.getElementById('rangeF1');
 const rangeApply = document.getElementById('rangeApply');
 const settingsBtn = document.getElementById('settingsBtn');
+const themeBtn = document.getElementById('themeBtn');
 const controlsEl = document.getElementById('controls');
 const toastEl = document.getElementById('toast');
+
+// Light / dark theme — same behaviour as the ComfyQ web client (honor the OS
+// preference first, then remember the user's choice).
+function applyTheme(t) {
+    const el = document.documentElement;
+    el.classList.remove('dark', 'light');
+    el.classList.add(t === 'light' ? 'light' : 'dark');
+}
+function initTheme() {
+    let t = null;
+    try { t = localStorage.getItem('comfyq-fleet-theme'); } catch { /* ignore */ }
+    if (t !== 'light' && t !== 'dark') {
+        t = (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) ? 'light' : 'dark';
+    }
+    applyTheme(t);
+}
+initTheme();
+themeBtn.addEventListener('click', () => {
+    const next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
+    applyTheme(next);
+    try { localStorage.setItem('comfyq-fleet-theme', next); } catch { /* ignore */ }
+});
 
 // Category → icon, matching the ComfyQ admin workflow library (lucide icons):
 //   t2i→wand, image-edit/i2i→image, i2v→video, audio→music, 3d/preprocessor→box,

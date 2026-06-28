@@ -67,7 +67,7 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
   - Bernini-R video editing with reference image, **auto-prompt** (video + reference image → edited video; a Gemma-4 chain writes the edit instruction for you — no prompt to type) *(registered 2026-06-25, pending rig verification)*
   - Flux.2 Klein inpainting — **paint a mask** + prompt (paint the area to replace; first **paint-a-mask** input) *(registered 2026-06-25, pending rig verification)*
   - Flux.2 Klein inpainting with reference image — paint a mask + prompt + a reference image to bring in *(registered 2026-06-25, pending rig verification)*
-- 🚧 **Phase F** — Multi-instance federation *(first slice in progress 2026-06-27).* A **LAN status beacon** + a standalone **[Fleet Monitor desktop app](#fleet-monitor-desktop-app)** (Electron, Win/Mac) that lists every ComfyQ machine on the network — name, GPU/RAM, IP, status, active workflow, planned jobs — with a one-click "open this rig's booking page". Remaining locked design (mDNS, cross-instance admin actions, in-browser panel, student station picker, orchestrator role) still deferred. See [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
+- 🚧 **Phase F** — Multi-instance federation *(first slice in progress 2026-06-27).* A **LAN status beacon** + a standalone **[ComfyQ Discovery desktop app](#comfyq-discovery-desktop-app)** (Electron, Win/Mac) that lists every ComfyQ machine on the network — name, GPU/RAM, IP, status, active workflow, planned jobs — with a one-click "open this rig's booking page". Remaining locked design (mDNS, cross-instance admin actions, in-browser panel, student station picker, orchestrator role) still deferred. See [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
 
 ---
 
@@ -144,11 +144,13 @@ Deleting / cancelling **another user's job** opens the same dialog with an admin
 
 ---
 
-## Fleet Monitor (desktop app)
+## ComfyQ Discovery (desktop app)
 
-A standalone cross-platform desktop app (`desktop/`, Electron — Windows + macOS) that shows
-**every ComfyQ machine on the LAN at a glance** — no configuration, no central server. Open it on
-an instructor's laptop (or any machine on the same network) to see the whole room.
+**ComfyQ – Discovery** is a standalone cross-platform desktop app (`desktop/`, Electron — Windows +
+macOS) that shows **every ComfyQ machine on the LAN at a glance** — no configuration, no central
+server. Open it on an instructor's laptop (or any machine on the same network) to see the whole room.
+It matches the ComfyQ web UI's look (same grayscale palette, Inter font, lucide icons) and has its own
+**light/dark toggle** (honors your OS preference, remembers your choice).
 
 Each ComfyQ server **sends a small JSON status snapshot every ~5 s** over UDP — to the multicast
 group `239.255.42.99:41999` **and** to the subnet broadcast address (belt-and-suspenders, since

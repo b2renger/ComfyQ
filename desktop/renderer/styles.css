@@ -1,15 +1,39 @@
-:root {
-    --bg: #0b0d10;
-    --surface: #14181d;
-    --surface-2: #1b2127;
-    --border: #2a323b;
-    --text: #e7ecf1;
-    --muted: #8b97a4;
-    --accent: #4f9cf9;
-    --green: #46c46a;
-    --blue: #4f9cf9;
-    --grey: #6b7682;
-    --amber: #e0a83a;
+/* Palette mirrors the ComfyQ web client (client/src/index.css) — sober,
+   grayscale zinc, with the same light/dark tokens so the two apps match. */
+:root, :root.dark {
+    --bg: #09090b;
+    --surface: #18181b;
+    --surface-2: #1f1f23;
+    --border: #27272a;
+    --text: #e4e4e7;
+    --muted: #a1a1aa;
+    --grey: #71717a;
+    --accent: #71717a;          /* ComfyQ "primary" (grey) */
+    --accent-hover: #a1a1aa;
+    --on-accent: #fafafa;
+    --green: #10b981;
+    --blue: #71717a;
+    --amber: #f59e0b;
+    --danger: #ef4444;
+    color-scheme: dark;
+}
+
+:root.light {
+    --bg: #fafafa;
+    --surface: #ffffff;
+    --surface-2: #f4f4f5;
+    --border: #e4e4e7;
+    --text: #18181b;
+    --muted: #71717a;
+    --grey: #a1a1aa;
+    --accent: #52525b;
+    --accent-hover: #3f3f46;
+    --on-accent: #fafafa;
+    --green: #16a34a;
+    --blue: #52525b;
+    --amber: #ca8a04;
+    --danger: #dc2626;
+    color-scheme: light;
 }
 
 * { box-sizing: border-box; }
@@ -18,8 +42,11 @@ body {
     margin: 0;
     background: var(--bg);
     color: var(--text);
-    font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
     font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
 
 .topbar {
@@ -43,7 +70,14 @@ body {
 }
 
 .title { font-weight: 700; font-size: 16px; }
+.title-sub { color: var(--muted); font-weight: 500; }
 .subtitle { color: var(--muted); font-size: 12px; margin-top: 2px; }
+
+/* Show the icon for the mode you'd switch TO. */
+.icon-sun { display: none; }
+.icon-moon { display: block; }
+:root.light .icon-moon { display: none; }
+:root.light .icon-sun { display: block; }
 .count { color: var(--muted); font-size: 13px; }
 .topbar-right { display: flex; align-items: center; gap: 12px; }
 .icon-btn {
@@ -81,7 +115,7 @@ body {
     color: var(--amber);
     font-size: 13px;
 }
-.hidden { display: none; }
+.hidden { display: none !important; }
 
 .controls {
     margin: 12px 20px 0;
@@ -153,7 +187,7 @@ body {
 .btn-primary-sm {
     border: 1px solid var(--accent);
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-weight: 600;
     font-size: 13px;
     padding: 7px 16px;
@@ -251,17 +285,18 @@ body {
     display: inline-flex; align-items: center; justify-content: center;
     width: 34px; height: 34px; flex: 0 0 auto;
     border-radius: 8px;
-    background: rgba(79,156,249,0.15);
-    color: var(--accent);
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
 }
 .wf-icon svg { width: 19px; height: 19px; }
 .serving-text { min-width: 0; }
 
 .dot { width: 10px; height: 10px; border-radius: 50%; flex: 0 0 auto; margin-top: 6px; }
-.dot.serving { background: var(--green); box-shadow: 0 0 0 3px rgba(70,196,106,0.18); }
-.dot.backend { background: var(--blue); box-shadow: 0 0 0 3px rgba(79,156,249,0.18); }
-.dot.idle { background: var(--grey); }
-.dot.stale { background: var(--grey); }
+.dot.serving { background: var(--green); box-shadow: 0 0 0 3px color-mix(in srgb, var(--green) 22%, transparent); }
+.dot.backend { background: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 22%, transparent); }
+.dot.idle { background: var(--grey); opacity: 0.7; }
+.dot.stale { background: var(--grey); opacity: 0.5; }
 
 .hw {
     display: flex;
@@ -320,7 +355,7 @@ body {
     appearance: none;
     border: 1px solid var(--accent);
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-weight: 600;
     font-size: 13px;
     padding: 9px 12px;
