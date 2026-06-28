@@ -46,25 +46,39 @@ themeBtn.addEventListener('click', () => {
     try { localStorage.setItem('comfyq-fleet-theme', next); } catch { /* ignore */ }
 });
 
-// Category → icon, matching the ComfyQ admin workflow library (lucide icons):
-//   t2i→wand, image-edit/i2i→image, i2v→video, audio→music, 3d/preprocessor→box,
-//   description→file-text, else→grid. Gives an at-a-glance cue of what the
-//   served workflow does.
+// Workflow group → icon, matching the ComfyQ admin library's filter chips (the
+// user-facing taxonomy, lucide icons): 3D→box, Audio→music, Description→file,
+// Image generation→wand, Video generation→video, Utilities→wrench, else→grid.
+// A fine-grained meta `category` first maps to one group (same map as the admin
+// WorkflowSelector), so the served-workflow icon mirrors its chip exactly.
 const ICON = {
     wand: '<path d="m21.64 3.64-1.28-1.28a1.21 1.21 0 0 0-1.72 0L2.36 18.64a1.21 1.21 0 0 0 0 1.72l1.28 1.28a1.2 1.2 0 0 0 1.72 0L21.64 5.36a1.2 1.2 0 0 0 0-1.72Z"/><path d="m14 7 3 3"/><path d="M5 6v4"/><path d="M19 14v4"/><path d="M10 2v2"/><path d="M7 8H3"/><path d="M21 16h-4"/><path d="M11 3H9"/>',
-    image: '<rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>',
     video: '<path d="m22 8-6 4 6 4V8Z"/><rect width="14" height="12" x="2" y="6" rx="2" ry="2"/>',
     music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
     box: '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
     file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
+    wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
     grid: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>'
 };
-const CAT_ICON = {
-    't2i': 'wand', 'image-edit': 'image', 'i2i': 'image', 'i2v': 'video',
-    'audio': 'music', '3d': 'box', 'preprocessor': 'box', 'description': 'file'
+// fine-grained category → group (mirrors WorkflowSelector's CATEGORY_GROUP)
+const CATEGORY_GROUP = {
+    '3d': '3d', 'audio': 'audio', 'description': 'description',
+    't2i': 'image', 'image-edit': 'image',
+    'i2v': 'video',
+    'i2i': 'utility', 'preprocessor': 'utility',
+    'other': 'other'
 };
+const GROUP_ICON = {
+    '3d': 'box', 'audio': 'music', 'description': 'file',
+    'image': 'wand', 'video': 'video', 'utility': 'wrench', 'other': 'grid'
+};
+const GROUP_LABEL = {
+    '3d': '3D', 'audio': 'Audio', 'description': 'Description',
+    'image': 'Image generation', 'video': 'Video generation', 'utility': 'Utilities', 'other': 'Other'
+};
+const groupOf = (category) => CATEGORY_GROUP[category] || 'other';
 function catIconSvg(category) {
-    const body = ICON[CAT_ICON[category] || 'grid'] || ICON.grid;
+    const body = ICON[GROUP_ICON[groupOf(category)]] || ICON.grid;
     return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
 }
 
@@ -162,7 +176,7 @@ function cardHtml(p, selfIps) {
     const wf = p.activeWorkflow || {};
     const servingBanner = isServing ? `
         <div class="serving-banner">
-            <span class="wf-icon" title="${esc(wf.category || 'workflow')}">${catIconSvg(wf.category)}</span>
+            <span class="wf-icon" title="${esc(GROUP_LABEL[groupOf(wf.category)] || 'Workflow')}">${catIconSvg(wf.category)}</span>
             <div class="serving-text">
                 <div class="wf-label">Now serving</div>
                 <div class="wf-name">${esc(wf.name || 'a workflow')}</div>
