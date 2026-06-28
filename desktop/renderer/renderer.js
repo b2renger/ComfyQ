@@ -122,6 +122,7 @@ function stateLabel(p, kind) {
 }
 
 function jobRow(j, running) {
+    const isTimer = running && j.startedAt;
     const time = running
         ? (j.startedAt ? `running · ${mmss(Date.now() - j.startedAt)}` : 'running')
         : `at ${clock(j.scheduledAt)}`;
@@ -129,7 +130,7 @@ function jobRow(j, running) {
         <div class="job${running ? ' running' : ''}">
             <div class="job-top">
                 <span class="job-user">${esc(j.user || 'someone')}</span>
-                <span class="job-time">${esc(time)}</span>
+                <span class="job-time${isTimer ? ' job-timer' : ''}"${isTimer ? ` data-start="${j.startedAt}"` : ''}>${esc(time)}</span>
             </div>
             <div class="job-prompt">${esc(j.prompt || '(no prompt)')}</div>
         </div>`;
@@ -195,7 +196,7 @@ function cardHtml(p, selfIps) {
            </button>` : '';
 
     return `
-        <div class="card ${kind === 'stale' ? 'stale' : ''}${isSelf ? ' self' : ''}">
+        <div class="card ${kind === 'stale' ? 'stale' : ''}${isSelf ? ' self' : ''}" data-id="${esc(p.id || '')}">
             <div class="card-head">
                 <div class="head-main">
                     <div class="machine-name">${esc(p.name || 'Unknown machine')}${isSelf ? '<span class="self-tag">This machine</span>' : ''}</div>
@@ -213,7 +214,7 @@ function cardHtml(p, selfIps) {
 
             ${workHtml}
 
-            <div class="footer">Updated ${esc(ago(p._ageMs || 0))}${esc(sourceTag)}</div>
+            <div class="footer"><span class="updated" data-ts="${p._lastSeen || Date.now()}" data-src="${esc(sourceTag)}">Updated ${esc(ago(p._ageMs || 0))}${esc(sourceTag)}</span></div>
         </div>`;
 }
 
@@ -235,20 +236,59 @@ function render(data) {
 
     emptyEl.style.display = peers.length ? 'none' : 'block';
     const selfIps = data.selfIps || [];
-    appEl.innerHTML = peers.map(p => cardHtml(p, selfIps)).join('');
-    for (const btn of appEl.querySelectorAll('.btn[data-url]')) {
-        const url = btn.getAttribute('data-url');
-        if (url) btn.addEventListener('click', () => window.fleet.openUrl(url));
+
+    // Rebuild the card DOM ONLY when the material content changes. A constant
+    // 1s innerHTML rebuild used to destroy buttons mid-click (the small copy
+    // button especially). Time-only fields (last-seen, running timer) are
+    // refreshed in place by tickTimes(); per-push freshness (data-ts, stale) is
+    // patched onto existing cards below without a rebuild.
+    const sig = cardsSignature(peers, selfIps);
+    if (sig !== lastCardsSig) {
+        lastCardsSig = sig;
+        appEl.innerHTML = peers.map(p => cardHtml(p, selfIps)).join('');
+    } else {
+        for (const p of peers) {
+            const card = appEl.querySelector(`.card[data-id="${cssAttr(p.id)}"]`);
+            if (!card) continue;
+            const upd = card.querySelector('.updated');
+            if (upd) upd.setAttribute('data-ts', p._lastSeen || Date.now());
+            card.classList.toggle('stale', !!p._stale);
+        }
     }
-    for (const btn of appEl.querySelectorAll('.copy-btn[data-copy]')) {
-        btn.addEventListener('click', () => {
-            window.fleet.copyText(btn.getAttribute('data-copy'));
-            showToast('Admin panel link copied');
-        });
-    }
+    tickTimes();
 
     if (data.staticPeers) renderStaticChips(data.staticPeers);
     if (data.scan) renderScan(data.scan);
+}
+
+// Stable signature of everything that affects how cards render — excludes
+// time-volatile fields (_ageMs/_lastSeen/ts) and uses a coarse 30s idle bucket,
+// so heartbeats with no real change don't trigger a rebuild.
+function cardsSignature(peers, selfIps) {
+    return JSON.stringify(peers.map(p => [
+        p.id, p.name, (p.ips || []).join(','), p.gpu, p.vramGb, p.ramGb, p.mode,
+        !!(p.comfy && p.comfy.running),
+        p.activeWorkflow && [p.activeWorkflow.id, p.activeWorkflow.name, p.activeWorkflow.description, p.activeWorkflow.category],
+        p.usage && p.usage.usersConnected,
+        Math.floor(((p.usage && p.usage.idleSec) || 0) / 30),
+        p._stale, p._source,
+        p.jobs && [(p.jobs.running && p.jobs.running.id) || null, (p.jobs.scheduled || []).map(j => [j.id, j.user, j.prompt, j.scheduledAt])],
+        (selfIps || []).some(x => (p.ips || []).includes(x))
+    ]));
+}
+function cssAttr(s) { return String(s == null ? '' : s).replace(/["\\]/g, '\\$&'); }
+
+// Update only relative-time text in place (no DOM rebuild → never interrupts a click).
+function tickTimes() {
+    const now = Date.now();
+    for (const el of appEl.querySelectorAll('.updated[data-ts]')) {
+        const ts = Number(el.getAttribute('data-ts')) || now;
+        el.textContent = `Updated ${ago(now - ts)}${el.getAttribute('data-src') || ''}`;
+    }
+    for (const el of appEl.querySelectorAll('.job-timer[data-start]')) {
+        const st = Number(el.getAttribute('data-start')) || now;
+        el.textContent = `running · ${mmss(now - st)}`;
+    }
 }
 
 function renderScan(scan) {
@@ -282,8 +322,12 @@ function liveHostSet(peers) {
     return s;
 }
 
+let lastChipsSig = '';
 function renderStaticChips(hosts) {
     const live = liveHostSet(last.peers || []);
+    const sig = JSON.stringify((hosts || []).map(h => [h, live.has(String(h).split(':')[0])]));
+    if (sig === lastChipsSig) return;        // avoid rebuilding chips mid-click
+    lastChipsSig = sig;
     peerChipsEl.innerHTML = (hosts || []).map(h => {
         const ip = String(h).split(':')[0];
         const ok = live.has(ip);
@@ -292,9 +336,6 @@ function renderStaticChips(hosts) {
             <button class="chip-x" data-host="${esc(h)}" title="Remove">×</button>
         </span>`;
     }).join('');
-    for (const x of peerChipsEl.querySelectorAll('.chip-x')) {
-        x.addEventListener('click', () => window.fleet.removeStaticPeer(x.getAttribute('data-host')));
-    }
 }
 
 addPeerForm.addEventListener('submit', (e) => {
@@ -313,9 +354,28 @@ rangeApply.addEventListener('click', () => {
     });
 });
 
-// Keep the latest payload so we can tick the "updated / running" clocks between pushes.
+// Event delegation on stable parents — listeners attached ONCE, so a card/chip
+// rebuild can't drop them (and clicks aren't tied to per-render elements).
+appEl.addEventListener('click', (e) => {
+    const copy = e.target.closest && e.target.closest('.copy-btn[data-copy]');
+    if (copy) {
+        Promise.resolve(window.fleet.copyText(copy.getAttribute('data-copy')))
+            .then(() => showToast('Admin panel link copied'))
+            .catch(() => showToast('Could not copy'));
+        return;
+    }
+    const sched = e.target.closest && e.target.closest('.btn[data-url]');
+    if (sched && sched.getAttribute('data-url')) window.fleet.openUrl(sched.getAttribute('data-url'));
+});
+peerChipsEl.addEventListener('click', (e) => {
+    const x = e.target.closest && e.target.closest('.chip-x[data-host]');
+    if (x) window.fleet.removeStaticPeer(x.getAttribute('data-host'));
+});
+
+// Latest payload + the card signature gate (declared before first render).
 let last = { peers: [], staticPeers: [], scan: null };
+let lastCardsSig = '';
 window.fleet.onPeers((d) => { last = d; render(d); });
-setInterval(() => render(last), 1000);
+setInterval(tickTimes, 1000);   // refresh relative-time text only — no DOM rebuild
 
 window.fleet.getStaticPeers().then(renderStaticChips);
