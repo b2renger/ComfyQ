@@ -1,13 +1,12 @@
 // ComfyQ Fleet Monitor — Electron main process.
 //
-// Discovers ComfyQ machines three ways and merges them into one list:
+// Finds ComfyQ machines and merges them into one list, discovered three ways:
 //   1. UDP status beacons (multicast + broadcast) — zero-config on friendly LANs.
-//   2. Subnet auto-scan — unicast GET http://<ip>:3000/federation/self across the
-//      local subnet(s). This is what finds *all* machines on managed/school Wi-Fi
-//      that blocks broadcast/multicast between clients but allows unicast TCP.
-//   3. Static peers — manually added IPs (e.g. a machine on another subnet).
-// Peer map + stale/expiry live here; the list is pushed to the renderer over IPC.
-// The only outbound action is opening a machine's web UI in the default browser.
+//   2. IP-range scan — unicast GET http://<ip>:3000/federation/self across a
+//      configurable address range. This is what finds machines on managed/school
+//      Wi-Fi that blocks broadcast/multicast between clients.
+//   3. Manually added machines (a machine on another network).
+// Peer map + expiry live here; the list is pushed to the renderer over IPC.
 
 const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const dgram = require('dgram');
@@ -16,32 +15,56 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
-// Must match server config.federation defaults (group/port).
 const GROUP = process.env.COMFYQ_FED_GROUP || '239.255.42.99';
 const PORT = Number(process.env.COMFYQ_FED_PORT || 41999);
 const DEFAULT_API_PORT = 3000;
 
-const POLL_MS = 5_000;         // refresh known machines (static + discovered)
-const SCAN_MS = 60_000;        // full subnet sweep cadence
-const SCAN_CONCURRENCY = 48;   // simultaneous unicast probes during a sweep
-const SCAN_TIMEOUT_MS = 1500;  // per-host probe timeout
-const MAX_SCAN_HOSTS = 4096;   // skip auto-scan on subnets bigger than this (/20)
-const DISCOVERED_TTL = 90_000; // stop polling an auto-found host unseen this long
+const POLL_MS = 5_000;          // refresh known machines (added + discovered)
+const SCAN_MS = 60_000;         // full range sweep cadence
+const SCAN_CONCURRENCY = 48;
+const SCAN_TIMEOUT_MS = 1500;
+const MAX_SCAN_HOSTS = 4096;    // safety cap on a single sweep
+const DISCOVERED_TTL = 90_000;  // stop polling an auto-found host unseen this long
 
-const STALE_MS = 30_000;       // ~6 missed 5s updates → mark stale
-const DROP_MS = 120_000;       // gone this long (non-static) → remove from the list
+const STALE_MS = 30_000;
+const DROP_MS = 120_000;
 
 let win = null;
 let socket = null;
 let socketError = null;
-const peers = new Map();        // id -> { snap, lastSeen, source }
-const discovered = new Map();   // host -> lastResponseTs (auto-found via scan)
+const peers = new Map();         // id -> { snap, lastSeen, source }
+const discovered = new Map();    // host -> lastResponseTs
 let scanning = false;
+let scanChecked = 0, scanTotal = 0;
 
-// ---- persisted settings (static peers + auto-scan flag) ----
-let staticPeers = [];           // host strings ("10.10.16.174" or "host:3000")
+// ---- persisted settings ----
+let staticPeers = [];
 let autoScan = true;
+let scanRange = null;            // { base:"10.10", third:[16,17], fourth:[1,254] }
 let cfgFile = null;
+
+function localIPv4s() {
+    const out = [];
+    const ifs = os.networkInterfaces();
+    for (const name of Object.keys(ifs)) {
+        for (const i of ifs[name] || []) {
+            if (i.family === 'IPv4' && !i.internal) out.push({ address: i.address, netmask: i.netmask });
+        }
+    }
+    return out;
+}
+
+// Sensible default range from the machine's own subnet (covers the whole subnet).
+function defaultRange() {
+    const me = localIPv4s()[0];
+    if (!me) return { base: '192.168.1', third: [1, 1], fourth: [1, 254] };
+    const o = me.address.split('.').map(Number);
+    const m = me.netmask.split('.').map(Number);
+    const net = o.map((x, i) => x & m[i]);
+    const bc = o.map((x, i) => (x & m[i]) | (~m[i] & 255));
+    // base = first two octets; scan the 3rd+4th octet ranges the mask spans.
+    return { base: `${o[0]}.${o[1]}`, third: [net[2], bc[2]], fourth: [Math.max(1, net[3]), Math.min(254, bc[3] || 254)] };
+}
 
 function loadConfig() {
     try {
@@ -50,53 +73,39 @@ function loadConfig() {
             const c = JSON.parse(fs.readFileSync(cfgFile, 'utf8'));
             if (Array.isArray(c.staticPeers)) staticPeers = c.staticPeers.filter(s => typeof s === 'string');
             if (typeof c.autoScan === 'boolean') autoScan = c.autoScan;
+            if (c.scanRange && c.scanRange.base) scanRange = c.scanRange;
         }
     } catch { /* defaults */ }
+    if (!scanRange) scanRange = defaultRange();
     const env = (process.env.COMFYQ_FED_PEERS || '').split(',').map(s => s.trim()).filter(Boolean);
     for (const h of env) if (!staticPeers.includes(h)) staticPeers.push(h);
 }
 function saveConfig() {
-    try { if (cfgFile) fs.writeFileSync(cfgFile, JSON.stringify({ staticPeers, autoScan }, null, 2)); }
+    try { if (cfgFile) fs.writeFileSync(cfgFile, JSON.stringify({ staticPeers, autoScan, scanRange }, null, 2)); }
     catch (e) { console.warn('[FleetMonitor] could not save config:', e.message); }
 }
 
-// ---- ip helpers ----
-function ipToInt(ip) {
-    const p = String(ip).split('.').map(Number);
-    if (p.length !== 4 || p.some(n => Number.isNaN(n))) return 0;
-    return ((p[0] << 24) | (p[1] << 16) | (p[2] << 8) | p[3]) >>> 0;
-}
-function intToIp(n) {
-    return [(n >>> 24) & 255, (n >>> 16) & 255, (n >>> 8) & 255, n & 255].join('.');
-}
-function maskBits(maskInt) { let b = 0; for (let i = 31; i >= 0; i--) if (maskInt & (1 << i)) b++; else break; return b; }
 function parseHost(entry) {
     const [host, port] = String(entry).split(':');
     return { host: host.trim(), port: Number(port) || DEFAULT_API_PORT };
 }
 
-// Local subnet(s) → list of candidate host IPs to probe (own IP + net/bcast excluded).
-function scanInfo() {
-    const subnets = [];
-    const ifs = os.networkInterfaces();
-    for (const name of Object.keys(ifs)) {
-        for (const i of ifs[name] || []) {
-            if (i.family !== 'IPv4' || i.internal) continue;
-            const ip = ipToInt(i.address), mask = ipToInt(i.netmask);
-            if (!mask) continue;
-            const net = (ip & mask) >>> 0;
-            const bcast = (net | (~mask >>> 0)) >>> 0;
-            const size = bcast - net - 1;
-            if (size <= 0 || size > MAX_SCAN_HOSTS) continue;
-            const hosts = [];
-            for (let a = net + 1; a < bcast; a++) if (a !== ip) hosts.push(intToIp(a));
-            subnets.push({ cidr: `${intToIp(net)}/${maskBits(mask)}`, self: i.address, hosts });
+// Candidate IPs from the configured range (own IPs excluded), capped.
+function scanCandidates() {
+    const r = scanRange || defaultRange();
+    const mine = new Set(localIPv4s().map(i => i.address));
+    const [t0, t1] = r.third, [f0, f1] = r.fourth;
+    const out = [];
+    for (let t = Math.min(t0, t1); t <= Math.max(t0, t1); t++) {
+        for (let f = Math.min(f0, f1); f <= Math.max(f0, f1); f++) {
+            const ip = `${r.base}.${t}.${f}`;
+            if (!mine.has(ip)) out.push(ip);
+            if (out.length >= MAX_SCAN_HOSTS) return out;
         }
     }
-    return subnets;
+    return out;
 }
 
-// ---- unicast probe ----
 function fetchSelf(host, port, timeoutMs) {
     return new Promise((resolve) => {
         const req = http.get({ host, port, path: '/federation/self', timeout: timeoutMs }, (res) => {
@@ -118,7 +127,6 @@ function mergeSnap(snap, fallbackHost, source) {
 
 function staticHostSet() { return new Set(staticPeers.map(e => parseHost(e).host)); }
 
-// Refresh all known machines (manually added + auto-discovered) over unicast.
 async function pollKnown() {
     const statics = staticHostSet();
     const targets = new Set([...staticPeers, ...discovered.keys()]);
@@ -128,30 +136,29 @@ async function pollKnown() {
         const snap = await fetchSelf(host, port, SCAN_TIMEOUT_MS);
         if (snap) {
             if (discovered.has(host)) discovered.set(host, Date.now());
-            mergeSnap(snap, host, statics.has(host) ? 'poll' : 'scan');
+            mergeSnap(snap, host, statics.has(host) ? 'added' : 'scan');
             pushToRenderer();
         }
     }));
 }
 
-// Sweep the local subnet(s) for ComfyQ machines (the locked-down-Wi-Fi path).
-async function scanSubnet() {
+async function scanRange_sweep() {
     if (scanning || !autoScan) return;
-    const subnets = scanInfo();
-    const all = subnets.flatMap(s => s.hosts);
+    const all = scanCandidates();
     if (!all.length) return;
-    scanning = true; pushToRenderer();
+    scanning = true; scanChecked = 0; scanTotal = all.length; pushToRenderer();
     const statics = staticHostSet();
     let idx = 0;
     const worker = async () => {
         while (idx < all.length) {
             const host = all[idx++];
             const snap = await fetchSelf(host, DEFAULT_API_PORT, SCAN_TIMEOUT_MS);
+            scanChecked++;
             if (snap) {
                 discovered.set(host, Date.now());
-                mergeSnap(snap, host, statics.has(host) ? 'poll' : 'scan');
-                pushToRenderer();
+                mergeSnap(snap, host, statics.has(host) ? 'added' : 'scan');
             }
+            if (scanChecked % 16 === 0 || snap) pushToRenderer();
         }
     };
     await Promise.all(Array.from({ length: Math.min(SCAN_CONCURRENCY, all.length) }, worker));
@@ -166,7 +173,6 @@ function pushToRenderer() {
         const age = now - rec.lastSeen;
         list.push({ ...rec.snap, _lastSeen: rec.lastSeen, _ageMs: age, _stale: age > STALE_MS, _source: rec.source });
     }
-    const sub = scanInfo();
     win.webContents.send('peers', {
         peers: list,
         staticPeers: staticPeers.slice(),
@@ -174,9 +180,11 @@ function pushToRenderer() {
         scan: {
             enabled: autoScan,
             scanning,
-            cidrs: sub.map(s => s.cidr),
-            candidateCount: sub.reduce((n, s) => n + s.hosts.length, 0),
-            discoveredCount: discovered.size
+            range: scanRange,
+            candidateCount: (scanRange ? scanCandidates().length : 0),
+            discoveredCount: discovered.size,
+            checked: scanChecked,
+            total: scanTotal
         }
     });
 }
@@ -199,8 +207,8 @@ function startSocket() {
     socket.bind(PORT, () => {
         let joined = 0;
         try { socket.addMembership(GROUP); joined++; } catch { /* default join may fail */ }
-        for (const s of scanInfo()) {
-            try { socket.addMembership(GROUP, s.self); joined++; } catch { /* already joined */ }
+        for (const i of localIPv4s()) {
+            try { socket.addMembership(GROUP, i.address); joined++; } catch { /* already joined */ }
         }
         socketError = null;
         console.log(`[FleetMonitor] listening on ${GROUP}:${PORT} (multicast joins: ${joined}; broadcast: on)`);
@@ -208,12 +216,12 @@ function startSocket() {
     });
 }
 
-// Sweep: prune dead auto-discovered hosts + drop stale non-static peers.
+// Prune dead auto-discovered hosts + drop stale peers (added machines stay).
 setInterval(() => {
     const now = Date.now();
     for (const [host, ts] of discovered) if (now - ts > DISCOVERED_TTL) discovered.delete(host);
     for (const [id, rec] of peers) {
-        if (rec.source === 'poll') continue;   // user-added static peers stay
+        if (rec.source === 'added') continue;
         if (now - rec.lastSeen > DROP_MS) peers.delete(id);
     }
     pushToRenderer();
@@ -221,7 +229,7 @@ setInterval(() => {
 
 function createWindow() {
     win = new BrowserWindow({
-        width: 1100, height: 780, minWidth: 720, minHeight: 480,
+        width: 1100, height: 800, minWidth: 720, minHeight: 480,
         backgroundColor: '#0b0d10',
         title: 'ComfyQ Fleet Monitor',
         icon: path.join(__dirname, 'assets', 'icon.png'),
@@ -251,11 +259,26 @@ ipcMain.handle('remove-static-peer', (_e, host) => {
     staticPeers = staticPeers.filter(h => h !== host); saveConfig(); pushToRenderer();
     return staticPeers.slice();
 });
-ipcMain.handle('rescan', () => { scanSubnet(); return true; });
+ipcMain.handle('rescan', () => { scanRange_sweep(); return true; });
 ipcMain.handle('set-auto-scan', (_e, on) => {
     autoScan = !!on; saveConfig(); pushToRenderer();
-    if (autoScan) scanSubnet();
+    if (autoScan) scanRange_sweep();
     return autoScan;
+});
+ipcMain.handle('get-scan-range', () => scanRange);
+ipcMain.handle('set-scan-range', (_e, r) => {
+    if (r && typeof r.base === 'string' && Array.isArray(r.third) && Array.isArray(r.fourth)) {
+        const clamp = (n) => Math.max(0, Math.min(255, Math.round(Number(n) || 0)));
+        scanRange = {
+            base: r.base.trim().replace(/\.+$/, ''),
+            third: [clamp(r.third[0]), clamp(r.third[1])],
+            fourth: [clamp(r.fourth[0]), clamp(r.fourth[1])]
+        };
+        saveConfig();
+        if (autoScan) scanRange_sweep();
+    }
+    pushToRenderer();
+    return scanRange;
 });
 
 app.whenReady().then(() => {
@@ -263,8 +286,8 @@ app.whenReady().then(() => {
     startSocket();
     pollKnown();
     setInterval(pollKnown, POLL_MS);
-    setTimeout(scanSubnet, 800);          // initial sweep shortly after launch
-    setInterval(scanSubnet, SCAN_MS);
+    setTimeout(scanRange_sweep, 800);
+    setInterval(scanRange_sweep, SCAN_MS);
     createWindow();
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
 });

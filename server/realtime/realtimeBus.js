@@ -29,13 +29,17 @@ const HEARTBEAT_MS = 5000;
 //   reorder_job({ jobId, newTimeSlot })
 //   cancel_job(jobId)            with optional admin_password
 class RealtimeBus {
-    constructor({ httpServer, queue, executor, registry, configManager, worker, comfyConfig }) {
+    constructor({ httpServer, queue, executor, registry, configManager, worker, comfyConfig, activity }) {
         this.queue = queue;
         this.executor = executor;
         this.registry = registry;
         this.configManager = configManager;
         this.worker = worker;
         this.comfyConfig = comfyConfig;
+        // Shared activity tracker (see server/index.js) — bumped on real user
+        // interactions so the fleet monitor's "last activity" reflects bookings /
+        // running jobs, not just HTTP traffic.
+        this.activity = activity || { lastTs: Date.now(), clients: new Map() };
         this.connectedUsers = new Map();
 
         this.io = new Server(httpServer, {
@@ -43,17 +47,21 @@ class RealtimeBus {
         });
         this._wireEvents();
 
-        // Broadcast on queue / worker change.
-        queue.onChange(() => this.broadcast());
+        // Broadcast on queue / worker change. A queue change (job booked,
+        // progressing, finishing) counts as server activity.
+        queue.onChange(() => { this._bumpActivity(); this.broadcast(); });
         worker.on('status', () => this.broadcast());
         executor.onChange(() => this.broadcast());
         setInterval(() => this.broadcast(), HEARTBEAT_MS);
     }
 
+    _bumpActivity() { if (this.activity) this.activity.lastTs = Date.now(); }
+
     _wireEvents() {
         this.io.on('connection', (socket) => {
             const guestId = `Guest-${socket.id.substring(0, 4)}`;
             this.connectedUsers.set(socket.id, { socketId: socket.id, userId: guestId });
+            this._bumpActivity();
             this.broadcast();
 
             socket.on('register_user', (name) => {

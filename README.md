@@ -159,11 +159,15 @@ after ~2 min. It works even for **idle rigs in admin mode with nothing launched*
 Per machine the card shows:
 - **Name** and **IP address**
 - **Hardware** — GPU model (+ VRAM) and system RAM
-- **Status** — ComfyQ panel running (admin/student mode), ComfyUI backend running, and which
-  workflow (if any) is being served
-- When a workflow is served — the **planned/running jobs** with their times and the user
-- A **"Schedule a job ↗"** button that opens that rig's booking page (`http://<ip>:5173`) in your
-  default browser
+- **Plain-language state** (Running a workflow / Ready / On standby) and **usage** — how many users
+  are connected and how long since the last activity (shown for every machine, including idle
+  admin-mode rigs)
+- **When a workflow is being served** — its name, a short **description of what it does** (pulled
+  straight from the workflow's `meta.json`, so dropping a new workflow into `workflows/` surfaces its
+  blurb automatically), the **queued/running jobs** with times, and a **"Schedule a job ↗"** button
+  that opens that rig's booking page (`http://<ip>:5173`) in your default browser
+- **Admin-mode machines** hide the workflow/schedule (nothing is being served) and instead show just
+  the connected-users + last-activity info
 
 The app is **read-only** (it never commands a remote machine — the only action is opening a browser
 tab).
@@ -190,9 +194,11 @@ A `GET /federation/self` endpoint returns the same snapshot over HTTP for script
 > reach each other directly over unicast. For that case the app also **auto-discovers** machines by
 > sweeping the local subnet: it probes `http://<ip>:3000/federation/self` across your subnet (the
 > same path students already use, so no extra firewall rule), and lists everything that answers. It's
-> on by default — toggle **Auto-discover machines on this network** or hit **Rescan now**. A full
-> sweep of a /23 (~510 hosts) takes ~15 s; found machines then refresh every 5 s. For a machine on a
-> *different* subnet, use **Add machine by IP** (it's polled directly and remembered between launches).
+> on by default — toggle **Find machines automatically** or hit **Refresh**. You can set the
+> **Search range** (the address range to check, e.g. `10.10` · `16`–`17` · `1`–`254`) to widen or
+> narrow the sweep; it defaults to your machine's own subnet. A ~510-address sweep takes ~15 s; found
+> machines then refresh every 5 s. For a machine on a *different* network, use **Add a machine** (type
+> its IP — it's polled directly and remembered between launches).
 
 > **"Electron failed to install correctly"?** Electron's binary-download step occasionally gets
 > skipped during `npm install`. `npm run desktop:install` runs that step explicitly so this

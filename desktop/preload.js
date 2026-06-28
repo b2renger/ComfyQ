@@ -10,7 +10,9 @@ contextBridge.exposeInMainWorld('fleet', {
     getStaticPeers: () => ipcRenderer.invoke('get-static-peers'),
     addStaticPeer: (host) => ipcRenderer.invoke('add-static-peer', host),
     removeStaticPeer: (host) => ipcRenderer.invoke('remove-static-peer', host),
-    // Subnet auto-scan controls.
+    // Auto-discovery (IP-range scan) controls.
     rescan: () => ipcRenderer.invoke('rescan'),
-    setAutoScan: (on) => ipcRenderer.invoke('set-auto-scan', on)
+    setAutoScan: (on) => ipcRenderer.invoke('set-auto-scan', on),
+    getScanRange: () => ipcRenderer.invoke('get-scan-range'),
+    setScanRange: (range) => ipcRenderer.invoke('set-scan-range', range)
 });

@@ -45,16 +45,41 @@ function activeWorkflow({ config, registry }) {
     try {
         const entry = registry.get(id);
         if (entry && !entry.unavailable) {
+            // description comes straight from the workflow bundle's meta.json
+            // (read by the registry) — referenced, not copied, so dropping a new
+            // workflow into workflows/ surfaces its blurb automatically.
+            const description = entry.summary?.description || entry.meta?.description || '';
             return {
                 id,
                 name: entry.summary?.name || id,
+                description,
+                category: entry.summary?.category || entry.meta?.category || null,
                 estimatedDurationSec: entry.summary?.estimatedDurationSec || null
             };
         }
-        return { id, name: id, estimatedDurationSec: null, unavailable: true };
+        return { id, name: id, description: '', estimatedDurationSec: null, unavailable: true };
     } catch {
-        return { id, name: id, estimatedDurationSec: null };
+        return { id, name: id, description: '', estimatedDurationSec: null };
     }
+}
+
+// People currently using this server + how long since the last activity.
+function usage({ runtime }) {
+    const now = Date.now();
+    const act = runtime?.activity;
+    let usersConnected = 0;
+    // Student mode: live socket clients are the accurate count. Admin mode (no
+    // realtime bus): fall back to distinct recent HTTP clients (admin panel etc.).
+    if (runtime?.bus?.connectedUsers) {
+        usersConnected = runtime.bus.connectedUsers.size;
+    } else if (act?.clients) {
+        for (const [ip, ts] of act.clients) {
+            if (now - ts < 90_000) usersConnected++;
+            else act.clients.delete(ip);
+        }
+    }
+    const idleSec = act?.lastTs ? Math.max(0, Math.round((now - act.lastTs) / 1000)) : null;
+    return { usersConnected, idleSec };
 }
 
 function jobsState({ runtime, registry }) {
@@ -109,6 +134,7 @@ function buildSnapshot({ configManager, registry, runtime, sysInfo }) {
         ramGb: sysInfo?.ramGb || 0,
         comfy: comfyState({ runtime, configManager }),
         activeWorkflow: activeWorkflow({ config, registry }),
+        usage: usage({ runtime }),
         jobs: jobsState({ runtime, registry }),
         federation: { enabled: fed.enabled !== false, intervalSec: fed.intervalSec || 15 },
         ts: Date.now()

@@ -29,23 +29,37 @@
 
     <div class="banner hidden" id="banner"></div>
 
-    <section class="peerbar">
-        <div class="scanrow">
+    <section class="controls">
+        <div class="ctl-row">
             <label class="scan-toggle">
                 <input type="checkbox" id="autoScanChk" />
-                <span>Auto-discover machines on this network</span>
+                <span>Find machines automatically</span>
             </label>
             <span class="scan-status" id="scanStatus"></span>
-            <button id="rescanBtn" class="scan-btn">Rescan now</button>
+            <button id="rescanBtn" class="btn-ghost">Refresh</button>
         </div>
-        <div class="peerbar-head">
-            <span class="peerbar-label">Add machine by IP</span>
-            <span class="peerbar-hint">Optional — for a machine on a different subnet, or if auto-discovery is off. The app polls it directly.</span>
+
+        <div class="ctl-row range-row">
+            <span class="ctl-label">Search range</span>
+            <input id="rangeBase" class="in-base" spellcheck="false" title="First part of the addresses to search" />
+            <span class="dotsep">.</span>
+            <input id="rangeT0" class="in-oct" type="number" min="0" max="255" />
+            <span class="to">to</span>
+            <input id="rangeT1" class="in-oct" type="number" min="0" max="255" />
+            <span class="dotsep">.</span>
+            <input id="rangeF0" class="in-oct" type="number" min="0" max="255" />
+            <span class="to">to</span>
+            <input id="rangeF1" class="in-oct" type="number" min="0" max="255" />
+            <button id="rangeApply" class="btn-ghost">Apply</button>
         </div>
-        <form id="addPeerForm" class="peerbar-form" autocomplete="off">
-            <input id="peerInput" type="text" placeholder="e.g. 10.10.16.174  (or 10.10.16.174:3000)" spellcheck="false" />
-            <button type="submit">Add</button>
-        </form>
+
+        <div class="ctl-row add-row">
+            <span class="ctl-label">Add a machine</span>
+            <form id="addPeerForm" class="peerbar-form" autocomplete="off">
+                <input id="peerInput" type="text" placeholder="type its IP address, e.g. 10.10.16.174" spellcheck="false" />
+                <button type="submit" class="btn-primary-sm">Add</button>
+            </form>
+        </div>
         <div class="peerchips" id="peerChips"></div>
     </section>
 

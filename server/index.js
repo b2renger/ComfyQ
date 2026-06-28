@@ -209,6 +209,21 @@ async function main() {
     // second router mount.
     const runtime = {};
 
+    // Activity tracker (for the fleet monitor's "users connected" + "last
+    // activity" in both modes). Updated on real requests; the federation
+    // snapshot polling and the socket.io transport are excluded so passive
+    // monitoring / idle connections don't masquerade as activity.
+    runtime.activity = { lastTs: Date.now(), clients: new Map() };
+    app.use((req, res, next) => {
+        const p = req.path || '';
+        if (!p.startsWith('/federation') && !p.startsWith('/socket.io')) {
+            runtime.activity.lastTs = Date.now();
+            const ip = String(req.ip || req.socket?.remoteAddress || '').replace(/^::ffff:/, '');
+            if (ip) runtime.activity.clients.set(ip, Date.now());
+        }
+        next();
+    });
+
     // Routes available in both modes.
     app.use('/admin', adminRoutes.makeRouter({
         configManager, registry, adminGate: gate, exitForRestart, runtime
@@ -307,7 +322,8 @@ async function main() {
 
     const benchmarkService = new BenchmarkService({ worker, registry, comfyConfig: config.comfy_ui, assetsDir: config.assets?.dir || '' });
 
-    const bus = new RealtimeBus({ httpServer: server, queue, executor, registry, configManager, worker, comfyConfig: config.comfy_ui });
+    const bus = new RealtimeBus({ httpServer: server, queue, executor, registry, configManager, worker, comfyConfig: config.comfy_ui, activity: runtime.activity });
+    runtime.bus = bus;     // fleet snapshot reads connected-user count from here
 
     // Expose student-mode runtime to the admin router (emergency-stop) and the
     // federation snapshot (queue + worker liveness).
