@@ -189,12 +189,23 @@ tab and copying a link).
 ### Install & auto-update (end users)
 
 Grab the latest installer from the repo's **[Releases](https://github.com/b2renger/ComfyQ/releases)**
-page and run it — Windows `.exe`, macOS `.dmg`, or Linux `.AppImage`. Builds are **unsigned for now**:
+page and run it — Windows `.exe`, macOS `.dmg` (Apple Silicon **and** Intel), or Linux `.AppImage`.
+Windows + Linux builds are **unsigned**; the macOS app is **ad-hoc code-signed** (so it launches with a
+one-time bypass instead of a *"damaged"* dead end — but it is **not notarized**):
 
 - **Windows:** on first run SmartScreen shows *"Windows protected your PC"* → click **More info → Run
   anyway** (one time). Updates afterwards install silently.
-- **macOS:** Gatekeeper blocks the first launch → **right-click the app → Open** (one time).
-- **Linux:** mark the `.AppImage` executable, then run it.
+- **macOS (Apple Silicon):** Gatekeeper blocks the first launch → **right-click the app → Open → Open**
+  (one time); on macOS Sequoia use **System Settings → Privacy & Security → Open Anyway**.
+  `xattr -cr '/Applications/ComfyQ Discovery.app'` is the universal fallback.
+- **macOS (Intel):** needs **macOS 12 (Monterey) or newer** — on macOS 11 Big Sur the app is flagged
+  *"damaged"* and won't open even after the bypass.
+- **Linux:** `chmod +x` the `.AppImage`, then run it. On **Linux Mint / Ubuntu** it needs the **FUSE 2**
+  runtime — if it does nothing or reports a FUSE error, install it: `sudo apt install libfuse2`
+  (Mint 21 / Ubuntu 22.04) or `libfuse2t64` (Mint 22 / Ubuntu 24.04). Still stuck? Run it FUSE-free with
+  `./"ComfyQ Discovery-<ver>.AppImage" --appimage-extract-and-run`, or install **AppImageLauncher**
+  (`sudo apt install appimagelauncher`) for a menu entry + automatic integration. A SUID-sandbox error on
+  launch → add `--no-sandbox`.
 
 **Auto-update is automatic.** On every launch the app checks GitHub for a newer release, downloads it
 in the background, and shows *"Update ready — restart to apply"* (it also installs on next quit). The
@@ -258,9 +269,12 @@ Notes:
 - A local `npm run dist` (in `desktop/`) builds an unsigned installer for the host OS only — handy for
   a quick check, though on Windows it needs **Developer Mode** (or an elevated shell) so electron-builder
   can extract its code-signing tools; CI is unaffected.
-- **Code signing is not configured yet.** Unsigned builds trigger SmartScreen/Gatekeeper on first run,
-  and **macOS auto-update won't apply** until the app is signed + notarized (Apple Developer ID) — add
-  the certs as CI secrets when available. Windows + Linux auto-update fine unsigned.
+- **Code signing.** Windows + Linux are **unsigned** (SmartScreen/Gatekeeper warn on first run). macOS is
+  **ad-hoc code-signed** in CI ([desktop/scripts/afterPack.cjs](desktop/scripts/afterPack.cjs)) so the app
+  launches with a one-time bypass instead of the dead-end *"damaged"* error — but it is **not notarized /
+  not Developer-ID**, so **macOS auto-update still won't apply** (Squirrel.Mac needs a stable signature);
+  Mac users re-download from Releases to update. Add a real Developer-ID cert + notarization as CI secrets
+  to enable macOS auto-update. Windows + Linux auto-update fine.
 
 ---
 
