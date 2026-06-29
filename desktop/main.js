@@ -2,9 +2,10 @@
 //
 // Finds ComfyQ machines and merges them into one list, discovered three ways:
 //   1. UDP status beacons (multicast + broadcast) — zero-config on friendly LANs.
-//   2. IP-range scan — unicast GET http://<ip>:3000/federation/self across a
-//      configurable address range. This is what finds machines on managed/school
-//      Wi-Fi that blocks broadcast/multicast between clients.
+//   2. IP-range scan — unicast GET http://<ip>:3000/federation/self across every
+//      real local subnet PLUS any seeded/configured extra ranges. This is what
+//      finds machines on managed/school Wi-Fi that blocks broadcast/multicast,
+//      and servers that live on a different subnet than the client.
 //   3. Manually added machines (a machine on another network).
 // Peer map + expiry live here; the list is pushed to the renderer over IPC.
 
@@ -41,30 +42,88 @@ let scanChecked = 0, scanTotal = 0;
 // ---- persisted settings ----
 let staticPeers = [];
 let autoScan = true;
-let scanRange = null;            // { base:"10.10", third:[16,17], fourth:[1,254] }
+let scanRange = null;            // optional user/extra override range: { base:"10.10", third:[16,17], fourth:[1,254] }
+let scanRanges = [];             // extra ranges seeded from fleet-config.json ("scanRanges")
 let cfgFile = null;
 
+// Extra subnet(s) EVERY install scans on top of its own local subnet(s), so a
+// client on a different network (e.g. an "asus" router hanging off the main LAN)
+// still finds the ComfyQ servers it can't reach by broadcast. Deployment-specific:
+// this default is the teaching lab's server subnet (edna-sdc, 10.10.16.0/23).
+// Override per machine with COMFYQ_FED_SCAN (comma-separated CIDRs/ranges) or a
+// "scanRanges" array in fleet-config.json — or edit this list for your deployment.
+const DEFAULT_EXTRA_SCAN = ['10.10.16.0/23'];
+
+// Adapter names we never derive a scan range from: Hyper-V/WSL "Default Switch",
+// VM/VPN/container virtuals. Their subnets (e.g. 172.19.240.1/20) are dead ends
+// that otherwise hijack the auto range and crowd out the real LAN — the cause of
+// machines intermittently not showing up.
+const VIRTUAL_IFACE_RX = /(vethernet|default switch|wsl|hyper-v|vmware|virtualbox|vbox|loopback|pseudo|tailscale|zerotier|docker|tap-|tun-)/i;
+
 function localIPv4s() {
-    const out = [];
+    const out = [], all = [];
     const ifs = os.networkInterfaces();
     for (const name of Object.keys(ifs)) {
+        const virtual = VIRTUAL_IFACE_RX.test(name);
         for (const i of ifs[name] || []) {
-            if (i.family === 'IPv4' && !i.internal) out.push({ address: i.address, netmask: i.netmask });
+            if (i.family !== 'IPv4' || i.internal) continue;
+            const rec = { address: i.address, netmask: i.netmask, name };
+            all.push(rec);
+            if (!virtual) out.push(rec);
         }
     }
-    return out;
+    // If everything looked virtual (unusual), fall back to all so we don't go blind.
+    return out.length ? out : all;
 }
 
-// Sensible default range from the machine's own subnet (covers the whole subnet).
-function defaultRange() {
-    const me = localIPv4s()[0];
-    if (!me) return { base: '192.168.1', third: [1, 1], fourth: [1, 254] };
+// Derive a scan range {base, third[], fourth[]} covering an interface's whole subnet.
+function rangeFromInterface(me) {
     const o = me.address.split('.').map(Number);
     const m = me.netmask.split('.').map(Number);
     const net = o.map((x, i) => x & m[i]);
     const bc = o.map((x, i) => (x & m[i]) | (~m[i] & 255));
-    // base = first two octets; scan the 3rd+4th octet ranges the mask spans.
     return { base: `${o[0]}.${o[1]}`, third: [net[2], bc[2]], fourth: [Math.max(1, net[3]), Math.min(254, bc[3] || 254)] };
+}
+
+// One range per real local interface — the machine scans every subnet it's on.
+function localRanges() { return localIPv4s().map(rangeFromInterface); }
+
+// A single representative local range (first real interface) for the UI editor.
+function defaultRange() {
+    const me = localIPv4s()[0];
+    return me ? rangeFromInterface(me) : { base: '192.168.1', third: [1, 1], fourth: [1, 254] };
+}
+
+// Parse "10.10.16.0/23", "10.10.16-17.1-254", or "10.10.16.x" → {base, third, fourth}.
+function parseRangeSpec(spec) {
+    if (spec && typeof spec === 'object' && spec.base) return spec;
+    const s = String(spec || '').trim();
+    let m = s.match(/^(\d+)\.(\d+)\.(\d+)\.(\d+)\/(\d+)$/);
+    if (m) {
+        const o = m.slice(1, 5).map(Number);
+        const bits = Math.max(0, Math.min(32, Number(m[5])));
+        const mask = [0, 1, 2, 3].map((i) => (0xff << (8 - Math.max(0, Math.min(8, bits - i * 8)))) & 0xff);
+        const net = o.map((x, i) => x & mask[i]);
+        const bc = o.map((x, i) => (x & mask[i]) | (~mask[i] & 255));
+        return { base: `${net[0]}.${net[1]}`, third: [net[2], bc[2]], fourth: [Math.max(1, net[3]), Math.min(254, bc[3] || 254)] };
+    }
+    m = s.match(/^(\d+)\.(\d+)\.(\d+)(?:-(\d+))?\.(?:(\d+)(?:-(\d+))?|x|\*)$/i);
+    if (m) {
+        const t0 = Number(m[3]), t1 = m[4] != null ? Number(m[4]) : t0;
+        const f0 = m[5] != null ? Number(m[5]) : 1;
+        const f1 = m[6] != null ? Number(m[6]) : (m[5] != null ? Number(m[5]) : 254);
+        return { base: `${m[1]}.${m[2]}`, third: [t0, t1], fourth: [f0, f1] };
+    }
+    return null;
+}
+
+// All extra ranges scanned on top of the local subnets: built-in deployment
+// default + COMFYQ_FED_SCAN env + fleet-config.json "scanRanges".
+function extraRanges() {
+    const specs = [...DEFAULT_EXTRA_SCAN, ...(process.env.COMFYQ_FED_SCAN || '').split(','), ...scanRanges];
+    const out = [];
+    for (const s of specs) { const r = parseRangeSpec(s); if (r) out.push(r); }
+    return out;
 }
 
 function loadConfig() {
@@ -75,14 +134,14 @@ function loadConfig() {
             if (Array.isArray(c.staticPeers)) staticPeers = c.staticPeers.filter(s => typeof s === 'string');
             if (typeof c.autoScan === 'boolean') autoScan = c.autoScan;
             if (c.scanRange && c.scanRange.base) scanRange = c.scanRange;
+            if (Array.isArray(c.scanRanges)) scanRanges = c.scanRanges.map(parseRangeSpec).filter(Boolean);
         }
     } catch { /* defaults */ }
-    if (!scanRange) scanRange = defaultRange();
     const env = (process.env.COMFYQ_FED_PEERS || '').split(',').map(s => s.trim()).filter(Boolean);
     for (const h of env) if (!staticPeers.includes(h)) staticPeers.push(h);
 }
 function saveConfig() {
-    try { if (cfgFile) fs.writeFileSync(cfgFile, JSON.stringify({ staticPeers, autoScan, scanRange }, null, 2)); }
+    try { if (cfgFile) fs.writeFileSync(cfgFile, JSON.stringify({ staticPeers, autoScan, scanRange, scanRanges }, null, 2)); }
     catch (e) { console.warn('[FleetMonitor] could not save config:', e.message); }
 }
 
@@ -91,20 +150,23 @@ function parseHost(entry) {
     return { host: host.trim(), port: Number(port) || DEFAULT_API_PORT };
 }
 
-// Candidate IPs from the configured range (own IPs excluded), capped.
+// Candidate IPs to probe = every real local subnet + the user override range +
+// any seeded extra ranges (own IPs excluded), de-duplicated and capped.
 function scanCandidates() {
-    const r = scanRange || defaultRange();
     const mine = new Set(localIPv4s().map(i => i.address));
-    const [t0, t1] = r.third, [f0, f1] = r.fourth;
-    const out = [];
-    for (let t = Math.min(t0, t1); t <= Math.max(t0, t1); t++) {
-        for (let f = Math.min(f0, f1); f <= Math.max(f0, f1); f++) {
-            const ip = `${r.base}.${t}.${f}`;
-            if (!mine.has(ip)) out.push(ip);
-            if (out.length >= MAX_SCAN_HOSTS) return out;
+    const set = new Set();
+    const ranges = [...localRanges(), ...(scanRange ? [scanRange] : []), ...extraRanges()];
+    for (const r of ranges) {
+        const [t0, t1] = r.third, [f0, f1] = r.fourth;
+        for (let t = Math.min(t0, t1); t <= Math.max(t0, t1); t++) {
+            for (let f = Math.min(f0, f1); f <= Math.max(f0, f1); f++) {
+                const ip = `${r.base}.${t}.${f}`;
+                if (!mine.has(ip)) set.add(ip);
+                if (set.size >= MAX_SCAN_HOSTS) return [...set];
+            }
         }
     }
-    return out;
+    return [...set];
 }
 
 function fetchSelf(host, port, timeoutMs) {
@@ -182,8 +244,8 @@ function pushToRenderer() {
         scan: {
             enabled: autoScan,
             scanning,
-            range: scanRange,
-            candidateCount: (scanRange ? scanCandidates().length : 0),
+            range: scanRange || defaultRange(),
+            candidateCount: scanCandidates().length,
             discoveredCount: discovered.size,
             checked: scanChecked,
             total: scanTotal

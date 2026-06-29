@@ -240,6 +240,14 @@ A `GET /federation/self` endpoint returns the same snapshot over HTTP for script
 > narrow the sweep; it defaults to your machine's own subnet. A ~510-address sweep takes ~15 s; found
 > machines then refresh every 5 s. For a machine on a *different* network, use **Add a machine** (type
 > its IP — it's polled directly and remembered between launches).
+>
+> **Servers on a different subnet than the clients?** The app scans **every** local subnet it's on, plus
+> any seeded extra ranges, so clients can auto-find servers on another network. The "Search range" field
+> adds one range in-app; for a fixed deployment set `COMFYQ_FED_SCAN` (comma-separated CIDRs, e.g.
+> `10.10.16.0/23`) or a `scanRanges` array in `fleet-config.json`. **This only works if your network
+> actually routes to that subnet** (e.g. a sub-router whose WAN is uplinked to the main LAN — verify with
+> `curl http://<server-ip>:3000/federation/self`). If the two networks have no route between them, no
+> discovery setting can bridge them — put the machines on one LAN instead.
 
 > **"Electron failed to install correctly"?** Electron's binary-download step occasionally gets
 > skipped during `npm install`. `npm run desktop:install` runs that step explicitly so this
