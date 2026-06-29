@@ -35,6 +35,6 @@ jobs:
         run: npx --no-install electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          # No signing identity configured yet → don't let electron-builder try
-          # to auto-discover one on macOS (it would fail the build).
-          CSC_IDENTITY_AUTO_DISCOVERY: false
+          # macOS is ad-hoc signed (mac.identity "-") so arm64 builds aren't
+          # reported "damaged". CSC_IDENTITY_AUTO_DISCOVERY is intentionally NOT
+          # set to false here — that flag skips signing entirely (incl. ad-hoc).

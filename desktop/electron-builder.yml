@@ -25,6 +25,8 @@ mac:
     - zip
   category: public.app-category.utilities
   icon: assets/icon.png
+  identity: "-"                 # ad-hoc sign (no Apple cert) so arm64 builds aren't reported "damaged"; user still right-click→Open once
+  hardenedRuntime: false        # ad-hoc + hardened runtime fails to launch (library validation / no Team ID); safe to disable since we don't notarize
 linux:
   target: AppImage
   icon: assets/icon.png
