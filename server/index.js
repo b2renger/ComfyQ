@@ -351,7 +351,7 @@ async function main() {
     app.use('/workflows', workflowRoutes.makeRouter({
         registry, configManager, benchmarkService, adminGate: gate
     }));
-    app.use('/jobs', jobRoutes.makeRouter({ queue }));
+    app.use('/jobs', jobRoutes.makeRouter({ queue, comfyConfig: config.comfy_ui, registry }));
     app.use(uploadRoutes.makeRouter({ comfyConfig: config.comfy_ui }));
     app.use(mediaStore.makeRouter(config.comfy_ui));
 

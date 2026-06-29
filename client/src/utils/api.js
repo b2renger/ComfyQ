@@ -21,6 +21,10 @@ export const getDownloadUrl = (filename) => `${SERVER_URL}/download/${filename}`
 // Serve a user-uploaded INPUT file (ComfyUI/input/comfyq_*) — used to preview
 // an asset reused from a prior job in "Use these settings".
 export const getInputUrl = (filename) => `${SERVER_URL}/input-media/${encodeURIComponent(filename)}`;
+// Download a job's "ingredients" — imported media + a settings.json snapshot
+// (workflow id, every parameter, the seed, the prompt) — as one .zip, to
+// relaunch the job later even after the machine switched to another workflow.
+export const getIngredientsUrl = (jobId) => `${SERVER_URL}/jobs/${encodeURIComponent(jobId)}/ingredients.zip`;
 
 // Media type helpers
 const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];

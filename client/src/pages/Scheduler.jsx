@@ -358,6 +358,7 @@ const SchedulerPage = () => {
                     onClose={() => setLightboxJob(null)}
                     job={lightboxJob}
                     onReuse={reuseJob}
+                    activeWorkflowId={state.workflow_info?.id}
                 />
 
                 <div className="space-y-6 pt-4">

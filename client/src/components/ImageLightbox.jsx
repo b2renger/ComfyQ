@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box, Copy, Check } from 'lucide-react';
+import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box, Copy, Check, Package } from 'lucide-react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import { copyToClipboard } from '../utils/clipboard';
@@ -8,7 +8,7 @@ import SplatViewer from './ui/SplatViewer';
 import AudioPlayer from './ui/AudioPlayer';
 import ImageGallery from './ui/ImageGallery';
 import { useSocket } from '../context/SocketContext';
-import { getImageUrl, getDownloadUrl, isVideo, isModel3d, isSplat, isAudio, isImage } from '../utils/api';
+import { getImageUrl, getDownloadUrl, getIngredientsUrl, isVideo, isModel3d, isSplat, isAudio, isImage } from '../utils/api';
 import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
 
 const downloadFile = (filename) => {
@@ -35,7 +35,7 @@ const deriveViewLabel = (filename) => {
     return p;
 };
 
-const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
+const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
     const { workflowsById } = useSocket();
     // Gallery tab for 3D jobs that ship both a splat and a mesh (TripoSplat).
     const [view, setView] = useState('splat'); // 'splat' | 'mesh'
@@ -43,6 +43,26 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
     if (!job) return null;
     const wf = workflowsById?.[job.workflow_id];
     const displayPrompt = getDisplayPrompt(job);
+
+    // Everything needed to relaunch the job: imported media, all params, seed.
+    const params = job.params || {};
+    const importedMedia = job.input_files || [];
+    const mediaByParam = Object.fromEntries(importedMedia.map(m => [m.param, m.name]));
+    const isSeedKey = (k) => { const s = String(k).toLowerCase(); return s === 'seed' || s.endsWith('seed'); };
+    const seedEntries = Object.entries(params).filter(([k]) => isSeedKey(k));
+    const paramEntries = Object.entries(params).filter(([k]) => !isSeedKey(k));
+    const pmap = wf?.parameter_map || {};
+    const labelFor = (k) => pmap[k]?.label || k;
+    const prettyVal = (k, v) => {
+        if (mediaByParam[k]) return mediaByParam[k];                       // original upload name, not comfyq_*
+        if (typeof v === 'string' && v.startsWith('comfyq')) { const p = v.split('__'); return p[p.length - 1]; }
+        if (typeof v === 'boolean') return v ? 'on' : 'off';
+        return v == null ? '' : String(v);
+    };
+    // "Use these settings" only recalls correctly when THIS job's workflow is the
+    // one currently loaded on the machine (the booking form's parameter_map must
+    // match). Otherwise the .zip below is the portable, cross-workflow path.
+    const canReuse = !!onReuse && !!activeWorkflowId && job.workflow_id === activeWorkflowId;
 
     // The wire job carries every output the executor collected. A TripoSplat
     // job ships a Gaussian splat (.spz) + an extracted mesh (.glb) + a .ply
@@ -93,6 +113,15 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
     const downloadMedia = (e) => {
         e.stopPropagation();
         downloadFile(primaryFilename);
+    };
+
+    const downloadIngredients = (e) => {
+        e?.stopPropagation?.();
+        const link = document.createElement('a');
+        link.href = getIngredientsUrl(job.id);   // server names the file via Content-Disposition
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     return (
@@ -210,6 +239,56 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                             )}
                         </div>
 
+                        {/* Everything needed to relaunch this job: seed, imported media, every parameter */}
+                        {(seedEntries.length > 0 || importedMedia.length > 0 || paramEntries.length > 0) && (
+                            <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
+                                <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Relaunch info</label>
+
+                                {seedEntries.length > 0 && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Seed</label>
+                                        {seedEntries.map(([k, v]) => (
+                                            <div key={k} className="flex items-center justify-between gap-2 text-sm">
+                                                <span className="font-mono text-muted truncate" title={k}>{labelFor(k)}</span>
+                                                <span className="flex items-center gap-1.5 font-mono text-white min-w-0">
+                                                    <span className="truncate" title={String(v)}>{String(v)}</span>
+                                                    <button onClick={() => copyToClipboard(String(v))} title="Copy seed" className="text-muted hover:text-white shrink-0"><Copy size={12} /></button>
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {importedMedia.length > 0 && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Imported media</label>
+                                        <ul className="text-xs space-y-1">
+                                            {importedMedia.map((m, i) => (
+                                                <li key={i} className="flex justify-between gap-2">
+                                                    <span className="text-muted truncate" title={m.param}>{labelFor(m.param)}</span>
+                                                    <span className="font-mono text-white truncate" title={m.name}>{m.name}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {paramEntries.length > 0 && (
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Parameters</label>
+                                        <div className="text-xs space-y-1 max-h-52 overflow-y-auto custom-scrollbar pr-1">
+                                            {paramEntries.map(([k, v]) => (
+                                                <div key={k} className="flex justify-between gap-2">
+                                                    <span className="font-mono text-muted truncate" title={k}>{labelFor(k)}</span>
+                                                    <span className="font-mono text-white truncate text-right" title={String(v)}>{prettyVal(k, v)}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
                         <div className="flex flex-col space-y-3 pt-2">
                             <div className="flex items-center space-x-3 text-muted">
                                 <div className="w-8 h-8 rounded-full bg-surface border border-border flex items-center justify-center">
@@ -235,17 +314,26 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse }) => {
                     </div>
 
                     <div className="pt-4 mt-auto space-y-2">
-                        {onReuse && (
+                        {canReuse && (
                             <Button
                                 variant="secondary"
                                 className="w-full"
                                 icon={RotateCw}
                                 onClick={() => { onReuse(job); onClose(); }}
-                                title="Open the booking dialog pre-filled with this job's prompt and parameters"
+                                title="Open the booking dialog pre-filled with this job's prompt and parameters (this workflow is loaded)"
                             >
                                 Use these settings
                             </Button>
                         )}
+                        <Button
+                            variant="secondary"
+                            className="w-full"
+                            icon={Package}
+                            onClick={downloadIngredients}
+                            title="Download the imported media + all settings (seed, parameters, prompt) as a .zip — relaunch this job later, even on another workflow"
+                        >
+                            Download ingredients (.zip)
+                        </Button>
                         {is3D ? (
                             <div className="space-y-2">
                                 <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Export</label>

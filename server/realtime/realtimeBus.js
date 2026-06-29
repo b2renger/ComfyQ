@@ -3,6 +3,7 @@ const { Server } = require('socket.io');
 const sm = require('../queue/jobStateMachine');
 const { isAuthorizedForJob } = require('../auth/authGate');
 const { resolveOutputPath } = require('../executor/outputCollector');
+const ingredientsStore = require('../storage/ingredientsStore');
 
 const HEARTBEAT_MS = 5000;
 
@@ -236,6 +237,7 @@ class RealtimeBus {
             finished_at: job.finishedAt,
             prompt: job.prompt,
             params: job.paramValues,
+            input_files: ingredientsStore.mediaRefs(job).map(m => ({ param: m.param, name: m.original })),
             result_filename: resultFilename,
             outputs: job.outputs || [],
             progress,

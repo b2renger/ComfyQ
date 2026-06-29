@@ -1,6 +1,7 @@
 const sm = require('../queue/jobStateMachine');
 const oc = require('./outputCollector');
 const { humanizeFailure } = require('./errorMessages');
+const ingredientsStore = require('../storage/ingredientsStore');
 
 const FAST_POLL_MS = 1000;        // first 60s
 const SLOW_POLL_MS = 5000;        // after 60s
@@ -255,6 +256,12 @@ class JobExecutor {
         } catch (e) {
             console.warn('[Executor] complete transition err:', e.message);
         }
+        // Snapshot the imported media + parameters into the durable ingredients
+        // store. The inputs are still on disk here (sweepStale only removes them
+        // ~30 min later), so they can be downloaded/relaunched as a .zip later —
+        // even after the machine switches to a different workflow.
+        try { ingredientsStore.persist({ comfyConfig: this.comfyConfig, registry: this.registry, job: this.queue.get(jobId) }); }
+        catch (e) { console.warn('[Executor] ingredients persist err:', e.message); }
         const dur = this._jobStartedAt ? ((Date.now() - this._jobStartedAt) / 1000).toFixed(1) : '?';
         console.log(`[Executor] job ${jobId.slice(0, 8)} COMPLETED in ${dur}s — ${wireOutputs.length} output(s)`);
         for (const o of wireOutputs) {
