@@ -10,6 +10,7 @@ files:
   - assets/**
 directories:
   output: dist
+afterPack: scripts/afterPack.cjs   # ad-hoc code-signs the macOS .app (no Apple cert) so arm64 isn't "damaged"
 # Where electron-updater looks for new versions (public repo → no token needed).
 publish:
   provider: github
@@ -27,7 +28,7 @@ mac:
       arch: [arm64, x64]
   category: public.app-category.utilities
   icon: assets/icon.png
-  identity: "-"                 # ad-hoc sign (no Apple cert) so arm64 builds aren't reported "damaged"; user still right-click→Open once
+  identity: null                # electron-builder skips its own signing; afterPack.cjs does the ad-hoc sign (one controlled step)
   hardenedRuntime: false        # ad-hoc + hardened runtime fails to launch (library validation / no Team ID); safe to disable since we don't notarize
 linux:
   target: AppImage
