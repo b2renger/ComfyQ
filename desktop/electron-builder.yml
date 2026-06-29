@@ -20,9 +20,11 @@ win:
   target: nsis
   icon: assets/icon.png
 mac:
-  target:                       # zip is REQUIRED for macOS auto-update metadata (latest-mac.yml)
-    - dmg
-    - zip
+  target:                       # build Apple Silicon (arm64) AND Intel (x64); zip is REQUIRED for latest-mac.yml
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip
+      arch: [arm64, x64]
   category: public.app-category.utilities
   icon: assets/icon.png
   identity: "-"                 # ad-hoc sign (no Apple cert) so arm64 builds aren't reported "damaged"; user still right-click→Open once
