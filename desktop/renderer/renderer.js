@@ -218,7 +218,7 @@ function cardHtml(p, selfIps) {
                 <div class="jobs-label">Queue${jobs.scheduled && jobs.scheduled.length ? ` · ${jobs.scheduled.length} waiting` : ''}</div>
                 ${parts.length ? parts.join('') : '<div class="no-jobs">Nothing queued</div>'}
             </div>
-            <button class="btn" data-url="${esc(url)}" data-id="${esc(p.id || url)}" data-name="${esc(p.name || 'Machine')}" ${url ? '' : 'disabled'}>Schedule a job ↗</button>`;
+            <button class="btn" data-url="${esc(url)}" data-id="${esc(p.id || url)}" data-name="${esc(wf.name || 'a workflow')}" data-machine="${esc(p.name || 'Machine')}" ${url ? '' : 'disabled'}>Schedule a job ↗</button>`;
     } else {
         workHtml = `<div class="standby">${isAdmin ? 'Not serving a workflow right now.' : 'Ready — no workflow active.'}</div>`;
     }
@@ -417,7 +417,8 @@ function renderTabbar() {
         + `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>Machines</div>`;
     for (const t of tabs.values()) {
         const active = t.key === activeTabKey ? ' active' : '';
-        html += `<div class="tab${active}" data-key="${esc(t.key)}" title="${esc(t.name)}">`
+        const tip = t.machine ? `${t.name} · on ${t.machine}` : t.name;
+        html += `<div class="tab${active}" data-key="${esc(t.key)}" title="${esc(tip)}">`
             + `<span class="tab-name">${esc(t.name)}</span>`
             + `<button class="tab-close" data-close="${esc(t.key)}" title="Close tab">✕</button></div>`;
     }
@@ -432,20 +433,20 @@ function showActiveView() {
     renderTabbar();
 }
 
-function openMachineTab(key, name, url) {
+function openMachineTab(key, name, url, machine) {
     if (!url) return;
     key = key || url;
-    name = name || 'Machine';
+    name = name || 'a workflow';            // the workflow the machine is serving
     if (!tabs.has(key)) {
         const wv = document.createElement('webview');
         wv.className = 'tabview';
         wv.setAttribute('src', url);
         wv.setAttribute('partition', 'persist:comfyq');   // keep the chosen username across tabs + launches
         wv.addEventListener('did-fail-load', (e) => {
-            if (e.errorCode && e.errorCode !== -3) showToast(`Couldn't reach ${name}`);
+            if (e.errorCode && e.errorCode !== -3) showToast(`Couldn't reach ${machine || name}`);
         });
         webviewsEl.appendChild(wv);
-        tabs.set(key, { key, name, url, wv });
+        tabs.set(key, { key, name, url, machine, wv });
     }
     activeTabKey = key;
     showActiveView();
@@ -485,7 +486,7 @@ appEl.addEventListener('click', (e) => {
     }
     const sched = e.target.closest && e.target.closest('.btn[data-url]');
     if (sched && sched.getAttribute('data-url')) {
-        openMachineTab(sched.getAttribute('data-id'), sched.getAttribute('data-name'), sched.getAttribute('data-url'));
+        openMachineTab(sched.getAttribute('data-id'), sched.getAttribute('data-name'), sched.getAttribute('data-url'), sched.getAttribute('data-machine'));
     }
 });
 peerChipsEl.addEventListener('click', (e) => {
