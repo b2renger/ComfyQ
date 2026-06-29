@@ -1,6 +1,6 @@
 {
     "name": "comfyq-desktop",
-    "version": "2.0.5",
+    "version": "2.0.6",
     "description": "ComfyQ – Discovery — LAN status of every ComfyQ machine",
     "main": "main.js",
     "private": true,
