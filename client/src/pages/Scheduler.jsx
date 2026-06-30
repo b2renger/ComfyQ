@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Timeline, DataSet } from 'vis-timeline/standalone';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import { useSocket } from '../context/SocketContext';
-import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X, Crosshair, Users, Search } from 'lucide-react';
+import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X, Crosshair, Users, Search, ChevronDown, ChevronRight } from 'lucide-react';
 import BookingDialog from '../components/BookingDialog';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -63,6 +63,17 @@ const SchedulerPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     // Pending delete/cancel; populated by the X button. Drives ConfirmDialog.
     const [pendingAction, setPendingAction] = useState(null);
+    // Live Schedule (timeline) collapse — persisted so a student's choice sticks
+    // across reloads. The timeline DOM stays mounted while collapsed (CSS-hidden)
+    // so the vis-timeline instance keeps its node; we redraw() on expand.
+    const [scheduleCollapsed, setScheduleCollapsed] = useState(
+        () => localStorage.getItem('comfyq.scheduleCollapsed') === '1'
+    );
+    const toggleSchedule = () => setScheduleCollapsed((v) => {
+        const next = !v;
+        try { localStorage.setItem('comfyq.scheduleCollapsed', next ? '1' : '0'); } catch { /* ignore */ }
+        return next;
+    });
 
     const reuseJob = (job) => {
         setPrefillParams(job.params || {});
@@ -149,7 +160,12 @@ const SchedulerPage = () => {
             margin: { item: 10, axis: 5 },
             height: '100%',
             zoomMin: 1000 * 60 * 5, // 5 min
-            zoomMax: 1000 * 60 * 60 * 24 // 24 hours
+            zoomMax: 1000 * 60 * 60 * 24, // 24 hours
+            // Only zoom on mouse-wheel when Ctrl is held. Without this, scrolling
+            // the page while the cursor is over the timeline is "caught" (zooms
+            // the schedule instead of scrolling the page). With a zoomKey set,
+            // vis-timeline lets a plain wheel event through to the page.
+            zoomKey: 'ctrlKey'
         };
 
         const timeline = new Timeline(containerRef.current, items, options);
@@ -194,7 +210,18 @@ const SchedulerPage = () => {
         };
     }, [reorderJob, deleteJob]); // Stable callbacks from SocketContext
 
-
+    // When the schedule is expanded after being collapsed, the timeline was laid
+    // out inside a display:none box (0×0 — no resize event fires on un-hide), so
+    // tell vis-timeline to recompute its size and re-center on "now".
+    useEffect(() => {
+        if (scheduleCollapsed || !timelineRef.current) return;
+        const id = requestAnimationFrame(() => {
+            if (!timelineRef.current) return;
+            timelineRef.current.redraw();
+            if (followNowRef.current) slideToNow();
+        });
+        return () => cancelAnimationFrame(id);
+    }, [scheduleCollapsed]);
 
     /**
      * Effect to synchronize server state with the Timeline DataSet.
@@ -253,6 +280,11 @@ const SchedulerPage = () => {
             itemsRef.current.update(itemsData);
         }
     }, [state.jobs, state.benchmark_ms, username]);
+
+    // Upcoming jobs waiting in the queue (status 'scheduled' = not yet run). Shown
+    // as a count next to the header when the Live Schedule is collapsed, so the
+    // room still sees how busy the queue is without expanding the timeline.
+    const scheduledCount = (state.jobs || []).filter((j) => j.status === 'scheduled').length;
 
     return (
         <div className="h-full flex overflow-hidden relative">
@@ -338,10 +370,41 @@ const SchedulerPage = () => {
                     </div>
                 </div>
 
-                <div className="space-y-4 px-4 sm:px-12 lg:px-20">
-                    <h3 className="text-sm font-semibold text-muted uppercase tracking-widest ml-1">Live Schedule</h3>
-                    <Card className="flex-none border-slate-700/50 bg-background/50 shadow-inner" noPadding>
-                        <div ref={containerRef} className="h-[180px] sm:h-[220px] w-full" />
+                <div className="space-y-3 px-4 sm:px-12 lg:px-20">
+                    <div className="flex items-center justify-between gap-3 ml-1">
+                        <div className="flex items-center gap-2.5">
+                            <button
+                                type="button"
+                                onClick={toggleSchedule}
+                                className="flex items-center gap-1.5 text-sm font-semibold text-muted uppercase tracking-widest hover:text-foreground transition-colors"
+                                aria-expanded={!scheduleCollapsed}
+                                title={scheduleCollapsed ? 'Show the live schedule' : 'Hide the live schedule'}
+                            >
+                                {scheduleCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+                                Live Schedule
+                            </button>
+                            {scheduleCollapsed && (
+                                scheduledCount > 0 ? (
+                                    <Badge variant="primary" className="text-[10px] py-0.5">
+                                        {scheduledCount} upcoming job{scheduledCount === 1 ? '' : 's'}
+                                    </Badge>
+                                ) : (
+                                    <span className="text-[10px] text-muted/70 normal-case tracking-normal">
+                                        No jobs scheduled
+                                    </span>
+                                )
+                            )}
+                        </div>
+                        {!scheduleCollapsed && (
+                            <span className="text-[10px] text-muted/70 normal-case tracking-normal hidden sm:inline">
+                                Ctrl + scroll to zoom · drag to pan
+                            </span>
+                        )}
+                    </div>
+                    {/* Kept mounted (CSS-hidden) when collapsed so the vis-timeline
+                        instance keeps its DOM node; the effect above redraws on expand. */}
+                    <Card className={`flex-none border-slate-700/50 bg-background/50 shadow-inner ${scheduleCollapsed ? 'hidden' : ''}`} noPadding>
+                        <div ref={containerRef} className="h-[140px] sm:h-[170px] w-full" />
                     </Card>
                 </div>
 
