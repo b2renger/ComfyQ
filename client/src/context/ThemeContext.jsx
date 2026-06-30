@@ -3,8 +3,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback } fr
 // ThemeContext — single source of truth for light vs dark mode.
 //
 // Storage: `localStorage.comfyq_theme` = 'light' | 'dark'. If unset, we
-// honor `prefers-color-scheme` on first visit, then persist whatever the
-// user picks.
+// default to dark on first visit, then persist whatever the user picks.
 //
 // DOM contract: the active mode is reflected as a class on <html>:
 //   .dark   → dark mode (the polished default)
@@ -27,8 +26,8 @@ function readStoredTheme() {
         const v = localStorage.getItem(STORAGE_KEY);
         if (v === 'light' || v === 'dark') return v;
     } catch { /* localStorage can throw in private mode */ }
-    // First-visit: honor system preference.
-    if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) return 'light';
+    // First-visit default is dark (the polished theme), regardless of the OS
+    // setting. A user can still toggle to light; that choice is then persisted.
     return 'dark';
 }
 

@@ -63,11 +63,12 @@ const SchedulerPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     // Pending delete/cancel; populated by the X button. Drives ConfirmDialog.
     const [pendingAction, setPendingAction] = useState(null);
-    // Live Schedule (timeline) collapse — persisted so a student's choice sticks
-    // across reloads. The timeline DOM stays mounted while collapsed (CSS-hidden)
-    // so the vis-timeline instance keeps its node; we redraw() on expand.
+    // Live Schedule (timeline) collapse — collapsed by default; a student's choice
+    // is persisted (stores '0' once they expand), so it only stays open if they
+    // explicitly opened it. The timeline DOM stays mounted while collapsed
+    // (CSS-hidden) so the vis-timeline instance keeps its node; we redraw() on expand.
     const [scheduleCollapsed, setScheduleCollapsed] = useState(
-        () => localStorage.getItem('comfyq.scheduleCollapsed') === '1'
+        () => localStorage.getItem('comfyq.scheduleCollapsed') !== '0'
     );
     const toggleSchedule = () => setScheduleCollapsed((v) => {
         const next = !v;
