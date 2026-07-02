@@ -1,0 +1,1444 @@
+{
+  "id": "32e5baa6-aea1-42ec-9091-932c5a341ad5",
+  "revision": 0,
+  "last_node_id": 200,
+  "last_link_id": 478,
+  "nodes": [
+    {
+      "id": 129,
+      "type": "LivePortraitLoadCropper",
+      "pos": [
+        -1501.5999842224287,
+        -906.4000882264924
+      ],
+      "size": [
+        315,
+        142.65625
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "cropper",
+          "type": "LPCROPPER",
+          "slot_index": 0,
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "1.1.0",
+        "Node name for S&R": "LivePortraitLoadCropper"
+      },
+      "widgets_values": [
+        "CUDA",
+        true,
+        0.5
+      ]
+    },
+    {
+      "id": 134,
+      "type": "GetImageSizeAndCount",
+      "pos": [
+        -238.00017834474374,
+        433.99981494123165
+      ],
+      "size": [
+        252,
+        120
+      ],
+      "flags": {},
+      "order": 19,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 471
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": []
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "count",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "1.2.9",
+        "Node name for S&R": "GetImageSizeAndCount"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 188,
+      "type": "Note",
+      "pos": [
+        37.99990219114477,
+        373.999936950509
+      ],
+      "size": [
+        274.984375,
+        101
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "text": ""
+      },
+      "widgets_values": [
+        "If you want to crop your driving video, use this as driving_images instead"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 78,
+      "type": "GetImageSizeAndCount",
+      "pos": [
+        -624.4000636291674,
+        -684.4001903383089
+      ],
+      "size": [
+        252,
+        120
+      ],
+      "flags": {},
+      "order": 15,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 434
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            445,
+            455
+          ]
+        },
+        {
+          "label": "512 width",
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "label": "340 height",
+          "name": "height",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "label": "1 count",
+          "name": "count",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "1.2.9",
+        "Node name for S&R": "GetImageSizeAndCount"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 8,
+      "type": "VHS_LoadVideo",
+      "pos": [
+        -1501.5999842224287,
+        35.60005154401506
+      ],
+      "size": [
+        408.171875,
+        776.484375
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        },
+        {
+          "name": "frame_load_cap",
+          "type": "INT",
+          "widget": {
+            "name": "frame_load_cap"
+          },
+          "link": 302
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            436
+          ]
+        },
+        {
+          "name": "frame_count",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "audio",
+          "type": "AUDIO",
+          "links": null
+        },
+        {
+          "name": "video_info",
+          "type": "VHS_VIDEOINFO",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "1.7.9",
+        "Node name for S&R": "VHS_LoadVideo"
+      },
+      "widgets_values": {
+        "video": "d6.mp4",
+        "force_rate": 0,
+        "custom_width": 0,
+        "custom_height": 0,
+        "frame_load_cap": 128,
+        "skip_first_frames": 0,
+        "select_every_nth": 1,
+        "format": "AnimateDiff",
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "frame_load_cap": 128,
+            "skip_first_frames": 0,
+            "force_rate": 0,
+            "filename": "d6.mp4",
+            "type": "input",
+            "format": "video/mp4",
+            "select_every_nth": 1
+          }
+        }
+      }
+    },
+    {
+      "id": 165,
+      "type": "ImageResizeKJ",
+      "pos": [
+        -1045.599985382097,
+        -685.6000725404573
+      ],
+      "size": [
+        378,
+        289.3125
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 466
+        },
+        {
+          "name": "get_image_size",
+          "shape": 7,
+          "type": "IMAGE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            434
+          ]
+        },
+        {
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "name": "height",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "1.2.9",
+        "Node name for S&R": "ImageResizeKJ"
+      },
+      "widgets_values": [
+        512,
+        512,
+        "lanczos",
+        true,
+        2,
+        0
+      ]
+    },
+    {
+      "id": 197,
+      "type": "LivePortraitCropper",
+      "pos": [
+        -765.9999739074876,
+        433.99981494123165
+      ],
+      "size": [
+        330,
+        318.65625
+      ],
+      "flags": {},
+      "order": 16,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pipeline",
+          "type": "LIVEPORTRAITPIPE",
+          "link": 472
+        },
+        {
+          "name": "cropper",
+          "type": "LPCROPPER",
+          "link": 476
+        },
+        {
+          "name": "source_image",
+          "type": "IMAGE",
+          "link": 469
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cropped_image",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            471
+          ]
+        },
+        {
+          "name": "crop_info",
+          "type": "CROPINFO",
+          "slot_index": 1,
+          "links": [
+            470
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "1.1.0",
+        "Node name for S&R": "LivePortraitCropper"
+      },
+      "widgets_values": [
+        512,
+        2.3,
+        0,
+        -0.125,
+        0,
+        "large-small",
+        true
+      ]
+    },
+    {
+      "id": 198,
+      "type": "LivePortraitLoadMediaPipeCropper",
+      "pos": [
+        -1505.19979330446,
+        -1069.5999903261018
+      ],
+      "size": [
+        315,
+        110.65625
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "cropper",
+          "type": "LPCROPPER",
+          "links": [
+            474
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "1.1.0",
+        "Node name for S&R": "LivePortraitLoadMediaPipeCropper"
+      },
+      "widgets_values": [
+        "CUDA",
+        true
+      ]
+    },
+    {
+      "id": 1,
+      "type": "DownloadAndLoadLivePortraitModels",
+      "pos": [
+        -1118.7997861633469,
+        -1278.4001685182402
+      ],
+      "size": [
+        302.421875,
+        82.65625
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "live_portrait_pipe",
+          "type": "LIVEPORTRAITPIPE",
+          "slot_index": 0,
+          "links": [
+            446,
+            448,
+            472
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "1.1.0",
+        "Node name for S&R": "DownloadAndLoadLivePortraitModels"
+      },
+      "widgets_values": [
+        "auto"
+      ]
+    },
+    {
+      "id": 200,
+      "type": "Note",
+      "pos": [
+        -1848.400060516374,
+        -1050.4000066224885
+      ],
+      "size": [
+        318.8125,
+        101
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "text": ""
+      },
+      "widgets_values": [
+        "Choose your face detector here, MediaPipe doesn't run on GPU and isn't as good at detecting, but is faster on CPU and has Apache 2.0 license.\n\nInsightface can be run on GPU and is better at detecting, but it's model license is NON-COMMERCIAL"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 199,
+      "type": "Reroute",
+      "pos": [
+        -1023.9999123230149,
+        -972.4001896058869
+      ],
+      "size": [
+        225,
+        12
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 474
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LPCROPPER",
+          "type": "LPCROPPER",
+          "slot_index": 0,
+          "links": [
+            475,
+            476
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": true,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 133,
+      "type": "PrimitiveNode",
+      "pos": [
+        -1837.5999833679364,
+        -194.8001184694126
+      ],
+      "size": [
+        252,
+        72
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VHSINT",
+          "type": "VHSINT",
+          "widget": {
+            "name": "frame_load_cap"
+          },
+          "slot_index": 0,
+          "links": [
+            302
+          ]
+        }
+      ],
+      "title": "frame_load_cap",
+      "properties": {
+        "Run widget replace on values": false
+      },
+      "widgets_values": [
+        128
+      ]
+    },
+    {
+      "id": 187,
+      "type": "Note",
+      "pos": [
+        98.00010513303926,
+        169.99981561261848
+      ],
+      "size": [
+        252,
+        101
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {
+        "text": ""
+      },
+      "widgets_values": [
+        "Connect this if you want to use the eye/lip retargeting mode"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    },
+    {
+      "id": 182,
+      "type": "GetImageSizeAndCount",
+      "pos": [
+        -1018.0002575988938,
+        -232.0000005800083
+      ],
+      "size": [
+        252,
+        120
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 436
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            451,
+            469
+          ]
+        },
+        {
+          "label": "480 width",
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "label": "480 height",
+          "name": "height",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "label": "128 count",
+          "name": "count",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "1.2.9",
+        "Node name for S&R": "GetImageSizeAndCount"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 180,
+      "type": "LivePortraitRetargeting",
+      "pos": [
+        -466.00005590822025,
+        145.9999781492396
+      ],
+      "size": [
+        430.796875,
+        168
+      ],
+      "flags": {},
+      "order": 20,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "driving_crop_info",
+          "type": "CROPINFO",
+          "link": 470
+        }
+      ],
+      "outputs": [
+        {
+          "name": "retargeting_info",
+          "type": "RETARGETINGINFO",
+          "slot_index": 0,
+          "links": []
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "1.1.0",
+        "Node name for S&R": "LivePortraitRetargeting"
+      },
+      "widgets_values": [
+        true,
+        1,
+        true,
+        1
+      ]
+    },
+    {
+      "id": 190,
+      "type": "LivePortraitProcess",
+      "pos": [
+        201.200129241926,
+        -504.4000283204866
+      ],
+      "size": [
+        430.796875,
+        365.3125
+      ],
+      "flags": {},
+      "order": 21,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pipeline",
+          "type": "LIVEPORTRAITPIPE",
+          "link": 448
+        },
+        {
+          "name": "crop_info",
+          "type": "CROPINFO",
+          "link": 449
+        },
+        {
+          "name": "source_image",
+          "type": "IMAGE",
+          "link": 456
+        },
+        {
+          "name": "driving_images",
+          "type": "IMAGE",
+          "link": 451
+        },
+        {
+          "name": "opt_retargeting_info",
+          "shape": 7,
+          "type": "RETARGETINGINFO",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cropped_image",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            454
+          ]
+        },
+        {
+          "name": "output",
+          "type": "LP_OUT",
+          "slot_index": 1,
+          "links": [
+            452
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "1.1.0",
+        "Node name for S&R": "LivePortraitProcess"
+      },
+      "widgets_values": [
+        false,
+        0.03,
+        true,
+        1,
+        "constant",
+        "relative",
+        0.000003
+      ]
+    },
+    {
+      "id": 83,
+      "type": "CreateShapeMask",
+      "pos": [
+        490.40017318723835,
+        -1049.199961944754
+      ],
+      "size": [
+        378,
+        362.65625
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "slot_index": 0,
+          "links": [
+            192
+          ]
+        },
+        {
+          "name": "mask_inverted",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "1.2.9",
+        "Node name for S&R": "CreateShapeMask"
+      },
+      "widgets_values": [
+        "square",
+        1,
+        256,
+        256,
+        0,
+        512,
+        512,
+        480,
+        480
+      ]
+    },
+    {
+      "id": 81,
+      "type": "GrowMaskWithBlur",
+      "pos": [
+        903.2002696227851,
+        -1045.5999903871368
+      ],
+      "size": [
+        378,
+        316
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 192
+        }
+      ],
+      "outputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "slot_index": 0,
+          "links": [
+            187,
+            463
+          ]
+        },
+        {
+          "name": "mask_inverted",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "1.2.9",
+        "Node name for S&R": "GrowMaskWithBlur"
+      },
+      "widgets_values": [
+        0,
+        0,
+        true,
+        false,
+        13.9,
+        1,
+        1,
+        false
+      ]
+    },
+    {
+      "id": 82,
+      "type": "MaskPreview+",
+      "pos": [
+        1311.2001873473946,
+        -1045.59994976824
+      ],
+      "size": [
+        252,
+        318
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "mask",
+          "type": "MASK",
+          "link": 187
+        }
+      ],
+      "outputs": [],
+      "properties": {
+        "cnr_id": "comfyui_essentials",
+        "ver": "1.1.0",
+        "Node name for S&R": "MaskPreview+"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 181,
+      "type": "GetImageSizeAndCount",
+      "pos": [
+        1301.5996674499333,
+        -529.599991699393
+      ],
+      "size": [
+        252,
+        120
+      ],
+      "flags": {},
+      "order": 23,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 458
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            478
+          ]
+        },
+        {
+          "label": "512 width",
+          "name": "width",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "label": "340 height",
+          "name": "height",
+          "type": "INT",
+          "links": null
+        },
+        {
+          "label": "128 count",
+          "name": "count",
+          "type": "INT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-kjnodes",
+        "ver": "1.2.9",
+        "Node name for S&R": "GetImageSizeAndCount"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 168,
+      "type": "VHS_VideoCombine",
+      "pos": [
+        758.0003877868455,
+        -360.40019116228103
+      ],
+      "size": [
+        803.828125,
+        950.828125
+      ],
+      "flags": {},
+      "order": 24,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 478
+        },
+        {
+          "name": "audio",
+          "shape": 7,
+          "type": "AUDIO",
+          "link": null
+        },
+        {
+          "name": "meta_batch",
+          "shape": 7,
+          "type": "VHS_BatchManager",
+          "link": null
+        },
+        {
+          "name": "vae",
+          "shape": 7,
+          "type": "VAE",
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "name": "Filenames",
+          "type": "VHS_FILENAMES",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-videohelpersuite",
+        "ver": "1.7.9",
+        "Node name for S&R": "VHS_VideoCombine"
+      },
+      "widgets_values": {
+        "frame_rate": 16,
+        "loop_count": 0,
+        "filename_prefix": "LivePortrait",
+        "format": "video/h264-mp4",
+        "pix_fmt": "yuv420p",
+        "crf": 19,
+        "save_metadata": true,
+        "trim_to_audio": false,
+        "pingpong": false,
+        "save_output": false,
+        "videopreview": {
+          "hidden": false,
+          "paused": false,
+          "params": {
+            "filename": "LivePortrait_00002.mp4",
+            "subfolder": "",
+            "type": "temp",
+            "format": "video/h264-mp4",
+            "frame_rate": 16,
+            "workflow": "LivePortrait_00002.png",
+            "fullpath": "D:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI\\temp\\LivePortrait_00002.mp4"
+          }
+        }
+      }
+    },
+    {
+      "id": 196,
+      "type": "LoadImage",
+      "pos": [
+        -1518.3998785705764,
+        -696.4000278322033
+      ],
+      "size": [
+        460.59375,
+        556.59375
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            466
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.13.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "01-portrait_remix.png",
+        "image"
+      ]
+    },
+    {
+      "id": 192,
+      "type": "Reroute",
+      "pos": [
+        89.60003610227761,
+        -620.8000564576937
+      ],
+      "size": [
+        225,
+        12
+      ],
+      "flags": {},
+      "order": 18,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "",
+          "type": "*",
+          "link": 455
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            456,
+            457
+          ]
+        }
+      ],
+      "properties": {
+        "showOutputText": true,
+        "horizontal": false
+      }
+    },
+    {
+      "id": 191,
+      "type": "LivePortraitComposite",
+      "pos": [
+        809.6000342712225,
+        -606.4000483705355
+      ],
+      "size": [
+        355.1875,
+        120
+      ],
+      "flags": {},
+      "order": 22,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "source_image",
+          "type": "IMAGE",
+          "link": 457
+        },
+        {
+          "name": "cropped_image",
+          "type": "IMAGE",
+          "link": 454
+        },
+        {
+          "name": "liveportrait_out",
+          "type": "LP_OUT",
+          "link": 452
+        },
+        {
+          "name": "mask",
+          "shape": 7,
+          "type": "MASK",
+          "link": 463
+        }
+      ],
+      "outputs": [
+        {
+          "name": "full_images",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": [
+            458
+          ]
+        },
+        {
+          "name": "mask",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "1.1.0",
+        "Node name for S&R": "LivePortraitComposite"
+      },
+      "widgets_values": []
+    },
+    {
+      "id": 189,
+      "type": "LivePortraitCropper",
+      "pos": [
+        -241.60019052125745,
+        -994.0000189515899
+      ],
+      "size": [
+        330,
+        318.65625
+      ],
+      "flags": {},
+      "order": 17,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pipeline",
+          "type": "LIVEPORTRAITPIPE",
+          "link": 446
+        },
+        {
+          "name": "cropper",
+          "type": "LPCROPPER",
+          "link": 475
+        },
+        {
+          "name": "source_image",
+          "type": "IMAGE",
+          "link": 445
+        }
+      ],
+      "outputs": [
+        {
+          "name": "cropped_image",
+          "type": "IMAGE",
+          "slot_index": 0,
+          "links": null
+        },
+        {
+          "name": "crop_info",
+          "type": "CROPINFO",
+          "slot_index": 1,
+          "links": [
+            449
+          ]
+        }
+      ],
+      "properties": {
+        "cnr_id": "comfyui-liveportraitkj",
+        "ver": "1.1.0",
+        "Node name for S&R": "LivePortraitCropper"
+      },
+      "widgets_values": [
+        512,
+        2.3,
+        0,
+        -0.125,
+        0,
+        "large-small",
+        true
+      ]
+    }
+  ],
+  "links": [
+    [
+      187,
+      81,
+      0,
+      82,
+      0,
+      "MASK"
+    ],
+    [
+      192,
+      83,
+      0,
+      81,
+      0,
+      "MASK"
+    ],
+    [
+      302,
+      133,
+      0,
+      8,
+      2,
+      "INT"
+    ],
+    [
+      434,
+      165,
+      0,
+      78,
+      0,
+      "IMAGE"
+    ],
+    [
+      436,
+      8,
+      0,
+      182,
+      0,
+      "IMAGE"
+    ],
+    [
+      445,
+      78,
+      0,
+      189,
+      2,
+      "IMAGE"
+    ],
+    [
+      446,
+      1,
+      0,
+      189,
+      0,
+      "LIVEPORTRAITPIPE"
+    ],
+    [
+      448,
+      1,
+      0,
+      190,
+      0,
+      "LIVEPORTRAITPIPE"
+    ],
+    [
+      449,
+      189,
+      1,
+      190,
+      1,
+      "CROPINFO"
+    ],
+    [
+      451,
+      182,
+      0,
+      190,
+      3,
+      "IMAGE"
+    ],
+    [
+      452,
+      190,
+      1,
+      191,
+      2,
+      "LP_OUT"
+    ],
+    [
+      454,
+      190,
+      0,
+      191,
+      1,
+      "IMAGE"
+    ],
+    [
+      455,
+      78,
+      0,
+      192,
+      0,
+      "*"
+    ],
+    [
+      456,
+      192,
+      0,
+      190,
+      2,
+      "IMAGE"
+    ],
+    [
+      457,
+      192,
+      0,
+      191,
+      0,
+      "IMAGE"
+    ],
+    [
+      458,
+      191,
+      0,
+      181,
+      0,
+      "IMAGE"
+    ],
+    [
+      463,
+      81,
+      0,
+      191,
+      3,
+      "MASK"
+    ],
+    [
+      466,
+      196,
+      0,
+      165,
+      0,
+      "IMAGE"
+    ],
+    [
+      469,
+      182,
+      0,
+      197,
+      2,
+      "IMAGE"
+    ],
+    [
+      470,
+      197,
+      1,
+      180,
+      0,
+      "CROPINFO"
+    ],
+    [
+      471,
+      197,
+      0,
+      134,
+      0,
+      "IMAGE"
+    ],
+    [
+      472,
+      1,
+      0,
+      197,
+      0,
+      "LIVEPORTRAITPIPE"
+    ],
+    [
+      474,
+      198,
+      0,
+      199,
+      0,
+      "*"
+    ],
+    [
+      475,
+      199,
+      0,
+      189,
+      1,
+      "LPCROPPER"
+    ],
+    [
+      476,
+      199,
+      0,
+      197,
+      1,
+      "LPCROPPER"
+    ],
+    [
+      478,
+      181,
+      0,
+      168,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.7513148009015781,
+      "offset": [
+        977.6151634826849,
+        853.4439940797613
+      ]
+    },
+    "workflowRendererVersion": "Vue",
+    "frontendVersion": "1.38.13",
+    "VHS_latentpreview": false,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": true,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}
