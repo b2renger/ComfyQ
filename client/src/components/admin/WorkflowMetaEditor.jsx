@@ -4,6 +4,7 @@ import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { SERVER_URL } from '../../utils/api';
 import DynamicParamFields, { isSeedParam, randomSeed } from '../DynamicParamFields';
+import { useComfyOpener } from '../../hooks/useComfyOpener';
 
 const CATEGORIES = [
     { value: 't2i', label: 'Text to Image' },
@@ -35,10 +36,13 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
     const [meta, setMeta] = useState(null);
     const [params, setParams] = useState([]);
     const [apiWorkflow, setApiWorkflow] = useState(null);
+    // Original UI-format export (subgraphs/groups/notes), when the bundle ships one.
+    // Preferred over apiWorkflow for "Open in ComfyUI" — it loads as a fully
+    // editable graph rather than the flat API graph.
+    const [templateWorkflow, setTemplateWorkflow] = useState(null);
     const [filter, setFilter] = useState('all'); // all | enabled | disabled
     const [paramQuery, setParamQuery] = useState('');
     const [comfyMsg, setComfyMsg] = useState('');
-    const [comfyBusy, setComfyBusy] = useState(false);
     const [showPreview, setShowPreview] = useState(false);
 
     const headers = useMemo(() => {
@@ -46,6 +50,11 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
         if (adminPassword) h['X-Admin-Password'] = adminPassword;
         return h;
     }, [adminPassword]);
+
+    // Shared "Open in ComfyUI" flow (stage template → Workflows sidebar; drag
+    // fallback). notify pipes progress/result into the inline toolbar message.
+    const { openingId, openInComfy } = useComfyOpener({ adminPassword, notify: (msg) => setComfyMsg(msg) });
+    const comfyBusy = openingId === workflowId;
 
     useEffect(() => {
         if (!workflowId) return;
@@ -60,6 +69,7 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                 setMeta(data.meta);
                 setParams(data.detectedParameters);
                 setApiWorkflow(data.apiWorkflow || null);
+                setTemplateWorkflow(data.templateWorkflow || null);
             } catch (e) {
                 if (!cancelled) setError(e.message);
             } finally {
@@ -124,62 +134,23 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
 
     const enabledCount = params.filter(p => p.enabled).length;
 
-    // Download the raw api.json so the admin can drag it onto the ComfyUI canvas
-    // (ComfyUI imports API format) to see the node graph + titles.
+    // Download the workflow so the admin can drag it onto the ComfyUI canvas.
+    // Prefer the original UI-format export (`<id>.json`) when the bundle ships one
+    // — ComfyUI loads it as the full editable graph (subgraphs, groups, notes).
+    // Fall back to the flat API graph (`<id>.api.json`) otherwise.
     const downloadJson = () => {
-        if (!apiWorkflow) return;
-        const blob = new Blob([JSON.stringify(apiWorkflow, null, 2)], { type: 'application/json' });
+        const useTemplate = !!templateWorkflow;
+        const data = useTemplate ? templateWorkflow : apiWorkflow;
+        if (!data) return;
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `${workflowId}.api.json`;
+        a.download = useTemplate ? `${workflowId}.json` : `${workflowId}.api.json`;
         document.body.appendChild(a);
         a.click();
         a.remove();
         URL.revokeObjectURL(url);
-    };
-
-    // Open ComfyUI's own node editor for this workflow. ComfyUI only auto-imports
-    // API-format JSON via drag-drop (its file handler's loadApiJson) — there's no
-    // cross-version URL that loads API format — so we do it in one click: hand over
-    // the JSON (download), open the editor tab, auto-START ComfyUI if it isn't
-    // running, then point the tab at it. The admin drops the downloaded file on the
-    // canvas to load the graph. The port comes from the live /comfyui/status; the
-    // host is whatever the admin used to reach ComfyQ, so ComfyUI on the same
-    // machine just works.
-    const openInComfy = async () => {
-        setComfyMsg('');
-        // Synchronous, inside the click gesture (so the browser doesn't block the
-        // popup/download): give them the file + grab a tab handle to steer later.
-        downloadJson();
-        const tab = window.open('about:blank', '_blank');
-        if (tab) { try { tab.document.write('<title>Opening ComfyUI…</title><body style="font:14px sans-serif;padding:2rem;color:#888">Starting ComfyUI…</body>'); } catch { /* ignore */ } }
-        setComfyBusy(true);
-        let port = 8188;
-        let problem = '';
-        try {
-            const res = await fetch(`${SERVER_URL}/admin/comfyui/status`, { headers });
-            const s = await res.json().catch(() => ({}));
-            if (s.port) port = s.port;
-            // Auto-start ComfyUI when it isn't running (admin-mode backend only;
-            // launchBackend blocks until it's reachable — a cold boot is 30–90s).
-            if (s.available && s.running === false) {
-                setComfyMsg('Starting ComfyUI… a cold boot can take 30–90s.');
-                const lr = await fetch(`${SERVER_URL}/admin/comfyui/launch`, { method: 'POST', headers });
-                const ls = await lr.json().catch(() => ({}));
-                if (!lr.ok) throw new Error(ls.error || 'could not start ComfyUI');
-                if (ls.port) port = ls.port;
-            }
-        } catch (e) {
-            problem = e.message || String(e);
-        } finally {
-            setComfyBusy(false);
-        }
-        const url = `${window.location.protocol}//${window.location.hostname}:${port}/`;
-        if (tab) tab.location = url; else window.open(url, '_blank', 'noopener');
-        setComfyMsg(problem
-            ? `Couldn’t auto-start ComfyUI (${problem}). Opened the editor anyway — launch it from Admin → ComfyUI backend if needed, then drag the downloaded JSON onto the canvas.`
-            : 'ComfyUI is open — drag the downloaded JSON onto its canvas to load the graph (ComfyUI imports API format).');
     };
 
     const save = async () => {
@@ -251,17 +222,19 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                     {/* Visualize-in-ComfyUI toolbar */}
                     <div className="flex items-start justify-between gap-3 flex-wrap pb-3 border-b border-border">
                         <p className="text-[11px] text-muted max-w-md leading-snug">
-                            Visualize the node graph: <strong className="text-foreground font-medium">Open in ComfyUI</strong> starts
-                            ComfyUI if needed, opens its editor, and downloads this workflow — drop the file on the canvas
-                            (ComfyUI imports API format) to see every node, its title, and how they connect.
+                            Edit the node graph: <strong className="text-foreground font-medium">Open in ComfyUI</strong> starts
+                            ComfyUI if needed and opens its editor.
+                            {templateWorkflow
+                                ? ' The original workflow is bundled, so it’s added to ComfyUI’s Workflows menu — open it there for a fully editable graph (subgraphs, groups, notes).'
+                                : ' No original workflow is bundled, so it downloads the flat API graph — drop it on the canvas (view-only structure).'}
                         </p>
                         <div className="flex items-center gap-2 shrink-0">
-                            <button onClick={downloadJson} disabled={!apiWorkflow}
+                            <button onClick={downloadJson} disabled={!apiWorkflow && !templateWorkflow}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-surface border border-border hover:border-primary/40 text-muted hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                                title="Download this workflow's API JSON">
-                                <Download size={14} /> Download JSON
+                                title={templateWorkflow ? 'Download the original editable workflow (.json)' : "Download this workflow's API JSON"}>
+                                <Download size={14} /> {templateWorkflow ? 'Download workflow' : 'Download JSON'}
                             </button>
-                            <button onClick={openInComfy} disabled={comfyBusy}
+                            <button onClick={() => openInComfy(workflowId)} disabled={comfyBusy}
                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-colors disabled:opacity-60 disabled:cursor-wait"
                                 title="Start ComfyUI (if needed) and open its node editor in a new tab">
                                 {comfyBusy ? <RefreshCw size={14} className="animate-spin" /> : <ExternalLink size={14} />}

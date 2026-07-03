@@ -28,7 +28,12 @@ class WorkflowRegistry {
             apiPath: path.join(folder, `${id}.api.json`),
             metaPath: path.join(folder, `${id}.meta.json`),
             configMetaPath: path.join(folder, `${id}.config.meta.json`),
-            runtimePath: path.join(folder, `${id}.runtime.json`)
+            runtimePath: path.join(folder, `${id}.runtime.json`),
+            // Original ComfyUI UI/litegraph export (subgraphs, groups, notes,
+            // layout). Optional — present only for workflows whose full editable
+            // graph has been dropped in. Lets the admin "Open in ComfyUI" load the
+            // real editable workflow instead of the flat API graph.
+            templatePath: path.join(folder, `${id}_template.json`)
         };
     }
 
@@ -141,6 +146,19 @@ class WorkflowRegistry {
         // Merge meta + configMeta into effective parameters
         const merged = this._mergeMeta(meta, configMeta);
 
+        // Present only when the folder carries the original UI-format export.
+        // Canonical name is `<id>_template.json`; tolerate naming variance
+        // (`.template.json`, a stray prefix, a shortened name) by falling back to
+        // any `*template.json` in the folder — a bundle has at most one.
+        let templatePath = paths.templatePath;
+        let hasTemplate = fs.existsSync(templatePath);
+        if (!hasTemplate) {
+            try {
+                const alt = fs.readdirSync(paths.folder).find(f => /template\.json$/i.test(f));
+                if (alt) { templatePath = path.join(paths.folder, alt); hasTemplate = true; }
+            } catch { /* folder unreadable — leave hasTemplate false */ }
+        }
+
         const populated = {
             ...entry,
             unavailable: false,
@@ -150,9 +168,13 @@ class WorkflowRegistry {
             runtime,
             apiWorkflow: apiJson,
             apiPath,
+            hasTemplate,
+            templatePath,
             // summary used by /admin/workflows list view
             summary: {
                 id: meta.id,
+                // Whether "Open in ComfyUI" can hand over the full editable graph.
+                hasTemplate,
                 name: merged.name,
                 description: merged.description,
                 category: merged.category,
@@ -206,7 +228,11 @@ class WorkflowRegistry {
             return [];
         }
         const entries = fs.readdirSync(this.dir, { withFileTypes: true })
-            .filter(e => e.isDirectory());
+            .filter(e => e.isDirectory())
+            // Skip helper folders that aren't workflow bundles (leading-underscore
+            // convention, e.g. `_candidate_workflows` — a staging area for
+            // not-yet-registered exports). Real bundle ids never start with `_`.
+            .filter(e => !e.name.startsWith('_'));
         const seen = new Set();
         const results = [];
         for (const e of entries) {

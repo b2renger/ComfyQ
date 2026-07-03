@@ -1,5 +1,6 @@
 const { LocalComfyUIWorker } = require('../workers/localComfyUIWorker');
 const { BenchmarkService } = require('./benchmarkService');
+const { ensureInstalled: ensureOpenerInstalled } = require('../comfyui/openerExtension');
 
 // After this much idle time, release the calibration ComfyUI's VRAM (but keep
 // the process up so a follow-up calibrate — or a switch to student mode, which
@@ -40,6 +41,10 @@ class AdminCalibrator {
         // with, so a later path change triggers a restart instead of silently
         // reusing the process started with the old path.
         this._spawnSig = null;
+        // Whether the currently-running ComfyUI is one we spawned with the ComfyQ
+        // opener extension installed (so its "Open in ComfyUI" auto-open works).
+        // False for an attached external instance or before we've spawned.
+        this._openerLoaded = false;
     }
 
     // Always reflect the latest saved config (config.json is the source of truth).
@@ -78,6 +83,10 @@ class AdminCalibrator {
                 // Force --listen 0.0.0.0 for a network backend, without persisting
                 // lan_access — this launch is an explicit, one-off opt-in.
                 const comfyConfig = network ? { ...cfg, lan_access: true } : cfg;
+                // Ensure the ComfyQ opener extension is present before we boot, so
+                // any ComfyUI we spawn can auto-open a workflow from the admin
+                // panel. Best-effort — a failure here must not block the launch.
+                try { ensureOpenerInstalled(cfg.root_path); } catch (e) { console.warn(`[AdminCalibrator] opener install skipped: ${e.message}`); }
                 console.log(`[AdminCalibrator] starting ComfyUI${network ? ' (network-bound)' : ''} at ${cfg.root_path} (a cold boot can take 30–90s)…`);
                 const worker = new LocalComfyUIWorker({
                     comfyConfig, queueConfig: this.queueConfig, onMilestone: this.onMilestone
@@ -87,6 +96,9 @@ class AdminCalibrator {
                 this._external = !!res?.external;
                 this._workerNetwork = network && !this._external;
                 this._spawnSig = sig;
+                // We spawned it with the opener installed (an attached external
+                // instance we don't own may not have it).
+                this._openerLoaded = !this._external;
                 this.bench = new BenchmarkService({
                     worker, registry: this.registry,
                     comfyConfig: cfg, assetsDir: this.assetsDir
@@ -106,10 +118,28 @@ class AdminCalibrator {
         this._external = false;
         this._workerNetwork = false;
         this._spawnSig = null;
+        this._openerLoaded = false;
         if (w) {
             try { await w.shutdown(); } catch { /* WS close */ }
             try { await w.process?.stop(); } catch { /* kill spawned ComfyUI */ }
         }
+    }
+
+    // Ensure a network-bound ComfyUI is up AND running the ComfyQ opener
+    // extension, so the admin's "Open in ComfyUI" can auto-open a workflow.
+    // Launches if down (our spawns install + load the opener); if a ComfyUI we
+    // own is already running without it (predates this feature), restarts once to
+    // load it. An external ComfyUI can't be restarted → openerLoaded stays false
+    // and the caller falls back to the Workflows-sidebar handoff.
+    async ensureOpenerLoaded() {
+        await this._ensureWorker({ network: true });
+        if (!this._openerLoaded && !this._external) {
+            console.log('[AdminCalibrator] restarting ComfyUI to load the ComfyQ opener extension…');
+            try { ensureOpenerInstalled(this.comfyConfig.root_path); } catch (e) { console.warn(`[AdminCalibrator] opener install skipped: ${e.message}`); }
+            await this._stopWorker();
+            await this._ensureWorker({ network: true });
+        }
+        return { ...this.comfyStatus(), openerLoaded: this._openerLoaded && !this._external };
     }
 
     async calibrate(workflowId) {

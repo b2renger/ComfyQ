@@ -8,6 +8,7 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import { SERVER_URL } from '../utils/api';
+import { useComfyOpener } from '../hooks/useComfyOpener';
 
 const PRESET_PYTHON_HINTS = [
     { label: 'Portable (Windows)', value: '../python_embeded/python.exe' },
@@ -21,7 +22,7 @@ const AdminConfig = ({ currentMode }) => {
     const [loading, setLoading] = useState(true);
     const [pathDraft, setPathDraft] = useState({});
     const [pickedWorkflow, setPickedWorkflow] = useState(null);
-    const [isActivating, setIsActivating] = useState(false);
+    const [activatingId, setActivatingId] = useState(null);
     const [adminPassword, setAdminPassword] = useState('');
     const [passwordValid, setPasswordValid] = useState(false);
     const [newAdminPassword, setNewAdminPassword] = useState('');
@@ -102,6 +103,10 @@ const AdminConfig = ({ currentMode }) => {
         setToast({ msg, kind });
         setTimeout(() => setToast(null), 4000);
     };
+
+    // Per-card "Open in ComfyUI" — stages the editable template into ComfyUI's
+    // Workflows sidebar (see useComfyOpener); progress/result via the toast.
+    const { openingId: openingComfyId, openInComfy } = useComfyOpener({ adminPassword, notify: showToast });
 
     const adminHeaders = () => {
         const h = { 'Content-Type': 'application/json' };
@@ -264,21 +269,22 @@ const AdminConfig = ({ currentMode }) => {
         }
     };
 
-    const activate = async () => {
-        if (!pickedWorkflow) return;
-        setIsActivating(true);
+    const activate = async (workflowId) => {
+        const id = workflowId || pickedWorkflow?.id;
+        if (!id) return;
+        setActivatingId(id);
         try {
             const res = await fetch(`${SERVER_URL}/admin/activate-workflow`, {
                 method: 'POST', headers: adminHeaders(),
-                body: JSON.stringify({ workflowId: pickedWorkflow.id })
+                body: JSON.stringify({ workflowId: id })
             });
             if (!res.ok) throw new Error((await res.json()).error || 'Failed to activate');
-            showToast('Activating workflow and switching to student mode…');
+            showToast(`Activating “${id}” and switching to student mode…`);
             // Server will exit; nodemon will restart. Reload after a moment.
             setTimeout(() => window.location.assign('/user'), 2000);
         } catch (e) {
             showToast(e.message, 'err');
-            setIsActivating(false);
+            setActivatingId(null);
         }
     };
 
@@ -713,6 +719,11 @@ const AdminConfig = ({ currentMode }) => {
                     onDelete={(id) => setDeletingWorkflowId(id)}
                     onCalibrate={(id) => calibrateWorkflow(id)}
                     calibratingIds={calibratingIds}
+                    onOpenInComfy={openInComfy}
+                    openingComfyId={openingComfyId}
+                    onActivate={(id) => activate(id)}
+                    activatingId={activatingId}
+                    canActivate={pathsConfigured}
                 />
                 <div className="mt-6 flex items-center justify-end gap-2 flex-wrap">
                     {pickedWorkflow && <span className="text-xs text-muted mr-auto">Selected: <code>{pickedWorkflow.id}</code></span>}
@@ -722,9 +733,9 @@ const AdminConfig = ({ currentMode }) => {
                         Edit metadata
                     </Button>
                     <Button variant="primary" icon={Power}
-                        disabled={!pickedWorkflow || isActivating || !pathsConfigured}
-                        onClick={activate}>
-                        {isActivating ? 'Activating…' : 'Activate & start student mode'}
+                        disabled={!pickedWorkflow || activatingId !== null || !pathsConfigured}
+                        onClick={() => activate(pickedWorkflow?.id)}>
+                        {activatingId !== null ? 'Activating…' : 'Activate & start student mode'}
                     </Button>
                 </div>
             </Card>

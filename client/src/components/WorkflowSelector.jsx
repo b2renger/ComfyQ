@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import {
     Image, Video, Wand2, Music, Box, LayoutGrid, List,
     RefreshCw, ChevronRight, Sparkles, Clock, Tag,
-    Pencil, Trash2, Gauge, Cpu, FileText, Wrench, Search, X
+    Pencil, Trash2, Gauge, Cpu, FileText, Wrench, Search, X,
+    ExternalLink, Power, Radio
 } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
@@ -39,7 +40,7 @@ const groupOf = (cat) => CATEGORY_GROUP[cat] || 'other';
  * Calls onSelect(workflowDetails) when a workflow is chosen.
  * Calls onPresetSelect(name, values) when a preset chip is clicked.
  */
-const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set() }) => {
+const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true }) => {
     const [workflows, setWorkflows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -322,6 +323,46 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                     )}
                                 </div>
                             </div>
+                            {/* Primary per-card actions: open the editable graph in
+                                ComfyUI, and activate/serve the API version (what
+                                ComfyQ Discovery shows being served). */}
+                            {(onOpenInComfy || onActivate) && (
+                                <div className={`flex items-center gap-2 ${viewMode === 'grid' ? 'mt-3 pt-3 border-t border-border/60' : 'flex-shrink-0'}`}>
+                                    {onOpenInComfy && (
+                                        <button
+                                            type="button"
+                                            disabled={openingComfyId === w.id}
+                                            onClick={(e) => { e.stopPropagation(); onOpenInComfy(w.id); }}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-background border border-border hover:border-primary/50 text-muted hover:text-primary transition-colors disabled:opacity-60 disabled:cursor-wait"
+                                            title="Open this workflow's editable graph in ComfyUI"
+                                        >
+                                            {openingComfyId === w.id ? <RefreshCw size={13} className="animate-spin" /> : <ExternalLink size={13} />}
+                                            <span>Open in ComfyUI</span>
+                                        </button>
+                                    )}
+                                    {onActivate && (
+                                        isActive ? (
+                                            <span
+                                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-success/15 border border-success/40 text-success ml-auto"
+                                                title="Active workflow — served to students in student mode"
+                                            >
+                                                <Radio size={13} /> Serving
+                                            </span>
+                                        ) : (
+                                            <button
+                                                type="button"
+                                                disabled={!canActivate || activatingId !== null}
+                                                onClick={(e) => { e.stopPropagation(); onActivate(w.id); }}
+                                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
+                                                title={canActivate ? 'Activate & serve this workflow (switches to student mode)' : 'Configure ComfyUI paths first (Admin → ComfyUI settings)'}
+                                            >
+                                                {activatingId === w.id ? <RefreshCw size={13} className="animate-spin" /> : <Power size={13} />}
+                                                <span>{activatingId === w.id ? 'Activating…' : 'Activate & serve'}</span>
+                                            </button>
+                                        )
+                                    )}
+                                </div>
+                            )}
                         </div>
                     );
                 })}

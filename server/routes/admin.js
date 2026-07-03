@@ -589,8 +589,90 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             });
             // apiWorkflow lets the editor offer a "Download JSON" (drag it into
             // the ComfyUI canvas to inspect the node graph) without a second route.
-            res.json({ meta: entry.meta, detectedParameters: merged, apiWorkflow: entry.apiWorkflow });
+            // When the bundle also ships the original UI-format export, hand that
+            // over instead so "Open in ComfyUI" loads the full editable graph
+            // (subgraphs, groups, notes) rather than the flat API graph.
+            let templateWorkflow = null;
+            if (entry.hasTemplate) {
+                try { templateWorkflow = JSON.parse(fs.readFileSync(entry.templatePath, 'utf8')); }
+                catch (e) { console.warn(`[Admin] ${id}: failed to read template: ${e.message}`); }
+            }
+            res.json({
+                meta: entry.meta,
+                detectedParameters: merged,
+                apiWorkflow: entry.apiWorkflow,
+                templateWorkflow,
+                hasTemplate: !!templateWorkflow
+            });
         } catch (e) { res.status(400).json({ error: e.message }); }
+    });
+
+    // Stage a workflow's original UI-format template into ComfyUI's user
+    // workflows folder (`<comfy root>/user/default/workflows/<id>.json`) so it
+    // shows up in ComfyUI's Workflows sidebar — one click to open as the full
+    // editable graph. This automates what the admin otherwise does by hand.
+    // ComfyUI (1.45) has no URL param to auto-open an arbitrary workflow, so the
+    // sidebar is the reliable, version-independent handoff. Requires the bundle
+    // to ship `<id>_template.json`; the client falls back to download+drag when
+    // it doesn't (API-only workflows) or when staging fails (bad/unset path).
+    router.post('/workflows/:id/stage-template', adminGate, (req, res) => {
+        try {
+            const id = req.params.id;
+            const entry = registry.get(id);
+            if (!entry) return res.status(404).json({ error: 'unknown workflow' });
+            if (!entry.hasTemplate) {
+                return res.status(409).json({ error: 'no-template', message: 'This workflow has no editable template yet — only the flat API graph is available.' });
+            }
+            const root = configManager.load().config.comfy_ui.root_path;
+            if (!root) return res.status(400).json({ error: 'ComfyUI root path is not configured (Admin → ComfyUI settings).' });
+            const openName = `${id}_template`;
+            const dir = path.join(root, 'user', 'default', 'workflows');
+            fs.mkdirSync(dir, { recursive: true });
+            const dest = path.join(dir, `${openName}.json`);
+            fs.copyFileSync(entry.templatePath, dest);
+            res.json({ ok: true, workflowName: id, openName, path: dest });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // Full "Open in ComfyUI" for the admin panel: stage the editable template AND
+    // ensure the ComfyQ opener extension is loaded, so the client can open
+    // `<comfyui>/?comfyq_open=<id>` and land directly on the editable graph.
+    // Launches/restarts ComfyUI as needed (blocks until reachable). Returns
+    // `autoOpen:false` when we can't guarantee the opener (e.g. an external
+    // ComfyUI we can't restart) so the client falls back to the sidebar handoff.
+    router.post('/workflows/:id/open-in-comfyui', adminGate, async (req, res) => {
+        const backend = runtime?.comfyBackend;
+        try {
+            const id = req.params.id;
+            const entry = registry.get(id);
+            if (!entry) return res.status(404).json({ error: 'unknown workflow' });
+            if (!entry.hasTemplate) {
+                return res.status(409).json({ error: 'no-template', message: 'This workflow has no editable template yet — only the flat API graph is available.' });
+            }
+            const cfg = configManager.load().config.comfy_ui;
+            if (!cfg.root_path) return res.status(400).json({ error: 'ComfyUI root path is not configured (Admin → ComfyUI settings).' });
+            // Stage the UI-format template as a ComfyUI saved workflow — under the
+            // `<id>_template` name (the template's own name), NOT `<id>.json`, so we
+            // never overwrite an admin's own hand-saved ComfyUI workflow of the
+            // same id, and it's clear in the sidebar this is the ComfyQ template.
+            const openName = `${id}_template`;
+            const dir = path.join(cfg.root_path, 'user', 'default', 'workflows');
+            fs.mkdirSync(dir, { recursive: true });
+            fs.copyFileSync(entry.templatePath, path.join(dir, `${openName}.json`));
+            // Ensure ComfyUI is up with the opener extension (launch/restart as needed).
+            let port = cfg.api_port;
+            let autoOpen = false;
+            if (backend && typeof backend.ensureOpenerLoaded === 'function') {
+                const st = await backend.ensureOpenerLoaded();
+                port = st.port || port;
+                autoOpen = st.openerLoaded === true;
+            }
+            res.json({ ok: true, workflowName: id, openName, port, autoOpen });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
     });
 
     // Delete a workflow folder bundle. Refuses to delete the currently-active
