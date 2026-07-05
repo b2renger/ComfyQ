@@ -41,6 +41,7 @@ const AdminConfig = ({ currentMode }) => {
     const [detecting, setDetecting] = useState(false);
     const [comfyStatus, setComfyStatus] = useState(null);
     const [comfyBusy, setComfyBusy] = useState(false);
+    const [showTakeoverConfirm, setShowTakeoverConfirm] = useState(false);
     const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
     const [cleaningOutputs, setCleaningOutputs] = useState(false);
     const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
@@ -87,7 +88,6 @@ const AdminConfig = ({ currentMode }) => {
                 output_dir: data.config.comfy_ui.output_dir,
                 api_host: data.config.comfy_ui.api_host,
                 api_port: data.config.comfy_ui.api_port,
-                lan_access: data.config.comfy_ui.lan_access ?? false,
                 installation_type: data.config.comfy_ui.installation_type,
                 vramBudgetGb: data.config.comfy_ui.vramBudgetGb,
                 assets_dir: data.config.assets?.dir || ''
@@ -135,6 +135,22 @@ const AdminConfig = ({ currentMode }) => {
             if (!res.ok) throw new Error((await res.json()).error || 'Failed to update network presence');
             setConfig(c => ({ ...c, federation: { ...(c?.federation || {}), enabled } }));
             showToast(enabled ? 'This machine is now visible on the network' : 'This machine is now hidden from the network');
+        } catch (e) { showToast(e.message, 'err'); }
+    };
+
+    // Toggle whether ComfyUI binds to the LAN (0.0.0.0) so its native web UI is
+    // reachable from other machines. Persists immediately; the bind only changes
+    // when ComfyUI is (re)started, so pair it with "Restart ComfyUI" below.
+    const toggleLanAccess = async (enabled) => {
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/comfy`, {
+                method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ lan_access: enabled })
+            });
+            if (!res.ok) throw new Error((await res.json()).error || 'Failed to update LAN exposure');
+            setConfig(c => ({ ...c, comfy_ui: { ...(c?.comfy_ui || {}), lan_access: enabled } }));
+            showToast(enabled
+                ? 'ComfyUI will be exposed to the LAN — restart it to apply'
+                : 'ComfyUI LAN exposure turned off — restart it to apply');
         } catch (e) { showToast(e.message, 'err'); }
     };
 
@@ -225,8 +241,11 @@ const AdminConfig = ({ currentMode }) => {
         try {
             // Persist the current path form first so the backend launches with the
             // paths shown in Settings — not a previously-saved or boot-time value.
+            // This launches ComfyUI network-bound, so persist lan_access:true too,
+            // keeping the "Expose ComfyUI to the LAN" toggle in sync (so a later
+            // Restart, which honors the toggle, stays on the network).
             const saveRes = await fetch(`${SERVER_URL}/admin/comfy`, {
-                method: 'PUT', headers: adminHeaders(), body: JSON.stringify(pathDraft)
+                method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ ...pathDraft, lan_access: true })
             });
             if (!saveRes.ok) throw new Error((await saveRes.json()).error || 'Failed to save paths');
             const res = await fetch(`${SERVER_URL}/admin/comfyui/launch`, { method: 'POST', headers: adminHeaders() });
@@ -237,6 +256,21 @@ const AdminConfig = ({ currentMode }) => {
             showToast(data.external ? 'Attached to a running ComfyUI' : 'ComfyUI launched on the network');
         } catch (e) { showToast(e.message, 'err'); }
         finally { setComfyBusy(false); }
+    };
+
+    const restartComfy = async () => {
+        setComfyBusy(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/comfyui/restart`, { method: 'POST', headers: adminHeaders() });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Restart failed');
+            setComfyStatus(data);
+            await reloadConfig();
+            showToast(data.restarted === false
+                ? (data.note || 'Left external ComfyUI running')
+                : (data.tookOver ? 'Took over & restarted ComfyUI — ComfyQ now manages it' : 'ComfyUI restarted'));
+        } catch (e) { showToast(e.message, 'err'); }
+        finally { setComfyBusy(false); setShowTakeoverConfirm(false); }
     };
 
     const stopComfy = async () => {
@@ -544,24 +578,6 @@ const AdminConfig = ({ currentMode }) => {
                             Folder of sample images / videos / audio used to auto-calibrate workflow timing. Update this if the drive letter changes (e.g. <code>D:\_assets</code> → <code>G:\_assets</code>). Leave blank to fall back to a built-in image — video/audio workflows then can't auto-calibrate. Use <strong>Check paths</strong> to confirm the folder exists and has media.
                         </p>
                     </div>
-                    <div className="space-y-1.5 sm:col-span-2">
-                        <label className="flex items-start gap-2.5 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={!!pathDraft.lan_access}
-                                onChange={(e) => setPathDraft({ ...pathDraft, lan_access: e.target.checked })}
-                                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-                            />
-                            <span className="text-sm text-white">
-                                Expose ComfyUI to the LAN
-                                <span className="block text-xs text-muted">
-                                    Binds ComfyUI to 0.0.0.0 so people on the network can open its native web UI
-                                    (http://&lt;this-machine&gt;:{pathDraft.api_port || 8188}) and run classic workflows on this GPU.
-                                    ComfyQ still connects over localhost. Restart required after changing.
-                                </span>
-                            </span>
-                        </label>
-                    </div>
                 </div>
                 {pathChecks && (
                     <div className="mt-4 rounded-lg border border-border bg-surface/50 p-3 text-sm">
@@ -644,6 +660,24 @@ const AdminConfig = ({ currentMode }) => {
                     Launch ComfyUI bound to the network (<code>0.0.0.0:{comfyStatus?.port || config?.comfy_ui?.api_port || 8188}</code>) so anyone on the LAN can open its native web UI and run classic workflows on this GPU — no ComfyQ needed. It stays up across calibrations and a later workflow activation attaches to it.
                 </p>
 
+                <label className="flex items-start gap-2.5 cursor-pointer mb-4">
+                    <input
+                        type="checkbox"
+                        checked={config?.comfy_ui?.lan_access ?? false}
+                        onChange={(e) => toggleLanAccess(e.target.checked)}
+                        className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                    />
+                    <span className="text-sm text-white">
+                        Expose ComfyUI to the LAN
+                        <span className="block text-xs text-muted">
+                            Binds ComfyUI to <code>0.0.0.0</code> so people on the network can open its native web UI
+                            (<code>http://&lt;this-machine&gt;:{config?.comfy_ui?.api_port || 8188}</code>) and run classic
+                            workflows on this GPU. ComfyQ still connects over localhost. Saved immediately; the bind changes
+                            when ComfyUI is started or restarted.
+                        </span>
+                    </span>
+                </label>
+
                 {comfyStatus?.studentMode ? (
                     <p className="text-xs text-muted">
                         ComfyUI is currently managed by the active workflow (student mode). <strong className="text-white">Reset to admin</strong> to launch / stop it here.
@@ -666,9 +700,23 @@ const AdminConfig = ({ currentMode }) => {
                             <p className="text-[11px] text-warning mb-3">Bound to localhost only (started for calibration). Click <strong>Bind to network</strong> to expose it on the LAN.</p>
                         )}
                         {comfyStatus?.external ? (
-                            <p className="text-[11px] text-muted">Attached to a ComfyUI started outside ComfyQ — stop or relaunch it where you started it.</p>
+                            <>
+                                <p className="text-[11px] text-muted mb-3">
+                                    Attached to a ComfyUI started outside ComfyQ. <strong className="text-white">Restart</strong> takes it over — it force-stops that instance and relaunches ComfyUI under ComfyQ, so Restart, Stop and the LAN toggle work here afterward.
+                                </p>
+                                <div className="flex justify-end">
+                                    <Button variant="secondary" icon={RefreshCw} onClick={() => setShowTakeoverConfirm(true)} disabled={comfyBusy || !pathsConfigured}>
+                                        {comfyBusy ? 'Restarting… (30–90s)' : 'Restart & take over'}
+                                    </Button>
+                                </div>
+                            </>
                         ) : (
                             <div className="flex justify-end gap-2">
+                                {comfyStatus?.running && (
+                                    <Button variant="secondary" icon={RefreshCw} onClick={restartComfy} disabled={comfyBusy}>
+                                        {comfyBusy ? 'Working…' : 'Restart ComfyUI'}
+                                    </Button>
+                                )}
                                 {comfyStatus?.running && (
                                     <Button variant="secondary" icon={Square} onClick={stopComfy} disabled={comfyBusy}>
                                         {comfyBusy ? 'Working…' : 'Stop ComfyUI'}
@@ -771,6 +819,29 @@ const AdminConfig = ({ currentMode }) => {
                         <Button variant="danger" icon={OctagonAlert} onClick={emergencyStop}
                             isLoading={emergencyStopping}>
                             {emergencyStopping ? 'Stopping…' : 'Yes, stop everything'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal isOpen={showTakeoverConfirm} onClose={() => !comfyBusy && setShowTakeoverConfirm(false)}
+                title="Restart & take over ComfyUI?" maxWidth="max-w-md">
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-300">
+                        ComfyUI is running <strong className="text-white">outside ComfyQ</strong> right now. Restarting it will:
+                    </p>
+                    <ul className="text-sm text-slate-300 space-y-1.5 list-disc pl-5">
+                        <li>Force-stop the ComfyUI listening on port <code className="text-xs">{config?.comfy_ui?.api_port || 8188}</code> (the one you started manually)</li>
+                        <li>Relaunch it under ComfyQ from the configured paths{(config?.comfy_ui?.lan_access ?? false) ? ', bound to the LAN' : ', on localhost'}</li>
+                        <li>Leave ComfyQ managing it — so Restart, Stop, and “Open in ComfyUI” work from here afterward</li>
+                    </ul>
+                    <p className="text-xs text-warning">
+                        Any generation in progress on that ComfyUI will be interrupted. Takes ~30–90&nbsp;s to come back up.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                        <Button variant="ghost" onClick={() => setShowTakeoverConfirm(false)} disabled={comfyBusy}>Cancel</Button>
+                        <Button variant="secondary" icon={RefreshCw} onClick={restartComfy} isLoading={comfyBusy}>
+                            {comfyBusy ? 'Restarting…' : 'Yes, restart & take over'}
                         </Button>
                     </div>
                 </div>

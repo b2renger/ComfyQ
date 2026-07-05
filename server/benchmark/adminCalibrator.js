@@ -1,4 +1,6 @@
+const axios = require('axios');
 const { LocalComfyUIWorker } = require('../workers/localComfyUIWorker');
+const { killProcessOnPort } = require('../workers/comfyProcess');
 const { BenchmarkService } = require('./benchmarkService');
 const { ensureInstalled: ensureOpenerInstalled } = require('../comfyui/openerExtension');
 
@@ -168,6 +170,56 @@ class AdminCalibrator {
         }
         await this._stopWorker();
         return { ...this.comfyStatus(), stopped: true };
+    }
+
+    // Restarts ComfyUI: stop it, then relaunch reading the config FRESH — so an
+    // edited ComfyUI path or a flipped "Expose ComfyUI to the LAN" toggle takes
+    // effect. The network binding follows the saved `lan_access` (the toggle is
+    // the source of truth), so a restart applies exactly what's configured.
+    //
+    // If ComfyUI is **external** (started outside ComfyQ, so we hold no process
+    // handle), we "take over": force-kill whatever is listening on the port,
+    // wait for it to free, then spawn our own — leaving ComfyQ managing it
+    // afterward (so Restart / Stop / opener all work). This is an explicit,
+    // admin-initiated action (the UI confirms it) — not something we ever do on
+    // our own.
+    async restartBackend() {
+        const network = !!this.comfyConfig.lan_access;
+        if (this._external) {
+            const port = this.comfyConfig.api_port;
+            console.log(`[AdminCalibrator] taking over external ComfyUI on port ${port} (force-kill + relaunch)…`);
+            await this._stopWorker(); // close our WS to the external instance
+            try {
+                const { killed } = await killProcessOnPort(port);
+                console.log(`[AdminCalibrator] killed PID(s) on ${port}: ${killed.join(', ') || 'none found'}`);
+            } catch (e) {
+                throw new Error(`Couldn't stop the external ComfyUI on port ${port}: ${e.message}`);
+            }
+            // Wait until nothing answers on the port, else the spawn below would
+            // re-detect the dying instance as "external" and just attach again.
+            await this._waitForPortFree(port);
+            await this._ensureWorker({ network });
+            return { ...this.comfyStatus(), restarted: true, tookOver: true };
+        }
+        await this._stopWorker();
+        await this._ensureWorker({ network });
+        return { ...this.comfyStatus(), restarted: true };
+    }
+
+    // Poll until nothing answers on the ComfyUI port (so a follow-up spawn sees a
+    // free port and starts fresh instead of re-attaching). Best-effort — returns
+    // after the timeout regardless.
+    async _waitForPortFree(port, timeoutMs = 20000) {
+        const start = Date.now();
+        while (Date.now() - start < timeoutMs) {
+            try {
+                await axios.get(`http://127.0.0.1:${port}/system_stats`, { timeout: 1000 });
+                await new Promise(r => setTimeout(r, 500)); // still up → keep waiting
+            } catch {
+                return true; // no response → port is free
+            }
+        }
+        return false;
     }
 
     comfyStatus() {

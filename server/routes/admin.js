@@ -182,6 +182,17 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         }
     });
 
+    router.post('/comfyui/restart', adminGate, async (req, res) => {
+        const backend = runtime?.comfyBackend;
+        if (!backend) return res.status(409).json({ error: 'ComfyUI backend restart is admin-mode only — in student mode ComfyUI runs for the active workflow.' });
+        try {
+            const s = await backend.restartBackend();
+            res.json({ ok: true, ...s, urls: s.running ? lanUrls(s.port) : [] });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     // Validate a draft set of ComfyUI paths *before* the admin saves them.
     // Read-only — runs filesystem checks and tries `python --version` with a
     // 5s timeout. Returns a per-check breakdown so the UI can show exactly

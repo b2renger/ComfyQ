@@ -1,8 +1,11 @@
-const { spawn } = require('child_process');
+const { spawn, execFile } = require('child_process');
+const { promisify } = require('util');
 const fs = require('fs');
 const path = require('path');
 const EventEmitter = require('events');
 const axios = require('axios');
+
+const execFileAsync = promisify(execFile);
 
 // Owns the ComfyUI child process lifecycle. v2 design: spawn once, keep alive.
 // If ComfyUI exits, we emit 'exited' and let the LocalComfyUIWorker decide
@@ -181,4 +184,42 @@ class ComfyProcess extends EventEmitter {
     }
 }
 
-module.exports = { ComfyProcess };
+// Force-kill whatever process is LISTENING on `port`. Used to "take over" an
+// externally-started ComfyUI — one ComfyQ didn't spawn, so we hold no child
+// handle for it — before relaunching our own on the same port. Best-effort:
+// returns { killed: [pids] } (empty if nothing was found), throws only if the
+// lookup tool itself can't run. Windows: netstat → taskkill /F /T. POSIX: lsof.
+async function killProcessOnPort(port) {
+    const p = Number(port);
+    if (!p) throw new Error('killProcessOnPort: a valid port is required');
+    if (process.platform === 'win32') {
+        let stdout = '';
+        try { ({ stdout } = await execFileAsync('netstat', ['-ano'])); }
+        catch (e) { throw new Error(`netstat failed: ${e.message}`); }
+        const pids = new Set();
+        for (const line of stdout.split(/\r?\n/)) {
+            // "  TCP    0.0.0.0:8188    0.0.0.0:0    LISTENING    12345"
+            const m = line.match(/^\s*TCP\s+\S+:(\d+)\s+\S+\s+LISTENING\s+(\d+)\s*$/i);
+            if (m && Number(m[1]) === p) pids.add(m[2]);
+        }
+        const killed = [];
+        for (const pid of pids) {
+            // /T also kills the child processes ComfyUI spawned; access-denied /
+            // already-gone are non-fatal (best-effort takeover).
+            try { await execFileAsync('taskkill', ['/F', '/T', '/PID', pid]); killed.push(pid); }
+            catch { /* already gone / denied */ }
+        }
+        return { killed };
+    }
+    // POSIX
+    try {
+        const { stdout } = await execFileAsync('lsof', ['-ti', `tcp:${p}`, '-sTCP:LISTEN']);
+        const pids = stdout.split(/\s+/).filter(Boolean);
+        for (const pid of pids) { try { process.kill(Number(pid), 'SIGKILL'); } catch { /* gone */ } }
+        return { killed: pids };
+    } catch {
+        return { killed: [] };
+    }
+}
+
+module.exports = { ComfyProcess, killProcessOnPort };
