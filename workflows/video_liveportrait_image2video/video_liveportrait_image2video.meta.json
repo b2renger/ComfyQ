@@ -34,7 +34,7 @@
   "estimatedDurationSec": 60,
   "exposedParameters": [
     {
-      "key": "portrait_image_196",
+      "key": "loadimage_image_196",
       "nodeId": "196",
       "field": "image",
       "type": "image",
@@ -44,7 +44,7 @@
       "order": 0
     },
     {
-      "key": "driving_video_8",
+      "key": "vhs_loadvideo_video_8",
       "nodeId": "8",
       "field": "video",
       "type": "video",
@@ -54,7 +54,7 @@
       "order": 1
     },
     {
-      "key": "max_frames_8",
+      "key": "vhs_loadvideo_frame_load_cap_8",
       "nodeId": "8",
       "field": "frame_load_cap",
       "type": "number",

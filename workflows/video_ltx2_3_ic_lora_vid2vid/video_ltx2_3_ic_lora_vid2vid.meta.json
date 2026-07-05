@@ -46,27 +46,27 @@
   "estimatedDurationSec": 180,
   "exposedParameters": [
     {
-      "key": "source_video_199",
-      "nodeId": "199",
-      "field": "file",
-      "type": "video",
-      "label": "Source video",
-      "default": "",
-      "required": true,
-      "order": 0
-    },
-    {
-      "key": "reference_image_200",
+      "key": "loadimage_image_200",
       "nodeId": "200",
       "field": "image",
       "type": "image",
       "label": "Reference image (look)",
       "default": "",
       "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadvideo_file_199",
+      "nodeId": "199",
+      "field": "file",
+      "type": "video",
+      "label": "Source video",
+      "default": "",
+      "required": true,
       "order": 1
     },
     {
-      "key": "enhance_prompt_129_212",
+      "key": "primitiveboolean_value_129_212",
       "nodeId": "129:212",
       "field": "value",
       "type": "checkbox",
@@ -76,35 +76,55 @@
       "order": 2
     },
     {
-      "key": "prompt_raw_129_211",
-      "nodeId": "129:211",
-      "field": "on_false",
-      "type": "textarea",
-      "label": "Prompt (used as-is)",
-      "default": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-themed armor stands before a weathered stone arch overgrown with ivy. A textured marble sphere wrapped in twisting vines levitates in the arch’s center, spinning slowly. As the camera glides forward, vines sway softly, leaves flutter in the light breeze. Strong golden sunlight streams through the canopy, illuminating the mossy ruins with bright, clear light. The scene feels vibrant and peaceful, with subtle natural motion.",
-      "required": false,
-      "order": 3,
-      "disabledWhen": {
-        "param": "enhance_prompt_129_212",
-        "equals": true
-      }
-    },
-    {
-      "key": "prompt_ai_129_209",
+      "key": "textgenerateltx2prompt_prompt_129_209",
       "nodeId": "129:209",
       "field": "prompt",
       "type": "textarea",
       "label": "Prompt (AI-enhanced)",
       "default": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-themed armor stands before a weathered stone arch overgrown with ivy. A textured marble sphere wrapped in twisting vines levitates in the arch’s center, spinning slowly. As the camera glides forward, vines sway softly, leaves flutter in the light breeze. Strong golden sunlight streams through the canopy, illuminating the mossy ruins with bright, clear light. The scene feels vibrant and peaceful, with subtle natural motion.",
-      "required": false,
-      "order": 4,
       "disabledWhen": {
         "param": "enhance_prompt_129_212",
         "equals": false
-      }
+      },
+      "required": false,
+      "order": 3
     },
     {
-      "key": "duration_692",
+      "key": "comfyswitchnode_on_false_129_211",
+      "nodeId": "129:211",
+      "field": "on_false",
+      "type": "textarea",
+      "label": "Prompt (used as-is)",
+      "default": "A slow forward dolly shot on a bright, sunlit day in a lush jungle ruin. A lone figure in nature-themed armor stands before a weathered stone arch overgrown with ivy. A textured marble sphere wrapped in twisting vines levitates in the arch’s center, spinning slowly. As the camera glides forward, vines sway softly, leaves flutter in the light breeze. Strong golden sunlight streams through the canopy, illuminating the mossy ruins with bright, clear light. The scene feels vibrant and peaceful, with subtle natural motion.",
+      "disabledWhen": {
+        "param": "enhance_prompt_129_212",
+        "equals": true
+      },
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "primitiveint_value_129_113",
+      "nodeId": "129:113",
+      "field": "value",
+      "type": "number",
+      "label": "Width",
+      "default": 1280,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "primitiveint_value_129_98",
+      "nodeId": "129:98",
+      "field": "value",
+      "type": "number",
+      "label": "Height",
+      "default": 704,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "video_slice_duration_692",
       "nodeId": "692",
       "field": "duration",
       "type": "number",
@@ -114,10 +134,10 @@
       "max": 10,
       "step": 1,
       "required": false,
-      "order": 5
+      "order": 7
     },
     {
-      "key": "seed_129_704",
+      "key": "ksampler_seed_129_704",
       "nodeId": "129:704",
       "field": "seed",
       "type": "number",
@@ -127,7 +147,7 @@
       "max": 4294967295,
       "step": 1,
       "required": false,
-      "order": 6
+      "order": 8
     }
   ],
   "warmupParams": {},

@@ -51,7 +51,7 @@
       "nodeId": "267:257",
       "field": "value",
       "type": "number",
-      "label": "Value (Width)",
+      "label": "Width",
       "default": 1280,
       "required": false,
       "order": 3
@@ -61,10 +61,20 @@
       "nodeId": "267:258",
       "field": "value",
       "type": "number",
-      "label": "Value (Height)",
+      "label": "Height",
       "default": 720,
       "required": false,
       "order": 4
+    },
+    {
+      "key": "primitiveint_value_267_225",
+      "nodeId": "267:225",
+      "field": "value",
+      "type": "number",
+      "label": "Duration (frames)",
+      "default": 121,
+      "required": false,
+      "order": 5
     },
     {
       "key": "primitiveint_value_267_260",
@@ -74,7 +84,7 @@
       "label": "Frame Rate",
       "default": 25,
       "required": false,
-      "order": 5
+      "order": 6
     },
     {
       "key": "randomnoise_noise_seed_267_237",
@@ -83,16 +93,6 @@
       "type": "number",
       "label": "Noise Seed (RandomNoise)",
       "default": 519681071352364,
-      "required": false,
-      "order": 6
-    },
-    {
-      "key": "primitiveint_value_267_225",
-      "nodeId": "267:225",
-      "field": "value",
-      "type": "number",
-      "label": "Duration (frames)",
-      "default": 121,
       "required": false,
       "order": 7
     }

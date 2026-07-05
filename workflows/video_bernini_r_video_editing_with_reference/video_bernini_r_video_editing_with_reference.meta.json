@@ -22,17 +22,32 @@
   "requirements": {
     "minVRAM": 16,
     "models": [
-      { "type": "unet", "file": "wan2.2_bernini_r_high_noise_fp8_scaled.safetensors" },
-      { "type": "unet", "file": "wan2.2_bernini_r_low_noise_fp8_scaled.safetensors" },
-      { "type": "vae", "file": "Wan2_1_VAE_bf16.safetensors" },
-      { "type": "clip", "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors" },
-      { "type": "lora", "file": "lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors" }
+      {
+        "type": "unet",
+        "file": "wan2.2_bernini_r_high_noise_fp8_scaled.safetensors"
+      },
+      {
+        "type": "unet",
+        "file": "wan2.2_bernini_r_low_noise_fp8_scaled.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "Wan2_1_VAE_bf16.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors"
+      }
     ]
   },
   "estimatedDurationSec": 180,
   "exposedParameters": [
     {
-      "key": "source_video_47",
+      "key": "loadvideo_file_47",
       "nodeId": "47",
       "field": "file",
       "type": "video",
@@ -42,7 +57,7 @@
       "order": 0
     },
     {
-      "key": "reference_image_104",
+      "key": "loadimage_image_104",
       "nodeId": "104",
       "field": "image",
       "type": "image",
@@ -52,17 +67,17 @@
       "order": 1
     },
     {
-      "key": "edit_instruction_76_114",
-      "nodeId": "76:114",
+      "key": "primitiveboolean_value_76_70",
+      "nodeId": "76:70",
       "field": "value",
-      "type": "textarea",
-      "label": "Edit instruction",
-      "default": "Restyle the video to match the look of the reference image.",
+      "type": "checkbox",
+      "label": "Fast mode (Turbo LoRA — faster, lower quality)",
+      "default": true,
       "required": false,
       "order": 2
     },
     {
-      "key": "task_type_76_54",
+      "key": "customcombo_choice_76_54",
       "nodeId": "76:54",
       "field": "choice",
       "type": "select",
@@ -76,17 +91,17 @@
       "order": 3
     },
     {
-      "key": "fast_mode_76_70",
-      "nodeId": "76:70",
+      "key": "primitivestringmultiline_value_76_114",
+      "nodeId": "76:114",
       "field": "value",
-      "type": "checkbox",
-      "label": "Fast mode (Turbo LoRA — faster, lower quality)",
-      "default": true,
+      "type": "textarea",
+      "label": "Edit instruction",
+      "default": "Restyle the video to match the look of the reference image.",
       "required": false,
       "order": 4
     },
     {
-      "key": "clip_length_109",
+      "key": "video_slice_duration_109",
       "nodeId": "109",
       "field": "duration",
       "type": "number",
@@ -99,7 +114,7 @@
       "order": 5
     },
     {
-      "key": "seed_76_19",
+      "key": "samplercustom_noise_seed_76_19",
       "nodeId": "76:19",
       "field": "noise_seed",
       "type": "number",
@@ -110,6 +125,26 @@
       "step": 1,
       "required": false,
       "order": 6
+    },
+    {
+      "key": "berniniconditioning_width_76_50",
+      "nodeId": "76:50",
+      "field": "width",
+      "type": "number",
+      "label": "Width (Bernini Conditioning)",
+      "default": 832,
+      "required": false,
+      "order": 7
+    },
+    {
+      "key": "berniniconditioning_height_76_50",
+      "nodeId": "76:50",
+      "field": "height",
+      "type": "number",
+      "label": "Height (Bernini Conditioning)",
+      "default": 832,
+      "required": false,
+      "order": 8
     }
   ],
   "warmupParams": {},

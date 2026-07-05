@@ -33,7 +33,7 @@
   "estimatedDurationSec": 120,
   "exposedParameters": [
     {
-      "key": "first_frame_31",
+      "key": "loadimage_image_31",
       "nodeId": "31",
       "field": "image",
       "type": "image",
@@ -43,7 +43,7 @@
       "order": 0
     },
     {
-      "key": "last_frame_39",
+      "key": "loadimage_image_39",
       "nodeId": "39",
       "field": "image",
       "type": "image",
@@ -53,7 +53,7 @@
       "order": 1
     },
     {
-      "key": "prompt_129_128",
+      "key": "cliptextencode_text_129_128",
       "nodeId": "129:128",
       "field": "text",
       "type": "textarea",
@@ -63,7 +63,7 @@
       "order": 2
     },
     {
-      "key": "negative_129_112",
+      "key": "cliptextencode_text_129_112",
       "nodeId": "129:112",
       "field": "text",
       "type": "textarea",
@@ -73,7 +73,7 @@
       "order": 3
     },
     {
-      "key": "duration_129_102",
+      "key": "primitiveint_value_129_102",
       "nodeId": "129:102",
       "field": "value",
       "type": "number",
@@ -86,7 +86,27 @@
       "order": 4
     },
     {
-      "key": "frame_rate_129_114",
+      "key": "primitiveint_value_129_113",
+      "nodeId": "129:113",
+      "field": "value",
+      "type": "number",
+      "label": "width",
+      "default": 1280,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "primitiveint_value_129_98",
+      "nodeId": "129:98",
+      "field": "value",
+      "type": "number",
+      "label": "height",
+      "default": 720,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "primitiveint_value_129_114",
       "nodeId": "129:114",
       "field": "value",
       "type": "number",
@@ -96,10 +116,10 @@
       "max": 30,
       "step": 1,
       "required": false,
-      "order": 5
+      "order": 7
     },
     {
-      "key": "seed_129_100",
+      "key": "randomnoise_noise_seed_129_100",
       "nodeId": "129:100",
       "field": "noise_seed",
       "type": "number",
@@ -109,7 +129,7 @@
       "max": 4294967295,
       "step": 1,
       "required": false,
-      "order": 6
+      "order": 8
     }
   ],
   "warmupParams": {},
