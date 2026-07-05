@@ -107,7 +107,11 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
         }
     };
 
-    const usable = workflows.filter(w => !w.unavailable);
+    // Alphabetical by display name (case-insensitive, natural-number order) so the
+    // library reads predictably; group filter + search derive from this order.
+    const usable = workflows
+        .filter(w => !w.unavailable)
+        .sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id, undefined, { sensitivity: 'base', numeric: true }));
     // Keyword search: every whitespace-separated term must appear somewhere in
     // the name / description / tags / category / id (AND match). Runs before the
     // group filter so the chip counts reflect the current search.
