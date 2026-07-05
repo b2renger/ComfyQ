@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "id": "flux2_klein_inpaint_reference",
+  "name": "Flux2 Klein 9B — inpaint with reference (paint & insert)",
+  "description": "Upload a scene, paint where new content should go, and upload a reference image of what to insert (an object, subject, or style). Flux.2 Klein brings the reference into the painted area — 'put this product on that shelf', 'replace the sofa with this one'. The prompt steers how the reference is used.",
+  "category": "image-edit",
+  "tags": [
+    "flux2",
+    "klein",
+    "9b",
+    "inpaint",
+    "mask",
+    "reference",
+    "image-edit"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "flux2_klein_inpaint_reference.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 18,
+    "models": [
+      {
+        "type": "unet",
+        "file": "flux-2-klein-9b-fp8.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen_3_8b_fp8mixed.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "flux2-vae.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 20,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_1",
+      "nodeId": "1",
+      "field": "image",
+      "type": "mask",
+      "label": "Scene image (paint where the reference goes)",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_22",
+      "nodeId": "22",
+      "field": "image",
+      "type": "image",
+      "label": "Reference image (what to insert)",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "cliptextencode_text_6",
+      "nodeId": "6",
+      "field": "text",
+      "type": "textarea",
+      "label": "How to use the reference",
+      "default": "Add the reference image's subject into the masked area, matching the lighting and perspective.",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "cliptextencode_text_7",
+      "nodeId": "7",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt (optional)",
+      "default": "",
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "randomnoise_noise_seed_15",
+      "nodeId": "15",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 4
+    }
+  ],
+  "warmupParams": {
+    "cliptextencode_text_6": "insert the reference object into the masked area"
+  },
+  "presets": {}
+}
