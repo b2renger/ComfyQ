@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "id": "qwen_multiple_character_angles",
-  "name": "Qwen Image Edit — multiple character angles",
-  "description": "Upload one character (or any subject) and get 8 camera angles of it in a single run — the model re-renders the same subject from each viewpoint. The 8 default views are close-up, wide-angle lens, aerial view, low-angle, and 45° & 90° turns to the left and right, but you can edit any of them: the model follows a 'Turn/Rotate the camera to…' grammar, e.g. 'Rotate the camera 180 degrees to show the back view' or 'Turn the camera to a profile side view'. Works best with a single clear subject on a simple background.",
+  "name": "Qwen Image Edit — character camera angle",
+  "description": "Re-render an existing image from a new camera angle — one view per run. Upload a subject (a character, product, or object), describe the camera move, and the model shows the same subject from that viewpoint. To build a full turnaround, schedule the workflow once per angle (or invent your own). Example angle prompts to paste — 'Turn the camera to a close-up', 'Turn the camera to a wide-angle lens', 'Turn the camera to an aerial view', 'Turn the camera to a low-angle view', 'Rotate the camera 45 degrees to the left' (or right), 'Rotate the camera 90 degrees to the left' (or right), 'Rotate the camera 180 degrees to show the back view', 'Turn the camera to a profile side view'. Works best with a single clear subject on a simple background.",
   "category": "image-edit",
   "tags": [
     "qwen",
     "qwen-image-edit",
-    "multi-angle",
+    "camera-angle",
     "character",
-    "turnaround",
-    "views",
+    "viewpoint",
+    "rotate",
     "image-edit"
   ],
   "thumbnail": null,
@@ -28,7 +28,7 @@
       { "type": "lora", "file": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors" }
     ]
   },
-  "estimatedDurationSec": 300,
+  "estimatedDurationSec": 60,
   "exposedParameters": [
     {
       "key": "loadimage_image_25",
@@ -45,82 +45,27 @@
       "nodeId": "427:221:151",
       "field": "prompt",
       "type": "textarea",
-      "label": "Angle 1 — close-up",
+      "label": "Camera angle (describe the new view)",
       "default": "Turn the camera to a close-up.",
-      "required": false,
+      "required": true,
       "order": 1
     },
     {
-      "key": "textencodeqwenimageeditplus_prompt_427_296_278",
-      "nodeId": "427:296:278",
-      "field": "prompt",
-      "type": "textarea",
-      "label": "Angle 2 — wide-angle lens",
-      "default": "Turn the camera to a wide-angle lens.",
+      "key": "ksampler_seed_427_221_169",
+      "nodeId": "427:221:169",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
       "required": false,
       "order": 2
-    },
-    {
-      "key": "textencodeqwenimageeditplus_prompt_427_271_253",
-      "nodeId": "427:271:253",
-      "field": "prompt",
-      "type": "textarea",
-      "label": "Angle 3 — aerial view",
-      "default": "Turn the camera to an aerial view.",
-      "required": false,
-      "order": 3
-    },
-    {
-      "key": "textencodeqwenimageeditplus_prompt_427_346_328",
-      "nodeId": "427:346:328",
-      "field": "prompt",
-      "type": "textarea",
-      "label": "Angle 4 — low-angle view",
-      "default": "Turn the camera to a low-angle view.",
-      "required": false,
-      "order": 4
-    },
-    {
-      "key": "textencodeqwenimageeditplus_prompt_427_423_405",
-      "nodeId": "427:423:405",
-      "field": "prompt",
-      "type": "textarea",
-      "label": "Angle 5 — 45° to the left",
-      "default": "Rotate the camera 45 degrees to the left.",
-      "required": false,
-      "order": 5
-    },
-    {
-      "key": "textencodeqwenimageeditplus_prompt_427_246_228",
-      "nodeId": "427:246:228",
-      "field": "prompt",
-      "type": "textarea",
-      "label": "Angle 6 — 45° to the right",
-      "default": "Rotate the camera 45 degrees to the right.",
-      "required": false,
-      "order": 6
-    },
-    {
-      "key": "textencodeqwenimageeditplus_prompt_427_371_353",
-      "nodeId": "427:371:353",
-      "field": "prompt",
-      "type": "textarea",
-      "label": "Angle 7 — 90° to the left",
-      "default": "Rotate the camera 90 degrees to the left.",
-      "required": false,
-      "order": 7
-    },
-    {
-      "key": "textencodeqwenimageeditplus_prompt_427_321_303",
-      "nodeId": "427:321:303",
-      "field": "prompt",
-      "type": "textarea",
-      "label": "Angle 8 — 90° to the right",
-      "default": "Rotate the camera 90 degrees to the right.",
-      "required": false,
-      "order": 8
     }
   ],
-  "warmupParams": {},
+  "warmupParams": {
+    "textencodeqwenimageeditplus_prompt_427_221_151": "Turn the camera to a close-up."
+  },
   "presets": {}
 }
