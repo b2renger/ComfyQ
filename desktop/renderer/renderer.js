@@ -53,7 +53,8 @@ themeBtn.addEventListener('click', () => {
 
 // Workflow group → icon, matching the ComfyQ admin library's filter chips (the
 // user-facing taxonomy, lucide icons): 3D→box, Audio→music, Description→file,
-// Image generation→wand, Video generation→video, Utilities→wrench, else→grid.
+// Image generation→wand, Image editing→brush, Video generation→video,
+// Video editing→film, Utilities→wrench, else→grid.
 // A fine-grained meta `category` first maps to one group (same map as the admin
 // WorkflowSelector), so the served-workflow icon mirrors its chip exactly.
 const ICON = {
@@ -63,23 +64,29 @@ const ICON = {
     box: '<path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/>',
     file: '<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/>',
     wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
-    grid: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>'
+    grid: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
+    brush: '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+    film: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/>'
 };
-// fine-grained category → group (mirrors WorkflowSelector's CATEGORY_GROUP)
+// fine-grained category → group (mirrors WorkflowSelector's CATEGORY_GROUP).
+// Generation and editing are separate groups; i2v is generation, not an edit.
 const CATEGORY_GROUP = {
     '3d': '3d', 'audio': 'audio', 'description': 'description',
-    't2i': 'image', 'image-edit': 'image',
-    'i2v': 'video',
+    't2i': 'image', 'image-edit': 'image-edit',
+    'i2v': 'video', 'video-edit': 'video-edit',
     'i2i': 'utility', 'preprocessor': 'utility',
     'other': 'other'
 };
 const GROUP_ICON = {
     '3d': 'box', 'audio': 'music', 'description': 'file',
-    'image': 'wand', 'video': 'video', 'utility': 'wrench', 'other': 'grid'
+    'image': 'wand', 'image-edit': 'brush', 'video': 'video', 'video-edit': 'film',
+    'utility': 'wrench', 'other': 'grid'
 };
 const GROUP_LABEL = {
     '3d': '3D', 'audio': 'Audio', 'description': 'Description',
-    'image': 'Image generation', 'video': 'Video generation', 'utility': 'Utilities', 'other': 'Other'
+    'image': 'Image generation', 'image-edit': 'Image editing',
+    'video': 'Video generation', 'video-edit': 'Video editing',
+    'utility': 'Utilities', 'other': 'Other'
 };
 // Fallback when a (stale) server doesn't send `category`: infer the group from
 // the workflow id. Order matters — utilities (upscale/segment/interpolation)
@@ -87,12 +94,16 @@ const GROUP_LABEL = {
 function groupFromId(id) {
     const s = String(id || '').toLowerCase();
     if (!s) return null;
-    if (/upscale|seedvr2|interpolat|segment|preprocess|depth/.test(s)) return 'utility';
+    if (/upscale|seedvr2|interpolat|segment|preprocess/.test(s)) return 'utility';
     if (/(^|_)3d|triposplat|splat|gaussian|hunyuan3d/.test(s)) return '3d';
     if (/(^|_)audio|stable_audio|music/.test(s)) return 'audio';
     if (/description|caption|(^|_)llm/.test(s)) return 'description';
-    if (/(^|_)video|i2v|flf2v|vid2vid|liveportrait|ltx|wan|bernini_r_video/.test(s)) return 'video';
-    if (/(^|_)image|t2i|image[-_]edit|inpaint|ideogram|qwen|flux|bernini_r_image/.test(s)) return 'image';
+    // Editing before generation so vid2vid / *_video_editing / inpaint / *_edit
+    // ids route to the edit groups, not the plain generation buckets.
+    if (/vid2vid|video[-_]?edit|bernini_r_video/.test(s)) return 'video-edit';
+    if (/image[-_]?edit|inpaint|ref_control|angles|bernini_r_image/.test(s)) return 'image-edit';
+    if (/(^|_)video|i2v|flf2v|liveportrait|ltx|wan/.test(s)) return 'video';
+    if (/(^|_)image|t2i|ideogram|qwen|flux|krea/.test(s)) return 'image';
     return null;
 }
 function groupOfWf(wf) {

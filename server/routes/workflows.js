@@ -11,7 +11,7 @@ function makeRouter({ registry, configManager, benchmarkService, adminGate }) {
             const summaries = registry.summaries({ includeUnavailable, includeHidden: false });
             const categories = {
                 't2i': 'Text to Image', 'image-edit': 'Image Editing',
-                'i2v': 'Image to Video', 'i2i': 'Image to Image',
+                'i2v': 'Image to Video', 'video-edit': 'Video Editing', 'i2i': 'Image to Image',
                 'audio': 'Audio Generation', '3d': '3D Generation',
                 'preprocessor': 'Preprocessor', 'description': 'Description', 'other': 'Other'
             };

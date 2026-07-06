@@ -3,7 +3,7 @@
   "id": "video_ltx2_3_ic_lora_vid2vid",
   "name": "LTX 2.3 IC-LoRA — video to video (depth + audio)",
   "description": "Restyle a source video into a new scene while keeping its motion and structure. The source video is sliced to ~5s, depth is extracted (MoGe) and used as an IC-LoRA control; a reference image sets the look; LTX 2.3 generates the result with a matching audio track.\n\nTwo prompt boxes: with \"Enhance prompt with AI\" OFF, the \"Prompt (used as-is)\" box drives generation. With it ON, the \"Prompt (AI-enhanced)\" box is rewritten by an in-graph LLM using your reference image. The inactive box is greyed out.",
-  "category": "i2v",
+  "category": "video-edit",
   "tags": [
     "ltx",
     "ltx2.3",

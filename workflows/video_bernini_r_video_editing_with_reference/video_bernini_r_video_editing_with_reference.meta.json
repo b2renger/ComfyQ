@@ -3,7 +3,7 @@
   "id": "video_bernini_r_video_editing_with_reference",
   "name": "Wan 2.2 Bernini-R — video editing with a reference image",
   "description": "Edit a short video guided by a reference image. Upload a clip, a reference image (a look, subject, or object to bring in), and a text instruction — the Bernini-R model (Wan 2.2) regenerates the clip following the prompt and the reference while keeping the source motion and timing. The original audio is carried through.\n\n• Pick an **edit type**: \"with Reference\" (general reference-guided edit) or \"Ads / Content Insertion\" (insert the reference subject/product into the scene).\n• **Fast mode** (Turbo LoRA) is on by default — ~6 steps. Turn it off for slower, higher-quality 40-step runs.\n• Only the first few seconds are processed (set the clip length) — keep clips short, video editing is heavy.\n\nFor editing by text alone (no reference image), use the plain video-editing version instead.",
-  "category": "i2v",
+  "category": "video-edit",
   "tags": [
     "wan",
     "wan2.2",

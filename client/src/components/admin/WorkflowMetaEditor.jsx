@@ -10,6 +10,7 @@ const CATEGORIES = [
     { value: 't2i', label: 'Text to Image' },
     { value: 'image-edit', label: 'Image Editing' },
     { value: 'i2v', label: 'Image to Video' },
+    { value: 'video-edit', label: 'Video Editing' },
     { value: 'i2i', label: 'Image to Image' },
     { value: 'audio', label: 'Audio Generation' },
     { value: '3d', label: '3D Generation' },

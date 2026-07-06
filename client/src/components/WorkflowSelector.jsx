@@ -3,7 +3,7 @@ import {
     Image, Video, Wand2, Music, Box, LayoutGrid, List,
     RefreshCw, ChevronRight, Sparkles, Clock, Tag,
     Pencil, Trash2, Gauge, Cpu, FileText, Wrench, Search, X,
-    ExternalLink, Power, Radio, Square
+    ExternalLink, Power, Radio, Square, Brush, Film
 } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
@@ -11,13 +11,17 @@ import { SERVER_URL } from '../utils/api';
 
 // "Type of workflow" buckets shown as filter chips in the admin library. Each
 // fine-grained meta category maps to exactly one group; this is the user-facing
-// taxonomy (3D / audio / description / image gen / video gen / utilities).
+// taxonomy. Generation and editing are separate groups: creating a new image /
+// video is distinct from modifying an existing one (i2v is generation — a video
+// grown from an image — not an edit).
 const GROUPS = [
     { key: '3d', label: '3D', icon: Box },
     { key: 'audio', label: 'Audio', icon: Music },
     { key: 'description', label: 'Description', icon: FileText },
     { key: 'image', label: 'Image generation', icon: Wand2 },
+    { key: 'image-edit', label: 'Image editing', icon: Brush },
     { key: 'video', label: 'Video generation', icon: Video },
+    { key: 'video-edit', label: 'Video editing', icon: Film },
     { key: 'utility', label: 'Utilities', icon: Wrench },
     { key: 'other', label: 'Other', icon: LayoutGrid },
 ];
@@ -25,8 +29,10 @@ const CATEGORY_GROUP = {
     '3d': '3d',
     'audio': 'audio',
     'description': 'description',
-    't2i': 'image', 'image-edit': 'image',
-    'i2v': 'video',
+    // Generation vs editing kept apart. t2i/i2v make new media; image-edit /
+    // video-edit modify media the user supplies.
+    't2i': 'image', 'image-edit': 'image-edit',
+    'i2v': 'video', 'video-edit': 'video-edit',
     // Image-to-image (upscalers) and preprocessors (segmentation, frame
     // interpolation, depth) are all "utilities" in the user-facing taxonomy.
     'i2i': 'utility', 'preprocessor': 'utility',

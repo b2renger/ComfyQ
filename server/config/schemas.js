@@ -57,7 +57,7 @@ const WorkflowMeta = z.object({
     name: z.string().min(1),
     description: z.string().default(''),
     category: z.enum([
-        't2i', 'image-edit', 'i2v', 'i2i',
+        't2i', 'image-edit', 'i2v', 'video-edit', 'i2i',
         'audio', '3d', 'preprocessor', 'description', 'other'
     ]).default('other'),
     tags: z.array(z.string()).default([]),
