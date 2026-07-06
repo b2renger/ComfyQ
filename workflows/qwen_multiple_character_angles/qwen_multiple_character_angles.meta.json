@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "id": "qwen_multiple_character_angles",
+  "name": "Qwen Image Edit — multiple character angles",
+  "description": "Upload one character (or any subject) and get 8 camera angles of it in a single run — the model re-renders the same subject from each viewpoint. The 8 default views are close-up, wide-angle lens, aerial view, low-angle, and 45° & 90° turns to the left and right, but you can edit any of them: the model follows a 'Turn/Rotate the camera to…' grammar, e.g. 'Rotate the camera 180 degrees to show the back view' or 'Turn the camera to a profile side view'. Works best with a single clear subject on a simple background.",
+  "category": "image-edit",
+  "tags": [
+    "qwen",
+    "qwen-image-edit",
+    "multi-angle",
+    "character",
+    "turnaround",
+    "views",
+    "image-edit"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "qwen_multiple_character_angles.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      { "type": "unet", "file": "qwen_image_edit_2511_bf16.safetensors" },
+      { "type": "clip", "file": "qwen_2.5_vl_7b_fp8_scaled.safetensors" },
+      { "type": "vae", "file": "qwen_image_vae.safetensors" },
+      { "type": "lora", "file": "qwen-image-edit-2511-multiple-angles-lora.safetensors" },
+      { "type": "lora", "file": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 300,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_25",
+      "nodeId": "25",
+      "field": "image",
+      "type": "image",
+      "label": "Character image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "textencodeqwenimageeditplus_prompt_427_221_151",
+      "nodeId": "427:221:151",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Angle 1 — close-up",
+      "default": "Turn the camera to a close-up.",
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "textencodeqwenimageeditplus_prompt_427_296_278",
+      "nodeId": "427:296:278",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Angle 2 — wide-angle lens",
+      "default": "Turn the camera to a wide-angle lens.",
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "textencodeqwenimageeditplus_prompt_427_271_253",
+      "nodeId": "427:271:253",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Angle 3 — aerial view",
+      "default": "Turn the camera to an aerial view.",
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "textencodeqwenimageeditplus_prompt_427_346_328",
+      "nodeId": "427:346:328",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Angle 4 — low-angle view",
+      "default": "Turn the camera to a low-angle view.",
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "textencodeqwenimageeditplus_prompt_427_423_405",
+      "nodeId": "427:423:405",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Angle 5 — 45° to the left",
+      "default": "Rotate the camera 45 degrees to the left.",
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "textencodeqwenimageeditplus_prompt_427_246_228",
+      "nodeId": "427:246:228",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Angle 6 — 45° to the right",
+      "default": "Rotate the camera 45 degrees to the right.",
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "textencodeqwenimageeditplus_prompt_427_371_353",
+      "nodeId": "427:371:353",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Angle 7 — 90° to the left",
+      "default": "Rotate the camera 90 degrees to the left.",
+      "required": false,
+      "order": 7
+    },
+    {
+      "key": "textencodeqwenimageeditplus_prompt_427_321_303",
+      "nodeId": "427:321:303",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Angle 8 — 90° to the right",
+      "default": "Rotate the camera 90 degrees to the right.",
+      "required": false,
+      "order": 8
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}
