@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "krea2_turbo_t2i_lora",
   "name": "Krea-2 Turbo — text to image (+ style LoRA)",
-  "description": "Fast text-to-image with Krea-2 Turbo (8-step distilled). Type a prompt and pick a Krea-2 style LoRA from the dropdown — 'realism' is on by default. An optional AI step expands short prompts into richer descriptions before generation. Only Krea-2-compatible LoRAs are listed.",
+  "description": "Fast text-to-image with Krea-2 Turbo (8-step distilled). Type a prompt, choose an aspect ratio, and pick a Krea-2 style LoRA from the dropdown — 'realism' is on by default. An AI step expands short prompts into richer descriptions before generation. Only Krea-2-compatible LoRAs are listed.",
   "category": "t2i",
   "tags": [
     "krea",
@@ -42,13 +42,23 @@
   "estimatedDurationSec": 30,
   "exposedParameters": [
     {
-      "key": "primitivestringmultiline_value_30_19",
-      "nodeId": "30:19",
-      "field": "value",
-      "type": "textarea",
-      "label": "Prompt",
-      "default": "A photorealistic portrait of a person in warm afternoon light, shallow depth of field",
-      "required": true,
+      "key": "resolutionselector_aspect_ratio_49",
+      "nodeId": "49",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio",
+      "default": "1:1 (Square)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "required": false,
       "order": 0
     },
     {
@@ -62,6 +72,16 @@
       "order": 1
     },
     {
+      "key": "primitivestringmultiline_value_30_19",
+      "nodeId": "30:19",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt",
+      "default": "A photorealistic portrait of a person in warm afternoon light, shallow depth of field",
+      "required": true,
+      "order": 2
+    },
+    {
       "key": "loraloadermodelonly_lora_name_30_15",
       "nodeId": "30:15",
       "field": "lora_name",
@@ -71,7 +91,7 @@
       "optionsDir": "loras",
       "optionsFilter": "krea2_",
       "required": false,
-      "order": 2
+      "order": 3
     },
     {
       "key": "loraloadermodelonly_strength_model_30_15",
@@ -84,7 +104,7 @@
       "max": 5,
       "step": 0.01,
       "required": false,
-      "order": 3
+      "order": 4
     },
     {
       "key": "ksampler_seed_30_3",
@@ -97,11 +117,11 @@
       "max": 4294967295,
       "step": 1,
       "required": false,
-      "order": 4
+      "order": 5
     }
   ],
   "warmupParams": {
-    "prompt_30_19": "a red apple on a wooden table"
+    "primitivestringmultiline_value_30_19": "a red apple on a wooden table"
   },
   "presets": {}
 }
