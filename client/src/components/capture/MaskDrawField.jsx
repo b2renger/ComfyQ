@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
-import { Upload, X, Brush, Eraser, Undo2, Trash2, Loader2, AlertTriangle, RotateCw, Pencil, Check } from 'lucide-react';
+import { Upload, X, Brush, Eraser, Undo2, Trash2, Loader2, AlertTriangle, RotateCw, Pencil, Check, Contrast } from 'lucide-react';
 import { resizeImageFile } from '../../utils/imageResize';
 
 // MaskDrawField — paint-a-mask input widget for BookingDialog (param type
@@ -290,6 +290,33 @@ const MaskDrawField = ({
         redraw();
     };
 
+    // Invert the mask — swap the painted (replace) and unpainted (keep) regions.
+    // Useful for "paint what to keep, then flip to replace everything else"
+    // (e.g. mask the subject, invert → replace the background). Builds the
+    // inverse alpha by knocking the current mask out of a fully-painted layer.
+    const invertMask = () => {
+        const mask = maskRef.current;
+        if (!mask) return;
+        try {
+            const snap = mask.getContext('2d').getImageData(0, 0, mask.width, mask.height);
+            undoStack.current.push(snap);
+            if (undoStack.current.length > MAX_UNDO) undoStack.current.shift();
+        } catch { /* getImageData never throws here (same-origin) */ }
+        const tmp = document.createElement('canvas');
+        tmp.width = mask.width; tmp.height = mask.height;
+        const tctx = tmp.getContext('2d');
+        tctx.fillStyle = brushColor;
+        tctx.fillRect(0, 0, tmp.width, tmp.height);
+        tctx.globalCompositeOperation = 'destination-out';
+        tctx.drawImage(mask, 0, 0); // knock out where the mask is currently opaque
+        const ctx = mask.getContext('2d');
+        ctx.clearRect(0, 0, mask.width, mask.height);
+        ctx.drawImage(tmp, 0, 0);
+        setStrokes((n) => n + 1); // an undoable op — keeps undo/clear enabled
+        redraw();
+        commit();
+    };
+
     const clearMask = () => {
         const mask = maskRef.current;
         if (!mask) return;
@@ -383,6 +410,15 @@ const MaskDrawField = ({
                 />
             </div>
             <div className="flex items-center gap-1.5 ml-1">
+                <button
+                    type="button"
+                    onClick={invertMask}
+                    disabled={strokes === 0}
+                    className="inline-flex items-center gap-1 px-2 py-1.5 rounded-lg text-xs font-medium border border-border bg-surface/60 text-foreground hover:border-primary/40 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                    title="Invert the mask — swap the painted and unpainted areas"
+                >
+                    <Contrast size={14} /> Invert
+                </button>
                 <button
                     type="button"
                     onClick={undo}

@@ -27,7 +27,7 @@ npm run build  --prefix client # production build to client/dist
 npm run lint   --prefix client # ESLint
 ```
 
-Vite serves over plain HTTP and proxies every backend route + the Socket.IO channel to the Express server on `:3000`, so the page stays single-origin. HTTP is deliberate: a self-signed HTTPS cert can't be trusted across Safari/Chrome/mobile in a BYOD workshop without installing a CA on every device. The trade-off is that live in-browser webcam preview (`getUserMedia`) only works on `localhost`; off-localhost the camera button falls back to the device's native camera app via a file picker (`canUseLiveCamera()` in `MediaCaptureField.jsx` detects this automatically).
+Vite serves over plain HTTP and proxies every backend route + the Socket.IO channel to the Express server on `:3000`, so the page stays single-origin. HTTP is deliberate: a self-signed HTTPS cert can't be trusted across Safari/Chrome/mobile in a BYOD workshop without installing a CA on every device. The trade-off is that secure-context-only browser APIs (`getUserMedia`, `navigator.clipboard`) don't work off-`localhost`, so ComfyQ avoids them: image/video/audio inputs are **file uploads** (`MediaCaptureField` — a phone's file picker still offers "Take Photo"), and clipboard writes go through the `execCommand('copy')` fallback in `utils/clipboard.js`. In-browser webcam capture was removed 2026-05-19 for this reason.
 
 ## Layout
 
@@ -41,12 +41,13 @@ src/
 │   └── Dashboard.jsx         job table, filters, CSV export, admin actions
 ├── components/
 │   ├── BookingDialog.jsx     parameter form + media inputs for a new job
+│   ├── DynamicParamFields.jsx shared exposed-parameter renderer (used by BookingDialog + the editor's live preview)
 │   ├── MyJobsPanel.jsx       per-user job list with status + actions
 │   ├── WorkflowSelector.jsx  picker when multiple workflows are loaded
 │   ├── UsernameModal.jsx     student identity gate
 │   ├── ImageLightbox.jsx     result preview
 │   ├── admin/                upload, parameter selector, config preview, meta editor
-│   ├── capture/              media upload widget (MediaCaptureField — click + drag-and-drop)
+│   ├── capture/              media inputs — MediaCaptureField (image/video/audio upload) + MaskDrawField (paint-a-mask in a fullscreen modal)
 │   └── ui/                   Button, Card, Modal, Toast, Badge, ConfirmDialog, ThemeToggle, WorkflowChip, MediaPreview
 ├── context/
 │   ├── SocketContext.jsx     shared socket instance + live job/queue state

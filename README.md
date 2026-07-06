@@ -44,10 +44,10 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
 - ✅ **3D viewers** — GLB model viewer (three.js) + Gaussian-splat viewer (Spark), both in lightbox + cards with export buttons.
 - ✅ **Target workflows** *(bundled in `workflows/`; TripoSplat verified on rig 2026-06-10, LivePortrait on 2026-06-15, SAM3 segmentation on 2026-06-16, FILM frame interpolation and SeedVR2 upscalers on 2026-06-17, the Gemma 4 captioners registered 2026-06-21, the rest registered through 2026-06-13 and pending rig smoke-test):*
   - TripoSplat (image → `.spz` + `.ply` + `.glb`) — **verified on rig**
-  - Qwen-Edit multi-angle (1 image → 8 angle images, N-image gallery)
+  - Qwen-Edit multi-angle (1 image → 8 angle images, N-image gallery) *(moved to `_candidate_workflows/` staging in the cleanup; the N-image gallery infra remains)*
   - Stable Audio 3 (text → `.mp3`, in-graph magic-prompt LLM)
   - Ideogram 4.0 t2i (structured-JSON prompt)
-  - Wan 2.1 360° rotate LoRA (image → video)
+  - Wan 2.1 360° rotate LoRA (image → video) *(removed in the cleanup; the i2v infra it reused remains)*
   - LTX 2.3 t2v (text → video; built-in Gemma auto-prompt enhancer; no input image) *(registered 2026-06-26, pending rig verification)*
   - LTX 2.3 i2v (image → video)
   - LTX 2.3 FLF2V (first + last frame → video with audio)
@@ -65,9 +65,10 @@ See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed ste
   - Bernini-R image editing (image + instruction → edited image; Wan 2.2, Turbo "fast mode" toggle, edit-type selector) — **verified on rig**
   - Bernini-R image editing with reference image (image + reference image + instruction → edited image) — **verified on rig**
   - Bernini-R video editing with reference image, **auto-prompt** (video + reference image → edited video; a Gemma-4 chain writes the edit instruction for you — no prompt to type) *(registered 2026-06-25, pending rig verification)*
-  - Flux.2 Klein inpainting — **paint a mask** + prompt (paint the area to replace; first **paint-a-mask** input) *(registered 2026-06-25, pending rig verification)*
-  - Flux.2 Klein inpainting with reference image — paint a mask + prompt + a reference image to bring in *(registered 2026-06-25, pending rig verification)*
+  - Flux.2 Klein inpainting — **paint a mask** + prompt (paint the area to replace, in a fullscreen mask painter; first **paint-a-mask** input) *(re-added 2026-07-05, pending rig verification)*
+  - Flux.2 Klein inpainting with reference image — paint a mask + prompt + a reference image to insert into the painted area *(re-added 2026-07-05, pending rig verification)*
   - Flux.2 Dev image edit (image + instruction → edited image; kontext-style `ReferenceLatent`, Turbo "Fast mode" 8-step toggle) — **verified on rig** *(added 2026-07-05)*
+  - Flux.2 Dev text-to-image (prompt → image; shared width/height, Turbo "Fast mode" 8-step toggle) *(added 2026-07-05, pending rig verification)*
 - ✅ **Phase F — Multi-instance federation (fleet monitor)** *(first slice shipped 2026-06-28; now in user testing).* A **LAN status beacon** + a standalone **[ComfyQ Discovery desktop app](#comfyq-discovery-desktop-app)** (Electron — Windows / macOS / Linux) that lists every ComfyQ machine on the network — name, GPU/RAM, IP, status, active workflow, planned jobs — with a one-click "open this rig's booking page". The desktop app now ships as a **downloadable installer that auto-updates itself** from GitHub Releases (version number + "Check for updates" button in its settings). Remaining locked design (mDNS, cross-instance admin actions, in-browser panel, student station picker, orchestrator role) still deferred. See [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
 - 🚧 **Next** — two planned features: **batch processing** (admin runs a workflow over a folder of inputs from a manifest) and **instance mode** (2–3 ComfyQ instances + backends on one machine). See [implementation_plan.md](implementation_plan.md) → Phase G / Phase H.
 
@@ -100,6 +101,8 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
 
    **Cloned the drive to a different letter?** Two shortcuts: ComfyQ **auto-detects** ComfyUI on `npm run dev` (it scans local drives for the install whenever the configured root is missing/stale, so a cloned or fresh drive Just Works), and there's an **Auto-detect** button to re-run it on demand. If only the drive letter changed, use the **Drive letter** dropdown to swap it across *every* path at once instead of editing each field.
 
+   The **ComfyUI backend** card below Settings can **Launch / Restart / Stop** ComfyUI on the network and holds the **Expose ComfyUI to the LAN** toggle (so anyone can open its native web UI on this GPU). If ComfyUI was started outside ComfyQ, **Restart** offers to *take it over* — it stops that instance and relaunches one ComfyQ manages, so Restart/Stop and "Open in ComfyUI" work afterward.
+
    For a Windows portable ComfyUI install, the `root_path` must point at the directory containing `main.py`, **not** the wrapper folder. With a typical install that's `...\ComfyUI_windows_portable\ComfyUI` (and `python_executable: ../python_embeded/python.exe`, or absolute).
 2. **Add Workflow** — drag-and-drop an API-format JSON into the upload box. To get one from ComfyUI:
    - Open your workflow.
@@ -120,7 +123,7 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
 
    All three need: `flux-2-klein-base-9b-fp8.safetensors` (UNET), `flux2-vae.safetensors` (VAE), `qwen_3_8b_fp8mixed.safetensors` (CLIP) in the corresponding `<comfy_root>/models/` subfolders.
 
-   It also bundles the **target workshop workflows** (TripoSplat, Qwen multi-angle, Stable Audio 3, Ideogram 4.0, Wan 360°, and the LTX 2.3 family — see [Status](#status)). Each needs its own models in `<comfy_root>/models/`; the workflow card shows `Unavailable` until they're present. Raw, unedited API exports for every bundled workflow live in `workflows/exported_api_workflow_comfy/` for reference.
+   It also bundles the **target workshop workflows** (TripoSplat, Stable Audio 3, Ideogram 4.0, the Flux.2 Dev/Klein families incl. inpainting, the Wan 2.2 Bernini editors, the SeedVR2 upscalers, the Gemma captioners, and the LTX 2.3 family — see [Status](#status) for the full list and per-workflow state). Each needs its own models in `<comfy_root>/models/`; the workflow card shows `Unavailable` until they're present. Raw, unedited API exports for every bundled workflow live in `workflows/exported_api_workflow_comfy/` for reference.
 3. **Workflow library** — pick one → **Activate & start student mode**. The server restarts into student mode and launches (or attaches to) ComfyUI.
 4. **Calibrate** (optional but recommended) — click the gauge icon on a workflow card (works in admin **or** student mode; in admin mode ComfyUI is started on demand). ComfyQ does **one real run** (a fresh seed avoids ComfyUI's result cache) and writes `<id>.runtime.json` with the first-run cost (incl. model load), the recurring generation cost (what the timeline uses), and the GPU. Inputs are supplied automatically from the assets directory (`config.json` → `assets.dir`, default `D:\_assets`) — no upload needed. Image inputs fall back to a built-in reference image if the assets dir has none.
 5. **(Optional) Admin password** — required for any cross-user destructive action (deleting / cancelling another student's job, restarting, resetting, cleaning outputs). **Without a password set, cross-user deletes are refused entirely** — you can still manage your own jobs, but you can't interfere with anyone else's. Set one for classroom deployments.
