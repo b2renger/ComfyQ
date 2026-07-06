@@ -23,6 +23,7 @@ const AdminConfig = ({ currentMode }) => {
     const [pathDraft, setPathDraft] = useState({});
     const [pickedWorkflow, setPickedWorkflow] = useState(null);
     const [activatingId, setActivatingId] = useState(null);
+    const [deactivating, setDeactivating] = useState(false);
     const [adminPassword, setAdminPassword] = useState('');
     const [passwordValid, setPasswordValid] = useState(false);
     const [newAdminPassword, setNewAdminPassword] = useState('');
@@ -381,15 +382,19 @@ const AdminConfig = ({ currentMode }) => {
         }
     };
 
+    // Stop serving the active workflow: flip the server back to admin mode (so
+    // students can no longer book) and restart. Surfaced both as the header
+    // button and as a per-card "Stop serving" button on the serving workflow.
     const resetToAdmin = async () => {
+        setDeactivating(true);
         try {
             const res = await fetch(`${SERVER_URL}/admin/reset-to-admin`, {
                 method: 'POST', headers: adminHeaders()
             });
             if (!res.ok) throw new Error((await res.json()).error || 'Failed');
-            showToast('Resetting to admin mode…');
+            showToast('Stopped serving — switching to admin mode…');
             setTimeout(() => window.location.reload(), 2000);
-        } catch (e) { showToast(e.message, 'err'); }
+        } catch (e) { showToast(e.message, 'err'); setDeactivating(false); }
     };
 
     const calibrateWorkflow = async (id) => {
@@ -772,6 +777,9 @@ const AdminConfig = ({ currentMode }) => {
                     onActivate={(id) => activate(id)}
                     activatingId={activatingId}
                     canActivate={pathsConfigured}
+                    onDeactivate={resetToAdmin}
+                    deactivating={deactivating}
+                    serving={config.mode === 'student'}
                 />
                 <div className="mt-6 flex items-center justify-end gap-2 flex-wrap">
                     {pickedWorkflow && <span className="text-xs text-muted mr-auto">Selected: <code>{pickedWorkflow.id}</code></span>}

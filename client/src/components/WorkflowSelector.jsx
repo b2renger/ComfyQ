@@ -3,7 +3,7 @@ import {
     Image, Video, Wand2, Music, Box, LayoutGrid, List,
     RefreshCw, ChevronRight, Sparkles, Clock, Tag,
     Pencil, Trash2, Gauge, Cpu, FileText, Wrench, Search, X,
-    ExternalLink, Power, Radio
+    ExternalLink, Power, Radio, Square
 } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
@@ -40,7 +40,7 @@ const groupOf = (cat) => CATEGORY_GROUP[cat] || 'other';
  * Calls onSelect(workflowDetails) when a workflow is chosen.
  * Calls onPresetSelect(name, values) when a preset chip is clicked.
  */
-const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true }) => {
+const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false }) => {
     const [workflows, setWorkflows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -250,6 +250,9 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                     const IconComponent = categoryIcons[w.category] || LayoutGrid;
                     const isSelected = selectedWorkflow?.id === w.id;
                     const isActive = activeWorkflowId === w.id;
+                    // "Serving" is only true when the server is actually in student
+                    // mode serving this workflow; in admin mode nothing is served.
+                    const isServing = isActive && serving;
                     const isCalibrating = calibratingIds.has(w.id);
                     return (
                         <div
@@ -345,13 +348,27 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                         </button>
                                     )}
                                     {onActivate && (
-                                        isActive ? (
-                                            <span
-                                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-success/15 border border-success/40 text-success ml-auto"
-                                                title="Active workflow — served to students in student mode"
-                                            >
-                                                <Radio size={13} /> Serving
-                                            </span>
+                                        isServing ? (
+                                            <div className="inline-flex items-center gap-1.5 ml-auto">
+                                                <span
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-success/15 border border-success/40 text-success"
+                                                    title="Active workflow — served to students in student mode"
+                                                >
+                                                    <Radio size={13} /> Serving
+                                                </span>
+                                                {onDeactivate && (
+                                                    <button
+                                                        type="button"
+                                                        disabled={deactivating}
+                                                        onClick={(e) => { e.stopPropagation(); onDeactivate(w.id); }}
+                                                        className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-background border border-border hover:border-danger/50 text-muted hover:text-danger transition-colors disabled:opacity-60 disabled:cursor-wait"
+                                                        title="Stop serving — switch the server back to admin mode"
+                                                    >
+                                                        {deactivating ? <RefreshCw size={13} className="animate-spin" /> : <Square size={13} />}
+                                                        <span>{deactivating ? 'Stopping…' : 'Stop serving'}</span>
+                                                    </button>
+                                                )}
+                                            </div>
                                         ) : (
                                             <button
                                                 type="button"
