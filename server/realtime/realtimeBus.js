@@ -4,6 +4,7 @@ const sm = require('../queue/jobStateMachine');
 const { isAuthorizedForJob } = require('../auth/authGate');
 const { resolveOutputPath } = require('../executor/outputCollector');
 const ingredientsStore = require('../storage/ingredientsStore');
+const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
 
 const HEARTBEAT_MS = 5000;
 
@@ -253,7 +254,7 @@ class RealtimeBus {
             const activeId = cfg.workflows.activeWorkflowId;
             const entry = activeId ? this.registry.get(activeId) : null;
             const parameter_map = entry && !entry.unavailable
-                ? this._buildParameterMap(entry.effective.exposedParameters)
+                ? this._buildParameterMap(entry.effective.exposedParameters, cfg.comfy_ui?.root_path)
                 : {};
             const workflow_info = entry && !entry.unavailable ? {
                 id: entry.id,
@@ -281,11 +282,11 @@ class RealtimeBus {
         }
     }
 
-    _buildParameterMap(exposed) {
+    _buildParameterMap(exposed, comfyRoot) {
         const out = {};
         for (const p of exposed) {
             if (p.enabled === false) continue;
-            out[p.key] = {
+            const entry = {
                 node_id: p.nodeId,
                 field: p.field,
                 type: p.type,
@@ -301,6 +302,19 @@ class RealtimeBus {
                 disabledWhen: p.disabledWhen,
                 required: p.required
             };
+            // A `lora` param's dropdown is filled at broadcast time by scanning
+            // ComfyUI's model dir, filtered to a family by `optionsFilter`. We
+            // also send prettified labels (extension stripped). If the scan
+            // finds nothing (dir missing off-rig), keep the default selectable
+            // so the field never renders empty.
+            if (p.type === 'lora') {
+                let files = listModelFiles(comfyRoot, p.optionsDir || 'loras', p.optionsFilter || '');
+                if (!files.length && p.default) files = [p.default];
+                else if (p.default && !files.includes(p.default)) files = [p.default, ...files];
+                entry.options = files;
+                entry.optionLabels = files.map(prettyModelLabel);
+            }
+            out[p.key] = entry;
         }
         return out;
     }

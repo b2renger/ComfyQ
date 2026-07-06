@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "id": "krea2_turbo_t2i_lora",
+  "name": "Krea-2 Turbo — text to image (+ style LoRA)",
+  "description": "Fast text-to-image with Krea-2 Turbo (8-step distilled). Type a prompt and pick a Krea-2 style LoRA from the dropdown — 'realism' is on by default. An optional AI step expands short prompts into richer descriptions before generation. Only Krea-2-compatible LoRAs are listed.",
+  "category": "t2i",
+  "tags": [
+    "krea",
+    "krea2",
+    "turbo",
+    "t2i",
+    "text-to-image",
+    "lora",
+    "style"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "krea2_turbo_t2i_lora.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      {
+        "type": "unet",
+        "file": "krea2_turbo_fp8_scaled.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_4b_fp8_scaled.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_vae.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "krea2_realism_lora.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 30,
+  "exposedParameters": [
+    {
+      "key": "primitivestringmultiline_value_30_19",
+      "nodeId": "30:19",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt",
+      "default": "A photorealistic portrait of a person in warm afternoon light, shallow depth of field",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "primitiveboolean_value_30_23",
+      "nodeId": "30:23",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Apply a style LoRA",
+      "default": true,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "loraloadermodelonly_lora_name_30_15",
+      "nodeId": "30:15",
+      "field": "lora_name",
+      "type": "lora",
+      "label": "Style LoRA",
+      "default": "krea2_realism_lora.safetensors",
+      "optionsDir": "loras",
+      "optionsFilter": "krea2_",
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "loraloadermodelonly_strength_model_30_15",
+      "nodeId": "30:15",
+      "field": "strength_model",
+      "type": "number",
+      "label": "Style LoRA strength",
+      "default": 1,
+      "min": 0,
+      "max": 5,
+      "step": 0.01,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "ksampler_seed_30_3",
+      "nodeId": "30:3",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 4
+    }
+  ],
+  "warmupParams": {
+    "prompt_30_19": "a red apple on a wooden table"
+  },
+  "presets": {}
+}

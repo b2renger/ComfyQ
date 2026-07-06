@@ -104,18 +104,25 @@ const DynamicParamFields = ({
                     );
                 }
 
-                // Select Input
-                if (type === 'select' && config.options) {
+                // Select / LoRA-picker Input. A `lora` param is a select whose
+                // options are populated server-side (installed LoRAs, filtered to
+                // the compatible family) with optional prettified `optionLabels`.
+                if ((type === 'select' || type === 'lora') && config.options) {
+                    const opts = config.options;
+                    const labels = config.optionLabels || [];
+                    const empty = opts.length === 0;
                     return (
                         <div key={key} className="space-y-1.5">
                             <label className="text-sm font-medium text-slate-300">{label}</label>
                             <select
-                                className="w-full bg-background border border-border rounded-lg p-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all appearance-none cursor-pointer"
+                                disabled={empty}
+                                className="w-full bg-background border border-border rounded-lg p-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 value={values[key] || ''}
                                 onChange={(e) => setVal(key, e.target.value)}
                             >
-                                {config.options.map(opt => (
-                                    <option key={opt} value={opt}>{opt}</option>
+                                {empty && <option value="">{type === 'lora' ? 'No compatible LoRAs found' : '—'}</option>}
+                                {opts.map((opt, i) => (
+                                    <option key={opt} value={opt}>{labels[i] || opt}</option>
                                 ))}
                             </select>
                         </div>

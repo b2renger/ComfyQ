@@ -18,7 +18,7 @@ const CATEGORIES = [
     { value: 'other', label: 'Other' }
 ];
 
-const PARAM_TYPES = ['text', 'textarea', 'number', 'select', 'checkbox', 'image', 'video', 'audio', 'mask'];
+const PARAM_TYPES = ['text', 'textarea', 'number', 'select', 'checkbox', 'image', 'video', 'audio', 'mask', 'lora'];
 
 // Field names that are usually infrastructure, not student-facing.
 const INFRASTRUCTURE_FIELDS = new Set([
@@ -167,6 +167,11 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                     label: p.label,
                     default: coerceDefault(p),
                     options: p.options && p.options.length > 0 ? p.options : undefined,
+                    // `lora`-type options are populated server-side from these
+                    // (a model subdir + filename-prefix filter); preserve them
+                    // through a re-save or the dropdown loses its filter.
+                    optionsDir: p.type === 'lora' ? (p.optionsDir || undefined) : undefined,
+                    optionsFilter: p.type === 'lora' ? (p.optionsFilter || undefined) : undefined,
                     min: p.min,
                     max: p.max,
                     step: p.step,
@@ -466,7 +471,7 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                         </div>
                         {showPreview && (
                             <div className="lg:sticky lg:top-2 self-start min-w-0">
-                                <StudentPreview params={params} />
+                                <StudentPreview params={params} headers={headers} />
                             </div>
                         )}
                         </div>
@@ -489,16 +494,50 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
 // DynamicParamFields the real BookingDialog uses — so it can't drift. Builds a
 // parameter_map from the editor's current (unsaved) params (enabled only, in
 // the admin's order) and drives it with throwaway local state.
-const StudentPreview = ({ params }) => {
+const StudentPreview = ({ params, headers }) => {
+    // `lora`-type dropdowns are filled server-side for the real form; fetch the
+    // same installed-LoRA list here (keyed by dir|filter) so the preview matches.
+    const [loraOpts, setLoraOpts] = useState({});
+    const loraKeys = params
+        .filter(p => p.enabled && p.type === 'lora')
+        .map(p => `${p.optionsDir || 'loras'}|${p.optionsFilter || ''}`);
+    const loraSig = JSON.stringify([...new Set(loraKeys)].sort());
+    useEffect(() => {
+        let cancelled = false;
+        const keys = JSON.parse(loraSig);
+        Promise.all(keys.map(async (k) => {
+            const [dir, filter] = k.split('|');
+            try {
+                const res = await fetch(`${SERVER_URL}/admin/loras?dir=${encodeURIComponent(dir)}&filter=${encodeURIComponent(filter)}`, { headers });
+                const data = await res.json();
+                return [k, { files: data.files || [], labels: data.labels || [] }];
+            } catch { return [k, { files: [], labels: [] }]; }
+        })).then(pairs => { if (!cancelled) setLoraOpts(Object.fromEntries(pairs)); });
+        return () => { cancelled = true; };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loraSig]);
+
     // Editor param shape → wire `parameter_map` shape DynamicParamFields expects.
     const paramMap = useMemo(() => {
         const map = {};
         params.filter(p => p.enabled).forEach((p, i) => {
+            let options = p.options;
+            let optionLabels;
+            if (p.type === 'lora') {
+                const got = loraOpts[`${p.optionsDir || 'loras'}|${p.optionsFilter || ''}`];
+                let files = got?.files || [];
+                let labels = got?.labels || [];
+                if (!files.length && p.default) { files = [p.default]; labels = [p.default]; }
+                else if (p.default && !files.includes(p.default)) { files = [p.default, ...files]; labels = [p.default, ...labels]; }
+                options = files;
+                optionLabels = labels;
+            }
             map[p.key] = {
                 type: p.type,
                 label: p.label,
                 default: p.default,
-                options: p.options,
+                options,
+                optionLabels,
                 min: p.min,
                 max: p.max,
                 step: p.step,
@@ -511,7 +550,7 @@ const StudentPreview = ({ params }) => {
             };
         });
         return map;
-    }, [params]);
+    }, [params, loraOpts]);
 
     // Re-seed the form values when the *structure* changes (keys / types /
     // options / defaults) — NOT on label/order edits, so reordering or renaming

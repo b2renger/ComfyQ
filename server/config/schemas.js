@@ -8,7 +8,14 @@ const ParamType = z.enum([
     // a plain image filename (an RGBA PNG with the painted region transparent),
     // so the materializer / upload / recall / calibration paths treat it exactly
     // like 'image'; only the BookingDialog input widget differs (MaskDrawField).
-    'mask'
+    'mask',
+    // 'lora' is a select whose options are populated SERVER-SIDE at booking time
+    // by scanning ComfyUI's model dir (default `models/loras`), optionally
+    // filtered to a family via `optionsFilter` (a filename prefix, e.g. `krea2_`)
+    // so incompatible LoRAs don't show. The wire value is just the `.safetensors`
+    // filename fed to a LoraLoader field, so materialize/recall/calibration treat
+    // it like a plain string; only the widget (a dynamic dropdown) differs.
+    'lora'
 ]);
 
 const ExposedParameter = z.object({
@@ -19,6 +26,12 @@ const ExposedParameter = z.object({
     label: z.string().min(1),
     default: z.any().optional(),
     options: z.array(z.string()).optional(),
+    // For `lora`-type params: the model subdir to scan (relative to
+    // `<comfy root>/models/`, default `loras`) and a case-insensitive filename
+    // PREFIX to keep (e.g. `krea2_` → only Krea-compatible LoRAs). The options
+    // list is built at booking time by the server, never stored in the meta.
+    optionsDir: z.string().optional(),
+    optionsFilter: z.string().optional(),
     min: z.number().optional(),
     max: z.number().optional(),
     step: z.number().optional(),

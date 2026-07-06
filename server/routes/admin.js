@@ -9,6 +9,7 @@ const { defaultConfig } = require('../config/configManager');
 const { WorkflowMeta } = require('../config/schemas');
 const { validateApiWorkflow } = require('../workflows/workflowValidator');
 const { parseWorkflow } = require('../workflows/workflowParser');
+const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
 const { resolveOutputPath } = require('../executor/outputCollector');
 const sm = require('../queue/jobStateMachine');
 
@@ -586,6 +587,8 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                         label: found.label,
                         default: found.default,
                         options: found.options ?? d.options,
+                        optionsDir: found.optionsDir,
+                        optionsFilter: found.optionsFilter,
                         min: found.min,
                         max: found.max,
                         step: found.step,
@@ -615,6 +618,22 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 templateWorkflow,
                 hasTemplate: !!templateWorkflow
             });
+        } catch (e) { res.status(400).json({ error: e.message }); }
+    });
+
+    // List installed model files (default: LoRAs) for the workflow editor's
+    // Student Preview, so a `lora`-type param's dropdown shows the same options
+    // students see. `filter` is a filename prefix (e.g. `krea2_`); `dir` is the
+    // subdir under `models/` (default `loras`). The live student form gets these
+    // populated server-side in the realtime broadcast — this route is only so the
+    // admin preview can render an accurate dropdown.
+    router.get('/loras', adminGate, (req, res) => {
+        try {
+            const root = configManager.load().config.comfy_ui.root_path;
+            const dir = typeof req.query.dir === 'string' && req.query.dir ? req.query.dir : 'loras';
+            const filter = typeof req.query.filter === 'string' ? req.query.filter : '';
+            const files = listModelFiles(root, dir, filter);
+            res.json({ files, labels: files.map(prettyModelLabel) });
         } catch (e) { res.status(400).json({ error: e.message }); }
     });
 
