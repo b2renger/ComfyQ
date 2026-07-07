@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "id": "video_wan22_4_key-frames",
+  "name": "Wan 2.2 — key-frame animation (4 frames to video)",
+  "description": "Turn four still key frames into one continuous video. Wan 2.2 generates a smooth animated transition between each consecutive pair of frames (frame 1→2, 2→3, 3→4) and stitches the three segments into a single clip that passes through all four images in order. Optionally describe the motion for each transition; leave a box empty to just morph between those two frames. Runs the fast 4-step Lightning path at 720×720.\n\nTip: use frames that share the same subject and framing so the transitions stay coherent.",
+  "category": "i2v",
+  "tags": [
+    "wan",
+    "wan2.2",
+    "flf2v",
+    "key-frames",
+    "keyframe",
+    "animation",
+    "interpolation",
+    "video"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_wan22_4_key-frames.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      {
+        "type": "clip",
+        "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+      },
+      {
+        "type": "unet",
+        "file": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors"
+      },
+      {
+        "type": "unet",
+        "file": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "wan_2.1_vae.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 300,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_62",
+      "nodeId": "62",
+      "field": "image",
+      "type": "image",
+      "label": "Key frame 1 (start)",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_122",
+      "nodeId": "122",
+      "field": "image",
+      "type": "image",
+      "label": "Key frame 2",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "loadimage_image_124",
+      "nodeId": "124",
+      "field": "image",
+      "type": "image",
+      "label": "Key frame 3",
+      "default": "",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "loadimage_image_126",
+      "nodeId": "126",
+      "field": "image",
+      "type": "image",
+      "label": "Key frame 4 (end)",
+      "default": "",
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "cliptextencode_text_140_6",
+      "nodeId": "140:6",
+      "field": "text",
+      "type": "textarea",
+      "label": "Motion: key frame 1 → 2 (optional)",
+      "default": "smooth natural motion between the frames",
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "cliptextencode_text_228_225",
+      "nodeId": "228:225",
+      "field": "text",
+      "type": "textarea",
+      "label": "Motion: key frame 2 → 3 (optional)",
+      "default": "smooth natural motion between the frames",
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "cliptextencode_text_245_242",
+      "nodeId": "245:242",
+      "field": "text",
+      "type": "textarea",
+      "label": "Motion: key frame 3 → 4 (optional)",
+      "default": "smooth natural motion between the frames",
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "ksampleradvanced_noise_seed_140_57",
+      "nodeId": "140:57",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed (segment 1 → 2)",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 7
+    },
+    {
+      "key": "ksampleradvanced_noise_seed_228_222",
+      "nodeId": "228:222",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed (segment 2 → 3)",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 8
+    },
+    {
+      "key": "ksampleradvanced_noise_seed_245_239",
+      "nodeId": "245:239",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed (segment 3 → 4)",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 9
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}
