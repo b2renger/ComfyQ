@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "video_wan22_4_key-frames",
   "name": "Wan 2.2 — key-frame animation (4 frames to video)",
-  "description": "Turn four still key frames into one continuous video. Wan 2.2 generates a smooth animated transition between each consecutive pair of frames (frame 1→2, 2→3, 3→4) and stitches the three segments into a single clip that passes through all four images in order. Optionally describe the motion for each transition; leave a box empty to just morph between those two frames. Runs the fast 4-step Lightning path at 720×720.\n\nTip: use frames that share the same subject and framing so the transitions stay coherent.",
+  "description": "Turn four still key frames into one continuous video. Wan 2.2 generates a smooth animated transition between each consecutive pair of frames (frame 1→2, 2→3, 3→4) and stitches the three segments into a single clip.\n\nIf you are targetting an animation you need to provide a detailled prompt, with context (see the default prompts); leave a box empty to just morph between those two frames. \n\n Runs the fast 4-step Lightning path at 720×720.\n\nTip: use frames that share the same subject and framing so the transitions stay coherent.",
   "category": "i2v",
   "tags": [
     "wan",
@@ -96,7 +96,7 @@
       "field": "text",
       "type": "textarea",
       "label": "Motion: key frame 1 → 2 (optional)",
-      "default": "smooth natural motion between the frames",
+      "default": "Red minimalist line art animation of a man performing a capoeira meia lua de compasso. From a standing leaning stance, the man smoothly bends forward at the waist. His torso rotates downward toward the floor as his hands reach down to plant firmly onto the ground for support. His back begins to arch, and his weight shifts entirely onto his hands and pivoting front foot, preparing to unleash the spinning kick. Fluid transition, clean red lines on a plain white background.",
       "required": false,
       "order": 4
     },
@@ -106,7 +106,7 @@
       "field": "text",
       "type": "textarea",
       "label": "Motion: key frame 2 → 3 (optional)",
-      "default": "smooth natural motion between the frames",
+      "default": "Red minimalist line art animation of a capoeira spinning kick. With both hands firmly planted on the ground, the man whips his trailing leg upward and outward in a powerful, sweeping horizontal arc. The kicking leg extends fully, cutting through the air in a wide, circular crescent motion. His head looks backward under his arm to track the target. Dynamic motion blur on the sweeping leg, clean red lines on a solid white background.",
       "required": false,
       "order": 5
     },
@@ -116,9 +116,35 @@
       "field": "text",
       "type": "textarea",
       "label": "Motion: key frame 3 → 4 (optional)",
-      "default": "smooth natural motion between the frames",
+      "default": "Red minimalist line art animation completing a capoeira movement. The sweeping leg completes its wide circular trajectory, slowing down as it approaches the ground. The man pushes off the floor with his hands, lifting his torso and rotating his upper body back upright. He fluidly transitions out of the inverted position, bringing his feet back underneath him to stand firmly in a defensive capoeira ginga stance from behind. Clean red ink style, seamless transition on a plain white background.",
       "required": false,
       "order": 6
+    },
+    {
+      "key": "primitiveint_value_283",
+      "nodeId": "283",
+      "field": "value",
+      "type": "number",
+      "label": "Width (px)",
+      "default": 720,
+      "min": 256,
+      "max": 1280,
+      "step": 16,
+      "required": false,
+      "order": 7
+    },
+    {
+      "key": "primitiveint_value_284",
+      "nodeId": "284",
+      "field": "value",
+      "type": "number",
+      "label": "Height (px)",
+      "default": 720,
+      "min": 256,
+      "max": 1280,
+      "step": 16,
+      "required": false,
+      "order": 8
     },
     {
       "key": "ksampleradvanced_noise_seed_140_57",
@@ -131,7 +157,7 @@
       "max": 4294967295,
       "step": 1,
       "required": false,
-      "order": 7
+      "order": 9
     },
     {
       "key": "ksampleradvanced_noise_seed_228_222",
@@ -144,7 +170,7 @@
       "max": 4294967295,
       "step": 1,
       "required": false,
-      "order": 8
+      "order": 10
     },
     {
       "key": "ksampleradvanced_noise_seed_245_239",
@@ -157,7 +183,7 @@
       "max": 4294967295,
       "step": 1,
       "required": false,
-      "order": 9
+      "order": 11
     }
   ],
   "warmupParams": {},

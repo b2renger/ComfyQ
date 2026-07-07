@@ -112,6 +112,24 @@
       "title": "Save Video"
     }
   },
+  "283": {
+    "inputs": {
+      "value": 720
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "Width"
+    }
+  },
+  "284": {
+    "inputs": {
+      "value": 720
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "Height"
+    }
+  },
   "140:38": {
     "inputs": {
       "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
@@ -301,8 +319,14 @@
   },
   "140:67": {
     "inputs": {
-      "width": 720,
-      "height": 720,
+      "width": [
+        "283",
+        0
+      ],
+      "height": [
+        "284",
+        0
+      ],
       "length": 25,
       "batch_size": 1,
       "positive": [
@@ -549,8 +573,14 @@
   },
   "228:224": {
     "inputs": {
-      "width": 720,
-      "height": 720,
+      "width": [
+        "283",
+        0
+      ],
+      "height": [
+        "284",
+        0
+      ],
       "length": 25,
       "batch_size": 1,
       "positive": [
@@ -797,8 +827,14 @@
   },
   "245:241": {
     "inputs": {
-      "width": 720,
-      "height": 720,
+      "width": [
+        "283",
+        0
+      ],
+      "height": [
+        "284",
+        0
+      ],
       "length": 25,
       "batch_size": 1,
       "positive": [
