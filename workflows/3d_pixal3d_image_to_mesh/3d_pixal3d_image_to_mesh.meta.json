@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "id": "3d_pixal3d_image_to_mesh",
+  "name": "Pixal3D — image to 3D mesh",
+  "description": "Upload a single image of an object and get back a textured 3D mesh (.glb) you can spin in the viewer. Use a clean, well-lit photo with the subject centered. 'Background handling': leave on Auto-remove for photos with a busy background; use None if your image already has a clean background, or Keep alpha if it's a transparent PNG. 'Detail / VRAM': 1024_cascade is the standard quality (~24 GB); 1536_cascade is higher detail but needs a 32 GB+ card. Heavier images take a few minutes.",
+  "category": "3d",
+  "tags": [
+    "pixal3d",
+    "3d",
+    "image-to-3d",
+    "mesh",
+    "textured-mesh"
+  ],
+  "thumbnail": null,
+  "author": "Saganaki22 / Pixal3D-ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "3d_pixal3d_image_to_mesh.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      { "type": "other", "file": "Pixal3D/TencentARC_Pixal3D" },
+      { "type": "other", "file": "Pixal3D/camenduru_dinov3-vitl16-pretrain-lvd1689m" },
+      { "type": "other", "file": "Pixal3D/briaai_RMBG-2.0" },
+      { "type": "other", "file": "geometry_estimation/moge_2_vitl_normal_fp16.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 90,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_15",
+      "nodeId": "15",
+      "field": "image",
+      "type": "image",
+      "label": "Source image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "pixal3d_pipeline_type_24",
+      "nodeId": "24",
+      "field": "pipeline_type",
+      "type": "select",
+      "label": "Detail / VRAM",
+      "options": [
+        "1024_cascade",
+        "1536_cascade"
+      ],
+      "default": "1024_cascade",
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "pixal3d_background_mode_24",
+      "nodeId": "24",
+      "field": "background_mode",
+      "type": "select",
+      "label": "Background handling",
+      "options": [
+        "auto_remove",
+        "keep_alpha",
+        "none"
+      ],
+      "default": "auto_remove",
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "pixal3d_steps_24",
+      "nodeId": "24",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps",
+      "default": 12,
+      "min": 1,
+      "max": 100,
+      "step": 1,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "pixal3d_seed_24",
+      "nodeId": "24",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "pixal3d_decimation_target_17",
+      "nodeId": "17",
+      "field": "decimation_target",
+      "type": "number",
+      "label": "Target face count",
+      "default": 1000000,
+      "min": 5000,
+      "max": 5000000,
+      "step": 5000,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "pixal3d_texture_size_17",
+      "nodeId": "17",
+      "field": "texture_size",
+      "type": "number",
+      "label": "Texture resolution",
+      "default": 2048,
+      "min": 512,
+      "max": 8192,
+      "step": 512,
+      "required": false,
+      "order": 6
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

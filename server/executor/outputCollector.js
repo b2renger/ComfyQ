@@ -28,32 +28,93 @@ function _walk(value, nodeId, results) {
     for (const v of Object.values(value)) _walk(v, nodeId, results);
 }
 
+// Some nodes don't report a {filename, subfolder, type} media record at all —
+// they surface the SAVED FILE as a plain absolute-PATH string somewhere in their
+// UI output. Two real cases from the 3D packs:
+//   • Pixal3D's `Pixal3DExportGLB` → {"ui": {"text": ["<abs>/pixal3d_….glb"]}}
+//   • TRELLIS2's `Preview3D` (fed a path string) → {"result": ["<abs>/….glb", …]}
+// If a string is a single-line ABSOLUTE path to an EXISTING media file living
+// under the output (or temp) dir, we serve it as that media. Generic +
+// extension-based (via classify) — no class_type coupling — and gated on the
+// string being a real on-disk media file inside a served root, so genuine
+// captions / non-media strings are never mistaken for outputs.
+function _mediaRecordFromPath(str, comfyConfig, nodeId) {
+    if (typeof str !== 'string' || !comfyConfig || !comfyConfig.output_dir) return null;
+    const p = str.trim();
+    if (!p || /[\r\n]/.test(p) || !path.isAbsolute(p)) return null;
+    const { kind, mime } = classify(p);
+    if (kind === 'text') return null;                 // not a known media extension
+    let abs;
+    try { if (!fs.statSync(p).isFile()) return null; abs = path.resolve(p); }
+    catch { return null; }
+    const roots = [{ dir: comfyConfig.output_dir, type: 'output' }];
+    if (comfyConfig.root_path) roots.push({ dir: path.resolve(comfyConfig.root_path, 'temp'), type: 'temp' });
+    for (const { dir, type } of roots) {
+        const rel = path.relative(path.resolve(dir), abs);
+        if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) continue;  // outside this root
+        const relPosix = rel.split(path.sep).join('/');
+        const slash = relPosix.lastIndexOf('/');
+        return {
+            kind, mime,
+            filename: slash >= 0 ? relPosix.slice(slash + 1) : relPosix,
+            subfolder: slash >= 0 ? relPosix.slice(0, slash) : '',
+            type, nodeId, _abs: abs
+        };
+    }
+    return null;   // path exists but outside served roots → not servable, ignore
+}
+
+function _collectMediaPaths(value, nodeId, comfyConfig, results, seenAbs, mediaStrings) {
+    if (value == null) return;
+    if (Array.isArray(value)) {
+        for (const v of value) _collectMediaPaths(v, nodeId, comfyConfig, results, seenAbs, mediaStrings);
+        return;
+    }
+    if (typeof value === 'object') {
+        for (const v of Object.values(value)) _collectMediaPaths(v, nodeId, comfyConfig, results, seenAbs, mediaStrings);
+        return;
+    }
+    const rec = _mediaRecordFromPath(value, comfyConfig, nodeId);
+    if (!rec) return;
+    if (seenAbs.has(rec._abs)) return;                // same file surfaced by two nodes/keys
+    seenAbs.add(rec._abs);
+    mediaStrings.add(String(value).trim());           // so _collectText won't re-emit it as text
+    delete rec._abs;
+    results.push(rec);
+}
+
 // Text/preview nodes (PreviewAny "Preview as Text", ShowText, …) report their
 // result as a `text` / `string` array of strings under the node's output —
 // there is no file. We surface these as a `text` kind with the string inline so
 // image-description / LLM workflows aren't collected as zero-output.
 const TEXT_UI_KEYS = ['text', 'string'];
 
-function _collectText(nodeId, nodeOutputs, results, seen) {
+function _collectText(nodeId, nodeOutputs, results, seen, skip) {
     if (!nodeOutputs || typeof nodeOutputs !== 'object') return;
     for (const key of TEXT_UI_KEYS) {
         const v = nodeOutputs[key];
         if (!Array.isArray(v)) continue;
         const text = v.filter(s => typeof s === 'string').join('\n').trim();
-        if (!text || seen.has(text)) continue;   // dedupe identical previews
+        if (!text || seen.has(text)) continue;        // dedupe identical previews
+        if (skip && skip.has(text)) continue;          // already served as a media-file path
         seen.add(text);
         results.push({ kind: 'text', mime: 'text/plain', text, filename: null, subfolder: '', type: 'text', nodeId });
     }
 }
 
-function collectFromHistory(historyEntry) {
+function collectFromHistory(historyEntry, comfyConfig) {
     if (!historyEntry || !historyEntry.outputs) return [];
     const out = [];
     const seenText = new Set();
-    for (const [nodeId, nodeOutputs] of Object.entries(historyEntry.outputs)) {
-        _walk(nodeOutputs, nodeId, out);
-        _collectText(nodeId, nodeOutputs, out, seenText);
-    }
+    const seenAbs = new Set();
+    const mediaStrings = new Set();
+    const nodes = Object.entries(historyEntry.outputs);
+    // Pass 1 — proper {filename, subfolder, type} media records.
+    for (const [nodeId, nodeOutputs] of nodes) _walk(nodeOutputs, nodeId, out);
+    // Pass 2 — string values that are on-disk media PATHS (Pixal3D text / TRELLIS2 Preview3D result).
+    for (const [nodeId, nodeOutputs] of nodes) _collectMediaPaths(nodeOutputs, nodeId, comfyConfig, out, seenAbs, mediaStrings);
+    // Pass 3 — genuine text (captions), skipping any string already taken as a media path.
+    for (const [nodeId, nodeOutputs] of nodes) _collectText(nodeId, nodeOutputs, out, seenText, mediaStrings);
     return out;
 }
 

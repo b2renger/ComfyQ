@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "id": "3d_trellis2_image_to_textured_mesh",
+  "name": "TRELLIS2 — image to textured mesh",
+  "description": "Upload a single image of an object and get back a fully textured 3D mesh (.glb) you can spin in the viewer. Use a clean, well-lit photo with the subject centered (the background is removed automatically). 'Target face count' sets the polygon budget of the mesh — lower is lighter/simpler, higher keeps more detail. 'Texture resolution' sets the size of the baked colour texture (2048 is a good default; 4096 is crisper but slower). Generation runs the full TRELLIS.2 pipeline (shape + cascade + texturing), so expect a few minutes.",
+  "category": "3d",
+  "tags": [
+    "trellis2",
+    "trellis",
+    "3d",
+    "image-to-3d",
+    "textured-mesh"
+  ],
+  "thumbnail": null,
+  "author": "visualbruno / ComfyUI-Trellis2",
+  "version": "1.0.0",
+  "workflowFile": "3d_trellis2_image_to_textured_mesh.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      { "type": "other", "file": "microsoft/TRELLIS.2-4B" },
+      { "type": "other", "file": "facebook/dinov3-vitl16-pretrain-lvd1689m" }
+    ]
+  },
+  "estimatedDurationSec": 300,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_6",
+      "nodeId": "6",
+      "field": "image",
+      "type": "image",
+      "label": "Source image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "trellis2_target_face_num_209",
+      "nodeId": "209",
+      "field": "value",
+      "type": "number",
+      "label": "Target face count",
+      "default": 500000,
+      "min": 10000,
+      "max": 2000000,
+      "step": 10000,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "trellis2_texture_size_260",
+      "nodeId": "260",
+      "field": "value",
+      "type": "number",
+      "label": "Texture resolution",
+      "default": 2048,
+      "min": 512,
+      "max": 8192,
+      "step": 512,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "trellis2_seed_214",
+      "nodeId": "214",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 3
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

@@ -233,7 +233,7 @@ class JobExecutor {
         try { this.queue.transitionStatus(jobId, sm.STATES.COLLECTING_OUTPUTS); }
         catch { /* ok if already collected */ }
 
-        const raw = oc.collectFromHistory(entry);
+        const raw = oc.collectFromHistory(entry, this.comfyConfig);
         const enriched = oc.enrich(raw, this.comfyConfig);
         // Fold any ComfyUI subfolder into `filename` so it's an output-root-
         // relative path (e.g. "audio/track_001.mp3"). The media route serves by

@@ -1,0 +1,76 @@
+{
+  "15": {
+    "inputs": {
+      "image": "axiell.jpg"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image"
+    }
+  },
+  "23": {
+    "inputs": {
+      "model_repo": "TencentARC/Pixal3D",
+      "hf_endpoint": "https://huggingface.co",
+      "attention_backend": "auto",
+      "vram_mode": "dynamic_vram",
+      "download_if_missing": false,
+      "load_moge": true,
+      "load_rembg": true,
+      "naf_mode": "fallback_if_missing",
+      "naf_target_size": "upstream",
+      "preload_naf": false,
+      "force_reload": false
+    },
+    "class_type": "Pixal3DModelLoader",
+    "_meta": {
+      "title": "Pixal3D Model Loader"
+    }
+  },
+  "24": {
+    "inputs": {
+      "seed": 0,
+      "pipeline_type": "1024_cascade",
+      "background_mode": "auto_remove",
+      "camera_mode": "moge",
+      "manual_camera_angle_x": 0.857556,
+      "manual_distance": 2,
+      "mesh_scale": 10,
+      "extend_pixel": 0,
+      "camera_resolution": 512,
+      "steps": 12,
+      "guidance": 7.5,
+      "texture_guidance": 1,
+      "max_num_tokens": 49152,
+      "force_offload": false,
+      "model": [
+        "23",
+        0
+      ],
+      "image": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "Pixal3DImageTo3D",
+    "_meta": {
+      "title": "Pixal3D Image To 3D"
+    }
+  },
+  "17": {
+    "inputs": {
+      "decimation_target": 1000000,
+      "texture_size": 2048,
+      "remesh": true,
+      "filename_prefix": "pixal3d",
+      "pixal3d_result": [
+        "24",
+        0
+      ]
+    },
+    "class_type": "Pixal3DExportGLB",
+    "_meta": {
+      "title": "Pixal3D Export GLB"
+    }
+  }
+}
