@@ -4,6 +4,7 @@ import Button from './ui/Button';
 import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronRight, Upload, X, Image as ImageIcon, Video as VideoIcon, Info } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { SERVER_URL, getInputUrl } from '../utils/api';
+import { accessHeaders } from '../utils/access';
 import DynamicParamFields, { isSeedParam, randomSeed } from './DynamicParamFields';
 
 // Param types whose value is an uploaded file (handled via mediaFiles + /upload
@@ -174,6 +175,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
             try {
                 const response = await fetch(`${SERVER_URL}/upload`, {
                     method: 'POST',
+                    headers: accessHeaders(),   // no-op unless the machine is locked
                     body: formData,
                 });
                 // The server caps image size/dimensions and rejects HEIC; surface

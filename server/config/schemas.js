@@ -119,9 +119,16 @@ const AppConfig = z.object({
         autoStart: z.boolean().default(true),
         vramBudgetGb: z.number().positive().default(24)
     }),
+    // Two independent passwords, both optional:
+    //   adminPasswordHash  — gates destructive/admin actions (see auth/authGate.js).
+    //   accessPasswordHash — gates *using* the machine at all. When set, a student
+    //                        must enter it before the client can connect (socket
+    //                        handshake, uploads, job listing). Empty = open access,
+    //                        which is the default and today's behavior.
     auth: z.object({
-        adminPasswordHash: z.string().default('')
-    }).default({ adminPasswordHash: '' }),
+        adminPasswordHash: z.string().default(''),
+        accessPasswordHash: z.string().default('')
+    }).default({ adminPasswordHash: '', accessPasswordHash: '' }),
     queue: z.object({
         dbPath: z.string().default('./server/data/comfyq.sqlite'),
         inputRetentionMinutes: z.number().int().nonnegative().default(30),

@@ -35,8 +35,9 @@ const { JobExecutor } = require('./executor/jobExecutor');
 const { BenchmarkService } = require('./benchmark/benchmarkService');
 const { AdminCalibrator } = require('./benchmark/adminCalibrator');
 const { RealtimeBus } = require('./realtime/realtimeBus');
-const { adminGate } = require('./auth/authGate');
+const { adminGate, accessGate } = require('./auth/authGate');
 const adminRoutes = require('./routes/admin');
+const accessRoutes = require('./routes/access');
 const workflowRoutes = require('./routes/workflows');
 const jobRoutes = require('./routes/jobs');
 const uploadRoutes = require('./routes/uploads');
@@ -203,6 +204,9 @@ async function main() {
     const server = http.createServer(app);
 
     const gate = adminGate(configManager);
+    // Optional student access password ("who may use this machine at all").
+    // No-op unless config.auth.accessPasswordHash is set — see auth/authGate.js.
+    const access = accessGate(configManager);
 
     // Mutable runtime container — populated in student mode below. Lets the
     // admin router expose student-only routes (emergency-stop) without a
@@ -225,6 +229,9 @@ async function main() {
     });
 
     // Routes available in both modes.
+    // Ungated on purpose: this is how a client finds out whether it needs a
+    // password, and where it exchanges that password for a token.
+    app.use('/access', accessRoutes.makeRouter({ configManager }));
     app.use('/admin', adminRoutes.makeRouter({
         configManager, registry, adminGate: gate, exitForRestart, runtime
     }));
@@ -351,8 +358,14 @@ async function main() {
     app.use('/workflows', workflowRoutes.makeRouter({
         registry, configManager, benchmarkService, adminGate: gate
     }));
-    app.use('/jobs', jobRoutes.makeRouter({ queue, comfyConfig: config.comfy_ui, registry }));
-    app.use(uploadRoutes.makeRouter({ comfyConfig: config.comfy_ui }));
+    // `access` is a no-op on an open machine. On a locked one it blocks the
+    // routes that let someone *use* the rig — staging inputs and reading the
+    // job list — alongside the socket handshake gate in the realtime bus.
+    // Media serving (/images, /download) stays open: those URLs are only
+    // discoverable through the gated socket, and gating them would break
+    // <img>/<video> tags, which can't send an auth header.
+    app.use('/jobs', access, jobRoutes.makeRouter({ queue, comfyConfig: config.comfy_ui, registry }));
+    app.use(access, uploadRoutes.makeRouter({ comfyConfig: config.comfy_ui }));
     app.use(mediaStore.makeRouter(config.comfy_ui));
 
     // Periodic input dir sweep.

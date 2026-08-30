@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import { SocketProvider } from './context/SocketContext';
 import SchedulerPage from './pages/Scheduler';
@@ -6,8 +6,10 @@ import DashboardPage from './pages/Dashboard';
 import AdminConfig from './pages/AdminConfig';
 import { LayoutDashboard, Calendar, Settings } from 'lucide-react';
 import UsernameModal from './components/UsernameModal';
+import AccessGate from './components/AccessGate';
 import ThemeToggle from './components/ui/ThemeToggle';
 import { SERVER_URL } from './utils/api';
+import { accessHeaders, clearAccessToken } from './utils/access';
 import { Link, useLocation } from 'react-router-dom';
 
 /**
@@ -108,18 +110,24 @@ const NavLink = ({ to, icon: Icon, label, end = false }) => {
  * 
  * Flow:
  * 1. Checks server mode ('admin' or 'student') on mount via API.
- * 2. Shows loading screen while connecting.
- * 3. Renders appropriate routes based on mode:
+ * 2. Checks whether this machine is locked with an access password
+ *    (GET /access/status) — if so, and no valid token is stored, the
+ *    AccessGate is shown instead of the student UI.
+ * 3. Shows loading screen while connecting.
+ * 4. Renders appropriate routes based on mode:
  *    - Admin Mode: Redirects root to /admin
  *    - Student Mode: Redirects root to /user, wraps user routes in SocketProvider
  * 
  * Routes:
- * - /admin: Configuration page (AdminConfig)
+ * - /admin: Configuration page (AdminConfig)  — never behind the access gate,
+ *           so an admin can always reach the panel to change or lift it.
  * - /user: Main user interface (Scheduler, Dashboard)
  * - /: Smart redirect based on mode
  */
 const App = () => {
   const [mode, setMode] = useState(null); // 'admin' | 'student' | null
+  // null = not checked yet, true = may enter, false = show the gate.
+  const [accessOk, setAccessOk] = useState(null);
 
   useEffect(() => {
     const checkMode = async (retries = 3) => {
@@ -144,7 +152,32 @@ const App = () => {
     checkMode();
   }, []);
 
-  if (!mode) {
+  // Is this machine reserved? A stored token from a previous session is
+  // validated here too, so a password change on the server re-prompts.
+  const checkAccess = useCallback(async () => {
+    try {
+      const res = await fetch(`${SERVER_URL}/access/status`, { headers: accessHeaders() });
+      if (!res.ok) throw new Error('status check failed');
+      const data = await res.json();
+      if (data.locked && !data.valid) clearAccessToken();   // stale token
+      setAccessOk(!data.locked || !!data.valid);
+    } catch {
+      // Can't ask — don't strand the user behind a gate we couldn't confirm.
+      // Any real attempt to use the machine is still gated server-side.
+      setAccessOk(true);
+    }
+  }, []);
+
+  useEffect(() => { checkAccess(); }, [checkAccess]);
+
+  // The socket was refused (or revoked mid-session) because the machine is
+  // locked — drop the stale token and bring the gate back.
+  const handleAccessDenied = useCallback(() => {
+    clearAccessToken();
+    setAccessOk(false);
+  }, []);
+
+  if (!mode || accessOk === null) {
     return (
       <div className="h-screen w-full bg-background flex flex-col items-center justify-center space-y-4">
         <div className="w-12 h-12 rounded-xl bg-surface border border-border animate-pulse" />
@@ -162,9 +195,15 @@ const App = () => {
         {/* User Routes - Only fully functional in student mode */}
         <Route path="/user" element={
           mode === 'student' ? (
-            <SocketProvider>
-              <StudentLayout />
-            </SocketProvider>
+            accessOk ? (
+              <SocketProvider onAccessDenied={handleAccessDenied}>
+                <StudentLayout />
+              </SocketProvider>
+            ) : (
+              <div className="h-screen bg-background">
+                <AccessGate onUnlocked={() => setAccessOk(true)} />
+              </div>
+            )
           ) : (
             // In Admin mode, /user redirects to /admin or shows a maintenance message
             <Navigate to="/admin" replace />

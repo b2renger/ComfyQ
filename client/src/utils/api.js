@@ -7,6 +7,8 @@
 //
 // VITE_SERVER_URL can still be set to override (e.g. for production deploys
 // where the API is on a separate host). Leave it unset in dev.
+import { withAccessToken } from './access';
+
 const getServerUrl = () => {
     const envUrl = import.meta.env.VITE_SERVER_URL;
     if (envUrl && envUrl.trim() !== '') return envUrl;
@@ -20,11 +22,13 @@ export const getImageUrl = (filename) => `${SERVER_URL}/images/${filename}`;
 export const getDownloadUrl = (filename) => `${SERVER_URL}/download/${filename}`;
 // Serve a user-uploaded INPUT file (ComfyUI/input/comfyq_*) — used to preview
 // an asset reused from a prior job in "Use these settings".
-export const getInputUrl = (filename) => `${SERVER_URL}/input-media/${encodeURIComponent(filename)}`;
+// The token rides in the query, not a header: this URL is used directly as an
+// <img>/<video> src, and the browser issues that request for us.
+export const getInputUrl = (filename) => withAccessToken(`${SERVER_URL}/input-media/${encodeURIComponent(filename)}`);
 // Download a job's "ingredients" — imported media + a settings.json snapshot
 // (workflow id, every parameter, the seed, the prompt) — as one .zip, to
 // relaunch the job later even after the machine switched to another workflow.
-export const getIngredientsUrl = (jobId) => `${SERVER_URL}/jobs/${encodeURIComponent(jobId)}/ingredients.zip`;
+export const getIngredientsUrl = (jobId) => withAccessToken(`${SERVER_URL}/jobs/${encodeURIComponent(jobId)}/ingredients.zip`);
 
 // Media type helpers
 const VIDEO_EXTENSIONS = ['mp4', 'webm', 'ogg', 'mov', 'avi', 'mkv'];

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import Modal from '../components/ui/Modal';
@@ -28,6 +28,10 @@ const AdminConfig = ({ currentMode }) => {
     const [passwordValid, setPasswordValid] = useState(false);
     const [newAdminPassword, setNewAdminPassword] = useState('');
     const [pwSaving, setPwSaving] = useState(false);
+    // Student access password — gates who may USE this machine (see below).
+    const [hasAccessPassword, setHasAccessPassword] = useState(false);
+    const [newAccessPassword, setNewAccessPassword] = useState('');
+    const [accessSaving, setAccessSaving] = useState(false);
     const [toast, setToast] = useState(null);
     const [uploading, setUploading] = useState(false);
     const [editingWorkflowId, setEditingWorkflowId] = useState(null);
@@ -83,6 +87,7 @@ const AdminConfig = ({ currentMode }) => {
             const data = await res.json();
             setConfig(data.config);
             setHasAdminPassword(data.hasAdminPassword);
+            setHasAccessPassword(!!data.hasAccessPassword);
             setPathDraft({
                 root_path: data.config.comfy_ui.root_path,
                 python_executable: data.config.comfy_ui.python_executable,
@@ -301,6 +306,29 @@ const AdminConfig = ({ currentMode }) => {
             showToast(e.message, 'err');
         } finally {
             setPwSaving(false);
+        }
+    };
+
+    // Set or clear the student access password. Clearing (empty field) reopens
+    // the machine to everyone on the LAN.
+    const saveAccessPassword = async (explicit) => {
+        const value = explicit !== undefined ? explicit : newAccessPassword;
+        setAccessSaving(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/access-password`, {
+                method: 'PUT', headers: adminHeaders(),
+                body: JSON.stringify({ password: value })
+            });
+            if (!res.ok) throw new Error((await res.json()).error || 'Failed to set access password');
+            showToast(value
+                ? 'Access password set — students now need it to connect'
+                : 'Access password cleared — this machine is open again');
+            setNewAccessPassword('');
+            await reloadConfig();
+        } catch (e) {
+            showToast(e.message, 'err');
+        } finally {
+            setAccessSaving(false);
         }
     };
 
@@ -946,6 +974,44 @@ const AdminConfig = ({ currentMode }) => {
                     </div>
                 </div>
             </Modal>
+
+            <Card>
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                        {hasAccessPassword ? <Lock size={18} /> : <LockOpen size={18} />} Student access
+                    </h2>
+                    <Badge variant={hasAccessPassword ? 'success' : 'default'}>
+                        {hasAccessPassword ? 'Password required' : 'Open to everyone'}
+                    </Badge>
+                </div>
+                <p className="text-xs text-muted mb-3">
+                    {hasAccessPassword
+                        ? 'Students must enter this password before they can connect to this machine and book jobs. Type a new one to change it, or clear it to reopen the machine.'
+                        : 'Anyone on the network can use this machine. Set a password to reserve it for one group — they will be asked for it when they open the student page.'}
+                </p>
+                <div className="flex items-center gap-2">
+                    <input type="password" value={newAccessPassword}
+                        onChange={(e) => setNewAccessPassword(e.target.value)}
+                        onKeyDown={(e) => { if (e.key === 'Enter' && newAccessPassword) saveAccessPassword(); }}
+                        placeholder={hasAccessPassword ? 'New access password' : 'Access password for students'}
+                        className="flex-1 bg-background border border-border rounded-lg p-2.5 text-white" />
+                    <Button variant="primary" onClick={() => saveAccessPassword()}
+                        disabled={accessSaving || !newAccessPassword}>
+                        {accessSaving ? 'Saving…' : hasAccessPassword ? 'Change' : 'Lock machine'}
+                    </Button>
+                    {hasAccessPassword && (
+                        <Button variant="secondary" icon={LockOpen} onClick={() => saveAccessPassword('')}
+                            disabled={accessSaving}>
+                            Remove
+                        </Button>
+                    )}
+                </div>
+                {hasAccessPassword && (
+                    <p className="text-[11px] text-muted mt-2">
+                        Changing or removing the password disconnects anyone already connected with the old one.
+                    </p>
+                )}
+            </Card>
 
             <Card>
                 <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><KeyRound size={18} /> Admin password</h2>

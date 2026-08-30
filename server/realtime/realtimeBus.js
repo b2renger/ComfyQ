@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { Server } = require('socket.io');
 const sm = require('../queue/jobStateMachine');
-const { isAuthorizedForJob } = require('../auth/authGate');
+const { isAuthorizedForJob, isAccessLocked, verifyAccessToken } = require('../auth/authGate');
 const { resolveOutputPath } = require('../executor/outputCollector');
 const ingredientsStore = require('../storage/ingredientsStore');
 const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
@@ -47,6 +47,7 @@ class RealtimeBus {
         this.io = new Server(httpServer, {
             cors: { origin: '*', methods: ['GET', 'POST'] }
         });
+        this._wireAccessGate();
         this._wireEvents();
 
         // Broadcast on queue / worker change. A queue change (job booked,
@@ -58,6 +59,43 @@ class RealtimeBus {
     }
 
     _bumpActivity() { if (this.activity) this.activity.lastTs = Date.now(); }
+
+    // Access gate — when the admin has set a student access password, a socket
+    // must present the token issued by POST /access/login (client stores it and
+    // replays it in the handshake). An open machine accepts everyone, exactly
+    // as before. Rejected handshakes get a recognisable message so the client
+    // can drop its stale token and re-prompt instead of retrying forever.
+    _wireAccessGate() {
+        this.io.use((socket, next) => {
+            if (!isAccessLocked(this.configManager)) return next();
+            const token = socket.handshake?.auth?.accessToken
+                || socket.handshake?.query?.access_token
+                || '';
+            if (!verifyAccessToken(token, this.configManager)) {
+                const err = new Error('access password required');
+                err.data = { accessRequired: true };
+                return next(err);
+            }
+            socket.data.accessToken = token;   // re-checked if the password changes
+            next();
+        });
+    }
+
+    // Re-verify every live socket against the CURRENT access password and kick
+    // the ones that no longer pass. Called after the admin sets or changes the
+    // password so locking a machine takes effect immediately.
+    enforceAccess() {
+        if (!isAccessLocked(this.configManager)) return 0;
+        let dropped = 0;
+        for (const socket of this.io.sockets.sockets.values()) {
+            if (verifyAccessToken(socket.data?.accessToken, this.configManager)) continue;
+            socket.emit('access_revoked', { message: 'This machine now requires an access password.' });
+            socket.disconnect(true);
+            dropped++;
+        }
+        if (dropped) console.log(`[Bus] access password changed — disconnected ${dropped} socket(s)`);
+        return dropped;
+    }
 
     _wireEvents() {
         this.io.on('connection', (socket) => {

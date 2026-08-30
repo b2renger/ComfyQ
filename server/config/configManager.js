@@ -26,7 +26,7 @@ function defaultConfig() {
             autoStart: true,
             vramBudgetGb: 24
         },
-        auth: { adminPasswordHash: '' },
+        auth: { adminPasswordHash: '', accessPasswordHash: '' },
         queue: {
             dbPath: './server/data/comfyq.sqlite',
             inputRetentionMinutes: 30,

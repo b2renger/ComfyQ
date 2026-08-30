@@ -40,6 +40,9 @@ export default defineConfig({
           }
         }
       },
+      // Access-password handshake (/access/status, /access/login) — the client
+      // asks this before it may connect to a reserved machine.
+      '/access':       { target: BACKEND, changeOrigin: true, secure: false },
       '/workflows':    { target: BACKEND, changeOrigin: true, secure: false },
       '/jobs':         { target: BACKEND, changeOrigin: true, secure: false },
       '/upload':       { target: BACKEND, changeOrigin: true, secure: false },

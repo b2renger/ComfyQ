@@ -8,6 +8,7 @@ import {
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import { SERVER_URL } from '../utils/api';
+import { accessHeaders } from '../utils/access';
 
 // "Type of workflow" buckets shown as filter chips in the admin library. Each
 // fine-grained meta category maps to exactly one group; this is the user-facing
@@ -64,7 +65,7 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
     const fetchWorkflows = async () => {
         setLoading(true); setError(null);
         try {
-            const res = await fetch(`${SERVER_URL}/workflows`);
+            const res = await fetch(`${SERVER_URL}/workflows`, { headers: accessHeaders() });
             if (!res.ok) throw new Error('Failed to fetch workflows');
             const data = await res.json();
             setWorkflows(data.workflows || []);
@@ -86,7 +87,7 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
 
     const fetchDetails = async (id) => {
         try {
-            const res = await fetch(`${SERVER_URL}/workflows/${id}`);
+            const res = await fetch(`${SERVER_URL}/workflows/${id}`, { headers: accessHeaders() });
             if (!res.ok) {
                 const body = await res.json().catch(() => ({}));
                 throw new Error(body.error || 'Failed to fetch workflow details');
@@ -104,7 +105,7 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
     const handlePreset = async (name) => {
         if (!selectedWorkflow) return;
         try {
-            const res = await fetch(`${SERVER_URL}/workflows/${selectedWorkflow.id}/presets/${name}`);
+            const res = await fetch(`${SERVER_URL}/workflows/${selectedWorkflow.id}/presets/${name}`, { headers: accessHeaders() });
             if (!res.ok) throw new Error('Failed to apply preset');
             const data = await res.json();
             if (onPresetSelect) onPresetSelect(name, data.values);

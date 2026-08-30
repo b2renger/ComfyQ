@@ -4,7 +4,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 const os = require('os');
 const multer = require('multer');
-const { setAdminPassword, checkAdminPassword } = require('../auth/authGate');
+const { setAdminPassword, checkAdminPassword, setAccessPassword } = require('../auth/authGate');
 const { defaultConfig } = require('../config/configManager');
 const { WorkflowMeta } = require('../config/schemas');
 const { validateApiWorkflow } = require('../workflows/workflowValidator');
@@ -58,9 +58,10 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         const { config } = configManager.load();
         // Never leak the password hash.
         const safe = JSON.parse(JSON.stringify(config));
-        if (safe.auth) delete safe.auth.adminPasswordHash;
+        if (safe.auth) { delete safe.auth.adminPasswordHash; delete safe.auth.accessPasswordHash; }
         const hasAdminPassword = !!config.auth.adminPasswordHash;
-        res.json({ config: safe, hasAdminPassword });
+        const hasAccessPassword = !!config.auth.accessPasswordHash;
+        res.json({ config: safe, hasAdminPassword, hasAccessPassword });
     });
 
     // First-run / admin: set ComfyUI paths and server settings.
@@ -334,6 +335,25 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             const { password } = req.body || {};
             setAdminPassword(password || '', configManager);
             res.json({ ok: true });
+        } catch (e) { res.status(400).json({ error: e.message }); }
+    });
+
+    // Set / clear the STUDENT ACCESS password — the one that decides who may
+    // use this machine at all (empty = open to everyone on the LAN, the
+    // default). Gated by the admin password when one is configured; on a rig
+    // with no admin password the whole admin panel is already open, so this
+    // matches the rest of it.
+    //
+    // Changing it rotates the derived token, so tokens already handed out stop
+    // working. Sockets connected under the old token are disconnected right
+    // away — otherwise locking a machine mid-session would leave whoever was
+    // already on it able to keep booking jobs.
+    router.put('/access-password', adminGate, express.json(), (req, res) => {
+        try {
+            const { password } = req.body || {};
+            setAccessPassword(password || '', configManager);
+            try { runtime?.bus?.enforceAccess?.(); } catch (e) { /* non-fatal */ }
+            res.json({ ok: true, locked: !!(password || '') });
         } catch (e) { res.status(400).json({ error: e.message }); }
     });
 

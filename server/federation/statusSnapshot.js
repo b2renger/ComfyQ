@@ -135,6 +135,9 @@ function buildSnapshot({ configManager, registry, runtime, sysInfo }) {
         comfy: comfyState({ runtime, configManager }),
         activeWorkflow: activeWorkflow({ config, registry }),
         usage: usage({ runtime }),
+        // True when this machine is reserved behind a student access password
+        // — a fleet monitor can show a lock instead of an open "Schedule a job".
+        accessLocked: !!config.auth?.accessPasswordHash,
         jobs: jobsState({ runtime, registry }),
         federation: { enabled: fed.enabled !== false, intervalSec: fed.intervalSec || 15 },
         ts: Date.now()
