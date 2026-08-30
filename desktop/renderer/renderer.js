@@ -66,8 +66,11 @@ const ICON = {
     wrench: '<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>',
     grid: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
     brush: '<path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
-    film: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/>'
+    film: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M7 3v18"/><path d="M3 7.5h4"/><path d="M3 12h18"/><path d="M3 16.5h4"/><path d="M17 3v18"/><path d="M17 7.5h4"/><path d="M17 16.5h4"/>',
+    lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
 };
+// Inline lock glyph for the "Password required" chip (see cardHtml).
+const LOCK_SVG = `<svg class="lock-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICON.lock}</svg>`;
 // fine-grained category → group (mirrors WorkflowSelector's CATEGORY_GROUP).
 // Generation and editing are separate groups; i2v is generation, not an edit.
 const CATEGORY_GROUP = {
@@ -196,6 +199,9 @@ function cardHtml(p, selfIps) {
     const hw = [];
     if (p.gpu) hw.push(`<span class="chip">${esc(p.gpu)}${p.vramGb ? ` · ${p.vramGb} GB` : ''}</span>`);
     if (p.ramGb) hw.push(`<span class="chip">${esc(p.ramGb)} GB RAM</span>`);
+    // Reserved by its admin: you need the access password to book on it.
+    // Older servers don't send accessLocked at all — absent simply means open.
+    if (p.accessLocked) hw.push(`<span class="chip chip-lock" title="This machine is reserved — you need its access password to book a job">${LOCK_SVG} Password required</span>`);
 
     const u = p.usage || {};
     const usageHtml = `
@@ -229,7 +235,7 @@ function cardHtml(p, selfIps) {
                 <div class="jobs-label">Queue${jobs.scheduled && jobs.scheduled.length ? ` · ${jobs.scheduled.length} waiting` : ''}</div>
                 ${parts.length ? parts.join('') : '<div class="no-jobs">Nothing queued</div>'}
             </div>
-            <button class="btn" data-url="${esc(url)}" data-id="${esc(p.id || url)}" data-name="${esc(wf.name || 'a workflow')}" data-machine="${esc(p.name || 'Machine')}" ${url ? '' : 'disabled'}>Schedule a job ↗</button>`;
+            <button class="btn" data-url="${esc(url)}" data-id="${esc(p.id || url)}" data-name="${esc(wf.name || 'a workflow')}" data-machine="${esc(p.name || 'Machine')}" ${url ? '' : 'disabled'}${p.accessLocked ? ' title="You will be asked for the access password of this machine"' : ''}>Schedule a job ${p.accessLocked ? '🔒' : ''}↗</button>`;
     } else {
         workHtml = `<div class="standby">${isAdmin ? 'Not serving a workflow right now.' : 'Ready — no workflow active.'}</div>`;
     }
@@ -316,7 +322,7 @@ function cardsSignature(peers, selfIps) {
         p.id, p.name, (p.ips || []).join(','), p.gpu, p.vramGb, p.ramGb, p.mode,
         !!(p.comfy && p.comfy.running),
         p.activeWorkflow && [p.activeWorkflow.id, p.activeWorkflow.name, p.activeWorkflow.description, p.activeWorkflow.category],
-        p.usage && p.usage.usersConnected,
+        p.usage && p.usage.usersConnected, !!p.accessLocked,
         Math.floor(((p.usage && p.usage.idleSec) || 0) / 30),
         p._stale, p._source,
         p.jobs && [(p.jobs.running && p.jobs.running.id) || null, (p.jobs.scheduled || []).map(j => [j.id, j.user, j.prompt, j.scheduledAt])],

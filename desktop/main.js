@@ -49,10 +49,14 @@ let cfgFile = null;
 // Extra subnet(s) EVERY install scans on top of its own local subnet(s), so a
 // client on a different network (e.g. an "asus" router hanging off the main LAN)
 // still finds the ComfyQ servers it can't reach by broadcast. Deployment-specific:
-// this default is the teaching lab's server subnet (edna-sdc, 10.10.16.0/23).
+// this default spans the teaching lab's server subnets, 10.10.14.x → 10.10.18.x
+// (the rigs don't all sit on the old 10.10.16.0/23 any more). That's 5 × 254 =
+// 1270 probes on top of the local subnet — well under MAX_SCAN_HOSTS, and a
+// sweep at 48-way concurrency still finishes inside the 60s SCAN_MS cadence
+// (and scanRange_sweep() skips a tick while one is already running anyway).
 // Override per machine with COMFYQ_FED_SCAN (comma-separated CIDRs/ranges) or a
 // "scanRanges" array in fleet-config.json — or edit this list for your deployment.
-const DEFAULT_EXTRA_SCAN = ['10.10.16.0/23'];
+const DEFAULT_EXTRA_SCAN = ['10.10.14-18.1-254'];
 
 // Adapter names we never derive a scan range from: Hyper-V/WSL "Default Switch",
 // VM/VPN/container virtuals. Their subnets (e.g. 172.19.240.1/20) are dead ends

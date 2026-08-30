@@ -321,6 +321,16 @@ body {
     padding: 3px 8px;
     color: var(--text);
 }
+/* Machine reserved behind an access password — amber so it reads as
+   "you need something before you can use this", not as an error. */
+.hw .chip-lock {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--amber);
+    border-color: color-mix(in srgb, var(--amber) 35%, var(--border));
+}
+.hw .chip-lock .lock-ico { width: 12px; height: 12px; }
 
 .state-line { font-size: 14px; font-weight: 600; }
 .state-line.serving { color: var(--green); }
