@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "id": "video_minimax_h3_t2v_turbo",
+  "name": "MiniMax H3 — text to video + audio (4-step turbo)",
+  "description": "Type a prompt and MiniMax H3 generates a short video **with a matching audio track** — no input image needed. Describe the scene, what happens over time, the camera move, and the sounds you want to hear.\n\nThis bundle runs the 4-step turbo LoRA, which makes it roughly 4x faster than the plain 20-step path with no other change. Leave \"Fast mode\" on for classroom use; turn it off if you want the slower, higher-fidelity 20-step render.\n\nSize and length drive the cost far more than anything else — the time grows roughly with width x height x frames. 848x480 at 124 frames (about 5 s at 24 fps) is a good default; 1344x768 is the resolution the turbo LoRA was trained at and looks better, but takes noticeably longer. Frame count snaps to the model's own grid, so a nearby value may be used.",
+  "category": "i2v",
+  "tags": [
+    "minimax",
+    "h3",
+    "text-to-video",
+    "t2v",
+    "turbo",
+    "4-step",
+    "audio",
+    "video"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_minimax_h3_t2v_turbo.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "checkpoint",
+        "file": "minimax_h3_fl2va_pruned_int8_convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_video_vae_fp16.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_audio_vae_fp32.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 35,
+  "exposedParameters": [
+    {
+      "key": "minimaxh3imagetovideo_prompt_11",
+      "nodeId": "11",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Prompt (scene / action / camera / sound)",
+      "default": "A slow cinematic dolly shot through a sunlit forest, dust motes drifting in shafts of light, gentle ambient wind and distant birdsong",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "primitiveboolean_value_3",
+      "nodeId": "3",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Fast mode (4-step turbo LoRA)",
+      "default": true,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "minimaxh3imagetovideo_width_11",
+      "nodeId": "11",
+      "field": "width",
+      "type": "number",
+      "label": "Width",
+      "default": 848,
+      "min": 256,
+      "max": 1344,
+      "step": 32,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "minimaxh3imagetovideo_height_11",
+      "nodeId": "11",
+      "field": "height",
+      "type": "number",
+      "label": "Height",
+      "default": 480,
+      "min": 256,
+      "max": 768,
+      "step": 32,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "minimaxh3imagetovideo_length_11",
+      "nodeId": "11",
+      "field": "length",
+      "type": "number",
+      "label": "Length (frames — 124 is about 5 s at 24 fps)",
+      "default": 124,
+      "min": 5,
+      "max": 362,
+      "step": 17,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "randomnoise_noise_seed_15",
+      "nodeId": "15",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 424242,
+      "min": 0,
+      "max": 999999999999,
+      "step": 1,
+      "required": false,
+      "order": 5
+    }
+  ],
+  "warmupParams": {
+    "minimaxh3imagetovideo_prompt_11": "a calm sunlit forest, gentle wind",
+    "minimaxh3imagetovideo_width_11": 848,
+    "minimaxh3imagetovideo_height_11": 480,
+    "minimaxh3imagetovideo_length_11": 124
+  }
+}

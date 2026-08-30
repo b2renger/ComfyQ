@@ -67,7 +67,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     // First-run / admin: set ComfyUI paths and server settings.
     router.put('/comfy', express.json(), (req, res) => {
         try {
-            const { root_path, python_executable, output_dir, api_host, api_port, lan_access, autoStart, vramBudgetGb, installation_type, assets_dir } = req.body || {};
+            const { root_path, python_executable, output_dir, api_host, api_port, lan_access, autoStart, vramBudgetGb, installation_type, assets_dir, use_sage_attention, fp16_accumulation } = req.body || {};
             configManager.update(c => {
                 if (root_path !== undefined) c.comfy_ui.root_path = root_path;
                 if (python_executable !== undefined) c.comfy_ui.python_executable = python_executable;
@@ -78,6 +78,10 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 if (autoStart !== undefined) c.comfy_ui.autoStart = autoStart;
                 if (vramBudgetGb !== undefined) c.comfy_ui.vramBudgetGb = vramBudgetGb;
                 if (installation_type !== undefined) c.comfy_ui.installation_type = installation_type;
+                // Performance flags — take effect on the next ComfyUI (re)start;
+                // they're part of the spawn signature, so Restart picks them up.
+                if (use_sage_attention !== undefined) c.comfy_ui.use_sage_attention = !!use_sage_attention;
+                if (fp16_accumulation !== undefined) c.comfy_ui.fp16_accumulation = !!fp16_accumulation;
                 // Calibration media directory lives under config.assets (not comfy_ui).
                 // Editable here so admins can repoint it when the drive letter changes.
                 if (assets_dir !== undefined) { c.assets = c.assets || {}; c.assets.dir = assets_dir; }

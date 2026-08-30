@@ -11,7 +11,7 @@ const execFileAsync = promisify(execFile);
 // If ComfyUI exits, we emit 'exited' and let the LocalComfyUIWorker decide
 // whether to respawn (default: yes, with backoff).
 class ComfyProcess extends EventEmitter {
-    constructor({ rootPath, pythonExecutable, host, bindHost, port, installationType, onMilestone }) {
+    constructor({ rootPath, pythonExecutable, host, bindHost, port, installationType, onMilestone, useSageAttention = false, fp16Accumulation = false }) {
         super();
         this.rootPath = rootPath;
         this.pythonExecutable = pythonExecutable;
@@ -22,6 +22,11 @@ class ComfyProcess extends EventEmitter {
         this.bindHost = bindHost || host;
         this.port = port;
         this.installationType = installationType || 'portable';
+        // Opt-in performance flags (config.comfy_ui.*). Global — they apply to
+        // every workflow this backend runs, so they are off unless an admin
+        // turns them on.
+        this.useSageAttention = !!useSageAttention;
+        this.fp16Accumulation = !!fp16Accumulation;
         this.proc = null;
         // Boot-milestone callback (see LocalComfyUIWorker). Used here to
         // reprint the LAN URL banner the moment ComfyUI's comfyregistry
@@ -85,6 +90,13 @@ class ComfyProcess extends EventEmitter {
             pyArgs.push('-s');
             comfyArgs.push('--windows-standalone-build');
         }
+        // SageAttention replaces the attention kernel globally; ComfyUI falls
+        // back on its own if the package is missing, so a wrong toggle is slow,
+        // not fatal.
+        if (this.useSageAttention) comfyArgs.push('--use-sage-attention');
+        // Pass the single feature by name — bare `--fast` enables everything in
+        // the PerformanceFeature enum, which ComfyUI itself calls untested.
+        if (this.fp16Accumulation) comfyArgs.push('--fast', 'fp16_accumulation');
         const args = [...pyArgs, mainPy, ...comfyArgs];
         // Sanitize the env so an active conda/venv in the parent shell can't
         // leak Python paths into the spawned interpreter. Without this, the

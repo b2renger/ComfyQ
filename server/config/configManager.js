@@ -24,7 +24,9 @@ function defaultConfig() {
             api_host: '127.0.0.1',
             api_port: 8188,
             autoStart: true,
-            vramBudgetGb: 24
+            vramBudgetGb: 24,
+            use_sage_attention: false,
+            fp16_accumulation: false
         },
         auth: { adminPasswordHash: '', accessPasswordHash: '' },
         queue: {

@@ -117,7 +117,18 @@ const AppConfig = z.object({
         // ComfyUI interface to the network unless an admin opts in.
         lan_access: z.boolean().default(false),
         autoStart: z.boolean().default(true),
-        vramBudgetGb: z.number().positive().default(24)
+        vramBudgetGb: z.number().positive().default(24),
+        // Optional ComfyUI performance flags, off by default so an existing rig
+        // keeps its exact current behavior. Both are global (they affect every
+        // workflow), which is why they're opt-in toggles rather than hardcoded
+        // spawn args — flip them back off and restart to rule them out.
+        //   use_sage_attention -> --use-sage-attention (needs the sageattention
+        //     package + triton; a big win on video models, no-op if unsupported)
+        //   fp16_accumulation  -> --fast fp16_accumulation (ComfyUI labels the
+        //     --fast family "untested and potentially quality deteriorating",
+        //     so we pass ONLY this one feature, never bare --fast)
+        use_sage_attention: z.boolean().default(false),
+        fp16_accumulation: z.boolean().default(false)
     }),
     // Two independent passwords, both optional:
     //   adminPasswordHash  — gates destructive/admin actions (see auth/authGate.js).

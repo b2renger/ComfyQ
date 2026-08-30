@@ -41,7 +41,9 @@ class LocalComfyUIWorker extends Worker {
             bindHost: this.bindHost,
             port: this.port,
             installationType: comfyConfig.installation_type,
-            onMilestone: this.onMilestone
+            onMilestone: this.onMilestone,
+            useSageAttention: comfyConfig.use_sage_attention,
+            fp16Accumulation: comfyConfig.fp16_accumulation
         });
         this.rest = new ComfyRestClient({ host: this.host, port: this.port });
         this.uploader = new InputUploader({

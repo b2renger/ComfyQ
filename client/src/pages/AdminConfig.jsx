@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen, Gauge } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import Modal from '../components/ui/Modal';
@@ -157,6 +157,20 @@ const AdminConfig = ({ currentMode }) => {
             showToast(enabled
                 ? 'ComfyUI will be exposed to the LAN — restart it to apply'
                 : 'ComfyUI LAN exposure turned off — restart it to apply');
+        } catch (e) { showToast(e.message, 'err'); }
+    };
+
+    // Generic toggle for the two ComfyUI performance flags. They apply on the
+    // next ComfyUI start/restart (they're part of the spawn signature), so the
+    // toast points at Restart rather than pretending it's live.
+    const togglePerfFlag = async (key, enabled, label) => {
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/comfy`, {
+                method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ [key]: enabled })
+            });
+            if (!res.ok) throw new Error((await res.json()).error || `Failed to update ${label}`);
+            setConfig(c => ({ ...c, comfy_ui: { ...(c?.comfy_ui || {}), [key]: enabled } }));
+            showToast(`${label} ${enabled ? 'enabled' : 'disabled'} — restart ComfyUI to apply`);
         } catch (e) { showToast(e.message, 'err'); }
     };
 
@@ -710,6 +724,49 @@ const AdminConfig = ({ currentMode }) => {
                         </span>
                     </span>
                 </label>
+
+                <div className="mb-4 rounded-lg border border-border bg-surface/40 p-3">
+                    <div className="text-[10px] uppercase tracking-wider text-muted font-semibold mb-2 flex items-center gap-1.5">
+                        <Gauge size={12} /> Performance (applies on restart)
+                    </div>
+                    <label className="flex items-start gap-2.5 cursor-pointer mb-2.5">
+                        <input
+                            type="checkbox"
+                            checked={config?.comfy_ui?.use_sage_attention ?? false}
+                            onChange={(e) => togglePerfFlag('use_sage_attention', e.target.checked, 'SageAttention')}
+                            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                        />
+                        <span className="text-sm text-white">
+                            SageAttention
+                            <span className="block text-xs text-muted">
+                                Adds <code>--use-sage-attention</code>. Replaces the attention kernel for every
+                                workflow — the biggest wins are on video models. Needs the <code>sageattention</code>
+                                package installed in ComfyUI's Python; if it isn't, ComfyUI just falls back to its
+                                default kernel.
+                            </span>
+                        </span>
+                    </label>
+                    <label className="flex items-start gap-2.5 cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={config?.comfy_ui?.fp16_accumulation ?? false}
+                            onChange={(e) => togglePerfFlag('fp16_accumulation', e.target.checked, 'fp16 accumulation')}
+                            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                        />
+                        <span className="text-sm text-white">
+                            fp16 accumulation
+                            <span className="block text-xs text-muted">
+                                Adds <code>--fast fp16_accumulation</code>. Notable on RTX 40/50-series cards. Only this
+                                one optimisation is passed — never bare <code>--fast</code>, which turns on everything in
+                                ComfyUI's "untested, potentially quality-deteriorating" set.
+                            </span>
+                        </span>
+                    </label>
+                    <p className="text-[11px] text-muted mt-2.5">
+                        Both are global and off by default. If output quality or stability changes, turn them off and
+                        restart to rule them out.
+                    </p>
+                </div>
 
                 {comfyStatus?.studentMode ? (
                     <p className="text-xs text-muted">

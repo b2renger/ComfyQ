@@ -56,7 +56,8 @@ class AdminCalibrator {
     get assetsDir() { return this._cfg.assets?.dir || ''; }
 
     _comfySig(cfg) {
-        return `${cfg.root_path || ''}|${cfg.python_executable || ''}|${cfg.api_port || ''}`;
+        return `${cfg.root_path || ''}|${cfg.python_executable || ''}|${cfg.api_port || ''}` +
+               `|sage=${!!cfg.use_sage_attention}|fp16acc=${!!cfg.fp16_accumulation}`;
     }
 
     async _ensureWorker({ network = false } = {}) {
