@@ -133,7 +133,11 @@ class ComfyProcess extends EventEmitter {
         this.proc.on('exit', (code, signal) => {
             console.log(`[ComfyProcess] Exited code=${code} signal=${signal}`);
             this.proc = null;
-            this.emit('exited', { code, signal });
+            // Distinguish "we killed it" (stop/restart/take-over) from "it died".
+            // Only the latter should trigger an automatic respawn.
+            const intentional = !!this._stopping;
+            this._stopping = false;
+            this.emit('exited', { code, signal, intentional });
         });
         return { external: false };
     }
@@ -188,6 +192,7 @@ class ComfyProcess extends EventEmitter {
     }
 
     async stop() {
+        this._stopping = true;
         if (this.proc) {
             this.proc.kill();
             await new Promise(r => setTimeout(r, 500));

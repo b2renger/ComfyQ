@@ -41,6 +41,7 @@ const accessRoutes = require('./routes/access');
 const workflowRoutes = require('./routes/workflows');
 const jobRoutes = require('./routes/jobs');
 const uploadRoutes = require('./routes/uploads');
+const storyboardRoutes = require('./routes/storyboard');
 const mediaStore = require('./media/mediaStore');
 const federationRoutes = require('./routes/federation');
 const { detectSystemInfo } = require('./federation/systemInfo');
@@ -239,6 +240,16 @@ async function main() {
     app.use('/federation', federationRoutes.makeRouter({
         configManager, registry, runtime, getSysInfo: () => sysInfo
     }));
+    // Storyboard batches — upload one markdown document, queue every generation
+    // it describes (images, then the videos that consume them, then audio).
+    // Mounted in BOTH modes: the document names its own workflows, so in admin
+    // mode it writes the batch straight to the queue file and then switches the
+    // machine to student mode serving the batch's first workflow, which is what
+    // starts the executor draining it. `runtime` is shared by reference, so in
+    // student mode it picks up the live queue/executor instead.
+    app.use('/storyboard', access, storyboardRoutes.makeRouter({
+        configManager, registry, runtime, adminGate: gate, exitForRestart
+    }));
 
     if (config.mode === 'admin') {
         // Calibration from the admin panel works by lazily spawning (or
@@ -321,7 +332,17 @@ async function main() {
     const worker = new LocalComfyUIWorker({
         comfyConfig: config.comfy_ui,
         queueConfig: config.queue,
-        onMilestone
+        onMilestone,
+        // Student mode serves a class: if ComfyUI crashes, bring it back and
+        // carry on serving the same workflow rather than stranding everyone.
+        autoRespawn: true,
+        onRespawn: () => {
+            const active = configManager.get().workflows?.activeWorkflowId;
+            const name = (active && registry.get(active)?.summary?.name) || active || 'none';
+            console.log(`[ComfyQ] ComfyUI recovered — still serving "${name}" (${active || 'no workflow'})`);
+            printConnectionBanner('ComfyUI recovered — back in service', config.server.port);
+            try { runtime.bus?.broadcast(); } catch { /* bus not up yet */ }
+        }
     });
     try {
         const started = await worker.start();
@@ -333,7 +354,26 @@ async function main() {
         return exitForRestart();
     }
 
-    const executor = new JobExecutor({ queue, worker, registry, comfyConfig: config.comfy_ui });
+    const executor = new JobExecutor({
+        queue, worker, registry, comfyConfig: config.comfy_ui,
+        // Sage attention is an opt-in global speed-up that only supports certain
+        // attention head dimensions. One incompatible model would otherwise take
+        // down every remaining job that uses it, so the flag is turned off for
+        // good, ComfyUI comes back without it, and the job is retried.
+        onSageIncompatible: async () => {
+            const ok = await worker.restartWithoutSageAttention();
+            if (!ok) return false;
+            try {
+                configManager.update(c => { c.comfy_ui.use_sage_attention = false; return c; });
+                console.log('[ComfyQ] "Use Sage attention" turned OFF — a model in this queue cannot run with it.');
+                console.log('[ComfyQ]   Re-enable it under Admin → ComfyUI backend → Performance if you want it back.');
+            } catch (e) {
+                console.warn('[ComfyQ] could not persist the sage-attention change:', e.message);
+            }
+            try { runtime.bus?.broadcast(); } catch { /* bus not up yet */ }
+            return true;
+        }
+    });
     executor.start();
     console.log('[ComfyQ] executor loop started');
 

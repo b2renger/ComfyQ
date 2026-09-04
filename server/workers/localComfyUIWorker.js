@@ -4,16 +4,37 @@ const { ComfyRestClient } = require('./comfyRestClient');
 const { ComfyWsClient } = require('./comfyWsClient');
 const { InputUploader } = require('./inputUploader');
 const { ModelLifecycle } = require('./modelLifecycle');
-const { humanizeFailure } = require('../executor/errorMessages');
+const { humanizeFailure, humanizeSubmitRejection } = require('../executor/errorMessages');
+const { validateSelects } = require('./selectValidation');
 
 const CLIENT_ID_PREFIX = 'comfyq';
+
+// Snap a numeric parameter to the bounds its meta declares. The booking form
+// applies the same rules on blur, but that is only the friendly half: values
+// reach us straight off the wire, so this is where they are actually enforced.
+// (A job once reached ComfyUI with Duration = -1 against a meta saying min 1.)
+// `step` matters as much as min/max — a workflow that quantises its own inputs
+// otherwise renders something quietly different from what was asked for.
+function clampParamValue(v, p) {
+    if (p.type !== 'number') return v;
+    let n = typeof v === 'number' ? v : parseFloat(v);
+    if (!Number.isFinite(n)) return Number.isFinite(p.default) ? p.default : undefined;
+    const { min, max, step } = p;
+    if (Number.isFinite(step) && step > 0) {
+        const base = Number.isFinite(min) ? min : 0;
+        n = Math.round((base + Math.round((n - base) / step) * step) * 1e6) / 1e6;
+    }
+    if (Number.isFinite(min) && n < min) n = min;
+    if (Number.isFinite(max) && n > max) n = max;
+    return n;
+}
 
 // LocalComfyUIWorker — single-machine ComfyUI runner. Implements the Worker
 // interface so the executor doesn't depend on locality. Owns one ComfyUI
 // child process (or attaches to an external one), one REST client, one WS
 // client (auto-reconnecting), one InputUploader, one ModelLifecycle.
 class LocalComfyUIWorker extends Worker {
-    constructor({ comfyConfig, queueConfig, onMilestone }) {
+    constructor({ comfyConfig, queueConfig, onMilestone, autoRespawn = false, onRespawn = null }) {
         super();
         // Connect host: what ComfyQ's REST/WS clients dial. Must be a real
         // loopback target — if an admin set api_host to a wildcard, fall back
@@ -57,6 +78,63 @@ class LocalComfyUIWorker extends Worker {
         this.currentJobId = null;
         this.currentPromptId = null;
         this.currentStepsTotal = null;
+
+        // Crash recovery. A ComfyUI segfault (a bad VAE decode will do it) used
+        // to leave the worker 'down' forever: the WS retried into a void and
+        // every subsequent job failed with "Worker not idle (state=down)".
+        // Opt-in so the admin calibrator, which stops and starts ComfyUI
+        // deliberately, keeps its existing behaviour.
+        this._autoRespawn = autoRespawn;
+        this.onRespawn = onRespawn || (() => {});
+        this._respawning = false;
+        this._shuttingDown = false;
+        // Registered ONCE here, not in start() — start() runs again on every
+        // respawn and would otherwise stack a new listener each time.
+        this.process.on('exited', (info) => this._onProcessExit(info));
+    }
+
+    // Backoff between respawn attempts: quick at first (a segfault leaves the
+    // port free almost immediately), then patient, so a genuinely broken
+    // install doesn't spin. Never gives up — a classroom rig should heal
+    // itself even if ComfyUI is only fixed half an hour later.
+    _respawnDelayMs(attempt) {
+        const ladder = [2000, 5000, 10000, 20000, 30000];
+        return ladder[Math.min(attempt, ladder.length - 1)];
+    }
+
+    _onProcessExit({ intentional } = {}) {
+        console.warn('[Worker] ComfyUI process exited');
+        this._setState('down');
+        if (this.currentJobId) {
+            const jobId = this.currentJobId;
+            const promptId = this.currentPromptId;
+            this._resetCurrent();
+            this.emit('failed', { jobId, promptId, errorReason: 'comfyui-process-exited', errorPhase: 'executing' });
+        }
+        if (intentional || this._shuttingDown || !this._autoRespawn) return;
+        this._respawnLoop();
+    }
+
+    async _respawnLoop() {
+        if (this._respawning) return;
+        this._respawning = true;
+        console.warn('[Worker] ComfyUI died unexpectedly — restarting it automatically');
+        for (let attempt = 0; !this._shuttingDown; attempt++) {
+            const delay = this._respawnDelayMs(attempt);
+            await new Promise(r => setTimeout(r, delay));
+            if (this._shuttingDown) break;
+            try {
+                console.log(`[Worker] respawn attempt ${attempt + 1}…`);
+                await this.start();
+                console.log('[Worker] ComfyUI is back up — resuming the queue');
+                this._respawning = false;
+                try { this.onRespawn(); } catch (e) { console.warn('[Worker] onRespawn err:', e.message); }
+                return;
+            } catch (e) {
+                console.error(`[Worker] respawn attempt ${attempt + 1} failed: ${e.message}`);
+            }
+        }
+        this._respawning = false;
     }
 
     getStatus() {
@@ -94,6 +172,13 @@ class LocalComfyUIWorker extends Worker {
             }
             await this.process.waitForApi();
             console.log('[Worker] ComfyUI API is responsive');
+            // A respawn runs start() again; the previous WS client is still
+            // reconnecting on a timer, so retire it before opening a new one
+            // or both would handle every message.
+            if (this.ws) {
+                try { this.ws.close(); } catch { /* already closed */ }
+                try { this.ws.removeAllListeners(); } catch { /* not an emitter */ }
+            }
             this.ws = new ComfyWsClient({ host: this.host, port: this.port, clientId: this.clientId });
             this.ws.on('open', () => {
                 console.log(`[Worker] WS connected (clientId=${this.clientId})`);
@@ -107,22 +192,57 @@ class LocalComfyUIWorker extends Worker {
             this.ws.on('close', () => console.log('[Worker] WS disconnected (will reconnect)'));
             this.ws.on('error', (e) => console.warn('[Worker] WS error:', e.message));
             this.ws.on('message', (msg) => this._handleWsMessage(msg));
-            this.process.on('exited', () => {
-                console.warn('[Worker] ComfyUI process exited');
-                this._setState('down');
-                if (this.currentJobId) {
-                    const jobId = this.currentJobId;
-                    const promptId = this.currentPromptId;
-                    this._resetCurrent();
-                    this.emit('failed', { jobId, promptId, errorReason: 'comfyui-process-exited', errorPhase: 'executing' });
-                }
-            });
             this._setState('idle');
             return procStart;
         } catch (e) {
             this._setState('down', e.message);
             throw e;
         }
+    }
+
+    // Relaunch ComfyUI with `--use-sage-attention` dropped.
+    //
+    // Sage attention is an opt-in global speed-up that only supports certain
+    // attention head dimensions, so one incompatible model in a batch kills
+    // every job that uses it while the rest succeed. Rather than stranding the
+    // batch, the flag is turned off and ComfyUI comes back without it.
+    //
+    // Returns false when there is nothing to do — the flag was already off, or
+    // this is an external ComfyUI whose arguments we do not control.
+    async restartWithoutSageAttention() {
+        if (!this.process.useSageAttention) return false;
+        if (!this.process.proc) {
+            // Attached to a ComfyUI someone else launched; its flags are theirs.
+            console.warn('[Worker] sage attention is incompatible with this model, but ComfyUI is EXTERNAL — ' +
+                'relaunch it without --use-sage-attention.');
+            return false;
+        }
+        console.warn('[Worker] sage attention is incompatible with this model — restarting ComfyUI without it');
+        this.process.useSageAttention = false;
+        try {
+            await this.process.stop();
+            // stop() returns as soon as the kill is issued; start() would see the
+            // dying instance still answering and "attach" to it instead of
+            // spawning a fresh one with the new arguments.
+            await this._waitForPortFree(20000);
+            this.process._stopping = false;
+            await this.start();
+            console.log('[Worker] ComfyUI is back up without sage attention');
+            return true;
+        } catch (e) {
+            console.error('[Worker] could not restart ComfyUI without sage attention:', e.message);
+            this._setState('down', e.message);
+            return false;
+        }
+    }
+
+    async _waitForPortFree(timeoutMs = 20000) {
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+            if (!(await this.process.isApiResponsive())) return true;
+            await new Promise(r => setTimeout(r, 500));
+        }
+        return false;
     }
 
     _resetCurrent() {
@@ -175,10 +295,13 @@ class LocalComfyUIWorker extends Worker {
         //    going through the `inputs` array below.
         for (const p of exposedParameters) {
             if (paramValues == null) continue;
-            const v = paramValues[p.key];
-            if (v === undefined || v === null || v === '') continue;
+            const raw = paramValues[p.key];
+            if (raw === undefined || raw === null || raw === '') continue;
             const node = wf[p.nodeId];
             if (!node) continue;
+            const v = clampParamValue(raw, p);
+            if (v === undefined) continue;                 // unusable number, leave the graph literal
+            if (v !== raw) console.warn(`[Worker] param ${p.key}: ${JSON.stringify(raw)} adjusted to fit its declared bounds → ${v}`);
             node.inputs = node.inputs || {};
             node.inputs[p.field] = v;
         }
@@ -210,9 +333,33 @@ class LocalComfyUIWorker extends Worker {
         this._setState('busy');
         this.currentJobId = jobId;
         const exposedParameters = opts.exposedParameters || [];
-        const paramValues = opts.paramValues || {};
+        let paramValues = opts.paramValues || {};
         const inputs = opts.inputs || [];
         const filenamePrefix = opts.filenamePrefix;
+
+        // Check dropdown values against the INSTALLED node before anything else.
+        // ComfyUI rejects the whole prompt for one unknown combo string, so a
+        // bundle's meta.json drifting from its node fails every job that picks
+        // the stale option. Done here rather than in _materializeWorkflow so
+        // that stays a pure, synchronously-testable function.
+        try {
+            const checked = await validateSelects({ apiWorkflow, exposedParameters, paramValues, rest: this.rest });
+            for (const a of checked.adjustments) {
+                console.log(`[Worker] param ${a.key}: ${JSON.stringify(a.from)} → ${JSON.stringify(a.to)} ` +
+                    `(${a.why}; ${a.classType} offers the latter)`);
+            }
+            if (checked.errors.length > 0) {
+                this._resetCurrent();
+                this._setState('idle');
+                throw new Error(checked.errors.join(' · '));
+            }
+            paramValues = checked.paramValues;
+        } catch (e) {
+            // A validation VERDICT must stop the job; a validation FAILURE
+            // (ComfyUI unreachable, odd schema) must not — it is a diagnostic.
+            if (this._state !== 'busy') throw e;
+            console.warn('[Worker] could not check dropdown values against ComfyUI:', e.message);
+        }
 
         const lifecycleResult = await this.lifecycle.beforeJob({
             workflowId: opts.workflowId,
@@ -228,8 +375,9 @@ class LocalComfyUIWorker extends Worker {
         } catch (e) {
             this._resetCurrent();
             this._setState('idle');
-            const detail = e.response?.data ? JSON.stringify(e.response.data) : e.message;
-            const err = new Error(`/prompt rejected: ${detail}`);
+            const err = new Error(e.response?.data
+                ? humanizeSubmitRejection(e.response.data)
+                : `/prompt rejected: ${e.message}`);
             err.cause = e;
             throw err;
         }
@@ -272,6 +420,7 @@ class LocalComfyUIWorker extends Worker {
     }
 
     async shutdown() {
+        this._shuttingDown = true;
         if (this.ws) this.ws.close();
         // Note: we do NOT kill the ComfyUI process on shutdown; the user may
         // be running their own ComfyUI we attached to. ComfyProcess only kills
@@ -279,4 +428,4 @@ class LocalComfyUIWorker extends Worker {
     }
 }
 
-module.exports = { LocalComfyUIWorker };
+module.exports = { LocalComfyUIWorker, clampParamValue };

@@ -12,6 +12,8 @@ const { parseWorkflow } = require('../workflows/workflowParser');
 const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
 const { resolveOutputPath } = require('../executor/outputCollector');
 const sm = require('../queue/jobStateMachine');
+const { ComfyRestClient } = require('../workers/comfyRestClient');
+const { getComboOptions } = require('../workers/nodeSchema');
 
 function sanitizeId(s) {
     return String(s).toLowerCase().replace(/[^a-z0-9_-]/g, '_').replace(/^_+|_+$/g, '');
@@ -362,6 +364,73 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     });
 
     // Activate a workflow and switch to student mode.
+    // Compare every bundle's `select` option lists against the nodes actually
+    // installed on this ComfyUI.
+    //
+    // This exists because a meta.json option list can drift from its node and
+    // nothing notices until a job picks a non-default value — at which point
+    // ComfyUI rejects the whole prompt. That is how seven title cards of a
+    // 55-shot storyboard failed. Run it after installing or updating custom
+    // nodes, and before committing a long batch.
+    router.get('/workflow-options-check', adminGate, async (req, res) => {
+        try {
+            const cfg = configManager.resolvePaths(configManager.load().config);
+            const host = (cfg.comfy_ui.api_host === '0.0.0.0' || cfg.comfy_ui.api_host === '::')
+                ? '127.0.0.1' : cfg.comfy_ui.api_host;
+            const rest = new ComfyRestClient({ host, port: cfg.comfy_ui.api_port });
+            try { await rest.ping(); }
+            catch { return res.status(503).json({ error: 'ComfyUI is not responding — start it, then check again.' }); }
+
+            const stale = [];
+            const skipped = [];
+            let checked = 0;
+
+            for (const summary of registry.summaries({ includeUnavailable: true, includeHidden: true })) {
+                const entry = registry.get(summary.id);
+                if (!entry || entry.unavailable) continue;
+                for (const p of entry.effective?.exposedParameters || []) {
+                    if (p.type !== 'select') continue;
+                    const node = entry.apiWorkflow?.[p.nodeId];
+                    const classType = node?.class_type || null;
+                    if (!classType) {
+                        skipped.push({ workflowId: entry.id, key: p.key, reason: 'node not in the api.json' });
+                        continue;
+                    }
+                    let live = null;
+                    try { live = await getComboOptions(rest, classType, p.field); }
+                    catch { live = null; }
+                    if (!live) {
+                        // NOT the same as "no valid values": a dynamic node like
+                        // CustomCombo keeps its choices in the workflow's own
+                        // widget values, so there is nothing here to check.
+                        skipped.push({
+                            workflowId: entry.id, key: p.key, classType,
+                            reason: 'this node does not publish a fixed option list'
+                        });
+                        continue;
+                    }
+                    checked++;
+                    const declared = p.options || [];
+                    const bogusOptions = declared.filter(o => !live.includes(o));
+                    const missingOptions = live.filter(o => !declared.includes(o));
+                    const defaultValid = p.default === undefined || live.includes(p.default);
+                    if (bogusOptions.length > 0 || !defaultValid) {
+                        stale.push({
+                            workflowId: entry.id, key: p.key, nodeId: p.nodeId, classType,
+                            field: p.field, bogusOptions, missingOptions,
+                            defaultValid, declaredDefault: p.default, liveOptions: live
+                        });
+                    }
+                }
+            }
+            console.log(`[Admin] workflow-options-check: ${checked} checked, ${stale.length} stale, ${skipped.length} skipped`);
+            res.json({ ok: true, checked, stale, skipped });
+        } catch (e) {
+            console.error('[Admin] workflow-options-check err:', e);
+            res.status(500).json({ error: e.message });
+        }
+    });
+
     router.post('/activate-workflow', express.json(), (req, res) => {
         try {
             const { workflowId } = req.body || {};

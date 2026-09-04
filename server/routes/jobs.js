@@ -21,6 +21,8 @@ function _toWireJob(job) {
         outputs: job.outputs,
         progress: job.progress,
         current_node: job.currentNode,
+        batch_id: job.batchId,
+        batch_label: job.batchLabel,
         workflow_id: job.workflowId,
         workflow_version: job.workflowVersion,
         error_reason: job.errorReason,

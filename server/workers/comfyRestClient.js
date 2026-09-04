@@ -16,6 +16,15 @@ class ComfyRestClient {
         return r.data; // { prompt_id, number, node_errors }
     }
 
+    // Node schema for one class_type: { [classType]: { input: { required, optional } } }.
+    // Used to check a combo/select value against what this ComfyUI actually
+    // offers before a job is submitted — a bundle's meta.json can drift from
+    // the installed node, and ComfyUI rejects the whole prompt when it does.
+    async getObjectInfo(classType) {
+        const r = await this.http.get(`/object_info/${encodeURIComponent(classType)}`);
+        return r.data;
+    }
+
     async getHistory(promptId) {
         const r = await this.http.get(`/history/${promptId}`);
         return r.data; // { [promptId]: { outputs: { [nodeId]: {...} }, status: {...} } }

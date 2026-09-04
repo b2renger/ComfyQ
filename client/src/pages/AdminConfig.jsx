@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen, Gauge } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen, Gauge, Clapperboard, ListChecks } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
+import StoryboardUpload from '../components/admin/StoryboardUpload';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -41,6 +42,9 @@ const AdminConfig = ({ currentMode }) => {
     const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
     const [emergencyStopping, setEmergencyStopping] = useState(false);
     const [pathChecks, setPathChecks] = useState(null);
+    // Bundle dropdown options vs. the nodes actually installed on this rig.
+    const [optionChecks, setOptionChecks] = useState(null);
+    const [checkingOptions, setCheckingOptions] = useState(false);
     const [checkingPaths, setCheckingPaths] = useState(false);
     const [drives, setDrives] = useState([]); // mounted Windows drive letters
     const [detecting, setDetecting] = useState(false);
@@ -229,6 +233,29 @@ const AdminConfig = ({ currentMode }) => {
             showToast(`Found ComfyUI at ${data.root_path} — review and Save settings`);
         } catch (e) { showToast(e.message, 'err'); }
         finally { setDetecting(false); }
+    };
+
+    // Compare every workflow's dropdown option lists against the live ComfyUI.
+    // A bundle's meta.json can drift from its node, and nothing notices until a
+    // job picks a non-default value — at which point ComfyUI rejects the whole
+    // prompt. Run this after installing or updating custom nodes.
+    const checkWorkflowOptions = async () => {
+        setCheckingOptions(true);
+        setOptionChecks(null);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/workflow-options-check`, { headers: adminHeaders() });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Could not check the workflow options');
+            setOptionChecks(data);
+            showToast(data.stale.length === 0
+                ? `${data.checked} dropdown(s) checked — all match this ComfyUI`
+                : `${data.stale.length} workflow dropdown(s) don't match this ComfyUI`,
+                data.stale.length === 0 ? 'ok' : 'err');
+        } catch (e) {
+            showToast(e.message, 'err');
+        } finally {
+            setCheckingOptions(false);
+        }
     };
 
     const checkPaths = async () => {
@@ -646,9 +673,50 @@ const AdminConfig = ({ currentMode }) => {
                         </ul>
                     </div>
                 )}
+                {optionChecks && (
+                    <div className="mt-4 rounded-lg border border-border bg-surface/50 p-3 text-sm">
+                        <div className={`mb-2 font-medium ${optionChecks.stale.length === 0 ? 'text-success' : 'text-danger'}`}>
+                            {optionChecks.stale.length === 0
+                                ? `${optionChecks.checked} dropdown(s) match this ComfyUI`
+                                : `${optionChecks.stale.length} dropdown(s) don't match this ComfyUI`}
+                        </div>
+                        {optionChecks.stale.map((s, i) => (
+                            <div key={i} className="mb-2 flex items-start gap-2">
+                                <XCircle size={16} className="text-danger mt-0.5 shrink-0" />
+                                <div className="min-w-0">
+                                    <div className="text-white break-all">{s.workflowId} · {s.field}</div>
+                                    {s.bogusOptions.length > 0 && (
+                                        <div className="text-xs text-danger/90 break-words">
+                                            not offered by {s.classType}: {s.bogusOptions.join(', ')}
+                                        </div>
+                                    )}
+                                    {!s.defaultValid && (
+                                        <div className="text-xs text-danger/90 break-words">
+                                            its default {JSON.stringify(s.declaredDefault)} is not selectable
+                                        </div>
+                                    )}
+                                    <div className="text-xs text-muted break-words">
+                                        this node offers: {s.liveOptions.join(', ')}
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        {optionChecks.skipped.length > 0 && (
+                            <p className="text-xs text-muted mt-1">
+                                {optionChecks.skipped.length} dropdown(s) could not be checked — their node
+                                doesn't publish a fixed list (a workflow-defined combo), so this is not a
+                                clean bill of health for them.
+                            </p>
+                        )}
+                    </div>
+                )}
                 <div className="mt-4 flex flex-wrap justify-end gap-2">
                     <Button variant="ghost" icon={ScanSearch} disabled={detecting} onClick={autodetectPaths}>
                         {detecting ? 'Detecting…' : 'Auto-detect'}
+                    </Button>
+                    <Button variant="ghost" icon={ListChecks} disabled={checkingOptions}
+                        onClick={checkWorkflowOptions}>
+                        {checkingOptions ? 'Checking…' : 'Check workflow options'}
                     </Button>
                     <Button variant="ghost" icon={RotateCcw} onClick={resetPathsToDefaults}>
                         Reset to defaults
@@ -1031,6 +1099,32 @@ const AdminConfig = ({ currentMode }) => {
                     </div>
                 </div>
             </Modal>
+
+            {/* Storyboard batches — one markdown document becomes a whole queue of
+                generations (images, then the videos that consume them, then audio).
+                See docs/storyboard-format.md. */}
+            <Card>
+                <div className="flex items-center justify-between mb-3">
+                    <h2 className="text-lg font-semibold flex items-center gap-2">
+                        <Clapperboard size={18} /> Storyboard batch
+                    </h2>
+                    <Badge variant={config?.mode === 'student' ? 'success' : 'default'}>
+                        {config?.mode === 'student' ? 'Serving' : 'Idle'}
+                    </Badge>
+                </div>
+                <p className="text-xs text-muted mb-3">
+                    Upload one markdown storyboard and queue every generation it describes, in the
+                    order that makes them possible: all the images first, then the videos that use
+                    those images as their frames, then the audio. The document names its own
+                    workflows — within each of those three groups the shots are ordered so each
+                    model is loaded once, and queueing starts the machine if it is idle.
+                </p>
+                <StoryboardUpload
+                    adminPassword={adminPassword}
+                    serving={config?.mode === 'student'}
+                    notify={showToast}
+                />
+            </Card>
 
             <Card>
                 <div className="flex items-center justify-between mb-3">

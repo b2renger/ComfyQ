@@ -35,6 +35,29 @@ export const prettyInputName = (fn) => String(fn || '')
 //   recalledMedia       { [key]: comfyFilename }      (reused-from-a-prior-job badge)
 //   mediaChangeHandler  (key) => (file: File) => void
 //   mediaRemoveHandler  (key) => () => void
+// Snap a number to the bounds its meta declares. Applied on BLUR, never on
+// each keystroke — clamping while typing makes a value like 1088 impossible to
+// enter (the leading "1" would jump straight to `min`). The server re-applies
+// the same rules in _materializeWorkflow; this is the friendly half, not the
+// authoritative one.
+export const clampToBounds = (raw, config = {}) => {
+    const { min, max, step } = config;
+    let v = typeof raw === 'number' ? raw : parseFloat(raw);
+    if (!Number.isFinite(v)) v = Number.isFinite(config.default) ? config.default : (Number.isFinite(min) ? min : 0);
+    // Snap to the step grid before clamping, so a stepped param can only ever
+    // hold a value the workflow can actually render (LTX, for one, floors
+    // anything off-grid and silently gives you a different resolution).
+    if (Number.isFinite(step) && step > 0) {
+        const base = Number.isFinite(min) ? min : 0;
+        v = base + Math.round((v - base) / step) * step;
+        // Kill FP drift from the multiply (0.1-style steps).
+        v = Math.round(v * 1e6) / 1e6;
+    }
+    if (Number.isFinite(min) && v < min) v = min;
+    if (Number.isFinite(max) && v > max) v = max;
+    return v;
+};
+
 const DynamicParamFields = ({
     paramMap,
     values = {},
@@ -206,10 +229,31 @@ const DynamicParamFields = ({
                         <label className="text-sm font-medium text-slate-300">{label}</label>
                         <input
                             type={type === 'number' ? 'number' : 'text'}
+                            min={type === 'number' && Number.isFinite(config.min) ? config.min : undefined}
+                            max={type === 'number' && Number.isFinite(config.max) ? config.max : undefined}
+                            step={type === 'number' && Number.isFinite(config.step) ? config.step : undefined}
                             className="w-full bg-background border border-border rounded-lg p-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
                             value={values[key] ?? ''}
-                            onChange={(e) => setVal(key, type === 'number' ? parseFloat(e.target.value) : e.target.value)}
+                            onChange={(e) => {
+                                if (type !== 'number') return setVal(key, e.target.value);
+                                // Keep the raw number while typing; bounds are
+                                // applied on blur (see clampToBounds).
+                                const raw = e.target.value;
+                                const n = parseFloat(raw);
+                                setVal(key, raw === '' || !Number.isFinite(n) ? '' : n);
+                            }}
+                            onBlur={() => { if (type === 'number') setVal(key, clampToBounds(values[key], config)); }}
                         />
+                        {type === 'number' && (Number.isFinite(config.min) || Number.isFinite(config.max) || Number.isFinite(config.step)) && (
+                            <p className="text-[10px] text-muted ml-1">
+                                {[
+                                    Number.isFinite(config.min) && Number.isFinite(config.max) ? `${config.min}–${config.max}` : null,
+                                    Number.isFinite(config.min) && !Number.isFinite(config.max) ? `min ${config.min}` : null,
+                                    !Number.isFinite(config.min) && Number.isFinite(config.max) ? `max ${config.max}` : null,
+                                    Number.isFinite(config.step) && config.step !== 1 ? `steps of ${config.step}` : null,
+                                ].filter(Boolean).join(' · ')}
+                            </p>
+                        )}
                     </div>
                 );
             })}

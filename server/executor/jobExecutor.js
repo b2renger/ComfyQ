@@ -1,7 +1,8 @@
 const sm = require('../queue/jobStateMachine');
 const oc = require('./outputCollector');
-const { humanizeFailure } = require('./errorMessages');
+const { humanizeFailure, isSageIncompatibility } = require('./errorMessages');
 const ingredientsStore = require('../storage/ingredientsStore');
+const { resolveChainedInputs } = require('./chainedInputs');
 
 const FAST_POLL_MS = 1000;        // first 60s
 const SLOW_POLL_MS = 5000;        // after 60s
@@ -10,11 +11,18 @@ const FAST_POLL_WINDOW_MS = 60000;
 // Drives the JobQueue + Worker. One job at a time in M0; the executor stays
 // loop-driven so it composes cleanly with future multi-worker pools.
 class JobExecutor {
-    constructor({ queue, worker, registry, comfyConfig }) {
+    constructor({ queue, worker, registry, comfyConfig, onSageIncompatible = null }) {
         this.queue = queue;
         this.worker = worker;
         this.registry = registry;
         this.comfyConfig = comfyConfig;
+        // Called once, the first time a job dies because ComfyUI's optional
+        // sage-attention flag does not support that model's head dimension.
+        // Should turn the flag off, bring ComfyUI back without it, and resolve
+        // truthy — the job is then retried rather than failed. See server/index.js.
+        this.onSageIncompatible = onSageIncompatible;
+        this._sageRecoveryDone = false;
+        this._recovering = false;
         this.running = false;
         this.tickMs = 1000;
         this._listeners = new Set();
@@ -53,6 +61,14 @@ class JobExecutor {
             }
         });
         this.worker.on('failed', ({ jobId, errorReason, errorPhase }) => {
+            // A model that sage attention cannot run is a server-configuration problem, not a
+            // problem with the job: the flag is global, so it would take out
+            // every remaining shot that uses this model. Turn it off, restart
+            // ComfyUI, and put the job back — once.
+            if (this._shouldRecoverFromSage(errorReason)) {
+                this._recoverFromSage(jobId, errorReason);
+                return;
+            }
             try { this.queue.transitionStatus(jobId, sm.STATES.FAILED, { payload: { errorReason, errorPhase } }); } catch { /* already terminal */ }
             const dur = this._jobStartedAt ? ((Date.now() - this._jobStartedAt) / 1000).toFixed(1) : '?';
             const truncReason = String(errorReason).split('\n')[0].slice(0, 200);
@@ -63,6 +79,52 @@ class JobExecutor {
             this._lastLoggedNodeId = null;
             this._notify();
         });
+    }
+
+    _shouldRecoverFromSage(errorReason) {
+        return !!this.onSageIncompatible
+            && !this._sageRecoveryDone
+            && !this._recovering
+            && isSageIncompatibility(errorReason);
+    }
+
+    // Take the job out of flight, fix the server, put the job back. The job
+    // stays SCHEDULED throughout, so its job_deps rows remain valid and the
+    // shots waiting on it are never collapsed by failBlockedJobs.
+    async _recoverFromSage(jobId, errorReason) {
+        this._recovering = true;
+        this._sageRecoveryDone = true;
+        const short = jobId.slice(0, 8);
+        console.warn(`[Executor] job ${short} hit an acceleration flag its model cannot use — recovering`);
+        this.queue.requeue(jobId, 'retrying without sage attention');
+        this._currentJobId = null;
+        this._wsHasFired = false;
+        this._jobStartedAt = null;
+        this._lastLoggedNodeId = null;
+        this._notify();
+        try {
+            const ok = await this.onSageIncompatible({ jobId, errorReason });
+            if (ok) {
+                console.log(`[Executor] job ${short} will be retried`);
+            } else {
+                // Nothing could be changed (external ComfyUI, or the flag was
+                // already off) — fail it honestly rather than loop forever.
+                this.queue.transitionStatus(jobId, sm.STATES.FAILED, {
+                    payload: { errorReason, errorPhase: 'executing' }
+                });
+                this._notify();
+            }
+        } catch (e) {
+            console.error('[Executor] sage recovery failed:', e.message);
+            try {
+                this.queue.transitionStatus(jobId, sm.STATES.FAILED, {
+                    payload: { errorReason, errorPhase: 'executing' }
+                });
+            } catch { /* already terminal */ }
+            this._notify();
+        } finally {
+            this._recovering = false;
+        }
     }
 
     _logProgress(jobId, stepsDone, stepsTotal, currentNodeId) {
@@ -120,7 +182,28 @@ class JobExecutor {
             await this._pollHistoryIfStale();
             return;
         }
-        // Otherwise look for the next ready job.
+        // Hold the queue while ComfyUI is down or coming back up. Submitting
+        // now would throw "Worker not idle" and the catch below marks the job
+        // FAILED — so a single crash used to burn every job still waiting,
+        // one per tick, instead of just delaying them.
+        // Hold while ComfyUI is being restarted out from under us.
+        if (this._recovering) return;
+        const workerState = this.worker.getStatus?.().state;
+        if (workerState === 'down' || workerState === 'starting') return;
+
+        // Collapse any job whose chained input can never arrive (its source
+        // failed, was cancelled, or was deleted) before looking for work —
+        // otherwise a storyboard video waits forever on a frame that will
+        // never be rendered. A no-op unless a batch is queued.
+        const blocked = this.queue.failBlockedJobs();
+        if (blocked.length) {
+            console.warn(`[Executor] ${blocked.length} job(s) failed: dependency-failed`);
+            this._notify();
+        }
+
+        // Otherwise look for the next ready job. findReady already skips jobs
+        // whose chained inputs are not COMPLETED yet, so a waiting video never
+        // blocks the images queued behind it.
         const ready = this.queue.findReady();
         if (!ready) return;
 
@@ -159,6 +242,26 @@ class JobExecutor {
             // and recorded in job.inputFiles. v2 doesn't re-upload here — but
             // we surface this state for clarity / future remote workers.
 
+            // Storyboard chaining: a media param may be fed by an earlier job's
+            // output rather than an upload. Copy that output into ComfyUI/input
+            // now and persist the resolved filename, so the stored job records
+            // what actually ran. Fail loudly rather than submit with the
+            // parameter unset — the graph would otherwise quietly render
+            // whatever filename its api.json shipped with.
+            const deps = this.queue.depsFor(job.id);
+            if (deps.length > 0) {
+                const chain = resolveChainedInputs({
+                    job, deps, queue: this.queue, comfyConfig: this.comfyConfig
+                });
+                if (chain.errors.length > 0) {
+                    throw new Error(`chained input unavailable — ${chain.errors.join('; ')}`);
+                }
+                job = this.queue.setParamValues(job.id, chain.paramValues);
+                for (const r of chain.resolved) {
+                    console.log(`[Executor]   chained ${r.paramKey} ← job ${r.sourceJobId.slice(0, 8)} (${r.originalName})`);
+                }
+            }
+
             const filenamePrefix = this._buildFilenamePrefix(job);
             this.queue.transitionStatus(job.id, sm.STATES.SUBMITTED);
             await this.worker.submit(job.id, workflowEntry.apiWorkflow, {
@@ -186,6 +289,11 @@ class JobExecutor {
     }
 
     _buildFilenamePrefix(job) {
+        // A storyboard job carries its own prefix — a folder plus a name built
+        // from the shot's own headings — so its results are findable on disk
+        // instead of being a wall of timestamps. ComfyUI treats a "/" in
+        // filename_prefix as a subfolder under its output dir.
+        if (job.outputPrefix) return job.outputPrefix;
         const d = new Date(job.scheduledAt);
         const z = (n, w = 2) => String(n).padStart(w, '0');
         const stamp = `${d.getFullYear()}${z(d.getMonth() + 1)}${z(d.getDate())}_${z(d.getHours())}${z(d.getMinutes())}${z(d.getSeconds())}`;

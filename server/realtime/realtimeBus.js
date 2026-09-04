@@ -177,6 +177,17 @@ class RealtimeBus {
                         job, configManager: this.configManager
                     });
                     if (!auth.allowed) return socket.emit('error', { message: auth.reason });
+                    // Refuse to delete a finished job whose output another
+                    // queued job is still waiting to consume — that is a
+                    // storyboard's frame, and removing it would collapse the
+                    // rest of the batch.
+                    const needed = this.queue.neededBy(jobId);
+                    if (needed.length > 0) {
+                        return socket.emit('error', {
+                            message: `${needed.length} queued job(s) still need this result as their input. ` +
+                                'Cancel those first, or remove the whole batch.'
+                        });
+                    }
                     if (sm.isInFlight(job.status) || job.status === sm.STATES.SCHEDULED) {
                         // Try cancelling first if executing; otherwise just remove.
                         if (sm.isInFlight(job.status)) this.executor.cancelJob(jobId);
@@ -281,6 +292,8 @@ class RealtimeBus {
             outputs: job.outputs || [],
             progress,
             current_node: job.currentNode,
+            batch_id: job.batchId,
+            batch_label: job.batchLabel,
             workflow_id: job.workflowId,
             error_reason: job.errorReason
         };

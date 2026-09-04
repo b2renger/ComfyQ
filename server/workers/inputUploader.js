@@ -1,6 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 
+// How long a storyboard's chained intermediate frames stay on disk. Long
+// enough that no realistic batch loses an input mid-run; short enough that a
+// workshop machine reclaims the space.
+const CHAIN_RETENTION_MS = 24 * 60 * 60 * 1000;
+
 // Copies a user-uploaded file from the ComfyQ-managed staging dir into
 // ComfyUI/input/ with a namespaced filename so two jobs can't clobber each
 // other and so we can clean up later by job id.
@@ -40,16 +45,25 @@ class InputUploader {
     // Best-effort cleanup of files older than retentionMs whose name matches
     // the comfyq__ pattern. Caller decides when (e.g., on timer or after job
     // finalization).
+    // `comfyq_chain__` files are a storyboard batch's intermediate frames: an
+    // image job's output copied in as the next job's input. They must outlive
+    // the normal retention window (a batch runs for hours and a frame may be
+    // consumed long after it was produced), but they are full copies and would
+    // otherwise accumulate forever across a workshop — so they get their own,
+    // far longer TTL rather than no cleanup at all.
     sweepStale() {
         const now = Date.now();
+        const chainRetentionMs = Math.max(this.retentionMs, CHAIN_RETENTION_MS);
         let removed = 0;
         try {
             for (const name of fs.readdirSync(this.inputDir)) {
-                if (!name.startsWith('comfyq__')) continue;
+                const isChain = name.startsWith('comfyq_chain__');
+                if (!isChain && !name.startsWith('comfyq__')) continue;
+                const ttl = isChain ? chainRetentionMs : this.retentionMs;
                 const full = path.join(this.inputDir, name);
                 try {
                     const st = fs.statSync(full);
-                    if (now - st.mtimeMs > this.retentionMs) {
+                    if (now - st.mtimeMs > ttl) {
                         fs.unlinkSync(full);
                         removed++;
                     }

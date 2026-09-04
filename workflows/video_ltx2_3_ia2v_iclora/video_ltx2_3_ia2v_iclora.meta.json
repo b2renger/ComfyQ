@@ -104,7 +104,10 @@
       "label": "Width",
       "default": 1280,
       "required": false,
-      "order": 5
+      "order": 5,
+      "min": 512,
+      "max": 1920,
+      "step": 64
     },
     {
       "key": "primitiveint_value_340_324",
@@ -112,9 +115,12 @@
       "field": "value",
       "type": "number",
       "label": "Height",
-      "default": 720,
+      "default": 704,
       "required": false,
-      "order": 6
+      "order": 6,
+      "min": 512,
+      "max": 1920,
+      "step": 64
     },
     {
       "key": "primitivefloat_value_340_331",
