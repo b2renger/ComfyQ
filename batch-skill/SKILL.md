@@ -232,6 +232,23 @@ sharp and perfectly rendered. No other text anywhere in the image.* then the
 If you want the scene behind the choice, that is a compositing decision for the
 player — hold the last frame and cross-fade the card over it.
 
+### The recap variant
+
+A choice card may open with a **two-sentence recap** of what just happened,
+set small above the rule, with the options large below it:
+
+```markdown
+### ideogram_4_t2i | 1280x704
+A flat text card, warm off-white ground, deep navy type, nothing else in the frame. Two small lines across the upper third: "<sentence>. <sentence>." Below a thin horizontal rule, two large lines stacked: "<label A>" and "<label B>". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. <UI SUFFIX>
+```
+
+It makes a branching film far easier to follow when the player is picking up a
+run mid-way. It also costs: the card prompt lands near **100 words**, well over
+the budget above, and letter dropout scales with prompt length. So **hold each
+recap sentence to ~11 words**, keep the `UI SUFFIX` short, and if a rendered
+card drops letters, cut the recap before you touch the labels. Recap the
+*action*, never the imagery — the card must still contain no scene.
+
 ### People
 
 Prefer a protagonist **never seen face-on**: from behind, in silhouette, at a

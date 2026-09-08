@@ -11,8 +11,9 @@ batch-skill/
     workflows.md            ids, sizes, durations, media slots — the hard numbers
     checklist.md            27 checks to run before emitting, + offline validation
   examples/
-    linear-the-lamplighter.md    a straight-through film, 42 shots
-    branching-the-tide-clock.md  depth-3 branching, 2- and 3-way choices, 96 shots
+    linear-the-lamplighter.md    a straight-through film, 43 shots
+    branching-the-tide-clock.md  depth-3 branching, 2- and 3-way choices, 83 shots
+    branching-the-red-thread.md  depth-3 branching at 720p, recap choice cards, 81 shots
 ```
 
 ## Using it
@@ -61,12 +62,19 @@ command above.
 |---|---|---|---|---|---|---|---|
 | **The Lamplighter** — linear | 8 | 43 | 20 | 14 | 9 | 6 | ~17 min |
 | **The Tide Clock** — branching, depth 3 | 16 | 83 | 42 | 24 | 17 | 6 | ~35 min |
+| **The Red Thread** — branching, depth 3, 720p | 15 | 81 | 42 | 23 | 16 | 6 | ~25 min |
 
 Measured with the command above, not estimated.
 
 **The Lamplighter** is linear — `LIBRARY → IDLE → S0 → S1 → S2 → S3 → E01` — and
 its protagonist is an **object** (a brass lantern), which removes face drift
 across nineteen cuts entirely.
+
+**The Red Thread** is the 720p example: eight paths, five endings (three of
+them shared), one ending looping back to `S0`, and **text-only choice cards
+that open with a two-sentence recap** of the action — the pattern documented in
+SKILL.md § 5. It renders at **1280×704**, the 720p-class size that is exact on
+all three grids.
 
 **The Tide Clock** is three choices deep with a **human** protagonist written
 the safe way (never seen face-on): `S0` offers two options, `S1_A` offers

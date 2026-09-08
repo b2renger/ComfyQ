@@ -50,7 +50,9 @@ not in the prompt. Amend the block and let the change propagate.
 ## Screens
 
 17. No card prompt contains imagery — no photograph, no illustration, no
-    depicted object, no person. Each is under ~60 words.
+    depicted object, no person. Each is under ~60 words, or under ~100 if it
+    carries a two-sentence recap (SKILL.md § 5, "The recap variant") — and a
+    recap describes the action, never the scene.
 18. Every option label is ≤ 8 words and appears in double quotes in its prompt.
 19. Every card carries a size, so it renders 16:9 instead of the portrait
     default.
