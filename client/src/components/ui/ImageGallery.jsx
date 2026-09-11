@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, Maximize2 } from 'lucide-react';
 import { getImageUrl, getDownloadUrl } from '../../utils/api';
+import ImageZoomViewer from './ImageZoomViewer';
 
 // Multi-image gallery for jobs that emit N images (Qwen multi-angle, batch
 // outputs, …). A large main image fills the square, with prev/next arrows, a
@@ -12,6 +13,7 @@ import { getImageUrl, getDownloadUrl } from '../../utils/api';
 // the handful of outputs these workflows produce.
 const ImageGallery = ({ images }) => {
     const [idx, setIdx] = useState(0);
+    const [zoom, setZoom] = useState(false);   // full-size pan/zoom inspector
     const n = images.length;
     const i = Math.min(idx, n - 1);
     const cur = images[i];
@@ -30,7 +32,13 @@ const ImageGallery = ({ images }) => {
     return (
         <div className="w-full h-full flex flex-col bg-black">
             <div className="relative flex-1 min-h-0 flex items-center justify-center">
-                <img src={getImageUrl(cur.filename)} alt={cur.label || `View ${i + 1}`} className="max-w-full max-h-full object-contain" />
+                <img
+                    src={getImageUrl(cur.filename)}
+                    alt={cur.label || `View ${i + 1}`}
+                    onClick={(e) => { e.stopPropagation(); setZoom(true); }}
+                    title="Click to inspect at full size"
+                    className="max-w-full max-h-full object-contain cursor-zoom-in"
+                />
 
                 {cur.label && (
                     <span className="absolute top-2 left-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-[11px] font-medium text-white capitalize">
@@ -40,13 +48,22 @@ const ImageGallery = ({ images }) => {
                 <span className="absolute top-2 right-2 px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-[11px] font-mono text-white/80">
                     {i + 1} / {n}
                 </span>
-                <button
-                    onClick={downloadCurrent}
-                    title="Download this view"
-                    className="absolute bottom-2 right-2 p-2 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md transition-colors"
-                >
-                    <Download size={16} />
-                </button>
+                <div className="absolute bottom-2 right-2 flex items-center gap-1.5">
+                    <button
+                        onClick={(e) => { e.stopPropagation(); setZoom(true); }}
+                        title="Inspect at full size (zoom & pan)"
+                        className="p-2 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md transition-colors"
+                    >
+                        <Maximize2 size={16} />
+                    </button>
+                    <button
+                        onClick={downloadCurrent}
+                        title="Download this view"
+                        className="p-2 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md transition-colors"
+                    >
+                        <Download size={16} />
+                    </button>
+                </div>
 
                 {n > 1 && (
                     <>
@@ -72,6 +89,17 @@ const ImageGallery = ({ images }) => {
                     </button>
                 ))}
             </div>
+
+            {/* Full-size inspector — keeps the gallery's position, and its own
+                arrows keep browsing the same set while zoomed in. */}
+            {zoom && (
+                <ImageZoomViewer
+                    images={images}
+                    index={i}
+                    onIndexChange={setIdx}
+                    onClose={() => setZoom(false)}
+                />
+            )}
         </div>
     );
 };

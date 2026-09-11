@@ -29,6 +29,7 @@ const DISCOVERED_TTL = 90_000;  // stop polling an auto-found host unseen this l
 
 const STALE_MS = 30_000;
 const DROP_MS = 120_000;
+const ADDED_DROP_MS = 600_000; // a manually added machine stays listed (as "not responding") longer, but not forever
 
 let win = null;
 let autoUpdater = null;          // electron-updater, lazily loaded (see initAutoUpdater)
@@ -186,10 +187,44 @@ function fetchSelf(host, port, timeoutMs) {
     });
 }
 
+function sameMachine(a, b) {
+    // Two snapshots are the same box if they share any IP address.
+    const set = new Set(a || []);
+    return (b || []).some(ip => set.has(ip));
+}
+
+// Key a snapshot in the peer map.
+//
+// Normally that's the server's instance uuid. But the workshop rigs are cloned
+// from one drive image, so several machines can broadcast the SAME uuid (their
+// copied config.json carries it). Keyed naively, they overwrite each other in a
+// single card that flips between machines every few seconds — the "the name
+// shown is wrong / cached" symptom. So: an incoming snapshot only reuses an
+// existing uuid entry when it shares an IP with it (or that entry went silent,
+// e.g. the machine just changed IP); otherwise it gets its own `uuid#ip` slot.
+function keyFor(snap, fallbackHost) {
+    const ips = (Array.isArray(snap.ips) && snap.ips.length ? snap.ips : [fallbackHost]).filter(Boolean);
+    const primary = ips[0] || fallbackHost;
+    const id = snap.id || '';
+    if (!id) return `ip:${primary}`;
+
+    const base = peers.get(id);
+    if (!base || sameMachine(base.snap.ips, ips)) return id;
+    // The uuid's current holder is a different box — if it has gone quiet, take
+    // the slot over (a plain DHCP address change) rather than duplicating it.
+    if (Date.now() - base.lastSeen > STALE_MS) return id;
+
+    // Already-disambiguated sibling for this machine?
+    const prefix = id + '#';
+    for (const [k, rec] of peers) {
+        if (k.startsWith(prefix) && sameMachine(rec.snap.ips, ips)) return k;
+    }
+    return prefix + primary;
+}
+
 function mergeSnap(snap, fallbackHost, source) {
     if (!Array.isArray(snap.ips) || snap.ips.length === 0) snap.ips = [fallbackHost];
-    const id = snap.id || `${fallbackHost}:${snap.apiPort || ''}`;
-    peers.set(id, { snap, lastSeen: Date.now(), source });
+    peers.set(keyFor(snap, fallbackHost), { snap, lastSeen: Date.now(), source });
 }
 
 function staticHostSet() { return new Set(staticPeers.map(e => parseHost(e).host)); }
@@ -236,10 +271,17 @@ function pushToRenderer() {
     if (!win || win.isDestroyed()) return;
     const now = Date.now();
     const list = [];
-    for (const [, rec] of peers) {
+    for (const [key, rec] of peers) {
         const age = now - rec.lastSeen;
-        list.push({ ...rec.snap, _lastSeen: rec.lastSeen, _ageMs: age, _stale: age > STALE_MS, _source: rec.source });
+        // _key, not id: two cloned machines can share an id, so the renderer
+        // must address cards by the disambiguated map key.
+        list.push({ ...rec.snap, _key: key, _lastSeen: rec.lastSeen, _ageMs: age, _stale: age > STALE_MS, _source: rec.source });
     }
+    // Flag machines that broadcast an id another machine is also using, so the
+    // card can warn instead of quietly showing one of two identical names.
+    const byId = new Map();
+    for (const p of list) if (p.id) byId.set(p.id, (byId.get(p.id) || 0) + 1);
+    for (const p of list) p._idClash = !!(p.id && byId.get(p.id) > 1);
     win.webContents.send('peers', {
         peers: list,
         staticPeers: staticPeers.slice(),
@@ -289,8 +331,11 @@ setInterval(() => {
     const now = Date.now();
     for (const [host, ts] of discovered) if (now - ts > DISCOVERED_TTL) discovered.delete(host);
     for (const [id, rec] of peers) {
-        if (rec.source === 'added') continue;
-        if (now - rec.lastSeen > DROP_MS) peers.delete(id);
+        // Added-by-IP machines linger longer (they're in the user's own list and
+        // stay useful as "not responding"), but they DO expire — a card that
+        // outlives the machine is another way a stale name sticks around.
+        const ttl = rec.source === 'added' ? ADDED_DROP_MS : DROP_MS;
+        if (now - rec.lastSeen > ttl) peers.delete(id);
     }
     pushToRenderer();
 }, 5000);

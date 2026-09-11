@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box, Copy, Check, Package } from 'lucide-react';
+import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box, Copy, Check, Package, Maximize2 } from 'lucide-react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import { copyToClipboard } from '../utils/clipboard';
@@ -7,6 +7,7 @@ import ModelViewer from './ui/ModelViewer';
 import SplatViewer from './ui/SplatViewer';
 import AudioPlayer from './ui/AudioPlayer';
 import ImageGallery from './ui/ImageGallery';
+import ImageZoomViewer from './ui/ImageZoomViewer';
 import { useSocket } from '../context/SocketContext';
 import { getImageUrl, getDownloadUrl, getIngredientsUrl, isVideo, isModel3d, isSplat, isAudio, isImage } from '../utils/api';
 import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
@@ -40,6 +41,7 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
     // Gallery tab for 3D jobs that ship both a splat and a mesh (TripoSplat).
     const [view, setView] = useState('splat'); // 'splat' | 'mesh'
     const [copied, setCopied] = useState(false); // transient "Copied!" feedback for text jobs
+    const [zoom, setZoom] = useState(false);     // full-size pan/zoom inspector (single-image jobs)
     if (!job) return null;
     const wf = workflowsById?.[job.workflow_id];
     const displayPrompt = getDisplayPrompt(job);
@@ -97,6 +99,8 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
     const imageOutputs = outputs.filter(o => isImage(o.filename) && o.type !== 'temp');
     const isMultiImage = !is3D && !isAud && !isVid && imageOutputs.length > 1;
     const galleryImages = imageOutputs.map(o => ({ filename: o.filename, label: deriveViewLabel(o.filename) }));
+    // The plain <img> branch below (one image, no 3D/audio/video/text result).
+    const isSingleImage = !is3D && !isAud && !isVid && !isMultiImage && isImage(job.result_filename);
 
     // Text-output jobs (Gemma describe / captioning) have no media file — the
     // result is an inline string. Render it as a readable, copyable panel.
@@ -173,10 +177,25 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
                             <img
                                 src={getImageUrl(job.result_filename)}
                                 alt="Full Preview"
-                                className="w-full h-full object-contain"
+                                onClick={() => setZoom(true)}
+                                title="Click to inspect at full size"
+                                className="w-full h-full object-contain cursor-zoom-in"
                             />
                         )}
                     </div>
+
+                    {/* Inspect at full size — designers check detail here before
+                        downloading. Only for the plain single-image case; the
+                        multi-image gallery ships its own zoom button. */}
+                    {isSingleImage && (
+                        <button
+                            onClick={() => setZoom(true)}
+                            title="Inspect at full size (zoom & pan)"
+                            className="absolute bottom-3 right-3 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black/60 hover:bg-primary hover:text-on-primary text-white backdrop-blur-md border border-white/10 text-xs transition-colors"
+                        >
+                            <Maximize2 size={14} /> Full size
+                        </button>
+                    )}
                 </div>
 
                 {/* Sidebar Info Section */}
@@ -390,6 +409,12 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
                     </div>
                 </div>
             </div>
+            {zoom && isSingleImage && (
+                <ImageZoomViewer
+                    images={[{ filename: job.result_filename, label: deriveViewLabel(job.result_filename) }]}
+                    onClose={() => setZoom(false)}
+                />
+            )}
         </Modal>
     );
 };

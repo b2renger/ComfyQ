@@ -121,10 +121,18 @@ function jobsState({ runtime, registry }) {
 function buildSnapshot({ configManager, registry, runtime, sysInfo }) {
     const config = configManager.load().config;
     const fed = config.federation || {};
+    // Identity comes from config.instance FIRST (sysInfo is only the boot-time
+    // snapshot of it), so renaming this machine from the admin panel shows up on
+    // the very next beacon tick instead of after a restart.
+    const inst = config.instance || {};
     return {
         v: SNAPSHOT_VERSION,
-        id: sysInfo?.id || '',
-        name: sysInfo?.name || '',
+        id: inst.id || sysInfo?.id || '',
+        name: inst.name || sysInfo?.name || '',
+        // The real OS hostname, always — lets a fleet monitor show the machine's
+        // true identity next to a custom label, and tell two machines apart if
+        // they ever broadcast the same id (cloned config).
+        hostname: inst.hostname || sysInfo?.hostname || '',
         ips: lanAddresses(),
         apiPort: config.server?.port || 3000,
         uiPort: 5173,                       // the Vite URL students open

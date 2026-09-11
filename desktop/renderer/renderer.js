@@ -235,7 +235,7 @@ function cardHtml(p, selfIps) {
                 <div class="jobs-label">Queue${jobs.scheduled && jobs.scheduled.length ? ` · ${jobs.scheduled.length} waiting` : ''}</div>
                 ${parts.length ? parts.join('') : '<div class="no-jobs">Nothing queued</div>'}
             </div>
-            <button class="btn" data-url="${esc(url)}" data-id="${esc(p.id || url)}" data-name="${esc(wf.name || 'a workflow')}" data-machine="${esc(p.name || 'Machine')}" ${url ? '' : 'disabled'}${p.accessLocked ? ' title="You will be asked for the access password of this machine"' : ''}>Schedule a job ${p.accessLocked ? '🔒' : ''}↗</button>`;
+            <button class="btn" data-url="${esc(url)}" data-id="${esc(p._key || p.id || url)}" data-name="${esc(wf.name || 'a workflow')}" data-machine="${esc(p.name || 'Machine')}" ${url ? '' : 'disabled'}${p.accessLocked ? ' title="You will be asked for the access password of this machine"' : ''}>Schedule a job ${p.accessLocked ? '🔒' : ''}↗</button>`;
     } else {
         workHtml = `<div class="standby">${isAdmin ? 'Not serving a workflow right now.' : 'Ready — no workflow active.'}</div>`;
     }
@@ -248,15 +248,28 @@ function cardHtml(p, selfIps) {
                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
            </button>` : '';
 
+    // The computer's real name, shown when the displayed label differs (the
+    // admin gave it a custom one) so a card is never ambiguous about which box
+    // it is. Older servers don't send `hostname` — then there's nothing to add.
+    const host = p.hostname && p.hostname !== p.name ? `<div class="machine-host" title="Computer name">${esc(p.hostname)}</div>` : '';
+    // Two machines broadcasting the same instance id (a config.json copied with
+    // a cloned drive image). They're shown as separate cards, but say why the
+    // names may look identical — the fix is to rename one in its admin panel.
+    const clash = p._idClash
+        ? `<div class="id-clash" title="Two machines report the same ComfyQ identity — open this machine's admin panel (Network presence) and give it its own name">⚠ Shares its identity with another machine</div>`
+        : '';
+
     return `
-        <div class="card ${kind === 'stale' ? 'stale' : ''}${isSelf ? ' self' : ''}" data-id="${esc(p.id || '')}">
+        <div class="card ${kind === 'stale' ? 'stale' : ''}${isSelf ? ' self' : ''}" data-id="${esc(p._key || p.id || '')}">
             <div class="card-head">
                 <div class="head-main">
                     <div class="machine-name">${esc(p.name || 'Unknown machine')}${isSelf ? '<span class="self-tag">This machine</span>' : ''}</div>
+                    ${host}
                     <div class="machine-ip">${esc((p.ips || []).join(', ') || '—')}${copyBtn}</div>
                 </div>
                 <span class="dot ${kind}" title="${esc(stateLabel(p, kind))}"></span>
             </div>
+            ${clash}
 
             ${servingBanner}
 
@@ -278,7 +291,13 @@ function render(data) {
     });
 
     countEl.textContent = `${peers.length} machine${peers.length === 1 ? '' : 's'}`;
-    subtitleEl.textContent = peers.length ? 'Machines on your network' : 'Looking for machines…';
+    // Lead with the answer to "who's running what": how many rigs are serving.
+    const servingCount = peers.filter(p => classify(p) === 'serving').length;
+    subtitleEl.textContent = !peers.length
+        ? 'Looking for machines…'
+        : servingCount
+            ? `${servingCount} serving a workflow · ${peers.length - servingCount} idle`
+            : 'Machines on your network · none serving a workflow';
 
     if (data.socketError) {
         bannerEl.textContent = `Network problem: ${data.socketError}`;
@@ -301,7 +320,7 @@ function render(data) {
         appEl.innerHTML = peers.map(p => cardHtml(p, selfIps)).join('');
     } else {
         for (const p of peers) {
-            const card = appEl.querySelector(`.card[data-id="${cssAttr(p.id)}"]`);
+            const card = appEl.querySelector(`.card[data-id="${cssAttr(p._key || p.id)}"]`);
             if (!card) continue;
             const upd = card.querySelector('.updated');
             if (upd) upd.setAttribute('data-ts', p._lastSeen || Date.now());
@@ -319,7 +338,7 @@ function render(data) {
 // so heartbeats with no real change don't trigger a rebuild.
 function cardsSignature(peers, selfIps) {
     return JSON.stringify(peers.map(p => [
-        p.id, p.name, (p.ips || []).join(','), p.gpu, p.vramGb, p.ramGb, p.mode,
+        p._key, p.id, p.name, p.hostname, p._idClash, (p.ips || []).join(','), p.gpu, p.vramGb, p.ramGb, p.mode,
         !!(p.comfy && p.comfy.running),
         p.activeWorkflow && [p.activeWorkflow.id, p.activeWorkflow.name, p.activeWorkflow.description, p.activeWorkflow.category],
         p.usage && p.usage.usersConnected, !!p.accessLocked,

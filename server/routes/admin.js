@@ -110,6 +110,34 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         } catch (e) { res.status(400).json({ error: e.message }); }
     });
 
+    // This machine's name in the fleet monitor. An empty/blank name resets to
+    // "follow the computer name" (the default), which is what keeps a renamed or
+    // re-imaged rig from advertising a stale label; any other value pins a custom
+    // label (nameCustom) so it survives future boots.
+    //
+    // Takes effect live: buildSnapshot() reads config.instance directly, so the
+    // next beacon tick — kicked immediately below — already carries the new name.
+    router.put('/instance', express.json(), (req, res) => {
+        try {
+            const raw = req.body?.name;
+            if (raw !== undefined && typeof raw !== 'string') {
+                return res.status(400).json({ error: 'name must be a string' });
+            }
+            const name = String(raw || '').trim().slice(0, 64);
+            const hostname = os.hostname();
+            configManager.update(c => {
+                c.instance = c.instance || {};
+                c.instance.hostname = hostname;
+                c.instance.nameCustom = !!name;
+                c.instance.name = name || hostname;
+                return c;
+            });
+            try { runtime?.beacon?.kick(); } catch { /* beacon may be disabled */ }
+            const inst = configManager.load().config.instance || {};
+            res.json({ ok: true, name: inst.name, hostname, nameCustom: !!inst.nameCustom });
+        } catch (e) { res.status(400).json({ error: e.message }); }
+    });
+
     // Return the hardcoded workshop-rig path defaults so the admin UI can
     // offer a "Reset to defaults" action without duplicating the constants.
     router.get('/default-paths', (req, res) => {

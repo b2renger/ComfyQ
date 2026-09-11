@@ -270,6 +270,22 @@ body {
     vertical-align: middle;
     white-space: nowrap;
 }
+/* The computer's real name, under a custom label — so a card always says
+   which physical box it is. */
+.machine-host {
+    color: var(--muted); font-size: 11px; margin-top: 2px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    opacity: .75;
+}
+/* Two machines broadcasting the same ComfyQ identity (cloned config.json). */
+.id-clash {
+    margin: 6px 0 2px;
+    font-size: 11px; line-height: 1.35;
+    color: var(--amber);
+    border: 1px solid color-mix(in srgb, var(--amber) 40%, transparent);
+    background: color-mix(in srgb, var(--amber) 12%, transparent);
+    border-radius: 8px; padding: 5px 8px;
+}
 .machine-ip {
     color: var(--muted); font-size: 12px; margin-top: 3px;
     font-variant-numeric: tabular-nums;

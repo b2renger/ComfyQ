@@ -162,12 +162,22 @@ const AppConfig = z.object({
     // beacon. All optional/defaulted so an existing config.json validates
     // unchanged; load() re-saves with these filled in on first boot.
     instance: z.object({
-        id: z.string().default(''),          // uuid v4, generated once on first boot
-        name: z.string().default(''),        // friendly label; defaults to os.hostname()
+        id: z.string().default(''),          // uuid v4, regenerated if this config lands on another machine
+        name: z.string().default(''),        // label shown in the fleet monitor; tracks the hostname unless nameCustom
+        // OS hostname captured when `id` was minted. A mismatch at boot means
+        // this config.json is now running on a DIFFERENT machine (the workshop
+        // rigs are cloned from one drive image) or the machine was renamed, so
+        // the identity is re-derived instead of reporting the old machine's
+        // name/uuid — two clones sharing one uuid collapse into a single card
+        // in the fleet monitor, which is what made names look "cached".
+        hostname: z.string().default(''),
+        // true once an admin typed a name in the admin panel; that name is then
+        // kept as-is and no longer follows the hostname.
+        nameCustom: z.boolean().default(false),
         gpu: z.string().default(''),         // cached last-known GPU model
         vramGb: z.number().nonnegative().default(0),
         ramGb: z.number().nonnegative().default(0)
-    }).default({ id: '', name: '', gpu: '', vramGb: 0, ramGb: 0 }),
+    }).default({ id: '', name: '', hostname: '', nameCustom: false, gpu: '', vramGb: 0, ramGb: 0 }),
     // LAN status beacon — each instance multicasts a JSON status snapshot every
     // `intervalSec` so a standalone fleet-monitor app (desktop/) can list every
     // machine on the network. On by default (workshop goal: machines "just

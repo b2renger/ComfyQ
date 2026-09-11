@@ -78,6 +78,16 @@ async function detectGpu() {
 
 // Detect identity + hardware, persist new/missing values to config.instance,
 // and return the resolved snapshot. Safe to call once at boot.
+//
+// Identity rules (why this isn't just "read it once and keep it forever"):
+//   - The NAME follows os.hostname() on every boot, so renaming a machine — or
+//     booting a cloned drive image on a different rig — no longer reports the
+//     old machine's name in the fleet monitor. An admin-typed name wins
+//     (instance.nameCustom, set by PUT /admin/instance) and stops the tracking.
+//   - The UUID is re-minted when the recorded hostname no longer matches this
+//     machine. Workshop rigs are cloned from one drive image, so without this
+//     several machines broadcast the SAME id and the monitor — which keys its
+//     peer map by id — folds them into one card that flips between machines.
 async function detectSystemInfo(configManager) {
     let cfgInstance = {};
     try { cfgInstance = configManager.load().config.instance || {}; } catch { /* default */ }
@@ -89,13 +99,26 @@ async function detectSystemInfo(configManager) {
     if (!gpu && cfgInstance.gpu) { gpu = cfgInstance.gpu; vramGb = cfgInstance.vramGb || 0; }
     if (!gpu) gpu = 'Unknown GPU';
 
-    const id = cfgInstance.id || uuidv4();
-    const name = cfgInstance.name || os.hostname();
+    const hostname = os.hostname();
+    const knownHost = cfgInstance.hostname || '';
+    // A recorded hostname that doesn't match this machine ⇒ cloned config or a
+    // rename: start a fresh identity. (An older config has no hostname recorded
+    // at all — trust its id, and stamp the hostname now so the next move is
+    // caught.)
+    const movedMachine = !!(knownHost && knownHost !== hostname);
+    const id = (!movedMachine && cfgInstance.id) ? cfgInstance.id : uuidv4();
 
-    const resolved = { id, name, gpu, vramGb, ramGb };
+    const nameCustom = !!cfgInstance.nameCustom && !!cfgInstance.name;
+    const name = nameCustom ? cfgInstance.name : hostname;
+
+    if (movedMachine) {
+        console.log(`[Federation] this config was last used on "${knownHost}" — re-identifying as "${name}" (${id.slice(0, 8)}…)`);
+    }
+
+    const resolved = { id, name, hostname, nameCustom, gpu, vramGb, ramGb };
 
     // Persist only if something changed (avoids a config rewrite every boot).
-    const changed = ['id', 'name', 'gpu', 'vramGb', 'ramGb'].some(k => cfgInstance[k] !== resolved[k]);
+    const changed = ['id', 'name', 'hostname', 'nameCustom', 'gpu', 'vramGb', 'ramGb'].some(k => cfgInstance[k] !== resolved[k]);
     if (changed) {
         try {
             configManager.update(c => {

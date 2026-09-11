@@ -49,6 +49,9 @@ const AdminConfig = ({ currentMode }) => {
     const [drives, setDrives] = useState([]); // mounted Windows drive letters
     const [detecting, setDetecting] = useState(false);
     const [comfyStatus, setComfyStatus] = useState(null);
+    // This machine's label on the LAN (fleet monitor). Draft + saving flag.
+    const [machineName, setMachineName] = useState('');
+    const [savingName, setSavingName] = useState(false);
     const [comfyBusy, setComfyBusy] = useState(false);
     const [showTakeoverConfirm, setShowTakeoverConfirm] = useState(false);
     const [showCleanupConfirm, setShowCleanupConfirm] = useState(false);
@@ -102,6 +105,7 @@ const AdminConfig = ({ currentMode }) => {
                 vramBudgetGb: data.config.comfy_ui.vramBudgetGb,
                 assets_dir: data.config.assets?.dir || ''
             });
+            setMachineName(data.config.instance?.name || '');
         } catch (e) {
             console.error(e);
         } finally {
@@ -133,6 +137,27 @@ const AdminConfig = ({ currentMode }) => {
             showToast('ComfyUI paths saved');
             await reloadConfig();
         } catch (e) { showToast(e.message, 'err'); }
+    };
+
+    // Rename this machine as it appears in ComfyQ – Discovery. Blank resets to
+    // "follow the computer name", which is also what a fresh/re-imaged rig does
+    // — that default is what stops a cloned config advertising the old machine's
+    // name. Applies live (the next status beacon carries it).
+    const saveMachineName = async (nextName) => {
+        setSavingName(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/instance`, {
+                method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ name: nextName })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Failed to rename this machine');
+            setMachineName(data.name || '');
+            setConfig(c => ({ ...c, instance: { ...(c?.instance || {}), name: data.name, hostname: data.hostname, nameCustom: data.nameCustom } }));
+            showToast(data.nameCustom
+                ? `This machine now appears as "${data.name}"`
+                : `Following the computer name ("${data.hostname}")`);
+        } catch (e) { showToast(e.message, 'err'); }
+        finally { setSavingName(false); }
     };
 
     // Toggle this machine's presence on the LAN status beacon (fleet monitor).
@@ -739,9 +764,42 @@ const AdminConfig = ({ currentMode }) => {
                 </div>
                 <p className="text-sm text-muted mb-3">
                     When on, this machine broadcasts a small status update on the LAN every ~15&nbsp;s so the
-                    <strong className="text-white"> ComfyQ Fleet Monitor</strong> app can list it (name, GPU/RAM, IP, status,
+                    <strong className="text-white"> ComfyQ Discovery</strong> app can list it (name, GPU/RAM, IP, status,
                     active workflow, planned jobs) alongside the other rigs. Turn off to hide this machine from the network.
                 </p>
+
+                {/* Machine name — what identifies this rig in Discovery, so an
+                    admin can tell at a glance which machine runs which workflow. */}
+                <div className="mb-4 p-3 rounded-xl bg-surface border border-border space-y-2">
+                    <label className="text-[10px] uppercase tracking-wider text-muted font-semibold flex items-center gap-1.5">
+                        <HardDrive size={12} /> This machine is called
+                    </label>
+                    <div className="flex flex-wrap gap-2">
+                        <input
+                            type="text"
+                            value={machineName}
+                            onChange={(e) => setMachineName(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter') saveMachineName(machineName); }}
+                            placeholder={config?.instance?.hostname || 'Computer name'}
+                            maxLength={64}
+                            className="flex-1 min-w-[12rem] px-3 py-2 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:border-primary"
+                        />
+                        <Button variant="primary" icon={Save} onClick={() => saveMachineName(machineName)} disabled={savingName}>
+                            {savingName ? 'Saving…' : 'Save name'}
+                        </Button>
+                        {config?.instance?.nameCustom && (
+                            <Button variant="secondary" icon={RotateCcw} onClick={() => saveMachineName('')} disabled={savingName}
+                                title="Go back to following this computer's name">
+                                Use computer name
+                            </Button>
+                        )}
+                    </div>
+                    <p className="text-xs text-muted">
+                        {config?.instance?.nameCustom
+                            ? <>Custom name — it stays put. This computer is <code className="text-foreground">{config?.instance?.hostname}</code>.</>
+                            : <>Following this computer's name (<code className="text-foreground">{config?.instance?.hostname}</code>). Give it a room label like <em>Poste&nbsp;3</em> to make it obvious in Discovery.</>}
+                    </p>
+                </div>
                 <label className="flex items-start gap-2.5 cursor-pointer">
                     <input
                         type="checkbox"
