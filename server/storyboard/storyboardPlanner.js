@@ -196,7 +196,7 @@ function isSeed(p) {
 // `disabledWhen: { param, equals }` means "disabled while <param> equals
 // <equals>". Feeding the prompt to the disabled half of an either/or pair is
 // the classic silent failure: the job runs the bundle's shipped default prompt
-// and reports success. `video_ltx2_3_ic_lora_vid2vid` ships a disabledWhen
+// and reports success. `video_edit_ltx2_3_ic_lora_vid2vid` ships a disabledWhen
 // naming a key that is not exposed (CLAUDE.md records the bug), so the
 // reference is also resolved by node-id suffix before giving up.
 function isDisabled(p, params, values) {
@@ -252,7 +252,7 @@ function slug(s, max = 48) {
 // What a shot's results are called on disk. ComfyUI reads a "/" in
 // filename_prefix as a subfolder, so this is both the folder and the name:
 //
-//   the-red-thread/03_S0__Reference-image-1__flux2_klein_9b_image_edit_ref
+//   the-red-thread/03_S0__Reference-image-1__image_edit_flux2_klein_9b_image_edit_ref
 //
 // The three parts are exactly the document's own headings — section (#), shot
 // title (##) and workflow (###) — so a finished batch can be read off the

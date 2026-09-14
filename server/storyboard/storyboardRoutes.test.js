@@ -162,7 +162,7 @@ const srv = app.listen(0, async () => {
         d.outputFolder === 'The Red Thread' && typeof d.outputDir === 'string',
         `${d.outputFolder} / ${d.outputDir}`);
     check('each shot is named from its own headings',
-        d.jobs[0].outputPrefix === 'The-Red-Thread/001_LIBRARY__Anchor-image-1__flux2_klein_9b_t2i',
+        d.jobs[0].outputPrefix === 'The-Red-Thread/001_LIBRARY__Anchor-image-1__image_flux2_klein_9b_t2i',
         d.jobs[0].outputPrefix);
     check('the one-ref-in-two-slots case is warned about, not silent',
         d.warnings.some(w => /used for BOTH/.test(w)), JSON.stringify(d.warnings.slice(0, 1)));

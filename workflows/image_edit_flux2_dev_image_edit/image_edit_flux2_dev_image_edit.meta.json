@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "id": "image_edit_flux2_dev_image_edit",
+  "name": "Flux2 Dev — image edit",
+  "description": "Upload an image and describe the change you want. Flux.2 Dev edits it while keeping the rest of the picture intact (great for photos, drawings, or screenshots). Turn on Fast mode for a quicker 8-step result.",
+  "category": "image-edit",
+  "tags": [
+    "flux2",
+    "dev",
+    "image-edit",
+    "turbo"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_edit_flux2_dev_image_edit.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "flux2_dev_fp8mixed.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "full_encoder_small_decoder.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "mistral_3_small_flux2_bf16.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "Flux_2-Turbo-LoRA_comfyui.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 45,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_46",
+      "nodeId": "46",
+      "field": "image",
+      "type": "image",
+      "label": "Source image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "cliptextencode_text_68_6",
+      "nodeId": "68:6",
+      "field": "text",
+      "type": "textarea",
+      "label": "Edit instruction (prompt)",
+      "default": "Change the background to a sunny beach. Keep the person and their pose unchanged.",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "primitiveboolean_value_68_94",
+      "nodeId": "68:94",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Fast mode (8-step Turbo LoRA — faster, slightly lower quality)",
+      "default": false,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "randomnoise_noise_seed_68_25",
+      "nodeId": "68:25",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 3
+    }
+  ],
+  "warmupParams": {
+    "cliptextencode_text_68_6": "change the colors to warm tones"
+  },
+  "presets": {}
+}

@@ -1,0 +1,817 @@
+{
+  "id": "00000000-marigold-v2-normals",
+  "revision": 0,
+  "last_node_id": 22,
+  "last_link_id": 28,
+  "nodes": [
+    {
+      "id": 8,
+      "type": "ModelSamplingAuraFlow",
+      "pos": [
+        -806.7141850030977,
+        4370.720709585412
+      ],
+      "size": [
+        270,
+        91
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 8
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ModelSamplingAuraFlow"
+      },
+      "widgets_values": [
+        1.73,
+        "img_to_img_velocity"
+      ],
+      "widgets_values_named": {
+        "shift": 1.73,
+        "sampling": "img_to_img_velocity"
+      },
+      "color": "#223",
+      "bgcolor": "#335"
+    },
+    {
+      "id": 15,
+      "type": "VAEDecode",
+      "pos": [
+        143.27846053257488,
+        4392.30586881865
+      ],
+      "size": [
+        225,
+        54
+      ],
+      "flags": {},
+      "order": 12,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "samples",
+          "type": "LATENT",
+          "link": 20
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 21
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            23
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEDecode"
+      },
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 3,
+      "type": "SamplerCustomAdvanced",
+      "pos": [
+        -125.64799296267626,
+        4363.2128467914645
+      ],
+      "size": [
+        225,
+        114
+      ],
+      "flags": {},
+      "order": 11,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "noise",
+          "type": "NOISE",
+          "link": 26
+        },
+        {
+          "name": "guider",
+          "type": "GUIDER",
+          "link": 14
+        },
+        {
+          "name": "sampler",
+          "type": "SAMPLER",
+          "link": 25
+        },
+        {
+          "name": "sigmas",
+          "type": "SIGMAS",
+          "link": 27
+        },
+        {
+          "name": "latent_image",
+          "type": "LATENT",
+          "link": 19
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "LATENT",
+          "links": [
+            20
+          ]
+        },
+        {
+          "name": "denoised_output",
+          "type": "LATENT",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SamplerCustomAdvanced"
+      }
+    },
+    {
+      "id": 19,
+      "type": "DisableNoise",
+      "pos": [
+        -116.68222309887514,
+        4251.5329044258115
+      ],
+      "size": [
+        225,
+        34
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "NOISE",
+          "type": "NOISE",
+          "links": [
+            26
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "DisableNoise"
+      }
+    },
+    {
+      "id": 18,
+      "type": "KSamplerSelect",
+      "pos": [
+        -448.2124262966565,
+        4252.471462455924
+      ],
+      "size": [
+        270,
+        62
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SAMPLER",
+          "type": "SAMPLER",
+          "links": [
+            25
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "KSamplerSelect"
+      },
+      "widgets_values": [
+        "euler"
+      ],
+      "widgets_values_named": {
+        "sampler_name": "euler"
+      }
+    },
+    {
+      "id": 10,
+      "type": "BasicGuider",
+      "pos": [
+        -433.1965288667548,
+        4376.351628161134
+      ],
+      "size": [
+        225,
+        54
+      ],
+      "flags": {},
+      "order": 10,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 12
+        },
+        {
+          "name": "conditioning",
+          "type": "CONDITIONING",
+          "link": 13
+        }
+      ],
+      "outputs": [
+        {
+          "name": "GUIDER",
+          "type": "GUIDER",
+          "links": [
+            14
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "BasicGuider"
+      },
+      "color": "#223",
+      "bgcolor": "#335"
+    },
+    {
+      "id": 20,
+      "type": "ManualSigmas",
+      "pos": [
+        -435.0733871639949,
+        4496.477862469354
+      ],
+      "size": [
+        270,
+        91
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "SIGMAS",
+          "type": "SIGMAS",
+          "links": [
+            27
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ManualSigmas"
+      },
+      "widgets_values": [
+        "0.5, 0"
+      ],
+      "widgets_values_named": {
+        "sigmas": "0.5, 0"
+      }
+    },
+    {
+      "id": 13,
+      "type": "VAEEncode",
+      "pos": [
+        -865.5943936687987,
+        4674.790312673955
+      ],
+      "size": [
+        225,
+        54
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "pixels",
+          "type": "IMAGE",
+          "link": 28
+        },
+        {
+          "name": "vae",
+          "type": "VAE",
+          "link": 18
+        }
+      ],
+      "outputs": [
+        {
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            19
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAEEncode"
+      },
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 16,
+      "type": "SaveImage",
+      "pos": [
+        484.88763535387153,
+        4219.624423110761
+      ],
+      "size": [
+        853.234375,
+        945.15625
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "link": 24
+        }
+      ],
+      "outputs": [
+        {
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "marigold_v2_normals"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "marigold_v2_normals"
+      },
+      "title": "Save normals"
+    },
+    {
+      "id": 12,
+      "type": "LoadImage",
+      "pos": [
+        -1301.0412670046644,
+        4511.067169951343
+      ],
+      "size": [
+        282.78125,
+        319
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            17
+          ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "1769787993129-583204969-DSCF0534.JPG",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "1769787993129-583204969-DSCF0534.JPG",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 1,
+      "type": "UNETLoader",
+      "pos": [
+        -1522.779359188356,
+        4234.6402346196655
+      ],
+      "size": [
+        605.96875,
+        86
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            5
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+        "weight_dtype": "default"
+      },
+      "color": "#223",
+      "bgcolor": "#335"
+    },
+    {
+      "id": 7,
+      "type": "LoraLoaderModelOnly",
+      "pos": [
+        -863.0234566812329,
+        4219.624380150261
+      ],
+      "size": [
+        316.0625,
+        95
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "model",
+          "type": "MODEL",
+          "link": 5
+        }
+      ],
+      "outputs": [
+        {
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            8
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "LoraLoaderModelOnly"
+      },
+      "widgets_values": [
+        "marigold_v2\\marigold_v2_normals.safetensors",
+        1
+      ],
+      "widgets_values_named": {
+        "lora_name": "marigold_v2\\marigold_v2_normals.safetensors",
+        "strength_model": 1
+      },
+      "color": "#223",
+      "bgcolor": "#335"
+    },
+    {
+      "id": 9,
+      "type": "ConditioningLoader",
+      "pos": [
+        -882.333109768114,
+        4549.033073869008
+      ],
+      "size": [
+        362.09375,
+        62
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            13
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ConditioningLoader"
+      },
+      "widgets_values": [
+        "marigold_v2\\marigold_v2_normals_conditioning.safetensors"
+      ],
+      "widgets_values_named": {
+        "conditioning_name": "marigold_v2\\marigold_v2_normals_conditioning.safetensors"
+      },
+      "color": "#332922",
+      "bgcolor": "#593930"
+    },
+    {
+      "id": 14,
+      "type": "VAELoader",
+      "pos": [
+        -1285.3423068992613,
+        4392.305954739653
+      ],
+      "size": [
+        270,
+        62
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            18,
+            21
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "marigold_v2\\marigold_v2_normals_vae.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "marigold_v2\\marigold_v2_normals_vae.safetensors"
+      },
+      "color": "#322",
+      "bgcolor": "#533"
+    },
+    {
+      "id": 17,
+      "type": "MarigoldV2PostProcess",
+      "pos": [
+        157.5227257318037,
+        4501.170351896445
+      ],
+      "size": [
+        272.921875,
+        62
+      ],
+      "flags": {},
+      "order": 13,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 23
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            24
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "MarigoldV2PostProcess"
+      },
+      "widgets_values": [
+        "normals"
+      ],
+      "widgets_values_named": {
+        "prediction": "normals"
+      }
+    },
+    {
+      "id": 21,
+      "type": "ImageScaleToTotalPixels",
+      "pos": [
+        -1281.0412670046644,
+        4391.067169951343
+      ],
+      "size": [
+        270,
+        106
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [
+        {
+          "name": "image",
+          "type": "IMAGE",
+          "link": 17
+        }
+      ],
+      "outputs": [
+        {
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            28
+          ]
+        }
+      ],
+      "properties": {
+        "Node name for S&R": "ImageScaleToTotalPixels"
+      },
+      "widgets_values": [
+        "lanczos",
+        1.0,
+        8
+      ],
+      "title": "Cap at 1 MP (Qwen-Image-Edit native size)",
+      "color": "#232",
+      "bgcolor": "#353"
+    },
+    {
+      "id": 22,
+      "type": "MarkdownNote",
+      "pos": [
+        -1941.0412670046644,
+        4351.067169951343
+      ],
+      "size": [
+        600,
+        760
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "properties": {},
+      "widgets_values": [
+        "# Marigold V2 -- Marigold V2 - surface normals\n\nPer-pixel **surface normals** from a single photo. Ground faces up (green), surfaces facing the camera are lilac.\n\nMarigold V2 (SIGGRAPH Asia 2026) turns **Qwen-Image-Edit-2509** into a dense\npredictor with a small LoRA, and runs it as **one deterministic step** -- no\nnoise, no CFG, no text encoder. The prompt is a fixed tensor loaded from\n`models/embeddings` by **Load Conditioning**.\n\n## What this graph needs\n\n| | |\n|---|---|\n| UNET | `qwen_image_edit_2509_fp8_e4m3fn.safetensors` (any Qwen-Image-Edit-2509 build works -- Marigold is a LoRA over it) |\n| LoRA | `marigold_v2\\marigold_v2_normals.safetensors` |\n| VAE | `marigold_v2\\marigold_v2_normals_vae.safetensors` |\n| conditioning | `marigold_v2\\marigold_v2_normals_conditioning.safetensors` |\n\nAll from https://huggingface.co/Comfy-Org/marigold-v2-0 except the base UNET,\nwhich was already on this drive. Requires **ComfyUI 0.35.0+** for\n`MarigoldV2PostProcess`, `ConditioningLoader` and the `img_to_img_velocity`\nsampling mode -- no custom nodes.\n\n## Three things that are easy to get wrong\n\n1. **The Marigold VAE does the encode as well as the decode.** It is a\n   task-specific VAE, not the stock `qwen_image_vae`; both VAEEncode and\n   VAEDecode use it.\n2. **`ModelSamplingAuraFlow` must be set to `img_to_img_velocity`.** On the\n   default `flow` setting the prediction is wrong, not merely worse.\n3. **Sigmas are `0.5, 0` with noise disabled.** That is the single\n   deterministic step. There is no seed and no sampler randomness.\n\n## Resolution\n\nThe `ImageScaleToTotalPixels` node caps the input at 1 MP. Qwen-Image-Edit\nworks at about that size; a 4160x6240 photo fed in raw took **340 s** against\n**6 s** at 1 MP, for the same quality. Raise `megapixels` if you need more\ndetail, and expect the cost to scale with pixels.\n\nSwap the task by changing the LoRA, the VAE, the conditioning and the\nPost-Process `prediction` dropdown together -- all four must agree. A third\nset (`albedo`) is on the drive if you want it; its LoRA and VAE are not\ndownloaded yet.\n"
+      ],
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      5,
+      1,
+      0,
+      7,
+      0,
+      "MODEL"
+    ],
+    [
+      8,
+      7,
+      0,
+      8,
+      0,
+      "MODEL"
+    ],
+    [
+      12,
+      8,
+      0,
+      10,
+      0,
+      "MODEL"
+    ],
+    [
+      13,
+      9,
+      0,
+      10,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      14,
+      10,
+      0,
+      3,
+      1,
+      "GUIDER"
+    ],
+    [
+      17,
+      12,
+      0,
+      21,
+      0,
+      "IMAGE"
+    ],
+    [
+      18,
+      14,
+      0,
+      13,
+      1,
+      "VAE"
+    ],
+    [
+      19,
+      13,
+      0,
+      3,
+      4,
+      "LATENT"
+    ],
+    [
+      20,
+      3,
+      0,
+      15,
+      0,
+      "LATENT"
+    ],
+    [
+      21,
+      14,
+      0,
+      15,
+      1,
+      "VAE"
+    ],
+    [
+      23,
+      15,
+      0,
+      17,
+      0,
+      "IMAGE"
+    ],
+    [
+      24,
+      17,
+      0,
+      16,
+      0,
+      "IMAGE"
+    ],
+    [
+      25,
+      18,
+      0,
+      3,
+      2,
+      "SAMPLER"
+    ],
+    [
+      26,
+      19,
+      0,
+      3,
+      0,
+      "NOISE"
+    ],
+    [
+      27,
+      20,
+      0,
+      3,
+      3,
+      "SIGMAS"
+    ],
+    [
+      28,
+      21,
+      0,
+      13,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.7103636726789305,
+      "offset": [
+        1686.0763168529713,
+        -3760.2155256207225
+      ]
+    },
+    "frontendVersion": "1.52.7",
+    "VHS_latentpreview": true,
+    "VHS_latentpreviewrate": 0,
+    "VHS_MetadataImage": false,
+    "VHS_KeepIntermediate": true
+  },
+  "version": 0.4
+}

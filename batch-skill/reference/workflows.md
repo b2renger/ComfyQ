@@ -17,8 +17,8 @@ node -e "const m=require('./workflows/<id>/<id>.meta.json');
 
 | write on the `###` line | resolves to | makes | est/shot |
 |---|---|---|---|
-| `flux2_klein_9b_t2i` | `flux2_klein_9b_t2i` | image from text | ~6 s |
-| `flux2_klein_9b_image_edit_ref` | same | image from **2 images** + text | ~16 s |
+| `image_flux2_klein_9b_t2i` | `image_flux2_klein_9b_t2i` | image from text | ~6 s |
+| `image_edit_flux2_klein_9b_image_edit_ref` | same | image from **2 images** + text | ~16 s |
 | `ideogram_4_t2i` | `image_ideogram4_t2i` | flat text card | ~33 s |
 | `ltx_2_3_i2v` | `video_ltx2_3_i2v` | video from **1 image** | ~39 s |
 | `ltx_2_3_flf2v` | `video_ltx2_3_flf2v` | video from **first + last frame** | ~33 s |
@@ -39,8 +39,8 @@ document says what you asked for; the job runs what the grid allows.
 
 | workflow | real grid | `1920x1080` renders |
 |---|---|---|
-| `flux2_klein_9b_t2i` | multiples of **16**, rounded **down** | **1920×1072** ⚠ |
-| `flux2_klein_9b_image_edit_ref` | *no size control* — the graph hard-codes **1 megapixel** | source's aspect at ~1 MP (a 16:9 source → ≈**1328×753**) |
+| `image_flux2_klein_9b_t2i` | multiples of **16**, rounded **down** | **1920×1072** ⚠ |
+| `image_edit_flux2_klein_9b_image_edit_ref` | *no size control* — the graph hard-codes **1 megapixel** | source's aspect at ~1 MP (a 16:9 source → ≈**1328×753**) |
 | `ideogram_4_t2i` | *no size control* — an aspect dropdown | mapped to **`16:9 (Widescreen)`** |
 | `ltx_2_3_i2v` | min 512, max 1920, multiples of **64** | **1920×1088** ⚠ |
 | `ltx_2_3_flf2v` | ComfyQ applies no clamp, but the model floors to **32** | **1920×1056** ⚠ |
@@ -49,7 +49,7 @@ document says what you asked for; the job runs what the grid allows.
 
 Two different grids disagree with 1080 in **opposite directions**:
 
-- `flux2_klein_9b_t2i` rounds **down to a multiple of 16** → **1072**. (Its
+- `image_flux2_klein_9b_t2i` rounds **down to a multiple of 16** → **1072**. (Its
   `meta.json` claims `step: 8`. That is wrong — measured output at a 1080
   request is 1072, and 1080 *is* a multiple of 8. Trust the measurement.)
 - `ltx_2_3_i2v` snaps to a multiple of **64** → **1088**.
@@ -71,8 +71,8 @@ of 64 on `ltx_2_3_i2v`.** Safe pairs: **1920×1088**, 1280×704, 1024×576.
 
 ### What 1920×1088 does *not* buy you
 
-Only shots on `flux2_klein_9b_t2i` (the anchors) and the video output actually
-render at it. **Key frames on `flux2_klein_9b_image_edit_ref` are ~1 MP** —
+Only shots on `image_flux2_klein_9b_t2i` (the anchors) and the video output actually
+render at it. **Key frames on `image_edit_flux2_klein_9b_image_edit_ref` are ~1 MP** —
 about 1328×753 — because the graph hard-codes `megapixels: 1` with no exposed
 control, and **cards on `ideogram_4_t2i` are ~1 MP too** (≈1344×768) for the
 same reason. The video shots then upsample from those. The film's *output* is
@@ -156,10 +156,10 @@ What `ref` fills, and in what order:
 
 | workflow | slot 1 | slot 2 |
 |---|---|---|
-| `flux2_klein_9b_image_edit_ref` | **Source image** — the shot being edited | **Reference image** — what to bring in |
+| `image_edit_flux2_klein_9b_image_edit_ref` | **Source image** — the shot being edited | **Reference image** — what to bring in |
 | `ltx_2_3_flf2v` | **First frame** | **Last frame** |
 | `ltx_2_3_i2v` | the image to animate | — |
-| `flux2_klein_9b_t2i`, `ideogram_4_t2i`, `stable_audio_3` | none | — |
+| `image_flux2_klein_9b_t2i`, `ideogram_4_t2i`, `stable_audio_3` | none | — |
 
 A media slot left unbound is **not** empty: ComfyUI keeps whatever filename the
 bundle shipped with and renders a stranger's test picture while reporting

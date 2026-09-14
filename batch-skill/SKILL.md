@@ -28,7 +28,7 @@ Four line types. Nothing else is meaningful.
 ```markdown
 # S0 | scene | A -> S1_A ; B -> S1_B      ← a state
 ## Reference image 1 (ref A2, A1)          ← one shot, and what it reuses
-### flux2_klein_9b_image_edit_ref | 1920x1088   ← workflow + attributes
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088   ← workflow + attributes
 One paragraph. The prompt. Nothing else.
 ```
 
@@ -69,10 +69,10 @@ An optional parenthetical carries the shot's argument:
 Workflow id first, then pipe-separated attributes in any order:
 
 ```markdown
-### flux2_klein_9b_t2i | 1920x1088
+### image_flux2_klein_9b_t2i | 1920x1088
 ### stable_audio_3 | 45s
 ### ltx_2_3_i2v | 1920x1088 | 5s
-### flux2_klein_9b_image_edit_ref | 1920x1088 | ref A2, A1
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088 | ref A2, A1
 ```
 
 | attribute | meaning |
@@ -119,7 +119,7 @@ deliberate loop.
    the second one `| ref …`.
 4. **`ref A2, A1` fills image inputs in slot order:** **first = the shot being
    edited (Source), second = what to bring in (Reference).** For
-   `flux2_klein_9b_image_edit_ref` that is `ref <place anchor>, <subject
+   `image_edit_flux2_klein_9b_image_edit_ref` that is `ref <place anchor>, <subject
    anchor>`. Slot order follows the workflow's admin-editable parameter order,
    so re-check a multi-ref document after anyone reorders a bundle's params.
 5. **Write refs as `## Shot (ref A2, A1)` or `### wf | ref A2, A1` — never as
@@ -322,11 +322,11 @@ Hard ceiling: **500 shots** and a **2 MB** document per batch.
 # LIBRARY | library | -
 
 ## Anchor image 1
-### flux2_klein_9b_t2i | 1920x1088
+### image_flux2_klein_9b_t2i | 1920x1088
 <subject sheet> <SUBJECT LONG> <STYLE SUFFIX>
 
 ## Anchor image 2
-### flux2_klein_9b_t2i | 1920x1088
+### image_flux2_klein_9b_t2i | 1920x1088
 <empty establishing plate, nobody in it> <PLACE> <STYLE SUFFIX>
 
 ## Ambience 1
@@ -336,7 +336,7 @@ TrackType: Sound Effects. <room tone> Continuous, no musical content, no speech,
 # S0 | scene | A -> S1_A ; B -> S1_B
 
 ## Reference image 1 (ref A2, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 <framing> <SUBJECT SHORT> <PLACE> <STYLE SUFFIX>
 
 ## Video cut 1

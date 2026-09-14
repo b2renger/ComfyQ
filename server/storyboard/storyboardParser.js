@@ -36,7 +36,7 @@ const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 //
 //   ### ltx_2_3_i2v | 1280x720 | 5s
 //   ### stable_audio_3 | 45s
-//   ### flux2_klein_9b_image_edit_ref | 1280x720 | ref A3
+//   ### image_edit_flux2_klein_9b_image_edit_ref | 1280x720 | ref A3
 //
 // A parenthesised "(ref A3)" is still accepted, and trailing prose after the
 // name is kept as a note rather than voiding the whole shot.

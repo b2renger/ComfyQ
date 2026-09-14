@@ -117,9 +117,9 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
    You can re-open the editor any time via the pencil icon on the workflow card.
 
    The repo bundles a **Flux2 Klein 9B starter set** (validated on RTX 5090):
-   - `workflows/flux2_klein_9b_t2i/` — text to image
-   - `workflows/flux2_klein_9b_image_edit/` — single image edit
-   - `workflows/flux2_klein_9b_image_edit_ref/` — image edit with reference image
+   - `workflows/image_flux2_klein_9b_t2i/` — text to image
+   - `workflows/image_edit_flux2_klein_9b_image_edit/` — single image edit
+   - `workflows/image_edit_flux2_klein_9b_image_edit_ref/` — image edit with reference image
 
    All three need: `flux-2-klein-base-9b-fp8.safetensors` (UNET), `flux2-vae.safetensors` (VAE), `qwen_3_8b_fp8mixed.safetensors` (CLIP) in the corresponding `<comfy_root>/models/` subfolders.
 
@@ -294,11 +294,11 @@ Notes:
 
 ```
 workflows/
-└── flux2_klein_9b_t2i/
-    ├── flux2_klein_9b_t2i.api.json         the workflow (API format, REQUIRED)
-    ├── flux2_klein_9b_t2i.meta.json        the metadata (REQUIRED for v2)
-    ├── flux2_klein_9b_t2i.config.meta.json (optional, per-deployment overrides — gitignored)
-    └── flux2_klein_9b_t2i.runtime.json     (optional, written by BenchmarkService — gitignored)
+└── image_flux2_klein_9b_t2i/
+    ├── image_flux2_klein_9b_t2i.api.json         the workflow (API format, REQUIRED)
+    ├── image_flux2_klein_9b_t2i.meta.json        the metadata (REQUIRED for v2)
+    ├── image_flux2_klein_9b_t2i.config.meta.json (optional, per-deployment overrides — gitignored)
+    └── image_flux2_klein_9b_t2i.runtime.json     (optional, written by BenchmarkService — gitignored)
 ```
 
 The `meta.json` is treated as read-only by the server. The admin UI never writes it; it only writes `config.meta.json` (overrides) and `runtime.json` (calibration). This keeps the original workflow export distinct from class-deployment tweaks.

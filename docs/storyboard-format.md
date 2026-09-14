@@ -16,7 +16,7 @@ against.
 ```markdown
 # S0 | scene | A -> S1_A ; B -> S1_B      ← a section
 ## Reference image 1                       ← one generation
-### flux2_klein_9b_image_edit_ref (ref A2) ← which workflow, what it reuses
+### image_edit_flux2_klein_9b_image_edit_ref (ref A2) ← which workflow, what it reuses
 An extreme wide shot at eye level of ...   ← the prompt, until the next heading
 ```
 
@@ -52,8 +52,8 @@ the workflow's category decides its phase.
 ### `(ref A3)` — reusing an anchor
 
 ```markdown
-### flux2_klein_9b_image_edit_ref (ref A3)      one anchor drives every image input
-### flux2_klein_9b_image_edit_ref (ref A2, A1)  source ← A2, reference ← A1
+### image_edit_flux2_klein_9b_image_edit_ref (ref A3)      one anchor drives every image input
+### image_edit_flux2_klein_9b_image_edit_ref (ref A2, A1)  source ← A2, reference ← A1
 ### ltx_2_3_i2v (ref A2)                        animate a library plate directly
 ```
 
@@ -74,7 +74,7 @@ really should edit an anchor — source first, reference second.
 If the document has **no anchors at all**, there is no rule to apply and the
 shot is refused rather than guessed.
 
-**One ref, two slots.** `flux2_klein_9b_image_edit_ref` has a *Source image*
+**One ref, two slots.** `image_edit_flux2_klein_9b_image_edit_ref` has a *Source image*
 (the shot being edited) and a *Reference image* (what to bring into it). A
 single `(ref A1)` fills both, which means the model edits A1 itself rather than
 bringing A1 into another shot — usually not what a storyboard means, and
@@ -107,10 +107,10 @@ of candidates — it is never guessed.
 The workflow name, then any number of pipe-separated attributes in any order:
 
 ```markdown
-### flux2_klein_9b_t2i | 1280x720
+### image_flux2_klein_9b_t2i | 1280x720
 ### stable_audio_3 | 45s
 ### ltx_2_3_i2v | 1280x720 | 5s
-### flux2_klein_9b_image_edit_ref | 1280x720 | ref A2, A1
+### image_edit_flux2_klein_9b_image_edit_ref | 1280x720 | ref A2, A1
 ```
 
 | Attribute | Means |
@@ -284,8 +284,8 @@ inputs are already scheduled, preferring one that runs the workflow that just
 ran. The example document goes from ~20 model loads to **6**:
 
 ```
- 4x flux2_klein_9b_t2i            (the anchor plates)
-11x flux2_klein_9b_image_edit_ref (every shot built from an anchor)
+ 4x image_flux2_klein_9b_t2i            (the anchor plates)
+11x image_edit_flux2_klein_9b_image_edit_ref (every shot built from an anchor)
  7x image_ideogram4_t2i           (the choice / end cards)
  1x video_ltx2_3_flf2v            (the loop)
 10x video_ltx2_3_i2v              (every other cut)

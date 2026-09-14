@@ -1,11 +1,11 @@
 # SMOKE | scene | -
 
 ## Anchor image 1
-### flux2_klein_9b_t2i
+### image_flux2_klein_9b_t2i
 A single ripe lemon on a bare concrete windowsill, hard afternoon sunlight raking across it from the left, one long shadow, plain grey wall behind. shot on 35mm film, fine grain, photorealistic
 
 ## Reference image 1
-### flux2_klein_9b_image_edit_ref (ref A1)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A1)
 The same lemon on the same windowsill, now cut clean in half with both halves face up side by side, juice beading on the cut faces, same hard raking sunlight and same grey wall. shot on 35mm film, fine grain, photorealistic
 
 ## Video cut 1

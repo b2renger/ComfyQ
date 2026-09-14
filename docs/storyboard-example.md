@@ -1,19 +1,19 @@
 # LIBRARY | library | -
 
 ## Anchor image 1
-### flux2_klein_9b_t2i
+### image_flux2_klein_9b_t2i
 A three-panel character sheet on a neutral mid-grey ground, three-quarter view then front view then profile view, full figure in each panel with identical wardrobe and proportions, even soft frontal light and no cast shadows. Nour, eight years old, small for her age, brown skin, black hair in two tight puffs held with red elastics, wearing a mustard-yellow rubberised rain cape and red rubber boots one size too big, holding a fist-sized ball of red wool. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Anchor image 2
-### flux2_klein_9b_t2i
+### image_flux2_klein_9b_t2i
 An empty establishing plate with no figure anywhere, eye level, horizon on the upper third, open grey water beyond. the east quay of a slate harbour at low tide, granite blocks streaked grey-green with weed, wet ochre mud below holding standing water, three iron bollards worn silver on top, a rope ladder with its fourth rung missing and a loop of red twine spliced in its place. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Anchor image 3
-### flux2_klein_9b_t2i
+### image_flux2_klein_9b_t2i
 A close material plate with no figure, the ladder filling the frame vertically, weed at the tide line and rust bleeding from the bolts. the east quay of a slate harbour at low tide, granite blocks streaked grey-green with weed, wet ochre mud below holding standing water, three iron bollards worn silver on top, a rope ladder with its fourth rung missing and a loop of red twine spliced in its place. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Anchor image 4
-### flux2_klein_9b_t2i
+### image_flux2_klein_9b_t2i
 An empty establishing plate with no figure, eye level on the axis of the strands, deep space running away from camera. a rope walk, a single shed ninety metres long with one wall open to the quay, tarred pine roof trusses gone black-brown, long parallel runs of pale hemp fading into indoor haze at the far end, a swept earth floor dusted with fibre, a hand crank with one handle wrapped in rag. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Ambience 1
@@ -27,7 +27,7 @@ TrackType: Sound Effects. Long wooden rope shed room tone: dry hemp fibre rustli
 # IDLE | idle | -> S0
 
 ## Reference image 1
-### flux2_klein_9b_image_edit_ref (ref A3)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A3)
 An extreme close-up at eye level of a loop of red twine spliced into the gap where a rope ladder's fourth rung should be, granite and weed filling the rest of the frame, no figure anywhere. the east quay of a slate harbour at low tide, granite blocks streaked grey-green with weed, wet ochre mud below holding standing water, three iron bollards worn silver on top, a rope ladder with its fourth rung missing and a loop of red twine spliced in its place. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Video cut 1 (loop)
@@ -45,7 +45,7 @@ TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, bui
 # S0 | scene | A -> S1_A ; B -> S1_B
 
 ## Reference image 1
-### flux2_klein_9b_image_edit_ref (ref A2)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A2)
 An extreme wide shot at eye level of a small child standing alone near the left edge of a granite harbour quay with her back to camera, the tide fully out below and open grey water filling the upper half of the frame. a small child in a mustard-yellow rain cape and red boots seen at a distance, yellow and red against slate and ochre. the east quay of a slate harbour at low tide, granite blocks streaked grey-green with weed, wet ochre mud below holding standing water, three iron bollards worn silver on top, a rope ladder with its fourth rung missing and a loop of red twine spliced in its place. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Video cut 1
@@ -53,7 +53,7 @@ An extreme wide shot at eye level of a small child standing alone near the left 
 Static locked-off camera. Initially the child stands still with her back to camera, then she takes two slow steps to her left along the quay edge and stops, looking down at the mud. The camera does not move, the horizon stays level, the water beyond stays flat. Audio: gull calls a long way off, a rope creaking twice close to camera, water moving somewhere below, no music, no speech.
 
 ## Reference image 2
-### flux2_klein_9b_image_edit_ref (ref A1)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A1)
 An extreme close-up from a high angle of a child's two hands closing around a red woollen thread caught in a finger-deep groove worn into the side of an iron bollard, the thread running out of frame to the right. Nour, eight years old, small for her age, brown skin, black hair in two tight puffs held with red elastics, wearing a mustard-yellow rubberised rain cape and red rubber boots one size too big, holding a fist-sized ball of red wool. the east quay of a slate harbour at low tide, granite blocks streaked grey-green with weed, wet ochre mud below holding standing water, three iron bollards worn silver on top, a rope ladder with its fourth rung missing and a loop of red twine spliced in its place. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Video cut 2
@@ -61,7 +61,7 @@ An extreme close-up from a high angle of a child's two hands closing around a re
 Static locked-off camera. Initially the hands rest closed around the thread, then the fingers tighten and pull once gently, and the thread lifts clear of the groove and goes taut off to the right. The camera does not move, the bollard stays exactly where it is in frame. Audio: wool dragging on iron, one soft breath close to camera, distant water, no music, no speech.
 
 ## Reference image 3
-### flux2_klein_9b_image_edit_ref (ref A1)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A1)
 A medium close-up in three-quarter view of a child holding a red thread taut in one fist, the thread running down out of frame past her boots on one side and away along the quay on the other, her face turned to follow it. Nour, eight years old, small for her age, brown skin, black hair in two tight puffs held with red elastics, wearing a mustard-yellow rubberised rain cape and red rubber boots one size too big, holding a fist-sized ball of red wool. the east quay of a slate harbour at low tide, granite blocks streaked grey-green with weed, wet ochre mud below holding standing water, three iron bollards worn silver on top, a rope ladder with its fourth rung missing and a loop of red twine spliced in its place. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Video cut 3
@@ -79,7 +79,7 @@ TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, bui
 # S1_A | scene | A -> E01 ; B -> E02
 
 ## Reference image 1
-### flux2_klein_9b_image_edit_ref (ref A3)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A3)
 A close-up from a high angle of a child's red rubber boots on the rungs of a rope ladder bolted to a granite quay face, one boot reaching past the gap where the fourth rung is missing toward the loop of red twine spliced in its place, ochre mud visible below. a small child in a mustard-yellow rain cape and red boots seen at a distance, yellow and red against slate and ochre. the east quay of a slate harbour at low tide, granite blocks streaked grey-green with weed, wet ochre mud below holding standing water, three iron bollards worn silver on top, a rope ladder with its fourth rung missing and a loop of red twine spliced in its place. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Video cut 1
@@ -87,7 +87,7 @@ A close-up from a high angle of a child's red rubber boots on the rungs of a rop
 Static locked-off camera. Initially the lower boot hangs above the gap, then it stretches down and finds the spliced twine loop and takes weight on it, and the ladder swings a few centimetres and steadies. The camera does not move, the granite behind stays fixed in frame. Audio: rope stretching under load, a boot sole squeaking on wet rope, water dripping onto mud below, no music, no speech.
 
 ## Reference image 2
-### flux2_klein_9b_image_edit_ref (ref A2)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A2)
 A wide shot from a low angle of a small child standing on wet ochre tidal mud with her back to camera, facing a granite quay wall that fills the upper two thirds of the frame and is covered in dozens of red and pale threads tied to bolts and weed at every height, one of them running to her hand. a small child in a mustard-yellow rain cape and red boots seen at a distance, yellow and red against slate and ochre. the east quay of a slate harbour at low tide, granite blocks streaked grey-green with weed, wet ochre mud below holding standing water, three iron bollards worn silver on top, a rope ladder with its fourth rung missing and a loop of red twine spliced in its place. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Video cut 2
@@ -105,7 +105,7 @@ TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, bui
 # S1_B | scene | A -> E02 ; B -> E03
 
 ## Reference image 1
-### flux2_klein_9b_image_edit_ref (ref A4)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A4)
 A full shot at eye level of a small child standing at the open wall of a long shed with a red thread running past her boots away into the depth of the building, her body turned three-quarters into the space. a small child in a mustard-yellow rain cape and red boots seen at a distance, yellow and red against slate and ochre. a rope walk, a single shed ninety metres long with one wall open to the quay, tarred pine roof trusses gone black-brown, long parallel runs of pale hemp fading into indoor haze at the far end, a swept earth floor dusted with fibre, a hand crank with one handle wrapped in rag. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Video cut 1
@@ -113,7 +113,7 @@ A full shot at eye level of a small child standing at the open wall of a long sh
 Static locked-off camera. Initially the child stands at the threshold, then she takes three slow steps forward into the building and stops with the thread now running between her feet. The camera does not move, the roof line and the runs of hemp stay fixed, no one else enters frame. Audio: the sound closing in as she crosses, dry fibre rustling, a wooden frame ticking as it turns somewhere far off, no music, no speech.
 
 ## Reference image 2
-### flux2_klein_9b_image_edit_ref (ref A4)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A4)
 A medium close-up at eye level of a wooden hand crank with one handle wrapped in rag, caught mid-turn, with dozens of pale hemp strands and one red thread among them converging behind it into a single twisted rope, no figure anywhere in frame. a rope walk, a single shed ninety metres long with one wall open to the quay, tarred pine roof trusses gone black-brown, long parallel runs of pale hemp fading into indoor haze at the far end, a swept earth floor dusted with fibre, a hand crank with one handle wrapped in rag. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Video cut 2
@@ -131,7 +131,7 @@ TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, bui
 # E01 | ending | end
 
 ## Reference image 1
-### flux2_klein_9b_image_edit_ref (ref A1)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A1)
 An extreme close-up from a high angle of a short loose length of red woollen thread lying coiled in a child's open palm, a threaded granite wall far out of focus behind. Nour, eight years old, small for her age, brown skin, black hair in two tight puffs held with red elastics, wearing a mustard-yellow rubberised rain cape and red rubber boots one size too big, holding a fist-sized ball of red wool. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Video cut 1
@@ -149,7 +149,7 @@ TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, pre
 # E02 | ending | end
 
 ## Reference image 1
-### flux2_klein_9b_image_edit_ref (ref A3)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A3)
 A close-up at eye level of a granite wall covered in dozens of red and pale threads tied at every height, one bright new red thread freshly knotted among them and still slightly slack, no figure in frame. the east quay of a slate harbour at low tide, granite blocks streaked grey-green with weed, wet ochre mud below holding standing water, three iron bollards worn silver on top, a rope ladder with its fourth rung missing and a loop of red twine spliced in its place. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Video cut 1
@@ -167,7 +167,7 @@ TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, bui
 # E03 | ending | -> S0
 
 ## Reference image 1
-### flux2_klein_9b_image_edit_ref (ref A4)
+### image_edit_flux2_klein_9b_image_edit_ref (ref A4)
 An extreme wide shot at eye level down the full ninety-metre axis of a rope shed, a very small child standing at the far end where the light comes in, dozens of parallel hemp strands and one red thread running the whole depth of the frame toward camera. a small child in a mustard-yellow rain cape and red boots seen at a distance, yellow and red against slate and ochre. a rope walk, a single shed ninety metres long with one wall open to the quay, tarred pine roof trusses gone black-brown, long parallel runs of pale hemp fading into indoor haze at the far end, a swept earth floor dusted with fibre, a hand crank with one handle wrapped in rag. shot on 35mm film with a 40mm lens, Kodak Portra 400 palette of slate blue, wet ochre and one red, soft overcast north light with open shadows, shallow depth of field, fine grain, photorealistic
 
 ## Video cut 1

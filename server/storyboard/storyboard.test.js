@@ -75,7 +75,7 @@ test('every line ending parses identically', () => {
 });
 
 test('a fenced code block never reshapes the batch', () => {
-    const doc = '# S | scene | -\n\n## Plate\n### flux2_klein_9b_t2i\nA plate.\n\n' +
+    const doc = '# S | scene | -\n\n## Plate\n### image_flux2_klein_9b_t2i\nA plate.\n\n' +
         '```bash\n# not a heading\n## also not\n```\n\nmore prompt';
     const r = parseStoryboard(doc);
     assert.deepStrictEqual(r.states.map(s => s.id), ['S']);
@@ -84,38 +84,38 @@ test('a fenced code block never reshapes the batch', () => {
 });
 
 test('a prose line read as a section heading is flagged', () => {
-    const doc = '# S | scene | -\n\n## Plate\n### flux2_klein_9b_t2i\nA plate.\n# 35mm lens, overcast\n';
+    const doc = '# S | scene | -\n\n## Plate\n### image_flux2_klein_9b_t2i\nA plate.\n# 35mm lens, overcast\n';
     assert.match(parseStoryboard(doc).warnings.join(' '), /was read as a new section/);
 });
 
 test('trailing text after the workflow line does not delete the generation', () => {
-    for (const h3 of ['### flux2_klein_9b_t2i ###', '### flux2_klein_9b_t2i (ref A1) - hero shot']) {
+    for (const h3 of ['### image_flux2_klein_9b_t2i ###', '### image_flux2_klein_9b_t2i (ref A1) - hero shot']) {
         const r = parseStoryboard('# S | scene | -\n\n## Plate\n' + h3 + '\nA plate.');
         assert.strictEqual(r.items.length, 1, h3);
-        assert.strictEqual(r.items[0].workflowAlias, 'flux2_klein_9b_t2i', h3);
+        assert.strictEqual(r.items[0].workflowAlias, 'image_flux2_klein_9b_t2i', h3);
     }
 });
 
 test('an indented heading is still a heading, and #### is not swallowed', () => {
-    const r = parseStoryboard('  # S | scene | -\n\n  ## Plate\n  ### flux2_klein_9b_t2i\nA plate.\n#### Notes\nignored');
+    const r = parseStoryboard('  # S | scene | -\n\n  ## Plate\n  ### image_flux2_klein_9b_t2i\nA plate.\n#### Notes\nignored');
     assert.strictEqual(r.items.length, 1);
     assert.match(r.warnings.join(' '), /deeper than the format uses/);
     assert.ok(!/Notes/.test(r.items[0].prompt));
 });
 
 test('a decorated anchor title keeps its anchor', () => {
-    const r = parseStoryboard('# S | scene | -\n\n## \u{1F3AC} Anchor image 2\n### flux2_klein_9b_t2i\nplate');
+    const r = parseStoryboard('# S | scene | -\n\n## \u{1F3AC} Anchor image 2\n### image_flux2_klein_9b_t2i\nplate');
     assert.strictEqual(r.items[0].anchorKey, 'A2');
 });
 
 test('a second ### under one ## is an error, not a silent overwrite', () => {
-    const r = parseStoryboard('# S | scene | -\n\n## Plate\n### flux2_klein_9b_t2i\none\n### ltx_2_3_i2v\ntwo');
-    assert.strictEqual(r.items[0].workflowAlias, 'flux2_klein_9b_t2i');
+    const r = parseStoryboard('# S | scene | -\n\n## Plate\n### image_flux2_klein_9b_t2i\none\n### ltx_2_3_i2v\ntwo');
+    assert.strictEqual(r.items[0].workflowAlias, 'image_flux2_klein_9b_t2i');
     assert.match(r.errors.join(' '), /already names workflow/);
 });
 
 test('an item with no workflow line is an error, not a dropped shot', () => {
-    const r = parseStoryboard('# S | scene | -\n\n## Good\n### flux2_klein_9b_t2i\nyes\n\n## Orphan\njust prose');
+    const r = parseStoryboard('# S | scene | -\n\n## Good\n### image_flux2_klein_9b_t2i\nyes\n\n## Orphan\njust prose');
     assert.strictEqual(r.items.length, 1);
     assert.match(r.errors.join(' '), /no "### <workflow>" line/);
 });
@@ -150,11 +150,11 @@ test('plans every item with no errors', () => {
 });
 
 test('a single ref filling two differently-named slots is flagged', () => {
-    // flux2_klein_9b_image_edit_ref has a "Source image" AND a "Reference
+    // image_edit_flux2_klein_9b_image_edit_ref has a "Source image" AND a "Reference
     // image"; "(ref A3)" puts the same anchor in both, so the model edits the
     // anchor instead of bringing it into another shot. Silent before, and the
     // exact thing that reads as "my anchors were not passed as references".
-    const edits = plan.jobs.filter(j => j.workflowId === 'flux2_klein_9b_image_edit_ref');
+    const edits = plan.jobs.filter(j => j.workflowId === 'image_edit_flux2_klein_9b_image_edit_ref');
     assert.strictEqual(edits.length, 11);
     const flagged = plan.warnings.filter(w => /used for BOTH/.test(w));
     assert.strictEqual(flagged.length, edits.length, plan.warnings.join(' | '));
@@ -167,7 +167,7 @@ test('a single ref filling two differently-named slots is flagged', () => {
 test('each shot is named from its own headings, under one folder', () => {
     const p = planStoryboard(parsed, registry, { outputFolder: 'The Red Thread' });
     assert.strictEqual(p.jobs[0].outputPrefix,
-        'The-Red-Thread/001_LIBRARY__Anchor-image-1__flux2_klein_9b_t2i');
+        'The-Red-Thread/001_LIBRARY__Anchor-image-1__image_flux2_klein_9b_t2i');
     // Unique, sortable, and safe as a path on Windows.
     const prefixes = p.jobs.map(j => j.outputPrefix);
     assert.strictEqual(new Set(prefixes).size, prefixes.length);
@@ -229,7 +229,7 @@ test('the loop cut drives both frame slots from one image', () => {
 });
 
 test('the prompt lands on the workflow\'s own text field', () => {
-    const t2i = plan.jobs.find(j => j.workflowId === 'flux2_klein_9b_t2i');
+    const t2i = plan.jobs.find(j => j.workflowId === 'image_flux2_klein_9b_t2i');
     assert.strictEqual(t2i.promptParamKey, 'primitivestringmultiline_value_76');
     assert.ok(t2i.paramValues[t2i.promptParamKey].startsWith('A three-panel character sheet'));
     // ...and never on the negative one.
@@ -268,7 +268,7 @@ test('an unknown workflow is reported as an error, not queued', () => {
 });
 
 test('a ref naming no anchor is an ERROR - an unbound input renders the graph literal', () => {
-    const doc = '# S | scene | -\n\n## Ref\n### flux2_klein_9b_image_edit_ref (ref A9)\na prompt';
+    const doc = '# S | scene | -\n\n## Ref\n### image_edit_flux2_klein_9b_image_edit_ref (ref A9)\na prompt';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.match(p.errors.join(' '), /defines A9/);
     // One reason per shot: naming a missing anchor is the fault, so the
@@ -280,11 +280,11 @@ test('a ref naming no anchor is an ERROR - an unbound input renders the graph li
 // ---- regressions found by review -------------------------------------
 
 test('the prompt never lands on a field the workflow has gated off', () => {
-    // video_ltx2_3_ic_lora_vid2vid exposes two prompt boxes; the AI-enhanced
+    // video_edit_ltx2_3_ic_lora_vid2vid exposes two prompt boxes; the AI-enhanced
     // one is disabled while "Enhance" is off (its default), so the live field
     // is "Prompt (used as-is)".
-    const doc = '# S | scene | -\n\n## Anchor image 1\n### flux2_klein_9b_t2i\nplate\n\n' +
-        '## Restyle\n### video_ltx2_3_ic_lora_vid2vid (ref A1)\nMAKE IT SNOW';
+    const doc = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\nplate\n\n' +
+        '## Restyle\n### video_edit_ltx2_3_ic_lora_vid2vid (ref A1)\nMAKE IT SNOW';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     const restyle = p.jobs.find(j => j.title === 'Restyle');
     if (restyle) {
@@ -299,15 +299,15 @@ test('the prompt never lands on a field the workflow has gated off', () => {
 test('a workflow whose only text field is plumbing is refused, not corrupted', () => {
     // The autoprompt Bernini bundle deliberately has NO instruction field; its
     // one textarea holds the LLM system instruction.
-    const doc = '# S | scene | -\n\n## Auto\n### video_bernini_r_video_editing_ref_autoprompt\nmake it snow';
+    const doc = '# S | scene | -\n\n## Auto\n### video_edit_bernini_r_video_editing_ref_autoprompt\nmake it snow';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.strictEqual(p.jobs.length, 0);
     assert.ok(p.errors.some(e => /no prompt field|Source video/.test(e)), p.errors.join(' | '));
 });
 
 test('a video-producing "preprocessor" is not mistaken for an image source', () => {
-    const doc = '# S | scene | -\n\n## Anchor image 1\n### flux2_klein_9b_t2i\nplate\n\n' +
-        '## Upscale\n### video_seedvr2_hd_upscale\nbigger\n\n' +
+    const doc = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\nplate\n\n' +
+        '## Upscale\n### utility_seedvr2_hd_upscale\nbigger\n\n' +
         '## Cut\n### ltx_2_3_i2v\nit moves';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     const up = p.jobs.find(j => j.title === 'Upscale');
@@ -317,16 +317,16 @@ test('a video-producing "preprocessor" is not mistaken for an image source', () 
 });
 
 test('a mask input is refused - a storyboard cannot paint one', () => {
-    const doc = '# S | scene | -\n\n## Anchor image 1\n### flux2_klein_9b_t2i\nplate\n\n' +
-        '## Fix\n### flux2_klein_inpaint_prompt (ref A1)\nremove the car';
+    const doc = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\nplate\n\n' +
+        '## Fix\n### image_edit_flux2_klein_inpaint_prompt (ref A1)\nremove the car';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.ok(!p.jobs.some(j => j.title === 'Fix'));
     assert.match(p.errors.join(' '), /painted mask/);
 });
 
 test('cuts consume plates oldest-first instead of all taking the last one', () => {
-    const doc = '# S | scene | -\n\n## Plate one\n### flux2_klein_9b_t2i\nfirst\n\n' +
-        '## Plate two\n### flux2_klein_9b_t2i\nsecond\n\n' +
+    const doc = '# S | scene | -\n\n## Plate one\n### image_flux2_klein_9b_t2i\nfirst\n\n' +
+        '## Plate two\n### image_flux2_klein_9b_t2i\nsecond\n\n' +
         '## Cut 1\n### ltx_2_3_i2v\nmoves\n\n## Cut 2\n### ltx_2_3_i2v\nmoves too';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.deepStrictEqual(p.errors, []);
@@ -338,8 +338,8 @@ test('a cut animates the shot before it, not the library plate it was built from
     // Anchors are the named library, reached with "(ref Ax)". If a cut could
     // swallow one positionally it would animate the wrong shot - here the whole
     // lemon instead of the cut-open one.
-    const doc = '# S | scene | -\n\n## Anchor image 1\n### flux2_klein_9b_t2i\na whole lemon\n\n' +
-        '## Reference image 1\n### flux2_klein_9b_image_edit_ref (ref A1)\nthe lemon cut in half\n\n' +
+    const doc = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\na whole lemon\n\n' +
+        '## Reference image 1\n### image_edit_flux2_klein_9b_image_edit_ref (ref A1)\nthe lemon cut in half\n\n' +
         '## Video cut 1\n### ltx_2_3_i2v\nthe shadow creeps';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.deepStrictEqual(p.errors, []);
@@ -349,7 +349,7 @@ test('a cut animates the shot before it, not the library plate it was built from
 });
 
 test('a cut can name a library plate explicitly', () => {
-    const doc = '# S | scene | -\n\n## Anchor image 2\n### flux2_klein_9b_t2i\na quay\n\n' +
+    const doc = '# S | scene | -\n\n## Anchor image 2\n### image_flux2_klein_9b_t2i\na quay\n\n' +
         '## Video cut 1\n### ltx_2_3_i2v (ref A2)\nthe tide moves';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.deepStrictEqual(p.errors, []);
@@ -357,15 +357,15 @@ test('a cut can name a library plate explicitly', () => {
 });
 
 test('an edit with no ref is refused rather than fed a guess', () => {
-    const doc = '# S | scene | -\n\n## Plate\n### flux2_klein_9b_t2i\na plate\n\n' +
-        '## Edit\n### flux2_klein_9b_image_edit_ref\nmake it snow';
+    const doc = '# S | scene | -\n\n## Plate\n### image_flux2_klein_9b_t2i\na plate\n\n' +
+        '## Edit\n### image_edit_flux2_klein_9b_image_edit_ref\nmake it snow';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.ok(!p.jobs.some(j => j.title === 'Edit'));
     assert.match(p.errors.join(' '), /names no anchor/);
 });
 
 test('a text-to-video cut does not consume the plate meant for the next cut', () => {
-    const doc = '# S | scene | -\n\n## Plate\n### flux2_klein_9b_t2i\nplate\n\n' +
+    const doc = '# S | scene | -\n\n## Plate\n### image_flux2_klein_9b_t2i\nplate\n\n' +
         '## Title card\n### video_ltx2_3_t2v\ntitle\n\n## Cut\n### ltx_2_3_i2v\nmoves';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.deepStrictEqual(p.errors, []);
@@ -384,8 +384,8 @@ test('an opening sentence is not mistaken for a dropdown directive', () => {
 });
 
 test('duplicate anchor numbers are reported', () => {
-    const doc = '# S | scene | -\n\n## Anchor image 1\n### flux2_klein_9b_t2i\none\n\n' +
-        '## Anchor image 1\n### flux2_klein_9b_t2i\ntwo';
+    const doc = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\none\n\n' +
+        '## Anchor image 1\n### image_flux2_klein_9b_t2i\ntwo';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.match(p.warnings.join(' '), /A1 is already defined/);
 });
@@ -420,10 +420,10 @@ test('grouping never reorders a shot before the one it depends on', () => {
 test('grouping yields to a dependency rather than breaking the order', () => {
     // A chain that forces alternation: wf-A -> wf-B -> wf-A. Correctness wins;
     // the second A cannot be pulled forward next to the first.
-    const doc = '# S | scene | -\n\n## Anchor image 1\n### flux2_klein_9b_t2i\nplate\n\n' +
-        '## Edit\n### flux2_klein_9b_image_edit_ref (ref A1)\nedit it\n\n' +
+    const doc = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\nplate\n\n' +
+        '## Edit\n### image_edit_flux2_klein_9b_image_edit_ref (ref A1)\nedit it\n\n' +
         '## Cut\n### ltx_2_3_i2v\nit moves\n\n' +
-        '## Late plate\n### flux2_klein_9b_t2i\nanother plate';
+        '## Late plate\n### image_flux2_klein_9b_t2i\nanother plate';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.deepStrictEqual(p.errors, []);
     const order = p.jobs.map(j => j.title);
@@ -438,10 +438,10 @@ test('a resolution written in the document drives width and height', () => {
     // Four spellings, because the document is written by hand (or by another
     // tool) and all of these read naturally.
     const cases = [
-        ['### flux2_klein_9b_t2i (1024x1536)\na lemon', 1024, 1536, 'a lemon'],
-        ['### flux2_klein_9b_t2i\nResolution: 1344 x 768\na lemon', 1344, 768, 'a lemon'],
-        ['### flux2_klein_9b_t2i\nSize: 1280×720.\na lemon', 1280, 720, 'a lemon'],
-        ['### flux2_klein_9b_t2i\nDimensions: 832*1216\na lemon', 832, 1216, 'a lemon']
+        ['### image_flux2_klein_9b_t2i (1024x1536)\na lemon', 1024, 1536, 'a lemon'],
+        ['### image_flux2_klein_9b_t2i\nResolution: 1344 x 768\na lemon', 1344, 768, 'a lemon'],
+        ['### image_flux2_klein_9b_t2i\nSize: 1280×720.\na lemon', 1280, 720, 'a lemon'],
+        ['### image_flux2_klein_9b_t2i\nDimensions: 832*1216\na lemon', 832, 1216, 'a lemon']
     ];
     for (const [tail, w, h, prompt] of cases) {
         const p = planStoryboard(parseStoryboard(`# S | scene | -\n\n## Plate\n${tail}`), registry, {});
@@ -455,7 +455,7 @@ test('a resolution written in the document drives width and height', () => {
 });
 
 test('a resolution can sit alongside a ref, and applies to a video cut too', () => {
-    const doc = '# S | scene | -\n\n## Anchor image 1\n### flux2_klein_9b_t2i (832x1216)\nplate\n\n' +
+    const doc = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i (832x1216)\nplate\n\n' +
         '## Cut\n### ltx_2_3_i2v (ref A1, 1280x720)\nit moves';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.deepStrictEqual(p.errors, []);
@@ -471,15 +471,15 @@ test('prose that merely contains numbers is not read as a resolution', () => {
     for (const j of plan.jobs) {
         assert.ok(!j.notes.some(n => /×/.test(n)), `${j.title}: ${j.notes.join(';')}`);
     }
-    const doc = '# S | scene | -\n\n## Plate\n### flux2_klein_9b_t2i\n' +
+    const doc = '# S | scene | -\n\n## Plate\n### image_flux2_klein_9b_t2i\n' +
         'shot on 35mm film with a 40mm lens, Kodak Portra 400 palette, f2 8 at 1 250';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.ok(!('primitiveint_value_75_68' in p.jobs[0].paramValues), JSON.stringify(p.jobs[0].paramValues));
 });
 
 test('a resolution on a workflow that has none is reported, not swallowed', () => {
-    const doc = '# S | scene | -\n\n## Anchor image 1\n### flux2_klein_9b_t2i\nplate\n\n' +
-        '## Edit\n### flux2_klein_9b_image_edit_ref (ref A1, 900x900)\nedit it';
+    const doc = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\nplate\n\n' +
+        '## Edit\n### image_edit_flux2_klein_9b_image_edit_ref (ref A1, 900x900)\nedit it';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.deepStrictEqual(p.errors, []);
     assert.match(p.warnings.join(' '), /has no width\/height to set/);
@@ -488,7 +488,7 @@ test('a resolution on a workflow that has none is reported, not swallowed', () =
 test('an implausible size is ignored rather than clamped into the graph', () => {
     for (const bad of ['12x9', '99999x1024']) {
         const p = planStoryboard(parseStoryboard(
-            `# S | scene | -\n\n## Plate\n### flux2_klein_9b_t2i (${bad})\na lemon`), registry, {});
+            `# S | scene | -\n\n## Plate\n### image_flux2_klein_9b_t2i (${bad})\na lemon`), registry, {});
         assert.ok(!('primitiveint_value_75_68' in p.jobs[0].paramValues), bad);
     }
 });
@@ -528,8 +528,8 @@ test('an edit shot that names no anchor becomes a plain generation', () => {
     const swapped = p.jobs.filter(j => j.substitutedFrom);
     assert.strictEqual(swapped.length, 17);
     for (const j of swapped) {
-        assert.strictEqual(j.substitutedFrom, 'flux2_klein_9b_image_edit_ref');
-        assert.strictEqual(j.workflowId, 'flux2_klein_9b_t2i');
+        assert.strictEqual(j.substitutedFrom, 'image_edit_flux2_klein_9b_image_edit_ref');
+        assert.strictEqual(j.workflowId, 'image_flux2_klein_9b_t2i');
         assert.strictEqual(j.deps.length, 0, 'a plain generation must need no input');
     }
     // ...and it is said out loud, once.
@@ -550,7 +550,7 @@ test('naming the anchor still uses the edit workflow', () => {
     const p = planStoryboard(parseStoryboard(withRefs), registry, {});
     assert.deepStrictEqual(p.errors, []);
     assert.strictEqual(p.jobs.filter(j => j.substitutedFrom).length, 0);
-    const edit = p.jobs.find(j => j.workflowId === 'flux2_klein_9b_image_edit_ref');
+    const edit = p.jobs.find(j => j.workflowId === 'image_edit_flux2_klein_9b_image_edit_ref');
     assert.strictEqual(edit.deps.length, 2);
     assert.match(edit.deps[0].sourceTitle, /Anchor image 2/);
     assert.match(edit.deps[1].sourceTitle, /Anchor image 1/);
@@ -559,8 +559,8 @@ test('naming the anchor still uses the edit workflow', () => {
 test('with no anchors to fall back on, an edit with no ref is still refused', () => {
     // Nothing in the document identifies a no-input image workflow, so there is
     // no rule to apply and guessing is not an option.
-    const doc = '# S | scene | -\n\n## Plate\n### flux2_klein_9b_t2i\na plate\n\n' +
-        '## Edit\n### flux2_klein_9b_image_edit_ref\nmake it snow';
+    const doc = '# S | scene | -\n\n## Plate\n### image_flux2_klein_9b_t2i\na plate\n\n' +
+        '## Edit\n### image_edit_flux2_klein_9b_image_edit_ref\nmake it snow';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.ok(!p.jobs.some(j => j.title === 'Edit'));
     assert.match(p.errors.join(' '), /names no anchor/);
@@ -569,8 +569,8 @@ test('with no anchors to fall back on, an edit with no ref is still refused', ()
 test('adding the anchor to the ### line is all it takes', () => {
     const real = fs.readFileSync(path.join(REPO, 'docs', 'storyboard-the-red-thread.md'), 'utf8');
     // Exactly the edit the generator would make.
-    const fixed = real.replace(/^### flux2_klein_9b_image_edit_ref \| 1280x720$/gm,
-        '### flux2_klein_9b_image_edit_ref | 1280x720 | ref A2, A1');
+    const fixed = real.replace(/^### image_edit_flux2_klein_9b_image_edit_ref \| 1280x720$/gm,
+        '### image_edit_flux2_klein_9b_image_edit_ref | 1280x720 | ref A2, A1');
     const p = planStoryboard(parseStoryboard(fixed), registry, {});
     assert.deepStrictEqual(p.errors, []);
     assert.strictEqual(p.blockedReasons.length, 0);
@@ -580,13 +580,13 @@ test('adding the anchor to the ### line is all it takes', () => {
 });
 
 test("the slot's argument is read from the ## line, as the grammar specifies", () => {
-    const doc = '# S | scene | -\n\n## Anchor image 1\n### flux2_klein_9b_t2i | 1280x720\nplate\n\n' +
-        '## Anchor image 2\n### flux2_klein_9b_t2i | 1280x720\nquay\n\n' +
-        '## Reference image 1 (ref A2, A1)\n### flux2_klein_9b_image_edit_ref | 1280x720\nedit\n\n' +
+    const doc = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i | 1280x720\nplate\n\n' +
+        '## Anchor image 2\n### image_flux2_klein_9b_t2i | 1280x720\nquay\n\n' +
+        '## Reference image 1 (ref A2, A1)\n### image_edit_flux2_klein_9b_image_edit_ref | 1280x720\nedit\n\n' +
         '## Video cut 1\n### ltx_2_3_i2v | 1280x720 | 5s\nit moves';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.deepStrictEqual(p.errors, []);
-    const edit = p.jobs.find(j => j.workflowId === 'flux2_klein_9b_image_edit_ref');
+    const edit = p.jobs.find(j => j.workflowId === 'image_edit_flux2_klein_9b_image_edit_ref');
     // Two anchors, in slot order: source first, reference second.
     assert.strictEqual(edit.deps.length, 2);
     assert.match(edit.deps[0].paramLabel, /Source/);
@@ -598,8 +598,8 @@ test("the slot's argument is read from the ## line, as the grammar specifies", (
 });
 
 test('"(loop)" on the ## line drives both frames from one key frame', () => {
-    const doc = '# S | scene | -\n\n## Reference image 1\n### flux2_klein_9b_t2i | 1280x720\ntwine\n\n' +
-        '## Reference image 2\n### flux2_klein_9b_t2i | 1280x720\nanother\n\n' +
+    const doc = '# S | scene | -\n\n## Reference image 1\n### image_flux2_klein_9b_t2i | 1280x720\ntwine\n\n' +
+        '## Reference image 2\n### image_flux2_klein_9b_t2i | 1280x720\nanother\n\n' +
         '## Video cut 1 (loop)\n### ltx_2_3_flf2v | 1280x720 | 5s\nit loops';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
     assert.deepStrictEqual(p.errors, []);
@@ -613,8 +613,8 @@ test('"(loop)" on the ## line drives both frames from one key frame', () => {
 test('"Video cut N" is wired to "Reference image N", by number', () => {
     // Numbered out of document order on purpose: the grammar promises the cut
     // takes the key frame of the SAME number, not simply the previous image.
-    const doc = '# S | scene | -\n\n## Reference image 1\n### flux2_klein_9b_t2i | 1280x720\nfirst\n\n' +
-        '## Reference image 2\n### flux2_klein_9b_t2i | 1280x720\nsecond\n\n' +
+    const doc = '# S | scene | -\n\n## Reference image 1\n### image_flux2_klein_9b_t2i | 1280x720\nfirst\n\n' +
+        '## Reference image 2\n### image_flux2_klein_9b_t2i | 1280x720\nsecond\n\n' +
         '## Video cut 2\n### ltx_2_3_i2v | 1280x720 | 5s\nsecond moves\n\n' +
         '## Video cut 1\n### ltx_2_3_i2v | 1280x720 | 5s\nfirst moves';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
@@ -660,8 +660,8 @@ test('the ideogram bundle only declares aspect options the node really has', () 
 });
 
 test('the notes role generates nothing, even if it looks like a shot', () => {
-    const doc = '# S | scene | -\n\n## Plate\n### flux2_klein_9b_t2i | 1280x720\na plate\n\n' +
-        '# NOTES | notes | end\n\n## Anchor image 9\n### flux2_klein_9b_t2i | 1280x720\nnot a shot';
+    const doc = '# S | scene | -\n\n## Plate\n### image_flux2_klein_9b_t2i | 1280x720\na plate\n\n' +
+        '# NOTES | notes | end\n\n## Anchor image 9\n### image_flux2_klein_9b_t2i | 1280x720\nnot a shot';
     const r = parseStoryboard(doc);
     assert.strictEqual(r.items.length, 1);
     assert.deepStrictEqual(r.errors, []);
@@ -862,7 +862,7 @@ test('force cannot queue a job whose input was dropped', () => {
     // that references it, and the cut that consumes the edit, must go too —
     // queueing them without a source is the silent-wrong-picture bug.
     const doc = '# S | scene | -\n\n## Anchor image 1\n### does_not_exist_wf\nplate\n\n' +
-        '## Ref\n### flux2_klein_9b_image_edit_ref (ref A1)\nan edit\n\n' +
+        '## Ref\n### image_edit_flux2_klein_9b_image_edit_ref (ref A1)\nan edit\n\n' +
         '## Cut\n### ltx_2_3_i2v\nit moves\n\n' +
         '## Bed\n### stable_audio_3\nTrackType: Music. a bed';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
@@ -878,7 +878,7 @@ test('force cannot queue a job whose input was dropped', () => {
 
 test('a normally-booked job is completely unaffected', () => {
     const plain = queue.insert({
-        userId: 'student', workflowId: 'flux2_klein_9b_t2i', scheduledAt: 1,
+        userId: 'student', workflowId: 'image_flux2_klein_9b_t2i', scheduledAt: 1,
         prompt: 'a cat', paramValues: { primitivestringmultiline_value_76: 'a cat' }
     });
     assert.strictEqual(plain.batchId, null);

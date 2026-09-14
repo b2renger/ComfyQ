@@ -89,7 +89,7 @@ workflow.
 ## Known constraint — why the examples say 1920×1088, not 1920×1080
 
 Asking for `1920x1080` does not render 1920×1080. Two grids disagree with it in
-opposite directions: `flux2_klein_9b_t2i` rounds **down to a multiple of 16**
+opposite directions: `image_flux2_klein_9b_t2i` rounds **down to a multiple of 16**
 (→ 1072, measured — its meta's declared `step: 8` is wrong) and `ltx_2_3_i2v`
 snaps to a multiple of **64** (→ 1088). You would get stills at 1072 and clips
 at 1088, a 16 px mismatch the video model then has to stretch.

@@ -1,19 +1,19 @@
 # LIBRARY | library | -
 
 ## Anchor image 1
-### flux2_klein_9b_t2i | 1920x1088
+### image_flux2_klein_9b_t2i | 1920x1088
 A three-panel object sheet on a neutral mid-grey ground — three-quarter view, side view, view from directly above — the same object at identical scale in all three panels, even soft frontal light, no cast shadows, nobody in frame. A brass storm lantern the size of a forearm, its glass chimney fogged and starred with old scratches, a shallow dent in the fuel bowl below the left hinge, a hand-braided wick trimmed square, a loop of tarred cord knotted through the carrying ring. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Anchor image 2
-### flux2_klein_9b_t2i | 1920x1088
+### image_flux2_klein_9b_t2i | 1920x1088
 An empty establishing plate with nobody in it, eye level, the workbench across the lower third and the hook rack on the wall behind. A lamp room at the foot of a coastal signal tower, whitewashed brick gone grey with salt, a slate workbench edged with a hundred old burn marks, a wall rack of nine numbered brass hooks with the fourth hook empty, a cast-iron stove with its door ajar. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Anchor image 3
-### flux2_klein_9b_t2i | 1920x1088
+### image_flux2_klein_9b_t2i | 1920x1088
 An empty establishing plate with nobody in it, eye level looking along the path, the sea filling the left third and falling away below. A stone cliff path above a grey sea, granite flags laid unevenly and worn dish-shaped in the middle, a rusted chain handrail hanging slack between three iron posts with one post bent seaward, sea thrift growing in every joint. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Anchor image 4
-### flux2_klein_9b_t2i | 1920x1088
+### image_flux2_klein_9b_t2i | 1920x1088
 An empty establishing plate with nobody in it, eye level on the gallery deck, the rail across the middle of frame and open sky beyond. The open gallery at the top of a harbour light, a cast-iron rail with its paint blistered back to bare metal, a brass lens housing dark and cold at the centre, a folded canvas cover lashed to the rail with tarred cord. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Ambience 1
@@ -31,7 +31,7 @@ TrackType: Sound Effects. The open top of a harbour light: wind moving fast past
 # IDLE | idle | -> S0
 
 ## Reference image 1 (ref A2, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 An extreme close-up at bench level of an unlit brass storm lantern standing alone on a slate workbench, the glass chimney cold and clouded, the empty fourth hook on the wall out of focus behind it. A brass storm lantern the size of a forearm, its glass chimney fogged and starred with old scratches, a shallow dent in the fuel bowl below the left hinge, a hand-braided wick trimmed square, a loop of tarred cord knotted through the carrying ring. A lamp room at the foot of a coastal signal tower, whitewashed brick gone grey with salt, a slate workbench edged with a hundred old burn marks, a wall rack of nine numbered brass hooks with the fourth hook empty, a cast-iron stove with its door ajar. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 1 (loop)
@@ -49,7 +49,7 @@ TrackType: Music. Sparse acoustic instrumental at 68 BPM in B flat major, built 
 # S0 | scene | -> S1
 
 ## Reference image 1 (ref A2, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 A wide shot at eye level of a small whitewashed lamp room at dusk, the whole bench legible from wall to wall, an unlit brass lantern standing at the centre of the slate and the numbered hook rack behind it, two hands entering frame from the right with a box of matches, no face in shot. A small brass lantern carrying one amber flame, warm against wet slate. A lamp room at the foot of a coastal signal tower, whitewashed brick gone grey with salt, a slate workbench edged with a hundred old burn marks, a wall rack of nine numbered brass hooks with the fourth hook empty, a cast-iron stove with its door ajar. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 1
@@ -57,7 +57,7 @@ A wide shot at eye level of a small whitewashed lamp room at dusk, the whole ben
 Static locked-off camera. Initially the room is grey and the lantern is dark, then a match is struck out of frame and a small warm light rises inside the glass, and the whitewashed brick behind takes on colour for the first time. The camera does not move, the bench stays fixed in frame, the hands withdraw and do not return. Audio: a match head dragging and catching, a stove ticking, a flat muffled sea beyond the wall, no music, no speech.
 
 ## Reference image 2 (ref A2, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 An extreme close-up at bench level of a lit brass lantern's chimney, the flame small and steady inside fogged starred glass, the shallow dent in the fuel bowl catching one bright highlight, whitewashed brick far out of focus behind. A brass storm lantern the size of a forearm, its glass chimney fogged and starred with old scratches, a shallow dent in the fuel bowl below the left hinge, a hand-braided wick trimmed square, a loop of tarred cord knotted through the carrying ring. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 2
@@ -65,7 +65,7 @@ An extreme close-up at bench level of a lit brass lantern's chimney, the flame s
 Static locked-off camera. Initially the flame sits low and yellow behind the glass, then it lengthens and steadies into a clean upright cone and the fogged chimney brightens around it. The camera does not move, the lantern does not move in frame, nothing enters. Audio: a wick catching and settling, a stove ticking once, a flat muffled sea beyond the wall, no music, no speech.
 
 ## Reference image 3 (ref A2, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 A medium close-up at eye level of a wall rack of nine numbered brass hooks, the fourth hook empty and brighter than the rest where a century of handling has worn the metal, a lit lantern out of focus in the foreground casting warm light across the numbers. A lamp room at the foot of a coastal signal tower, whitewashed brick gone grey with salt, a slate workbench edged with a hundred old burn marks, a wall rack of nine numbered brass hooks with the fourth hook empty, a cast-iron stove with its door ajar. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 3
@@ -79,7 +79,7 @@ TrackType: Music. Sparse acoustic instrumental at 68 BPM in B flat major, built 
 # S1 | scene | -> S2
 
 ## Reference image 1 (ref A3, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 An extreme wide shot at eye level looking along a stone cliff path at dusk, the whole path legible from the near flags to where it turns out of sight, a single small warm light carried low at the far end of it, the grey sea falling away on the left. A small brass lantern carrying one amber flame, warm against wet slate. A stone cliff path above a grey sea, granite flags laid unevenly and worn dish-shaped in the middle, a rusted chain handrail hanging slack between three iron posts with one post bent seaward, sea thrift growing in every joint. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 1
@@ -87,7 +87,7 @@ An extreme wide shot at eye level looking along a stone cliff path at dusk, the 
 Static locked-off camera. Initially the small warm light is far off and almost still, then it comes steadily along the path toward camera, growing and swaying gently with each step, and stops where the flags begin to dish. The camera does not move, the horizon stays level, nothing else enters frame. Audio: a steady onshore wind over open ground, waves breaking a long way below, hard soles on wet granite growing closer, no music, no speech.
 
 ## Reference image 2 (ref A3, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 A close-up from a high angle looking straight down at a lit brass lantern held low over uneven granite flags, its light pooling in a dished hollow where rainwater has collected, sea thrift bright at the edges of the joints. A brass storm lantern the size of a forearm, its glass chimney fogged and starred with old scratches, a shallow dent in the fuel bowl below the left hinge, a hand-braided wick trimmed square, a loop of tarred cord knotted through the carrying ring. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 2
@@ -95,7 +95,7 @@ A close-up from a high angle looking straight down at a lit brass lantern held l
 Static locked-off camera. Initially the pooled water in the hollow is dark, then the light lowers toward it until the whole pool holds a clear reflected flame, and one ring of ripples crosses it and clears. The camera does not move, the flags stay fixed in frame. Audio: a steady onshore wind, waves a long way below, water displaced in a shallow stone hollow, no music, no speech.
 
 ## Reference image 3 (ref A3, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 A medium close-up at eye level of a slack rusted chain handrail between two iron posts, one post bent seaward, a lit lantern hooked over the chain by its tarred cord and hanging free, the grey sea far out of focus beyond. A brass storm lantern the size of a forearm, its glass chimney fogged and starred with old scratches, a shallow dent in the fuel bowl below the left hinge, a hand-braided wick trimmed square, a loop of tarred cord knotted through the carrying ring. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 3
@@ -109,7 +109,7 @@ TrackType: Music. Sparse acoustic instrumental at 68 BPM in B flat major, built 
 # S2 | scene | -> S3
 
 ## Reference image 1 (ref A3, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 A wide shot at low eye level along the same stone cliff path now under driven rain, the granite darkened and running, the slack chain handrail beaded along its whole length, a single small warm light shielded close to the ground at the centre of frame. A small brass lantern carrying one amber flame, warm against wet slate. A stone cliff path above a grey sea, granite flags laid unevenly and worn dish-shaped in the middle, a rusted chain handrail hanging slack between three iron posts with one post bent seaward, sea thrift growing in every joint. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 1
@@ -117,7 +117,7 @@ A wide shot at low eye level along the same stone cliff path now under driven ra
 Static locked-off camera. Initially the rain falls evenly across the whole path, then a heavier squall crosses from the left and the small warm light dips almost to nothing before rising again, steady. The camera does not move, the horizon stays level, the chain stays where it hangs. Audio: rain driving across open stone, a rising gust, waves a long way below, no music, no speech.
 
 ## Reference image 2 (ref A3, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 An extreme close-up of a brass lantern's fogged chimney in rain, individual drops standing on the glass and running in bright lines, the flame inside small and pinched, the shallow dent in the fuel bowl beaded with water. A brass storm lantern the size of a forearm, its glass chimney fogged and starred with old scratches, a shallow dent in the fuel bowl below the left hinge, a hand-braided wick trimmed square, a loop of tarred cord knotted through the carrying ring. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 2
@@ -125,7 +125,7 @@ An extreme close-up of a brass lantern's fogged chimney in rain, individual drop
 Static locked-off camera. Initially the flame is pinched and low behind the wet glass, then it steadies and lengthens, and the drops standing on the chimney begin to run and clear one bright line down the centre. The camera does not move, the lantern stays fixed in frame. Audio: rain on glass and metal close to camera, a gust falling away, no music, no speech.
 
 ## Reference image 3 (ref A3, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 A wide shot at eye level from behind, a small warm light carried away along the cliff path toward a tall dark tower standing at the far end of it, the whole distance between the two legible in one frame, rain thinning to a drizzle. A small brass lantern carrying one amber flame, warm against wet slate. A stone cliff path above a grey sea, granite flags laid unevenly and worn dish-shaped in the middle, a rusted chain handrail hanging slack between three iron posts with one post bent seaward, sea thrift growing in every joint. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 3
@@ -139,7 +139,7 @@ TrackType: Music. Sparse acoustic instrumental at 68 BPM in B flat major, built 
 # S3 | scene | -> E01
 
 ## Reference image 1 (ref A4, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 A wide shot at eye level on the open gallery at the top of a harbour light, the whole deck legible from rail to rail, the dark cold lens housing at the centre and a single small warm light standing on the deck beside it, open sky beyond. A small brass lantern carrying one amber flame, warm against wet slate. The open gallery at the top of a harbour light, a cast-iron rail with its paint blistered back to bare metal, a brass lens housing dark and cold at the centre, a folded canvas cover lashed to the rail with tarred cord. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 1
@@ -147,7 +147,7 @@ A wide shot at eye level on the open gallery at the top of a harbour light, the 
 Very slow dolly in. Initially the small warm light stands alone on the deck and the great lens beside it is entirely dark, then the lens begins to take the small light into its glass, and one facet after another lights until the whole housing is faintly alive. The rail stays level, nothing enters frame. Audio: wind past ironwork at height, a canvas cover snapping once, gulls calling below, no music, no speech.
 
 ## Reference image 2 (ref A4, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 An extreme close-up of a brass lens housing at the top of a harbour light, its prisms holding one small amber flame repeated dozens of times across the curved glass, the blistered ironwork dark behind. The open gallery at the top of a harbour light, a cast-iron rail with its paint blistered back to bare metal, a brass lens housing dark and cold at the centre, a folded canvas cover lashed to the rail with tarred cord. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 2
@@ -161,7 +161,7 @@ TrackType: Music. Sparse acoustic instrumental at 68 BPM in B flat major, built 
 # E01 | ending | end
 
 ## Reference image 1 (ref A4, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 An extreme close-up at deck level of an empty brass hook screwed to the ironwork of a gallery rail, the tarred cord of a lantern just lifted away from it, the metal beneath brighter than the metal around it. The open gallery at the top of a harbour light, a cast-iron rail with its paint blistered back to bare metal, a brass lens housing dark and cold at the centre, a folded canvas cover lashed to the rail with tarred cord. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 1
@@ -169,7 +169,7 @@ An extreme close-up at deck level of an empty brass hook screwed to the ironwork
 Static locked-off camera. Initially the hook is bare and unlit, then a warm light strengthens onto it from off frame until the worn metal is the brightest thing in shot, and holds. The camera does not move, the ironwork stays fixed in frame. Audio: wind past ironwork at height, a canvas cover snapping once, no music, no speech.
 
 ## Reference image 2 (ref A4, A1)
-### flux2_klein_9b_image_edit_ref | 1920x1088
+### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088
 An extreme wide shot at eye level from the open gallery looking out over a dark sea at night, the rail across the lower third, one enormous beam of warm light leaving the tower and lying flat across the water to the horizon. The open gallery at the top of a harbour light, a cast-iron rail with its paint blistered back to bare metal, a brass lens housing dark and cold at the centre, a folded canvas cover lashed to the rail with tarred cord. shot on 16mm film with a 35mm lens, a palette of wet slate, brass and one warm amber flame, blue-hour light from a low overcast sky, soft shadows, deep focus, visible grain, photorealistic
 
 ## Video cut 2

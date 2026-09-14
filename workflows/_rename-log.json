@@ -1,0 +1,575 @@
+{
+  "production": [
+    {
+      "old": "bernini_r_image_editing",
+      "new": "image_edit_bernini_r_image_editing",
+      "category": "image-edit",
+      "files": [
+        [
+          "bernini_r_image_editing.api.json",
+          "image_edit_bernini_r_image_editing.api.json"
+        ],
+        [
+          "bernini_r_image_editing.meta.json",
+          "image_edit_bernini_r_image_editing.meta.json"
+        ],
+        [
+          "bernini_r_image_editing.runtime.json",
+          "image_edit_bernini_r_image_editing.runtime.json"
+        ],
+        [
+          "bernini_r_image_editing_template.json",
+          "image_edit_bernini_r_image_editing_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "bernini_r_image_editing_with_reference",
+      "new": "image_edit_bernini_r_image_editing_with_reference",
+      "category": "image-edit",
+      "files": [
+        [
+          "bernini_r_image_editing_with_reference.api.json",
+          "image_edit_bernini_r_image_editing_with_reference.api.json"
+        ],
+        [
+          "bernini_r_image_editing_with_reference.meta.json",
+          "image_edit_bernini_r_image_editing_with_reference.meta.json"
+        ],
+        [
+          "bernini_r_image_editing_with_reference.runtime.json",
+          "image_edit_bernini_r_image_editing_with_reference.runtime.json"
+        ],
+        [
+          "bernini_r_image_editing_with_reference_template.json",
+          "image_edit_bernini_r_image_editing_with_reference_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "flux2_dev_image_edit",
+      "new": "image_edit_flux2_dev_image_edit",
+      "category": "image-edit",
+      "files": [
+        [
+          "flux2_dev_image_edit.api.json",
+          "image_edit_flux2_dev_image_edit.api.json"
+        ],
+        [
+          "flux2_dev_image_edit.meta.json",
+          "image_edit_flux2_dev_image_edit.meta.json"
+        ],
+        [
+          "flux2_dev_image_edit.runtime.json",
+          "image_edit_flux2_dev_image_edit.runtime.json"
+        ],
+        [
+          "flux2_dev_image_edit_template.json",
+          "image_edit_flux2_dev_image_edit_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "flux2_dev_t2i",
+      "new": "image_flux2_dev_t2i",
+      "category": "t2i",
+      "files": [
+        [
+          "flux2_dev_t2i.api.json",
+          "image_flux2_dev_t2i.api.json"
+        ],
+        [
+          "flux2_dev_t2i.meta.json",
+          "image_flux2_dev_t2i.meta.json"
+        ],
+        [
+          "flux2_dev_t2i.runtime.json",
+          "image_flux2_dev_t2i.runtime.json"
+        ],
+        [
+          "flux2_dev_t2i_template.json",
+          "image_flux2_dev_t2i_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "flux2_klein_9b_image_edit",
+      "new": "image_edit_flux2_klein_9b_image_edit",
+      "category": "image-edit",
+      "files": [
+        [
+          "flux2_klein_9b_image_edit.api.json",
+          "image_edit_flux2_klein_9b_image_edit.api.json"
+        ],
+        [
+          "flux2_klein_9b_image_edit.meta.json",
+          "image_edit_flux2_klein_9b_image_edit.meta.json"
+        ],
+        [
+          "flux2_klein_9b_image_edit.runtime.json",
+          "image_edit_flux2_klein_9b_image_edit.runtime.json"
+        ],
+        [
+          "flux2_klein_9b_image_edit_template.json",
+          "image_edit_flux2_klein_9b_image_edit_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "flux2_klein_9b_image_edit_ref",
+      "new": "image_edit_flux2_klein_9b_image_edit_ref",
+      "category": "image-edit",
+      "files": [
+        [
+          "flux2_klein_9b_image_edit_ref.api.json",
+          "image_edit_flux2_klein_9b_image_edit_ref.api.json"
+        ],
+        [
+          "flux2_klein_9b_image_edit_ref.meta.json",
+          "image_edit_flux2_klein_9b_image_edit_ref.meta.json"
+        ],
+        [
+          "flux2_klein_9b_image_edit_ref.runtime.json",
+          "image_edit_flux2_klein_9b_image_edit_ref.runtime.json"
+        ],
+        [
+          "flux2_klein_9b_image_edit_ref_template.json",
+          "image_edit_flux2_klein_9b_image_edit_ref_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "flux2_klein_9b_t2i",
+      "new": "image_flux2_klein_9b_t2i",
+      "category": "t2i",
+      "files": [
+        [
+          "flux2_klein_9b_t2i.api.json",
+          "image_flux2_klein_9b_t2i.api.json"
+        ],
+        [
+          "flux2_klein_9b_t2i.meta.json",
+          "image_flux2_klein_9b_t2i.meta.json"
+        ],
+        [
+          "flux2_klein_9b_t2i.runtime.json",
+          "image_flux2_klein_9b_t2i.runtime.json"
+        ],
+        [
+          "flux2_klein_9b_t2i_template.json",
+          "image_flux2_klein_9b_t2i_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "flux2_klein_inpaint_prompt",
+      "new": "image_edit_flux2_klein_inpaint_prompt",
+      "category": "image-edit",
+      "files": [
+        [
+          "flux2_klein_inpaint_prompt.api.json",
+          "image_edit_flux2_klein_inpaint_prompt.api.json"
+        ],
+        [
+          "flux2_klein_inpaint_prompt.meta.json",
+          "image_edit_flux2_klein_inpaint_prompt.meta.json"
+        ],
+        [
+          "flux2_klein_inpaint_prompt.runtime.json",
+          "image_edit_flux2_klein_inpaint_prompt.runtime.json"
+        ],
+        [
+          "flux2_klein_inpaint_prompt_template.json",
+          "image_edit_flux2_klein_inpaint_prompt_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "flux2_klein_inpaint_reference",
+      "new": "image_edit_flux2_klein_inpaint_reference",
+      "category": "image-edit",
+      "files": [
+        [
+          "flux2_klein_inpaint_reference.api.json",
+          "image_edit_flux2_klein_inpaint_reference.api.json"
+        ],
+        [
+          "flux2_klein_inpaint_reference.meta.json",
+          "image_edit_flux2_klein_inpaint_reference.meta.json"
+        ],
+        [
+          "flux2_klein_inpaint_reference.runtime.json",
+          "image_edit_flux2_klein_inpaint_reference.runtime.json"
+        ],
+        [
+          "flux2_klein_inpaint_reference_template.json",
+          "image_edit_flux2_klein_inpaint_reference_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "flux2_klein_ref_control_depth",
+      "new": "image_edit_flux2_klein_ref_control_depth",
+      "category": "image-edit",
+      "files": [
+        [
+          "flux2_klein_ref_control_depth.api.json",
+          "image_edit_flux2_klein_ref_control_depth.api.json"
+        ],
+        [
+          "flux2_klein_ref_control_depth.meta.json",
+          "image_edit_flux2_klein_ref_control_depth.meta.json"
+        ],
+        [
+          "flux2_klein_ref_control_depth.runtime.json",
+          "image_edit_flux2_klein_ref_control_depth.runtime.json"
+        ],
+        [
+          "flux2_klein_ref_control_depth_template.json",
+          "image_edit_flux2_klein_ref_control_depth_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "image_seedvr2_4k_upscale",
+      "new": "utility_seedvr2_4k_upscale",
+      "category": "i2i",
+      "files": [
+        [
+          "image_seedvr2_4k_upscale.api.json",
+          "utility_seedvr2_4k_upscale.api.json"
+        ],
+        [
+          "image_seedvr2_4k_upscale.meta.json",
+          "utility_seedvr2_4k_upscale.meta.json"
+        ],
+        [
+          "image_seedvr2_4k_upscale.runtime.json",
+          "utility_seedvr2_4k_upscale.runtime.json"
+        ],
+        [
+          "image_seedvr2_4k_upscale_template.json",
+          "utility_seedvr2_4k_upscale_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "krea2_turbo_t2i_lora",
+      "new": "image_krea2_turbo_t2i_lora",
+      "category": "t2i",
+      "files": [
+        [
+          "krea2_turbo_t2i_lora.api.json",
+          "image_krea2_turbo_t2i_lora.api.json"
+        ],
+        [
+          "krea2_turbo_t2i_lora.meta.json",
+          "image_krea2_turbo_t2i_lora.meta.json"
+        ],
+        [
+          "krea2_turbo_t2i_lora.runtime.json",
+          "image_krea2_turbo_t2i_lora.runtime.json"
+        ],
+        [
+          "krea2_turbo_t2i_lora_template.json",
+          "image_krea2_turbo_t2i_lora_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "llm_gemma4_image_description",
+      "new": "describe_gemma4_image_description",
+      "category": "description",
+      "files": [
+        [
+          "llm_gemma4_image_description.api.json",
+          "describe_gemma4_image_description.api.json"
+        ],
+        [
+          "llm_gemma4_image_description.meta.json",
+          "describe_gemma4_image_description.meta.json"
+        ],
+        [
+          "llm_gemma4_image_description.runtime.json",
+          "describe_gemma4_image_description.runtime.json"
+        ],
+        [
+          "llm_gemma4_image_description_template.json",
+          "describe_gemma4_image_description_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "llm_gemma4_video_description",
+      "new": "describe_gemma4_video_description",
+      "category": "description",
+      "files": [
+        [
+          "llm_gemma4_video_description.api.json",
+          "describe_gemma4_video_description.api.json"
+        ],
+        [
+          "llm_gemma4_video_description.meta.json",
+          "describe_gemma4_video_description.meta.json"
+        ],
+        [
+          "llm_gemma4_video_description.runtime.json",
+          "describe_gemma4_video_description.runtime.json"
+        ],
+        [
+          "llm_gemma4_video_description_template.json",
+          "describe_gemma4_video_description_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "qwen_multiple_character_angles",
+      "new": "image_edit_qwen_multiple_character_angles",
+      "category": "image-edit",
+      "files": [
+        [
+          "qwen_multiple_character_angles.api.json",
+          "image_edit_qwen_multiple_character_angles.api.json"
+        ],
+        [
+          "qwen_multiple_character_angles.meta.json",
+          "image_edit_qwen_multiple_character_angles.meta.json"
+        ],
+        [
+          "qwen_multiple_character_angles.runtime.json",
+          "image_edit_qwen_multiple_character_angles.runtime.json"
+        ],
+        [
+          "qwen_multiple_character_angles_template.json",
+          "image_edit_qwen_multiple_character_angles_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "qwen_multiple_scene_angles",
+      "new": "image_edit_qwen_multiple_scene_angles",
+      "category": "image-edit",
+      "files": [
+        [
+          "qwen_multiple_scene_angles.api.json",
+          "image_edit_qwen_multiple_scene_angles.api.json"
+        ],
+        [
+          "qwen_multiple_scene_angles.meta.json",
+          "image_edit_qwen_multiple_scene_angles.meta.json"
+        ],
+        [
+          "qwen_multiple_scene_angles.runtime.json",
+          "image_edit_qwen_multiple_scene_angles.runtime.json"
+        ],
+        [
+          "qwen_multiple_scene_angles_template.json",
+          "image_edit_qwen_multiple_scene_angles_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "video_bernini_r_video_editing",
+      "new": "video_edit_bernini_r_video_editing",
+      "category": "video-edit",
+      "files": [
+        [
+          "video_bernini_r_video_editing.api.json",
+          "video_edit_bernini_r_video_editing.api.json"
+        ],
+        [
+          "video_bernini_r_video_editing.meta.json",
+          "video_edit_bernini_r_video_editing.meta.json"
+        ],
+        [
+          "video_bernini_r_video_editing.runtime.json",
+          "video_edit_bernini_r_video_editing.runtime.json"
+        ],
+        [
+          "video_bernini_r_video_editing_template.json",
+          "video_edit_bernini_r_video_editing_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "video_bernini_r_video_editing_ref_autoprompt",
+      "new": "video_edit_bernini_r_video_editing_ref_autoprompt",
+      "category": "video-edit",
+      "files": [
+        [
+          "video_bernini_r_video_editing_ref_autoprompt.api.json",
+          "video_edit_bernini_r_video_editing_ref_autoprompt.api.json"
+        ],
+        [
+          "video_bernini_r_video_editing_ref_autoprompt.meta.json",
+          "video_edit_bernini_r_video_editing_ref_autoprompt.meta.json"
+        ],
+        [
+          "video_bernini_r_video_editing_ref_autoprompt.runtime.json",
+          "video_edit_bernini_r_video_editing_ref_autoprompt.runtime.json"
+        ],
+        [
+          "video_bernini_r_video_editing_ref_autoprompt_template.json",
+          "video_edit_bernini_r_video_editing_ref_autoprompt_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "video_bernini_r_video_editing_with_reference",
+      "new": "video_edit_bernini_r_video_editing_with_reference",
+      "category": "video-edit",
+      "files": [
+        [
+          "video_bernini_r_video_editing_with_reference.api.json",
+          "video_edit_bernini_r_video_editing_with_reference.api.json"
+        ],
+        [
+          "video_bernini_r_video_editing_with_reference.meta.json",
+          "video_edit_bernini_r_video_editing_with_reference.meta.json"
+        ],
+        [
+          "video_bernini_r_video_editing_with_reference.runtime.json",
+          "video_edit_bernini_r_video_editing_with_reference.runtime.json"
+        ],
+        [
+          "video_bernini_r_video_editing_with_reference_template.json",
+          "video_edit_bernini_r_video_editing_with_reference_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "video_ltx2_3_3dReal_vid2vid",
+      "new": "video_edit_ltx2_3_3dreal_vid2vid",
+      "category": "video-edit",
+      "files": [
+        [
+          "video_ltx2_3_3dReal_vid2vid.api.json",
+          "video_edit_ltx2_3_3dreal_vid2vid.api.json"
+        ],
+        [
+          "video_ltx2_3_3dReal_vid2vid.meta.json",
+          "video_edit_ltx2_3_3dreal_vid2vid.meta.json"
+        ],
+        [
+          "video_ltx2_3_3dReal_vid2vid.runtime.json",
+          "video_edit_ltx2_3_3dreal_vid2vid.runtime.json"
+        ],
+        [
+          "video_ltx2_3_3dReal_vid2vid_template.json",
+          "video_edit_ltx2_3_3dreal_vid2vid_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "video_ltx2_3_ic_lora_vid2vid",
+      "new": "video_edit_ltx2_3_ic_lora_vid2vid",
+      "category": "video-edit",
+      "files": [
+        [
+          "video_ltx2_3_ic_lora_vid2vid.api.json",
+          "video_edit_ltx2_3_ic_lora_vid2vid.api.json"
+        ],
+        [
+          "video_ltx2_3_ic_lora_vid2vid.meta.json",
+          "video_edit_ltx2_3_ic_lora_vid2vid.meta.json"
+        ],
+        [
+          "video_ltx2_3_ic_lora_vid2vid.runtime.json",
+          "video_edit_ltx2_3_ic_lora_vid2vid.runtime.json"
+        ],
+        [
+          "video_ltx2_3_ic_lora_vid2vid_template.json",
+          "video_edit_ltx2_3_ic_lora_vid2vid_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "video_seedvr2_hd_upscale",
+      "new": "utility_seedvr2_hd_upscale",
+      "category": "preprocessor",
+      "files": [
+        [
+          "video_seedvr2_hd_upscale.api.json",
+          "utility_seedvr2_hd_upscale.api.json"
+        ],
+        [
+          "video_seedvr2_hd_upscale.meta.json",
+          "utility_seedvr2_hd_upscale.meta.json"
+        ],
+        [
+          "video_seedvr2_hd_upscale.runtime.json",
+          "utility_seedvr2_hd_upscale.runtime.json"
+        ],
+        [
+          "video_seedvr2_hd_upscale_template.json",
+          "utility_seedvr2_hd_upscale_template.json"
+        ]
+      ]
+    },
+    {
+      "old": "video_wan22_4_key-frames",
+      "new": "video_wan22_4_key_frames",
+      "category": "i2v",
+      "files": [
+        [
+          "video_wan22_4_key-frames.api.json",
+          "video_wan22_4_key_frames.api.json"
+        ],
+        [
+          "video_wan22_4_key-frames.meta.json",
+          "video_wan22_4_key_frames.meta.json"
+        ],
+        [
+          "video_wan22_4_key-frames.runtime.json",
+          "video_wan22_4_key_frames.runtime.json"
+        ],
+        [
+          "video_wan22_4_key-frames_template.json",
+          "video_wan22_4_key_frames_template.json"
+        ]
+      ]
+    }
+  ],
+  "candidates": [
+    {
+      "old": "Image_DynamicCharacterSheet_krea2_v1.json",
+      "new": "image_edit_dynamiccharactersheet_krea2_v1.json",
+      "category": "image-edit"
+    },
+    {
+      "old": "Image_QuadView_krea2_v1.json",
+      "new": "image_edit_quadview_krea2_v1.json",
+      "category": "image-edit"
+    },
+    {
+      "old": "video_LTX-2.5_ICLoRA_Union_Control_Distilled.json",
+      "new": "video_edit_ltx_2_5_iclora_union_control_distilled.json",
+      "category": "video-edit"
+    },
+    {
+      "old": "video_idv2v_02_restyle_hires_clean.json",
+      "new": "video_edit_idv2v_02_restyle_hires_clean.json",
+      "category": "video-edit"
+    },
+    {
+      "old": "video_ltx-2.5_v2v_ICLoRA_Single_Stage_Distilled.json",
+      "new": "video_edit_ltx_2_5_v2v_iclora_single_stage_distilled.json",
+      "category": "video-edit"
+    },
+    {
+      "old": "video_ltx2_v2v_depth_control.json",
+      "new": "video_edit_ltx2_v2v_depth_control.json",
+      "category": "video-edit"
+    },
+    {
+      "old": "video_minimax_h3_i2v_4step_WORKING.json",
+      "new": "video_minimax_h3_i2v_4step_working.json",
+      "category": "i2v"
+    },
+    {
+      "old": "video_minimax_h3_t2v_turbo_4step_WORKING.json",
+      "new": "video_minimax_h3_t2v_turbo_4step_working.json",
+      "category": "i2v"
+    }
+  ]
+}

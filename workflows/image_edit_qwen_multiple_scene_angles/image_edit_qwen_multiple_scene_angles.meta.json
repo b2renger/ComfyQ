@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "id": "image_edit_qwen_multiple_scene_angles",
+  "name": "Qwen Image Edit — scene camera angle",
+  "description": "Re-render an existing scene or image from a new camera angle — one view per run. Upload a scene, describe the camera move, and the model re-renders it from that viewpoint. To explore a full set of angles, schedule the workflow once per angle (or invent your own). Example angle prompts to paste — 'Turn the camera to a close-up', 'Turn the camera to a wide-angle lens', 'Turn the camera to an aerial view', 'Turn the camera to a low-angle view', 'Rotate the camera 45 degrees to the left' (or right), 'Rotate the camera 90 degrees to the left' (or right), 'Rotate the camera 180 degrees to show the back view', 'Turn the camera to a profile side view'.",
+  "category": "image-edit",
+  "tags": [
+    "qwen",
+    "qwen-image-edit",
+    "camera-angle",
+    "scene",
+    "viewpoint",
+    "rotate",
+    "image-edit"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_edit_qwen_multiple_scene_angles.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 20,
+    "models": [
+      {
+        "type": "unet",
+        "file": "qwen_image_edit_2509_fp8_e4m3fn.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen_2.5_vl_7b_fp8_scaled.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_vae.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "Qwen-Edit-2509-Multiple-angles.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_25",
+      "nodeId": "25",
+      "field": "image",
+      "type": "image",
+      "label": "Scene image",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "primitivestringmultiline_value_66",
+      "nodeId": "66",
+      "field": "value",
+      "type": "textarea",
+      "label": "Camera angle (describe the new view)",
+      "default": "Turn the camera to a close-up.",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "ksampler_seed_65_33_21",
+      "nodeId": "65:33:21",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 2
+    }
+  ],
+  "warmupParams": {
+    "primitivestringmultiline_value_66": "Turn the camera to a close-up."
+  },
+  "presets": {}
+}

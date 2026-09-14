@@ -1,0 +1,87 @@
+{
+  "schemaVersion": 1,
+  "id": "image_edit_flux2_klein_inpaint_prompt",
+  "name": "Flux2 Klein 9B — inpaint (paint & prompt)",
+  "description": "Upload an image, paint over the part you want to replace, and describe what should appear there. Flux.2 Klein regenerates only the painted area and blends it back into the picture. Great for removing or swapping objects.",
+  "category": "image-edit",
+  "tags": [
+    "flux2",
+    "klein",
+    "9b",
+    "inpaint",
+    "mask",
+    "image-edit"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_edit_flux2_klein_inpaint_prompt.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 18,
+    "models": [
+      {
+        "type": "unet",
+        "file": "flux-2-klein-9b-fp8.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen_3_8b_fp8mixed.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "flux2-vae.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 20,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_1",
+      "nodeId": "1",
+      "field": "image",
+      "type": "mask",
+      "label": "Image to inpaint (paint the area to replace)",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "cliptextencode_text_6",
+      "nodeId": "6",
+      "field": "text",
+      "type": "textarea",
+      "label": "What should appear in the painted area",
+      "default": "a bunch of colorful flowers",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "cliptextencode_text_7",
+      "nodeId": "7",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt (optional)",
+      "default": "",
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "randomnoise_noise_seed_15",
+      "nodeId": "15",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 3
+    }
+  ],
+  "warmupParams": {
+    "cliptextencode_text_6": "a small potted plant"
+  },
+  "presets": {}
+}
