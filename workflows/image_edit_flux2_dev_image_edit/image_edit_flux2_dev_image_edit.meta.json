@@ -10,6 +10,17 @@
     "image-edit",
     "turbo"
   ],
+  "promptGuides": [
+    {
+      "label": "FLUX.2 image-editing guide — Black Forest Labs",
+      "url": "https://docs.bfl.ai/guides/prompting_editing_single_reference",
+      "tip": "Say exactly what should change and what must stay the same (\"make the jacket red; keep her face, pose and the background unchanged\")."
+    },
+    {
+      "label": "FLUX.2 prompting guide",
+      "url": "https://docs.bfl.ai/guides/prompting_guide_flux2"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",

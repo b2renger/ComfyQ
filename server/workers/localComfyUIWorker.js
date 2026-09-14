@@ -3,10 +3,11 @@ const { ComfyProcess, killProcessOnPort } = require('./comfyProcess');
 const { runningPerfFlags, blockingFlags, PERF_FLAG_LABELS } = require('./perfFlags');
 const { ComfyRestClient } = require('./comfyRestClient');
 const { ComfyWsClient } = require('./comfyWsClient');
-const { InputUploader } = require('./inputUploader');
+const { InputUploader, PLACEHOLDER_IMAGE } = require('./inputUploader');
 const { ModelLifecycle } = require('./modelLifecycle');
 const { humanizeFailure, humanizeSubmitRejection } = require('../executor/errorMessages');
 const { validateSelects } = require('./selectValidation');
+const { fillOptionalImages } = require('./optionalMedia');
 
 const CLIENT_ID_PREFIX = 'comfyq';
 
@@ -389,6 +390,19 @@ class LocalComfyUIWorker extends Worker {
             // (ComfyUI unreachable, odd schema) must not — it is a diagnostic.
             if (this._state !== 'busy') throw e;
             console.warn('[Worker] could not check dropdown values against ComfyUI:', e.message);
+        }
+
+        // Optional image inputs the booking left empty still need a real file:
+        // ComfyUI validates every LoadImage, even one a switched-off branch reads.
+        const optional = fillOptionalImages({ exposedParameters, paramValues, placeholderName: PLACEHOLDER_IMAGE });
+        if (optional.errors.length > 0) {
+            this._resetCurrent();
+            this._setState('idle');
+            throw new Error(optional.errors.join(' · '));
+        }
+        if (optional.filled > 0) {
+            this.uploader.ensurePlaceholderImage();
+            paramValues = optional.paramValues;
         }
 
         const lifecycleResult = await this.lifecycle.beforeJob({

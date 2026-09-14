@@ -192,6 +192,10 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                 // Sent explicitly: the server keeps the stored flag when a payload
                 // omits it, so this checkbox is the only way the editor changes it.
                 experimental: !!meta.experimental,
+                // Rows left without a URL are dropped rather than failing the save.
+                promptGuides: (meta.promptGuides || [])
+                    .filter(g => g && typeof g.url === 'string' && g.url.trim())
+                    .map(g => ({ label: (g.label || '').trim() || 'Prompt guide', url: g.url.trim(), ...(g.tip && g.tip.trim() ? { tip: g.tip.trim() } : {}) })),
                 exposedParameters
             };
             const res = await fetch(`${SERVER_URL}/admin/workflows/${workflowId}/meta`, {
@@ -288,6 +292,39 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                                 onChange={(e) => updateMeta({ description: e.target.value })}
                                 className="w-full bg-background border border-border rounded-lg p-2.5 text-white text-sm min-h-[60px]"
                             />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs uppercase tracking-wider text-muted font-semibold">
+                                Prompt guides <span className="normal-case tracking-normal font-normal">— shown to students above the booking form</span>
+                            </label>
+                            {(meta.promptGuides || []).map((g, gi) => {
+                                const setGuide = (patch) => updateMeta({
+                                    promptGuides: (meta.promptGuides || []).map((x, xi) => xi === gi ? { ...x, ...patch } : x)
+                                });
+                                return (
+                                    <div key={gi} className="grid grid-cols-1 md:grid-cols-[1fr_2fr_auto] gap-2 items-start p-2 rounded-lg border border-border bg-background">
+                                        <input value={g.label || ''} placeholder="Label"
+                                            onChange={e => setGuide({ label: e.target.value })}
+                                            className="bg-background border border-border rounded-md p-2 text-sm text-white" />
+                                        <input value={g.url || ''} placeholder="https://…"
+                                            onChange={e => setGuide({ url: e.target.value })}
+                                            className="bg-background border border-border rounded-md p-2 text-sm text-white" />
+                                        <button type="button" title="Remove this guide"
+                                            onClick={() => updateMeta({ promptGuides: (meta.promptGuides || []).filter((_, xi) => xi !== gi) })}
+                                            className="p-2 text-muted hover:text-danger">
+                                            <X size={14} />
+                                        </button>
+                                        <input value={g.tip || ''} placeholder="One-line tip shown under the link (optional)"
+                                            onChange={e => setGuide({ tip: e.target.value || undefined })}
+                                            className="md:col-span-3 bg-background border border-border rounded-md p-2 text-xs text-white" />
+                                    </div>
+                                );
+                            })}
+                            <button type="button"
+                                onClick={() => updateMeta({ promptGuides: [...(meta.promptGuides || []), { label: 'Official prompt guide', url: '' }] })}
+                                className="text-xs font-semibold text-primary hover:underline">
+                                + Add a prompt guide link
+                            </button>
                         </div>
                     </section>
 

@@ -14,6 +14,17 @@
     "audio",
     "video"
   ],
+  "promptGuides": [
+    {
+      "label": "LTX-2.3 prompt guide — Lightricks blog",
+      "url": "https://ltx.io/blog/ltx-2-3-prompt-guide",
+      "tip": "Longer, detailed prompts beat short ones: one present-tense paragraph describing the character, their expressions and gestures while they speak, the camera and the setting."
+    },
+    {
+      "label": "LTX prompting guide",
+      "url": "https://docs.ltx.io/open-source-model/usage-guides/prompting-guide"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",

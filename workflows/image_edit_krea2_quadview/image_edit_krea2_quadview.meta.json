@@ -15,10 +15,15 @@
     "identity-edit",
     "image-edit"
   ],
+  "promptGuides": [
+    {
+      "label": "Krea 2 prompting guidelines — Krea",
+      "url": "https://github.com/krea-ai/krea-2/blob/main/docs/prompting.md"
+    }
+  ],
   "thumbnail": null,
   "author": "conradlocke / comfyui-krea2edit (QuadView LoRA)",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "image_edit_krea2_quadview.api.json",
   "apiFormat": true,
   "requirements": {

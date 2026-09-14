@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "video_edit_ltx2_5_iclora_union_control",
-  "name": "LTX 2.5 IC-LoRA — video to video (depth control + audio)",
-  "description": "Restyle a video while keeping its motion and 3D layout. Upload a source video (and, optionally, a start image): a depth map is extracted from every frame (Video Depth Anything) and used as a guide, so LTX 2.5 generates a new video that moves like the original — in the style of your prompt and start image — with a freshly generated soundtrack (the original audio is not kept).\n\nThe start image becomes the opening frame; a restyled still of your video's first frame works best. Untick \"Use a start image\" to let the prompt alone set the look — then no image is needed. \"Enhance prompt with AI\" lets a small Gemma model rewrite your prompt into a fuller description first. Lower \"Control strength\" to let the result drift further from the source's structure.\n\nOnly the start of your clip is used (\"Clip length used\", default 5 s), at its own frame rate and aspect ratio. The video is rendered in two passes, a fast 8-step pass at the working resolution and then a 2× upscale pass, so a working resolution of 512 gives a 1024p result. Clip length and resolution drive the time.",
+  "id": "video_edit_ltx2_5_iclora_canny_control",
+  "name": "LTX 2.5 IC-LoRA — video to video (canny edges + audio)",
+  "description": "Restyle a video while keeping its outlines and motion. Upload a source video (and, optionally, a start image): the edges of every frame are traced (Canny edge detection) and used as a guide, so LTX 2.5 generates a new video whose shapes, silhouettes and details line up with the original — in the style of your prompt and start image — with a freshly generated soundtrack (the original audio is not kept).\n\nEdges hold on to more of the source's exact shapes and fine lines than the depth version, so this one suits restyles that must stay recognisable (faces, lettering, architecture); the depth version leaves the model more freedom over surfaces and textures. Busy, noisy footage produces busy edges — clean, well-lit shots work best. Strong, physical looks (claymation, toy figures) take hold best; soft painterly styles such as watercolor can stay close to the photographic source.\n\nThe start image becomes the opening frame; a restyled still of your video's first frame works best. Untick \"Use a start image\" to let the prompt alone set the look — then no image is needed. \"Enhance prompt with AI\" lets a small Gemma model rewrite your prompt into a fuller description first. Lower \"Control strength\" to let the result drift further from the source's outlines.\n\nOnly the start of your clip is used (\"Clip length used\", default 5 s), at its own frame rate and aspect ratio. The video is rendered in two passes, a fast 8-step pass at the working resolution and then a 2× upscale pass, so a working resolution of 512 gives a 1024p result. Clip length and resolution drive the time.",
   "category": "video-edit",
   "tags": [
     "ltx",
@@ -10,7 +10,8 @@
     "ic-lora",
     "union-control",
     "vid2vid",
-    "depth",
+    "canny",
+    "edges",
     "distilled",
     "video",
     "audio"
@@ -29,7 +30,8 @@
   "thumbnail": null,
   "author": "Lightricks (ComfyUI-LTXVideo)",
   "version": "1.0.0",
-  "workflowFile": "video_edit_ltx2_5_iclora_union_control.api.json",
+  "experimental": true,
+  "workflowFile": "video_edit_ltx2_5_iclora_canny_control.api.json",
   "apiFormat": true,
   "requirements": {
     "minVRAM": 24,
@@ -61,10 +63,6 @@
       {
         "type": "other",
         "file": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"
-      },
-      {
-        "type": "other",
-        "file": "video_depth_anything_vits.pth"
       }
     ]
   },
@@ -75,7 +73,7 @@
       "nodeId": "5001",
       "field": "file",
       "type": "video",
-      "label": "Source video (motion + structure to follow)",
+      "label": "Source video (outlines + motion to follow)",
       "default": "",
       "required": true,
       "order": 0
@@ -129,7 +127,7 @@
       "nodeId": "9002:5012",
       "field": "strength",
       "type": "number",
-      "label": "Control strength (how strictly the source's structure is followed)",
+      "label": "Control strength (how strictly the source's outlines are followed)",
       "default": 1,
       "min": 0,
       "max": 1,
@@ -138,9 +136,9 @@
       "order": 5
     },
     {
-      "key": "resizeimagemasknode_resize_type_shorter_size_5548_5026",
-      "nodeId": "5548:5026",
-      "field": "resize_type.shorter_size",
+      "key": "primitiveint_value_9910",
+      "nodeId": "9910",
+      "field": "value",
       "type": "number",
       "label": "Working resolution (short side, multiple of 64 — the final video is 2× this)",
       "default": 512,
@@ -179,8 +177,8 @@
   ],
   "warmupParams": {
     "primitivestringmultiline_value_5508": "a claymation version of the scene, soft studio light",
-    "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
-    "primitiveboolean_value_5014_5506": false
+    "primitiveboolean_value_5014_5506": false,
+    "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
   },
   "presets": {}
 }

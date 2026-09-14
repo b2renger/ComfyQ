@@ -61,6 +61,13 @@ const WorkflowMeta = z.object({
         'audio', '3d', 'preprocessor', 'description', 'other'
     ]).default('other'),
     tags: z.array(z.string()).default([]),
+    // Official prompting guides for the model family, shown to students above
+    // the booking form. `tip` is an optional one-line summary of the style.
+    promptGuides: z.array(z.object({
+        label: z.string().min(1),
+        url: z.string().url(),
+        tip: z.string().optional()
+    })).default([]),
     thumbnail: z.string().nullable().default(null),
     author: z.string().default('Unknown'),
     version: z.string().default('1.0.0'),

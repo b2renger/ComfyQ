@@ -6,6 +6,10 @@ const path = require('path');
 // workshop machine reclaims the space.
 const CHAIN_RETENTION_MS = 24 * 60 * 60 * 1000;
 
+// 64×64 black PNG staged for optional image inputs a booking left empty.
+const PLACEHOLDER_IMAGE = 'comfyq_placeholder.png';
+const PLACEHOLDER_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAIklEQVR42u3BAQ0AAADCoPdPbQ8HFAAAAAAAAAAAAAAA8G4wQAAB7OHIlwAAAABJRU5ErkJggg==';
+
 // Copies a user-uploaded file from the ComfyQ-managed staging dir into
 // ComfyUI/input/ with a namespaced filename so two jobs can't clobber each
 // other and so we can clean up later by job id.
@@ -74,6 +78,15 @@ class InputUploader {
         return removed;
     }
 
+    // Write (once) the neutral image an optional image input falls back to —
+    // see optionalMedia.js. A fixed name outside the swept `comfyq__` prefix, so
+    // every job reuses the same file and no sweep removes it mid-run.
+    ensurePlaceholderImage() {
+        const dest = path.join(this.inputDir, PLACEHOLDER_IMAGE);
+        if (!fs.existsSync(dest)) fs.writeFileSync(dest, Buffer.from(PLACEHOLDER_PNG_BASE64, 'base64'));
+        return PLACEHOLDER_IMAGE;
+    }
+
     // Forced cleanup for a specific job (used after job reaches a terminal
     // state — the executor calls this when it's safe to delete).
     cleanupJob(jobId) {
@@ -89,4 +102,4 @@ class InputUploader {
     }
 }
 
-module.exports = { InputUploader };
+module.exports = { InputUploader, PLACEHOLDER_IMAGE };

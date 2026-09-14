@@ -34,7 +34,7 @@ const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 // The workflow line carries the workflow name and then any number of
 // pipe-separated attributes:
 //
-//   ### ltx_2_3_i2v | 1280x720 | 5s
+//   ### ltx_2_5_i2v | 1280x720 | 5s
 //   ### stable_audio_3 | 45s
 //   ### image_edit_flux2_klein_9b_image_edit_ref | 1280x720 | ref A3
 //

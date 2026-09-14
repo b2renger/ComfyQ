@@ -146,7 +146,7 @@ const srv = app.listen(0, async () => {
 
     // A storyboard the card must refuse to queue.
     const bad = new FormData();
-    bad.append('file', new Blob(['# S | scene | -\n\n## Cut\n### ltx_2_3_i2v\nit moves']), 'bad.md');
+    bad.append('file', new Blob(['# S | scene | -\n\n## Cut\n### ltx_2_5_i2v\nit moves']), 'bad.md');
     r = await fetch(base + '/storyboard/preview', { method: 'POST', headers: H, body: bad });
     d = await r.json();
     check('a cut with no frame previews as an error, disabling Queue',

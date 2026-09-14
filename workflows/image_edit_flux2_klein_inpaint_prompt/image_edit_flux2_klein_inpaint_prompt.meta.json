@@ -12,6 +12,17 @@
     "mask",
     "image-edit"
   ],
+  "promptGuides": [
+    {
+      "label": "FLUX.2 image-editing guide — Black Forest Labs",
+      "url": "https://docs.bfl.ai/guides/prompting_editing_single_reference",
+      "tip": "Describe what should appear in the painted area in a full sentence, matching the scene's lighting and style."
+    },
+    {
+      "label": "FLUX.2 prompting guide",
+      "url": "https://docs.bfl.ai/guides/prompting_guide_flux2"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",

@@ -31,7 +31,7 @@ not in the prompt. Amend the block and let the change propagate.
    source and the reference differ (`ref <place>, <subject>`). One ref in two
    slots is a warning: the model edits the anchor instead of bringing it in.
 10. Every media slot of every shot is fed. Count them against the slot table.
-    **Every `ltx_2_3_flf2v` cut is either `(loop)` or names two refs** — only
+    **Every `ltx_2_5_flf2v` cut is either `(loop)` or names two refs** — only
     its first slot is wired by number, and the second silently takes the next
     unconsumed image in the state, which may be a choice card.
 11. No block refers forward — a `ref` always points at an anchor defined earlier.

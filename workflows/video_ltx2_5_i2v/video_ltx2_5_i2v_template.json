@@ -1,7 +1,7 @@
 {
   "id": "07824bbb-6672-4bb0-ac36-4313a519e35b",
   "revision": 0,
-  "last_node_id": 404,
+  "last_node_id": 411,
   "last_link_id": 784,
   "nodes": [
     {
@@ -359,54 +359,6 @@
       "bgcolor": "#000"
     },
     {
-      "id": 403,
-      "type": "ResolutionSelector",
-      "pos": [
-        1550,
-        7210
-      ],
-      "size": [
-        270,
-        170
-      ],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "showAdvanced": false,
-      "inputs": [],
-      "outputs": [
-        {
-          "name": "width",
-          "type": "INT",
-          "links": [
-            783
-          ]
-        },
-        {
-          "name": "height",
-          "type": "INT",
-          "links": [
-            784
-          ]
-        }
-      ],
-      "properties": {
-        "cnr_id": "comfy-core",
-        "ver": "0.30.0",
-        "Node name for S&R": "ResolutionSelector"
-      },
-      "widgets_values": [
-        "16:9 (Widescreen)",
-        0.9,
-        32
-      ],
-      "widgets_values_named": {
-        "aspect_ratio": "16:9 (Widescreen)",
-        "megapixels": 0.9,
-        "multiple": 32
-      }
-    },
-    {
       "id": 404,
       "type": "MarkdownNote",
       "pos": [
@@ -432,6 +384,76 @@
       },
       "color": "#432",
       "bgcolor": "#653"
+    },
+    {
+      "id": 410,
+      "type": "PrimitiveInt",
+      "pos": [
+        1550,
+        7210
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            783
+          ]
+        }
+      ],
+      "title": "Width",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.30.0",
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [
+        1280,
+        "fixed"
+      ]
+    },
+    {
+      "id": 411,
+      "type": "PrimitiveInt",
+      "pos": [
+        1550,
+        7320
+      ],
+      "size": [
+        270,
+        82
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [
+        {
+          "name": "INT",
+          "type": "INT",
+          "links": [
+            784
+          ]
+        }
+      ],
+      "title": "Height",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.30.0",
+        "Node name for S&R": "PrimitiveInt"
+      },
+      "widgets_values": [
+        704,
+        "fixed"
+      ]
     }
   ],
   "links": [
@@ -453,7 +475,7 @@
     ],
     [
       783,
-      403,
+      410,
       0,
       398,
       4,
@@ -461,8 +483,8 @@
     ],
     [
       784,
-      403,
-      1,
+      411,
+      0,
       398,
       5,
       "INT"

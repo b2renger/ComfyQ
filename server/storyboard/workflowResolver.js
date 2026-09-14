@@ -1,6 +1,6 @@
 // workflowResolver — maps the short workflow names people write in a
-// storyboard ("ltx_2_3_i2v", "stable_audio_3") onto the registry's real
-// bundle ids ("video_ltx2_3_i2v", "audio_stable_audio_3_medium").
+// storyboard ("ltx_2_5_i2v", "stable_audio_3") onto the registry's real
+// bundle ids ("video_ltx2_5_i2v", "audio_stable_audio_3_medium").
 //
 // Storyboards are written by hand, often before the bundle exists or on a
 // different machine, so demanding the exact folder name would make the format
@@ -8,8 +8,8 @@
 // alias that matches more than one bundle is an error naming the candidates,
 // never a coin flip.
 
-// Lowercase, drop everything that isn't a letter or digit. "ltx_2_3_i2v" and
-// "video_ltx2_3_i2v" both collapse toward "ltx23i2v" / "videoltx23i2v", so a
+// Lowercase, drop everything that isn't a letter or digit. "ltx_2_5_i2v" and
+// "video_ltx2_5_i2v" both collapse toward "ltx25i2v" / "videoltx25i2v", so a
 // substring test lines them up without a hand-written alias table.
 function normalize(s) {
     return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -34,8 +34,8 @@ function buildIndex(registry) {
 //
 // Match order (first tier that produces exactly one candidate wins):
 //   1. exact bundle id
-//   2. exact normalized id            ("ltx2_3_i2v" vs "ltx2-3-i2v")
-//   3. bundle id CONTAINS the alias   ("ltx23i2v" ⊂ "videoltx23i2v")
+//   2. exact normalized id            ("ltx2_5_i2v" vs "ltx2-5-i2v")
+//   3. bundle id CONTAINS the alias   ("ltx25i2v" ⊂ "videoltx25i2v")
 //   4. alias CONTAINS the bundle id   (a storyboard that over-qualifies)
 function resolveWorkflowAlias(alias, registry, index = null) {
     const idx = index || buildIndex(registry);

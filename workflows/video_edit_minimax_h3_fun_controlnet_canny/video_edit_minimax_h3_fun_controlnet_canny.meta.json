@@ -16,6 +16,17 @@
     "audio",
     "video"
   ],
+  "promptGuides": [
+    {
+      "label": "MiniMax H3 reference-mode prompt guide — MiniMax",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_ref_en.md",
+      "tip": "Describe the new look — characters, materials, setting, lighting — and the soundscape; the movement comes from your video. Every detail should be something you can see or hear."
+    },
+    {
+      "label": "H3 prompt tips for ComfyUI — Comfy-Org",
+      "url": "https://docs.comfy.org/tutorials/video/minimax/minimax-h3-prompt-guide"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",

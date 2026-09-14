@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "id": "video_edit_ltx2_5_iclora_union_control",
-  "name": "LTX 2.5 IC-LoRA — video to video (depth control + audio)",
-  "description": "Restyle a video while keeping its motion and 3D layout. Upload a source video (and, optionally, a start image): a depth map is extracted from every frame (Video Depth Anything) and used as a guide, so LTX 2.5 generates a new video that moves like the original — in the style of your prompt and start image — with a freshly generated soundtrack (the original audio is not kept).\n\nThe start image becomes the opening frame; a restyled still of your video's first frame works best. Untick \"Use a start image\" to let the prompt alone set the look — then no image is needed. \"Enhance prompt with AI\" lets a small Gemma model rewrite your prompt into a fuller description first. Lower \"Control strength\" to let the result drift further from the source's structure.\n\nOnly the start of your clip is used (\"Clip length used\", default 5 s), at its own frame rate and aspect ratio. The video is rendered in two passes, a fast 8-step pass at the working resolution and then a 2× upscale pass, so a working resolution of 512 gives a 1024p result. Clip length and resolution drive the time.",
+  "id": "video_edit_ltx2_5_iclora_pose_control",
+  "name": "LTX 2.5 IC-LoRA — video to video (pose control + audio)",
+  "description": "Make a new character perform the movements of the people in your video. Upload a source video with people in it (and, optionally, a start image): the body, hand and face poses of every frame are detected (DWPose) and drawn as a stick-figure guide, so LTX 2.5 generates a new video in which the characters move like the original — while their look, the setting and the lighting come from your prompt and start image. A freshly generated soundtrack is added (the original audio is not kept).\n\nOnly the poses carry over — not the background, clothes or camera look — so this gives far more freedom than the depth or canny versions. The source needs clearly visible people; a clip with nobody in it gives the model no guide at all.\n\nThe start image becomes the opening frame; a still of your new character in the first frame's pose works best. Untick \"Use a start image\" to let the prompt alone set the look — then no image is needed. \"Enhance prompt with AI\" lets a small Gemma model rewrite your prompt into a fuller description first. Lower \"Control strength\" to let the movements drift further from the source.\n\nOnly the start of your clip is used (\"Clip length used\", default 5 s), at its own frame rate and aspect ratio. The video is rendered in two passes, a fast 8-step pass at the working resolution and then a 2× upscale pass, so a working resolution of 512 gives a 1024p result. Clip length and resolution drive the time.",
   "category": "video-edit",
   "tags": [
     "ltx",
@@ -10,7 +10,9 @@
     "ic-lora",
     "union-control",
     "vid2vid",
-    "depth",
+    "pose",
+    "dwpose",
+    "motion-transfer",
     "distilled",
     "video",
     "audio"
@@ -29,7 +31,8 @@
   "thumbnail": null,
   "author": "Lightricks (ComfyUI-LTXVideo)",
   "version": "1.0.0",
-  "workflowFile": "video_edit_ltx2_5_iclora_union_control.api.json",
+  "experimental": true,
+  "workflowFile": "video_edit_ltx2_5_iclora_pose_control.api.json",
   "apiFormat": true,
   "requirements": {
     "minVRAM": 24,
@@ -64,7 +67,11 @@
       },
       {
         "type": "other",
-        "file": "video_depth_anything_vits.pth"
+        "file": "yolox_l.torchscript.pt"
+      },
+      {
+        "type": "other",
+        "file": "dw-ll_ucoco_384_bs5.torchscript.pt"
       }
     ]
   },
@@ -75,7 +82,7 @@
       "nodeId": "5001",
       "field": "file",
       "type": "video",
-      "label": "Source video (motion + structure to follow)",
+      "label": "Source video (the people whose movements to copy)",
       "default": "",
       "required": true,
       "order": 0
@@ -110,7 +117,7 @@
       "field": "value",
       "type": "textarea",
       "label": "Prompt (scene / style / action / sound)",
-      "default": "A hand-crafted claymation stop-motion film: soft rounded clay characters and props with visible fingerprints, warm pastel colors, soft studio lighting and a shallow depth of field. The motion follows the original shot naturally. Gentle ambient sounds match the scene.",
+      "default": "A shiny chrome robot dancing on a neon-lit city rooftop at night, reflections sliding over its metal body, light rain, cinematic lighting. Upbeat electronic music.",
       "required": true,
       "order": 3
     },
@@ -129,7 +136,7 @@
       "nodeId": "9002:5012",
       "field": "strength",
       "type": "number",
-      "label": "Control strength (how strictly the source's structure is followed)",
+      "label": "Control strength (how strictly the source's movements are followed)",
       "default": 1,
       "min": 0,
       "max": 1,
@@ -138,9 +145,9 @@
       "order": 5
     },
     {
-      "key": "resizeimagemasknode_resize_type_shorter_size_5548_5026",
-      "nodeId": "5548:5026",
-      "field": "resize_type.shorter_size",
+      "key": "primitiveint_value_9910",
+      "nodeId": "9910",
+      "field": "value",
       "type": "number",
       "label": "Working resolution (short side, multiple of 64 — the final video is 2× this)",
       "default": 512,
@@ -178,9 +185,9 @@
     }
   ],
   "warmupParams": {
-    "primitivestringmultiline_value_5508": "a claymation version of the scene, soft studio light",
-    "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
-    "primitiveboolean_value_5014_5506": false
+    "primitivestringmultiline_value_5508": "a chrome robot dancing on a rooftop at night",
+    "primitiveboolean_value_5014_5506": false,
+    "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
   },
   "presets": {}
 }

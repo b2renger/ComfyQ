@@ -10,6 +10,13 @@
     "t2i",
     "turbo"
   ],
+  "promptGuides": [
+    {
+      "label": "FLUX.2 prompting guide — Black Forest Labs",
+      "url": "https://docs.bfl.ai/guides/prompting_guide_flux2",
+      "tip": "Write full sentences, not keyword lists: subject first, then action, style and setting (30–80 words). Describe what you want rather than what to avoid, and put any text to render in \"quotes\"."
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",

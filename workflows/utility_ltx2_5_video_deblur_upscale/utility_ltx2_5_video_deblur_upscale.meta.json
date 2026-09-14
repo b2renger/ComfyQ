@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "utility_ltx2_5_video_deblur_upscale",
   "name": "LTX 2.5 — video deblur & detail upscale (keeps original audio)",
-  "description": "Clean up a soft, blurry or low-resolution video. Upload a clip and LTX 2.5 re-renders every frame with sharp, fresh detail using the Deblur (2× pixel-upscaler) IC-LoRA, keeping the original motion and the original soundtrack untouched. Your clip must have a sound track — silent videos fail.\n\n\"Output size\" is the short side of the result (576 ≈ 1024×576 for a 16:9 clip). The model reads your video at half that size and rebuilds the detail, so raise it to 704 or 1088 for a bigger, sharper result — it gets slower. The prompt is optional: a short description of what's in the clip, or just the look you want, can help.\n\nYou can also upload a sharp still of the first frame and tick \"Use the start image\" to anchor the result to it; otherwise upload any picture — it is ignored. Only the start of your clip is used (\"Clip length used\", default 5 s). This is a fast single 8-step pass.",
+  "description": "Clean up a soft, blurry or low-resolution video. Upload a clip and LTX 2.5 re-renders every frame with sharp, fresh detail using the Deblur (2× pixel-upscaler) IC-LoRA, keeping the original motion and the original soundtrack untouched. Your clip must have a sound track — silent videos fail.\n\n\"Output size\" is the short side of the result (576 ≈ 1024×576 for a 16:9 clip). The model reads your video at half that size and rebuilds the detail, so raise it to 704 or 1088 for a bigger, sharper result — it gets slower. The prompt is optional: a short description of what's in the clip, or just the look you want, can help.\n\nYou can also tick \"Use a start image\" and upload a sharp still of the first frame to anchor the result to it; leave it unticked to skip it. Only the start of your clip is used (\"Clip length used\", default 5 s). This is a fast single 8-step pass.",
   "category": "preprocessor",
   "tags": [
     "ltx",
@@ -15,10 +15,20 @@
     "distilled",
     "video"
   ],
+  "promptGuides": [
+    {
+      "label": "LTX IC-LoRA guide — Lightricks",
+      "url": "https://docs.ltx.io/open-source-model/usage-guides/ic-lo-ra",
+      "tip": "The prompt is optional: a short description of what's in the clip is enough — your video does the work."
+    },
+    {
+      "label": "LTX prompting guide",
+      "url": "https://docs.ltx.io/open-source-model/usage-guides/prompting-guide"
+    }
+  ],
   "thumbnail": null,
   "author": "Lightricks (ComfyUI-LTXVideo)",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "utility_ltx2_5_video_deblur_upscale.api.json",
   "apiFormat": true,
   "requirements": {
@@ -63,14 +73,28 @@
       "order": 0
     },
     {
+      "key": "primitiveboolean_value_5014_5506",
+      "nodeId": "5014:5506",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Use a start image (optional)",
+      "default": false,
+      "required": false,
+      "order": 1
+    },
+    {
       "key": "loadimage_image_2004",
       "nodeId": "2004",
       "field": "image",
       "type": "image",
-      "label": "Start image (optional sharp still — only used when the box below is ticked)",
+      "label": "Start image (a sharp still of the first frame)",
       "default": "",
-      "required": true,
-      "order": 1
+      "required": false,
+      "order": 2,
+      "disabledWhen": {
+        "param": "primitiveboolean_value_5014_5506",
+        "equals": false
+      }
     },
     {
       "key": "primitivestringmultiline_value_5508",
@@ -79,16 +103,6 @@
       "type": "textarea",
       "label": "Prompt (optional — what's in the clip / the look you want)",
       "default": "Sharp, highly detailed footage with clean textures, natural colors and crisp edges.",
-      "required": false,
-      "order": 2
-    },
-    {
-      "key": "primitiveboolean_value_5014_5506",
-      "nodeId": "5014:5506",
-      "field": "value",
-      "type": "checkbox",
-      "label": "Use the start image",
-      "default": false,
       "required": false,
       "order": 3
     },

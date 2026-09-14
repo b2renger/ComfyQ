@@ -13,6 +13,17 @@
     "lora",
     "style"
   ],
+  "promptGuides": [
+    {
+      "label": "Krea 2 prompting guidelines — Krea",
+      "url": "https://github.com/krea-ai/krea-2/blob/main/docs/prompting.md",
+      "tip": "Natural-language sentences; long, detailed prompts give the best results (short ones work too). Put words to render in \"quotes\"."
+    },
+    {
+      "label": "Krea 2: start vague, then refine — Krea blog",
+      "url": "https://www.krea.ai/blog/explorative-prompting-krea-2"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",

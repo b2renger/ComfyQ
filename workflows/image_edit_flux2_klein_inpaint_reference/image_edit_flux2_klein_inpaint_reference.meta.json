@@ -13,6 +13,17 @@
     "reference",
     "image-edit"
   ],
+  "promptGuides": [
+    {
+      "label": "FLUX.2 multi-reference guide — Black Forest Labs",
+      "url": "https://docs.bfl.ai/guides/prompting_editing_multi_reference",
+      "tip": "Be explicit about what to take from each picture and what must stay unchanged in the scene."
+    },
+    {
+      "label": "FLUX.2 prompting guide",
+      "url": "https://docs.bfl.ai/guides/prompting_guide_flux2"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",

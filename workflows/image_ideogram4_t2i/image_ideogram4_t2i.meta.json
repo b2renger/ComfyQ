@@ -10,6 +10,17 @@
     "t2i",
     "structured-prompt"
   ],
+  "promptGuides": [
+    {
+      "label": "Ideogram 4.0 JSON prompting guide — Ideogram",
+      "url": "https://docs.ideogram.ai/using-ideogram/getting-started/prompting-guide/4.-json-prompting-ideogram-4.0",
+      "tip": "Fill the JSON: a high_level_description, an optional style_description and a compositional_deconstruction listing every object and text element (the words to render go in their own text element); colors as #RRGGBB."
+    },
+    {
+      "label": "Ideogram 4 open-weights prompting notes",
+      "url": "https://github.com/ideogram-oss/ideogram4/blob/main/docs/prompting.md"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",

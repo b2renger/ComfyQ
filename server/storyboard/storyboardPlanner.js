@@ -129,9 +129,10 @@ function sizeParams(params) {
 }
 
 // The parameter that sets how long a shot runs, and what unit it counts in.
-// Bundles differ: stable-audio and LTX flf2v expose "Duration (seconds)", while
-// LTX i2v exposes "Duration (frames)" alongside a "Frame rate" — so a "5s" in
-// the document has to be converted before it means anything there.
+// Bundles differ: stable-audio and the LTX 2.5 video bundles expose "Duration
+// (seconds)", while a bundle may instead expose "Duration (frames)" alongside a
+// "Frame rate" (the retired LTX 2.3 i2v did) — so a "5s" in the document has to
+// be converted before it means anything there.
 function durationParam(params) {
     const p = params.find(x => x.type === 'number'
         && /duration|length/i.test(`${x.label || ''} ${x.key}`)
@@ -196,8 +197,8 @@ function isSeed(p) {
 // `disabledWhen: { param, equals }` means "disabled while <param> equals
 // <equals>". Feeding the prompt to the disabled half of an either/or pair is
 // the classic silent failure: the job runs the bundle's shipped default prompt
-// and reports success. `video_edit_ltx2_3_ic_lora_vid2vid` ships a disabledWhen
-// naming a key that is not exposed (CLAUDE.md records the bug), so the
+// and reports success. A meta can ship a disabledWhen naming a key that is not
+// exposed (the retired `video_edit_ltx2_3_ic_lora_vid2vid` did), so the
 // reference is also resolved by node-id suffix before giving up.
 function isDisabled(p, params, values) {
     const dw = p.disabledWhen;

@@ -20,8 +20,8 @@ node -e "const m=require('./workflows/<id>/<id>.meta.json');
 | `image_flux2_klein_9b_t2i` | `image_flux2_klein_9b_t2i` | image from text | ~6 s |
 | `image_edit_flux2_klein_9b_image_edit_ref` | same | image from **2 images** + text | ~16 s |
 | `ideogram_4_t2i` | `image_ideogram4_t2i` | flat text card | ~33 s |
-| `ltx_2_3_i2v` | `video_ltx2_3_i2v` | video from **1 image** | ~39 s |
-| `ltx_2_3_flf2v` | `video_ltx2_3_flf2v` | video from **first + last frame** | ~33 s |
+| `ltx_2_5_i2v` | `video_ltx2_5_i2v` | video from **1 image** | ~48 s |
+| `ltx_2_5_flf2v` | `video_ltx2_5_flf2v` | video from **first + last frame** | ~66 s |
 | `stable_audio_3` | `audio_stable_audio_3_medium` | music or SFX | ~16 s |
 
 Short names resolve to the real bundle id. A name matching **more than one**
@@ -42,8 +42,8 @@ document says what you asked for; the job runs what the grid allows.
 | `image_flux2_klein_9b_t2i` | multiples of **16**, rounded **down** | **1920×1072** ⚠ |
 | `image_edit_flux2_klein_9b_image_edit_ref` | *no size control* — the graph hard-codes **1 megapixel** | source's aspect at ~1 MP (a 16:9 source → ≈**1328×753**) |
 | `ideogram_4_t2i` | *no size control* — an aspect dropdown | mapped to **`16:9 (Widescreen)`** |
-| `ltx_2_3_i2v` | min 512, max 1920, multiples of **64** | **1920×1088** ⚠ |
-| `ltx_2_3_flf2v` | ComfyQ applies no clamp, but the model floors to **32** | **1920×1056** ⚠ |
+| `ltx_2_5_i2v` | min 512, max 1920, multiples of **64** | **1920×1088** ⚠ |
+| `ltx_2_5_flf2v` | min 256, max 1920, multiples of **16** | **1920×1088** ⚠ |
 
 ### ⚠ `1920x1080` does not render as 1920×1080
 
@@ -52,10 +52,9 @@ Two different grids disagree with 1080 in **opposite directions**:
 - `image_flux2_klein_9b_t2i` rounds **down to a multiple of 16** → **1072**. (Its
   `meta.json` claims `step: 8`. That is wrong — measured output at a 1080
   request is 1072, and 1080 *is* a multiple of 8. Trust the measurement.)
-- `ltx_2_3_i2v` snaps to a multiple of **64** → **1088**.
-- `ltx_2_3_flf2v` gets **no clamp from ComfyQ at all**, but its latent floors
-  both dimensions to a multiple of **32** → **1056**, while its two guide frames
-  are still resized to 1080. Three different heights from one number.
+- `ltx_2_5_i2v` snaps to a multiple of **64** → **1088**.
+- `ltx_2_5_flf2v` snaps to a multiple of **16** → **1088** too, and its two
+  guide frames are resized to that same size.
 
 So asking for 1920×1080 gives you stills at 1072 and video at 1088 — a **16 px
 mismatch between a key frame and the clip made from it**, which the video model
@@ -66,8 +65,9 @@ then has to stretch.
 pixel. It is 1.765:1 rather than a true 1.778:1 — an 8 px difference at that
 width, invisible in play. **This is what both examples use.**
 
-**Rule of thumb: every video dimension must be a multiple of 32, and a multiple
-of 64 on `ltx_2_3_i2v`.** Safe pairs: **1920×1088**, 1280×704, 1024×576.
+**Rule of thumb: make every video dimension a multiple of 64** — `ltx_2_5_i2v`
+snaps to that grid (`ltx_2_5_flf2v` accepts any multiple of 16). Both render
+1920×1088 exactly (measured). Safe pairs: **1920×1088**, 1280×704, 1024×576.
 
 ### What 1920×1088 does *not* buy you
 
@@ -88,8 +88,8 @@ Verify any resolution before committing a batch:
 
 ```bash
 node -e "const {clampParamValue}=require('./server/workers/localComfyUIWorker');
-const m=require('./workflows/video_ltx2_3_i2v/video_ltx2_3_i2v.meta.json');
-const h=m.exposedParameters.find(p=>p.label==='Height');
+const m=require('./workflows/video_ltx2_5_i2v/video_ltx2_5_i2v.meta.json');
+const h=m.exposedParameters.find(p=>/^Height/.test(p.label));
 console.log('i2v height 1080 ->', clampParamValue(1080,h))"
 ```
 
@@ -106,8 +106,10 @@ console.log(s(fs.readFileSync('<a rendered png>')))"
 
 ### Cost of full HD
 
-The video bundles are calibrated near 1280×704. 1920×1088 is ~2.3× the pixels,
-so budget **2–3× the per-shot estimate** and watch VRAM on a 32 GB card. If a
+The per-shot estimates are calibrated at the bundles' defaults (1280×704 for
+`ltx_2_5_i2v`, 1280×720 for `ltx_2_5_flf2v`). Measured on the 5090 at 1920×1088
+and 5 s: **127 s** for `ltx_2_5_i2v` and **202 s** for `ltx_2_5_flf2v` — so
+budget **about 3× the per-shot estimate**. If a
 long batch matters more than maximum resolution, 1280×704 is on both grids and
 runs far faster.
 
@@ -117,36 +119,29 @@ runs far faster.
 
 | workflow | attribute | unit | bounds | rounding |
 |---|---|---|---|---|
-| `ltx_2_3_i2v` | `5s` | **frames** (converted) | 25 fps, 8n+1 | to the **nearest** |
-| `ltx_2_3_flf2v` | `5s` | seconds | **1–10** | **down**, in the model |
+| `ltx_2_5_i2v` | `5s` | whole seconds | **1–10** | to the **nearest** second |
+| `ltx_2_5_flf2v` | `5s` | whole seconds | **1–10** | to the **nearest** second |
 | `stable_audio_3` | `45s` | seconds | **1–300** | — |
 
-The two video workflows round in **different directions**, so the same `6s` is
-**6.12 s** on `i2v` and **5.80 s** on `flf2v`.
-
-`ltx_2_3_i2v` counts frames, not seconds. `5s` → 5 × 25 fps = 125 → snapped to
-the **8n+1** grid LTX needs → **121 frames (4.84 s)**. The conversion is shown
-in ComfyQ's run-order table. Useful values:
+Both LTX 2.5 video workflows take **whole seconds at 24 fps** and render
+`seconds × 24 + 1` frames — the extra frame LTX needs — so every clip runs
+**1/24 s longer** than asked. Measured on the rig:
 
 | you write | frames | real length |
 |---|---|---|
-| `2s` | 49 | 1.96 s |
-| `3s` | 73 | 2.92 s |
-| `4s` | 97 | 3.88 s |
-| `5s` | 121 | 4.84 s |
-| `6s` | 153 | 6.12 s |
-| `7s` | 177 | 7.08 s |
-| `8s` | 201 | 8.04 s |
-| `10s` | 249 | 9.96 s |
+| `2s` | 49 | 2.04 s |
+| `3s` | 73 | 3.04 s |
+| `4s` | 97 | 4.04 s |
+| `5s` | 121 | 5.04 s |
+| `6s` | 145 | 6.04 s |
+| `8s` | 193 | 8.04 s |
+| `10s` | 241 | 10.04 s |
 
-Measured, not derived — the snap rounds to the nearer 8n+1 and ties go to the
-shorter clip, so the drift is not monotonic (`5s` loses 0.16 s, `6s` gains
-0.12 s).
+A fraction is rounded to the nearest whole second (`6.5s` runs as **7 s**) —
+write whole seconds. Both cap at **10 s**; ask for more and it clamps silently.
 
 **Vary clip length deliberately** — 3 s for a beat, 8 s for a held reveal. A
 film of identical 5 s cuts reads as a slideshow.
-
-`ltx_2_3_flf2v` caps at **10 s**; ask for more and it clamps silently.
 
 ---
 
@@ -157,8 +152,8 @@ What `ref` fills, and in what order:
 | workflow | slot 1 | slot 2 |
 |---|---|---|
 | `image_edit_flux2_klein_9b_image_edit_ref` | **Source image** — the shot being edited | **Reference image** — what to bring in |
-| `ltx_2_3_flf2v` | **First frame** | **Last frame** |
-| `ltx_2_3_i2v` | the image to animate | — |
+| `ltx_2_5_flf2v` | **First frame** | **Last frame** |
+| `ltx_2_5_i2v` | the image to animate | — |
 | `image_flux2_klein_9b_t2i`, `ideogram_4_t2i`, `stable_audio_3` | none | — |
 
 A media slot left unbound is **not** empty: ComfyUI keeps whatever filename the

@@ -15,6 +15,17 @@
     "refcontrol",
     "image-edit"
   ],
+  "promptGuides": [
+    {
+      "label": "FLUX.2 multi-reference guide — Black Forest Labs",
+      "url": "https://docs.bfl.ai/guides/prompting_editing_multi_reference",
+      "tip": "Describe the subject and style you want in full sentences — the pose and layout come from the structure image."
+    },
+    {
+      "label": "FLUX.2 prompting guide",
+      "url": "https://docs.bfl.ai/guides/prompting_guide_flux2"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",

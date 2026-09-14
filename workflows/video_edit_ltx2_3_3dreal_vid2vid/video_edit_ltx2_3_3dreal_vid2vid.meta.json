@@ -15,6 +15,17 @@
     "video",
     "audio"
   ],
+  "promptGuides": [
+    {
+      "label": "LTX IC-LoRA guide — Lightricks",
+      "url": "https://docs.ltx.io/open-source-model/usage-guides/ic-lo-ra",
+      "tip": "Describe the photoreal look you want — materials, lighting, lens, atmosphere — not the depth map: the layout and motion come from your render."
+    },
+    {
+      "label": "LTX-2.3 prompt guide — Lightricks blog",
+      "url": "https://ltx.io/blog/ltx-2-3-prompt-guide"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",

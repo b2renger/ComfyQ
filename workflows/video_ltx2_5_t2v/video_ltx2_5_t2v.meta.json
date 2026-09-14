@@ -13,10 +13,20 @@
     "audio",
     "video"
   ],
+  "promptGuides": [
+    {
+      "label": "LTX prompting guide — Lightricks",
+      "url": "https://docs.ltx.io/open-source-model/usage-guides/prompting-guide",
+      "tip": "One flowing paragraph in the present tense (4–8 sentences): the shot, the scene and its lighting, the action in order, the characters, the camera movement and the sound. Put spoken lines in \"quotes\"."
+    },
+    {
+      "label": "LTX-2.5 prompt guide — Lightricks blog",
+      "url": "https://ltx.io/blog/ltx-2-5-prompt-guide"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "video_ltx2_5_t2v.api.json",
   "apiFormat": true,
   "requirements": {
@@ -98,7 +108,7 @@
       "label": "Resolution (megapixels — 0.9 ≈ 1280×736 at 16:9)",
       "default": 0.9,
       "min": 0.2,
-      "max": 2.0,
+      "max": 2,
       "step": 0.1,
       "required": false,
       "order": 3

@@ -58,6 +58,24 @@ export const clampToBounds = (raw, config = {}) => {
     return v;
 };
 
+// A field is greyed out while its `disabledWhen` toggle holds the given value.
+export const isParamDisabled = (config, values = {}) => {
+    const dw = config?.disabledWhen;
+    return !!dw && values[dw.param] === dw.equals;
+};
+
+// Does the booking need an upload for this media param? Media is mandatory
+// unless the meta says `required: false`. An optional upload gated by
+// `disabledWhen` is needed only while its toggle switches it on (a gate whose
+// toggle isn't in the form counts as off) — same rule as the server's
+// optionalMedia.js, which stages a placeholder for the ones left empty.
+export const isMediaNeeded = (config, values = {}, paramMap = {}) => {
+    if (isParamDisabled(config, values)) return false;
+    if (config?.required !== false) return true;
+    const dw = config.disabledWhen;
+    return !!dw && Object.prototype.hasOwnProperty.call(paramMap, dw.param);
+};
+
 const DynamicParamFields = ({
     paramMap,
     values = {},
@@ -87,7 +105,7 @@ const DynamicParamFields = ({
                 // (a toggle) holds a given value — e.g. either/or prompt
                 // boxes gated by an "Enhance" checkbox.
                 const dw = config.disabledWhen;
-                const disabled = !!dw && values[dw.param] === dw.equals;
+                const disabled = isParamDisabled(config, values);
                 const ctrlLabel = dw && (paramMap[dw.param]?.label || 'the toggle above');
 
                 // Mask input — the user paints a region on an uploaded image;
@@ -112,7 +130,7 @@ const DynamicParamFields = ({
                 // which renders the file-upload widget (click + drag-and-drop),
                 // then applies maxInputEdge resizing for images.
                 if (type === 'image' || type === 'video' || type === 'audio') {
-                    return (
+                    const field = (
                         <MediaCaptureField
                             key={key}
                             paramKey={key}
@@ -124,6 +142,15 @@ const DynamicParamFields = ({
                             onChange={onMedia(key)}
                             onRemove={onMediaRemove(key)}
                         />
+                    );
+                    if (!disabled) return field;
+                    return (
+                        <div key={key} className="space-y-1">
+                            <div className="opacity-50 pointer-events-none" aria-disabled="true">{field}</div>
+                            <p className="text-[11px] text-muted italic ml-1">
+                                Not used right now — change “{ctrlLabel}” to add one
+                            </p>
+                        </div>
                     );
                 }
 

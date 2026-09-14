@@ -19,7 +19,6 @@
   "thumbnail": null,
   "author": "conradlocke / comfyui-krea2edit (Dynamic Character Sheet LoRA)",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "image_edit_krea2_dynamic_character_sheet.api.json",
   "apiFormat": true,
   "requirements": {

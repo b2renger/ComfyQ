@@ -71,7 +71,7 @@ Workflow id first, then pipe-separated attributes in any order:
 ```markdown
 ### image_flux2_klein_9b_t2i | 1920x1088
 ### stable_audio_3 | 45s
-### ltx_2_3_i2v | 1920x1088 | 5s
+### ltx_2_5_i2v | 1920x1088 | 5s
 ### image_edit_flux2_klein_9b_image_edit_ref | 1920x1088 | ref A2, A1
 ```
 
@@ -97,9 +97,10 @@ Two things are taken *out* of the paragraph: a leading `TrackType: …` directiv
 Never open a sentence that way unless you mean it.
 
 **A negative prompt cannot be set from a storyboard at all** — every shot runs
-its bundle's shipped negative. That matters for `ltx_2_3_flf2v`, whose default
-negative is a 300-word list; prefer `ltx_2_3_i2v` for anything that is not a
-deliberate loop.
+its bundle's shipped negative (the LTX 2.5 video workflows have none: they run
+at CFG 1, so say what you want rather than what you don't). Prefer
+`ltx_2_5_i2v` for anything that is not a deliberate loop — `ltx_2_5_flf2v`
+costs roughly 1.5× as much per shot.
 
 ---
 
@@ -108,7 +109,7 @@ deliberate loop.
 1. **`Video cut N` animates `Reference image N` of the same state.** If the
    numbers don't line up it falls back to consuming the state's images
    oldest-first, but rely on the numbering.
-2. **Only the FIRST frame slot is wired by number.** `ltx_2_3_flf2v` has two,
+2. **Only the FIRST frame slot is wired by number.** `ltx_2_5_flf2v` has two,
    and the second is filled with the next unconsumed image in the state —
    *including a choice card*, silently, with no warning. Always write
    `## Video cut N (loop)` (both frames become the one key frame) or name both
@@ -340,7 +341,7 @@ TrackType: Sound Effects. <room tone> Continuous, no musical content, no speech,
 <framing> <SUBJECT SHORT> <PLACE> <STYLE SUFFIX>
 
 ## Video cut 1
-### ltx_2_3_i2v | 1920x1088 | 5s
+### ltx_2_5_i2v | 1920x1088 | 5s
 <camera>. Initially <X>, then <Y>. <what stays fixed>. Audio: <sounds>, no music, no speech.
 
 ## Choice image

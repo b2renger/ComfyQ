@@ -5,7 +5,8 @@ import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronR
 import { useSocket } from '../context/SocketContext';
 import { SERVER_URL, getInputUrl } from '../utils/api';
 import { accessHeaders } from '../utils/access';
-import DynamicParamFields, { isSeedParam, randomSeed } from './DynamicParamFields';
+import DynamicParamFields, { isSeedParam, randomSeed, isMediaNeeded } from './DynamicParamFields';
+import PromptGuideLinks from './PromptGuideLinks';
 
 // Param types whose value is an uploaded file (handled via mediaFiles + /upload
 // + recall), as opposed to a plain form value. 'mask' is an image the user
@@ -155,12 +156,19 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // Check for required media uploads (image, video, or audio)
-        const mediaParams = Object.entries(state.workflow?.parameter_map || {})
-            .filter(([, v]) => MEDIA_TYPES.includes(v.type));
-        const missingMedia = mediaParams.filter(([key]) => !mediaFiles[key] && !recalledMedia[key]);
+        if (isCollision || isUploading) return;
 
-        if (isCollision || isUploading || missingMedia.length > 0) return;
+        // Check for the media uploads this booking needs (optional ones only
+        // while their toggle switches them on) and say which are missing —
+        // returning silently leaves the Start button looking broken.
+        const paramMap = state.workflow?.parameter_map || {};
+        const missingMedia = Object.entries(paramMap)
+            .filter(([, v]) => MEDIA_TYPES.includes(v.type) && isMediaNeeded(v, formParams, paramMap))
+            .filter(([key]) => !mediaFiles[key] && !recalledMedia[key]);
+        if (missingMedia.length > 0) {
+            setUploadError(`Please add: ${missingMedia.map(([key, v]) => v.label || key).join(' · ')}`);
+            return;
+        }
 
         setIsUploading(true);
         setUploadError('');
@@ -243,6 +251,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     // preview reflects what'll actually be uploaded, not the raw camera shot.
     const handleMediaChange = (paramKey) => (file) => {
         if (!file) return;
+        setUploadError('');
         setMediaFiles(prev => ({ ...prev, [paramKey]: file }));
         // A fresh upload supersedes any recalled (reused) asset for this key.
         setRecalledMedia(prev => {
@@ -307,6 +316,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                                 </span>
                             )}
                         </div>
+                        <PromptGuideLinks guides={state.workflow_info.promptGuides} />
                         {state.workflow_info.description && (
                             <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
                                 {state.workflow_info.description}

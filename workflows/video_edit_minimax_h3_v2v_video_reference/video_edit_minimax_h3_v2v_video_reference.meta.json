@@ -15,6 +15,17 @@
     "audio",
     "video"
   ],
+  "promptGuides": [
+    {
+      "label": "MiniMax H3 reference-mode prompt guide — MiniMax",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_ref_en.md",
+      "tip": "Say what to keep from each input and what changes; describe the action, camera and sound concretely — everything should be visible or audible."
+    },
+    {
+      "label": "H3 prompt tips for ComfyUI — Comfy-Org",
+      "url": "https://docs.comfy.org/tutorials/video/minimax/minimax-h3-prompt-guide"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",

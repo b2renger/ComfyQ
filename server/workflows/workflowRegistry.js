@@ -179,6 +179,7 @@ class WorkflowRegistry {
                 description: merged.description,
                 category: merged.category,
                 tags: merged.tags,
+                promptGuides: merged.promptGuides || [],
                 thumbnail: merged.thumbnail,
                 estimatedDurationSec: runtime?.estimatedDurationSec ?? merged.estimatedDurationSec,
                 samplesPerSec: runtime?.samplesPerSec ?? null,

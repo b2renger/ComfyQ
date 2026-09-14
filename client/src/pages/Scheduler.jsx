@@ -17,6 +17,7 @@ import { getImageUrl, getDownloadUrl } from '../utils/api';
 import { getUserColor } from '../utils/userColor';
 import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
 import { computeEtaSeconds } from '../utils/jobEta';
+import PromptGuideLinks from '../components/PromptGuideLinks';
 
 /**
  * Scheduler Page Component
@@ -309,6 +310,7 @@ const SchedulerPage = () => {
                                         <Badge variant="primary" className="text-[9px] py-0 h-4 uppercase">{state.workflow_info.category}</Badge>
                                     )}
                                 </div>
+                                <PromptGuideLinks guides={state.workflow_info.promptGuides} />
                                 {state.workflow_info.description && (
                                     <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
                                         {state.workflow_info.description}

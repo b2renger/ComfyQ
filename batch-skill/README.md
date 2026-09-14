@@ -83,14 +83,14 @@ across five endings, several deliberately shared, one (`E05`) looping back to
 `S0`. Between them the two examples cover both protagonist strategies.
 
 **Warm estimates assume the bundles' calibrated resolution.** At 1920×1080 the
-video shots cost meaningfully more; budget 2–3× and add one cold model load per
-workflow.
+video shots cost meaningfully more; budget about 3× and add one cold model load
+per workflow.
 
 ## Known constraint — why the examples say 1920×1088, not 1920×1080
 
 Asking for `1920x1080` does not render 1920×1080. Two grids disagree with it in
 opposite directions: `image_flux2_klein_9b_t2i` rounds **down to a multiple of 16**
-(→ 1072, measured — its meta's declared `step: 8` is wrong) and `ltx_2_3_i2v`
+(→ 1072, measured — its meta's declared `step: 8` is wrong) and `ltx_2_5_i2v`
 snaps to a multiple of **64** (→ 1088). You would get stills at 1072 and clips
 at 1088, a 16 px mismatch the video model then has to stretch.
 

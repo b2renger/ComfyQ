@@ -20,7 +20,7 @@ const HEARTBEAT_MS = 5000;
 //            progress: { value, max } | null,
 //            current_node, workflow_id, error_reason }],
 //   workflow: { parameter_map },               // for active workflow
-//   workflow_info: { id, name, description, category,
+//   workflow_info: { id, name, description, category, promptGuides,
 //                    samplesPerSec, estimatedDurationSec }  // for ETA + ProgressViz
 // })
 //
@@ -312,9 +312,10 @@ class RealtimeBus {
                 name: entry.summary.name,
                 description: entry.summary.description,
                 category: entry.summary.category,
+                promptGuides: entry.summary.promptGuides || [],
                 samplesPerSec: entry.summary.samplesPerSec,
                 estimatedDurationSec: entry.summary.estimatedDurationSec
-            } : { id: null, name: 'No workflow configured', description: '', category: 'other', samplesPerSec: null, estimatedDurationSec: null };
+            } : { id: null, name: 'No workflow configured', description: '', category: 'other', promptGuides: [], samplesPerSec: null, estimatedDurationSec: null };
             const benchmarkMs = entry && !entry.unavailable
                 ? (entry.summary.estimatedDurationSec * 1000) : 60000;
             const workerStatus = this.worker.getStatus();

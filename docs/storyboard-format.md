@@ -54,7 +54,7 @@ the workflow's category decides its phase.
 ```markdown
 ### image_edit_flux2_klein_9b_image_edit_ref (ref A3)      one anchor drives every image input
 ### image_edit_flux2_klein_9b_image_edit_ref (ref A2, A1)  source ← A2, reference ← A1
-### ltx_2_3_i2v (ref A2)                        animate a library plate directly
+### ltx_2_5_i2v (ref A2)                        animate a library plate directly
 ```
 
 A workflow that **edits** an image must name a `(ref Ax)` — there is nothing
@@ -97,8 +97,8 @@ Two anchors with the same number is a warning; the second one wins.
 
 ### Workflow names
 
-You do not have to write the exact bundle folder name. `ltx_2_3_i2v` finds
-`video_ltx2_3_i2v`, `stable_audio_3` finds `audio_stable_audio_3_medium`.
+You do not have to write the exact bundle folder name. `ltx_2_5_i2v` finds
+`video_ltx2_5_i2v`, `stable_audio_3` finds `audio_stable_audio_3_medium`.
 A name matching **more than one** installed workflow is refused with the list
 of candidates — it is never guessed.
 
@@ -109,7 +109,7 @@ The workflow name, then any number of pipe-separated attributes in any order:
 ```markdown
 ### image_flux2_klein_9b_t2i | 1280x720
 ### stable_audio_3 | 45s
-### ltx_2_3_i2v | 1280x720 | 5s
+### ltx_2_5_i2v | 1280x720 | 5s
 ### image_edit_flux2_klein_9b_image_edit_ref | 1280x720 | ref A2, A1
 ```
 
@@ -123,10 +123,11 @@ A parenthesised `(ref A3)` still works, and a `Resolution: 1344 x 768` /
 `Size: 1280×720.` line of its own before the prompt is also read. Anything
 unrecognised is kept as a note rather than dropped.
 
-**Duration is converted to whatever the workflow counts.** `stable_audio_3` and
-`ltx_2_3_flf2v` take seconds directly; `ltx_2_3_i2v` counts *frames*, so `5s`
-becomes `5 × its frame rate`, snapped to the 8n+1 grid LTX needs (`5s` → 121
-frames at 25 fps). The conversion is shown in the run-order table.
+**Duration is converted to whatever the workflow counts.** `stable_audio_3`,
+`ltx_2_5_i2v` and `ltx_2_5_flf2v` take seconds directly (the LTX 2.5 workflows
+take whole seconds and render `seconds × 24 + 1` frames, so `5s` is 5.04 s); a
+workflow that counts *frames* instead gets `5 × its frame rate`, snapped to the
+8n+1 grid LTX needs. The conversion is shown in the run-order table.
 
 Sizes outside 64-8192 px are ignored, so `shot on 35mm film ... Kodak Portra
 400` is never mistaken for one. A workflow with no width/height (an edit, a
@@ -168,7 +169,7 @@ index in front so the folder sorts into run order:
 <ComfyUI output>/The-Red-Thread/
     001_LIBRARY__Anchor-image-1__flux2_klein_9b_t2i_00001_.png
     005_IDLE__Reference-image-1__flux2_klein_9b_image_edit_ref_00001_.png
-    023_IDLE__Video-cut-1--loop___video_ltx2_3_flf2v_00001_.mp4
+    023_IDLE__Video-cut-1--loop___video_ltx2_5_flf2v_00001_.mp4
 ```
 
 The folder defaults to the uploaded filename and is editable in the card
@@ -287,8 +288,8 @@ ran. The example document goes from ~20 model loads to **6**:
  4x image_flux2_klein_9b_t2i            (the anchor plates)
 11x image_edit_flux2_klein_9b_image_edit_ref (every shot built from an anchor)
  7x image_ideogram4_t2i           (the choice / end cards)
- 1x video_ltx2_3_flf2v            (the loop)
-10x video_ltx2_3_i2v              (every other cut)
+ 1x video_ltx2_5_flf2v            (the loop)
+10x video_ltx2_5_i2v              (every other cut)
  9x audio_stable_audio_3_medium
 ```
 

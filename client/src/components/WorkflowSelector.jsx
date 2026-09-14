@@ -9,6 +9,7 @@ import Card from './ui/Card';
 import Badge from './ui/Badge';
 import { SERVER_URL } from '../utils/api';
 import { accessHeaders } from '../utils/access';
+import PromptGuideLinks from './PromptGuideLinks';
 
 // "Type of workflow" buckets shown as filter chips in the admin library. Each
 // fine-grained meta category maps to exactly one group; this is the user-facing
@@ -348,6 +349,7 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                     </span>
                                 )}
                                 <p className="text-sm text-muted mt-1 line-clamp-2">{w.description}</p>
+                                <PromptGuideLinks guides={w.promptGuides} compact />
                                 <div className="flex items-center gap-3 mt-2 text-xs text-muted flex-wrap">
                                     <span className="flex items-center gap-1" title={w.hasCalibration && w.calibration?.calibratedAt
                                         ? `Calibrated ${new Date(w.calibration.calibratedAt).toLocaleString()}${w.calibration.coldDurationSec ? ` · cold run ${w.calibration.coldDurationSec}s (model load ${w.calibration.modelLoadSec}s)` : ''}`

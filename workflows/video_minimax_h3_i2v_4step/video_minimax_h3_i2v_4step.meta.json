@@ -15,6 +15,17 @@
     "audio",
     "video"
   ],
+  "promptGuides": [
+    {
+      "label": "MiniMax H3 video prompt guide — MiniMax",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_base_en.md",
+      "tip": "Start with the overall style and opening framing, then describe what happens in order. Name camera moves with their speed (\"slowly pulls out\"), and describe sounds and music concretely — instruments, tempo — rather than moods."
+    },
+    {
+      "label": "H3 prompt tips for ComfyUI — Comfy-Org",
+      "url": "https://docs.comfy.org/tutorials/video/minimax/minimax-h3-prompt-guide"
+    }
+  ],
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",
