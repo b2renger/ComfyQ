@@ -1,0 +1,12 @@
+{
+  "name": "comfyq-ui-to-api",
+  "private": true,
+  "description": "Convert ComfyUI UI-format workflows to API format through ComfyUI's own frontend (headless Chrome).",
+  "type": "module",
+  "scripts": {
+    "convert": "node convert.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "^25.0.0"
+  }
+}

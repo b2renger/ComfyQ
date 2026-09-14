@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "id": "utility_seedvr2_7b_int8_image_upscale",
+  "name": "SeedVR2 7B (int8) — image upscale & restore (up to 4K)",
+  "description": "Upload a photo or render and SeedVR2 rebuilds it up to 4× larger, adding realistic detail (skin, hair, fabric, foliage) rather than just sharpening. This is the int8 build of the 7B model, running on ComfyUI's built-in SeedVR2 support.\n\nYour image is first shrunk so its longest side is at most 1024 px, then multiplied by the upscale factor — ×4 gives about 4K (4096 px on the long side). Lower factors are faster.\n\nIf the colours shift compared with the original, pick a colour correction (\"lab\" is the most faithful). Change the seed to re-roll the generated detail.",
+  "category": "i2i",
+  "tags": [
+    "seedvr2",
+    "upscale",
+    "super-resolution",
+    "restore",
+    "image",
+    "4k",
+    "int8",
+    "7b"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "utility_seedvr2_7b_int8_image_upscale.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 20,
+    "models": [
+      {
+        "type": "unet",
+        "file": "seedvr2_7b_int8_convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "seedvr2_ema_vae_fp16.safetensors"
+      }
+    ],
+    "disabledPerfFlags": [
+      "fp16_accumulation"
+    ]
+  },
+  "estimatedDurationSec": 90,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_1",
+      "nodeId": "1",
+      "field": "image",
+      "type": "image",
+      "label": "Image to upscale",
+      "default": "",
+      "maxInputEdge": 1024,
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "resizeimagemasknode_resize_type_multiplier_66_57",
+      "nodeId": "66:57",
+      "field": "resize_type.multiplier",
+      "type": "number",
+      "label": "Upscale factor (×4 ≈ 4K from a 1024 px image)",
+      "default": 4,
+      "min": 1,
+      "max": 4,
+      "step": 0.5,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "seedvr2postprocessing_color_correction_method_66_59",
+      "nodeId": "66:59",
+      "field": "color_correction_method",
+      "type": "select",
+      "label": "Colour correction (match the original colours)",
+      "default": "none",
+      "options": [
+        "lab",
+        "wavelet",
+        "adain",
+        "none"
+      ],
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "ksampler_seed_66_54",
+      "nodeId": "66:54",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 42,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 3
+    }
+  ],
+  "warmupParams": {
+    "loadimage_image_1": "asset:Tree.png"
+  },
+  "presets": {}
+}

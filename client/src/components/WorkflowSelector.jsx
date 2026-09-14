@@ -3,7 +3,7 @@ import {
     Image, Video, Wand2, Music, Box, LayoutGrid, List,
     RefreshCw, ChevronRight, Sparkles, Clock, Tag,
     Pencil, Trash2, Gauge, Cpu, FileText, Wrench, Search, X,
-    ExternalLink, Power, Radio, Square, Brush, Film
+    ExternalLink, Power, Radio, Square, Brush, Film, FlaskConical, ShieldCheck
 } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
@@ -40,6 +40,8 @@ const CATEGORY_GROUP = {
     'other': 'other',
 };
 const groupOf = (cat) => CATEGORY_GROUP[cat] || 'other';
+// Mirrors server/workers/perfFlags.js — the global ComfyUI speed-ups a bundle can opt out of.
+const PERF_FLAG_LABELS = { use_sage_attention: 'Sage attention', fp16_accumulation: 'fp16 accumulation' };
 
 /**
  * WorkflowSelector
@@ -47,12 +49,15 @@ const groupOf = (cat) => CATEGORY_GROUP[cat] || 'other';
  * Calls onSelect(workflowDetails) when a workflow is chosen.
  * Calls onPresetSelect(name, values) when a preset chip is clicked.
  */
-const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false }) => {
+const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false, onValidate, validatingId = null }) => {
     const [workflows, setWorkflows] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [viewMode, setViewMode] = useState('grid');
     const [selectedGroup, setSelectedGroup] = useState('all');
+    // Status filter, independent of the type group: narrow the library to the
+    // experimental (built but not yet hand-tested) bundles.
+    const [onlyExperimental, setOnlyExperimental] = useState(false);
     const [query, setQuery] = useState('');
     const [selectedWorkflow, setSelectedWorkflow] = useState(null);
 
@@ -129,7 +134,11 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
             .filter(Boolean).join(' ').toLowerCase();
         return terms.every(t => hay.includes(t));
     };
-    const searched = usable.filter(matchesQuery);
+    const searchedAll = usable.filter(matchesQuery);
+    const experimentalCount = searchedAll.filter(w => w.experimental).length;
+    // The experimental toggle applies before the group chips so their counts
+    // describe what's actually listed.
+    const searched = onlyExperimental ? searchedAll.filter(w => w.experimental) : searchedAll;
     const filtered = selectedGroup === 'all' ? searched : searched.filter(w => groupOf(w.category) === selectedGroup);
     // Only show chips for groups that have a match under the current search, with counts.
     const availableGroups = GROUPS
@@ -231,6 +240,19 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                         </button>
                     );
                 })}
+                {(experimentalCount > 0 || onlyExperimental) && (
+                    <button
+                        type="button"
+                        onClick={() => setOnlyExperimental(v => !v)}
+                        className={`flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-sm transition-colors sm:ml-auto
+                            ${onlyExperimental ? 'border-warning bg-warning/15 text-warning' : 'border-warning/30 bg-surface text-warning/80 hover:border-warning/60'}`}
+                        title={onlyExperimental ? 'Show every workflow again' : 'Show only experimental workflows (built but not yet validated by hand)'}
+                    >
+                        <FlaskConical size={14} />
+                        <span>Experimental</span>
+                        <span className={onlyExperimental ? 'text-warning/70' : 'text-warning/50'}>{experimentalCount}</span>
+                    </button>
+                )}
             </div>
 
             {filtered.length === 0 ? (
@@ -238,11 +260,11 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                     <Search className="w-8 h-8 mx-auto mb-3 opacity-50" />
                     <p className="text-sm">
                         No workflows match{query ? <> “<span className="text-foreground">{query.trim()}</span>”</> : ''}
-                        {selectedGroup !== 'all' ? ' in this category' : ''}.
+                        {selectedGroup !== 'all' ? ' in this category' : ''}{onlyExperimental ? ' among experimental workflows' : ''}.
                     </p>
-                    {(query || selectedGroup !== 'all') && (
+                    {(query || selectedGroup !== 'all' || onlyExperimental) && (
                         <button
-                            onClick={() => { setQuery(''); setSelectedGroup('all'); }}
+                            onClick={() => { setQuery(''); setSelectedGroup('all'); setOnlyExperimental(false); }}
                             className="mt-3 text-primary text-sm hover:underline"
                         >
                             Clear filters
@@ -317,6 +339,14 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                     <h4 className={`font-medium truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>{w.name}</h4>
                                     {isSelected && <ChevronRight size={16} className="text-primary flex-shrink-0" />}
                                 </div>
+                                {w.experimental && (
+                                    <span
+                                        className="inline-flex items-center gap-1 mt-1 px-2 py-0.5 rounded-full text-[11px] font-medium bg-warning/10 text-warning border border-warning/30"
+                                        title="Built and calibrated, but not yet tested by hand. Validate it once you've checked the results."
+                                    >
+                                        <FlaskConical size={11} /> Experimental
+                                    </span>
+                                )}
                                 <p className="text-sm text-muted mt-1 line-clamp-2">{w.description}</p>
                                 <div className="flex items-center gap-3 mt-2 text-xs text-muted flex-wrap">
                                     <span className="flex items-center gap-1" title={w.hasCalibration && w.calibration?.calibratedAt
@@ -330,6 +360,12 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                             <Cpu size={12} />{w.calibration.gpu}
                                         </span>
                                     )}
+                                    {w.disabledPerfFlags?.length > 0 && (
+                                        <span className="flex items-center gap-1"
+                                            title="This workflow produces black images with these ComfyUI speed-ups, so ComfyUI is restarted without them while it is served or calibrated. Other workflows keep them.">
+                                            <Gauge size={12} />without {w.disabledPerfFlags.map(f => PERF_FLAG_LABELS[f] || f).join(' + ')}
+                                        </span>
+                                    )}
                                     {w.presets?.length > 0 && (
                                         <span className="flex items-center gap-1">
                                             <Tag size={12} />{w.presets.length} presets
@@ -340,8 +376,8 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                             {/* Primary per-card actions: open the editable graph in
                                 ComfyUI, and activate/serve the API version (what
                                 ComfyQ Discovery shows being served). */}
-                            {(onOpenInComfy || onActivate) && (
-                                <div className={`flex items-center gap-2 ${viewMode === 'grid' ? 'mt-3 pt-3 border-t border-border/60' : 'flex-shrink-0'}`}>
+                            {(onOpenInComfy || onActivate || (onValidate && w.experimental)) && (
+                                <div className={`flex items-center gap-2 flex-wrap ${viewMode === 'grid' ? 'mt-3 pt-3 border-t border-border/60' : 'flex-shrink-0'}`}>
                                     {onOpenInComfy && (
                                         <button
                                             type="button"
@@ -352,6 +388,18 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                         >
                                             {openingComfyId === w.id ? <RefreshCw size={13} className="animate-spin" /> : <ExternalLink size={13} />}
                                             <span>Open in ComfyUI</span>
+                                        </button>
+                                    )}
+                                    {onValidate && w.experimental && (
+                                        <button
+                                            type="button"
+                                            disabled={validatingId === w.id}
+                                            onClick={(e) => { e.stopPropagation(); onValidate(w.id); }}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-background border border-warning/40 hover:border-success/60 text-warning hover:text-success transition-colors disabled:opacity-60 disabled:cursor-wait"
+                                            title="I've tested this workflow — remove the Experimental tag"
+                                        >
+                                            {validatingId === w.id ? <RefreshCw size={13} className="animate-spin" /> : <ShieldCheck size={13} />}
+                                            <span>Validate</span>
                                         </button>
                                     )}
                                     {onActivate && (
@@ -382,7 +430,11 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                                 disabled={!canActivate || activatingId !== null}
                                                 onClick={(e) => { e.stopPropagation(); onActivate(w.id); }}
                                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
-                                                title={canActivate ? 'Activate & serve this workflow (switches to student mode)' : 'Configure ComfyUI paths first (Admin → ComfyUI settings)'}
+                                                title={!canActivate
+                                                    ? 'Configure ComfyUI paths first (Admin → ComfyUI settings)'
+                                                    : w.experimental
+                                                        ? 'Activate & serve this workflow (switches to student mode) — it is still experimental, so test it before a class relies on it'
+                                                        : 'Activate & serve this workflow (switches to student mode)'}
                                             >
                                                 {activatingId === w.id ? <RefreshCw size={13} className="animate-spin" /> : <Power size={13} />}
                                                 <span>{activatingId === w.id ? 'Activating…' : 'Activate & serve'}</span>

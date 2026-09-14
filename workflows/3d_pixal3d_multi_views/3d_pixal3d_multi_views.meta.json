@@ -1,0 +1,152 @@
+{
+  "schemaVersion": 1,
+  "id": "3d_pixal3d_multi_views",
+  "name": "Pixal3D Multi-View — 4 views to PBR-textured 3D model",
+  "description": "Upload four pictures of the same character or object — front, left side, back and right side — and Pixal3D rebuilds it as one 3D model (.glb) with PBR materials (colour, metallic, roughness, normal and ambient-occlusion maps) that you can spin in the viewer. Because the model sees the subject from every side, the back and sides come out far more faithfully than from a single picture.\n\nThe four views should look like a turnaround sheet: the same subject at the same size, straight-on views (as flat and orthographic as possible), on a plain background. Renders and AI-generated turnaround views work best; casual phone photos much less so. If you have one sheet with all four poses side by side, cut it into four separate images first. The background is removed and each view is framed automatically.\n\n'Shape detail' sets how finely the geometry is sampled (higher = more detail, more memory and time). 'Target face count' is the polygon budget of the final mesh — lower is lighter to view and share. 'Texture resolution' is the size of the baked texture maps (4096 is crisp, 2048 gives a much smaller file). Expect a few minutes per model.",
+  "category": "3d",
+  "tags": [
+    "pixal3d",
+    "multi-view",
+    "turnaround",
+    "3d",
+    "image-to-3d",
+    "mesh",
+    "glb",
+    "pbr",
+    "textured-mesh",
+    "native"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "3d_pixal3d_multi_views.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 20,
+    "models": [
+      {
+        "type": "unet",
+        "file": "pixal3d_multiview_int8_convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "trellis_2_shape_vae_bf16.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "trellis_2_texture_vae_bf16.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "dino_v3_L_naf_fp32.safetensors"
+      },
+      {
+        "type": "other",
+        "file": "birefnet.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 150,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_364",
+      "nodeId": "364",
+      "field": "image",
+      "type": "image",
+      "label": "Front view",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_378",
+      "nodeId": "378",
+      "field": "image",
+      "type": "image",
+      "label": "Left side view",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "loadimage_image_380",
+      "nodeId": "380",
+      "field": "image",
+      "type": "image",
+      "label": "Back view",
+      "default": "",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "loadimage_image_379",
+      "nodeId": "379",
+      "field": "image",
+      "type": "image",
+      "label": "Right side view",
+      "default": "",
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "trellis2upsamplestage_target_resolution_94",
+      "nodeId": "94",
+      "field": "target_resolution",
+      "type": "number",
+      "label": "Shape detail (voxel resolution — higher = finer, more memory & time)",
+      "default": 1536,
+      "min": 1024,
+      "max": 2048,
+      "step": 128,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "decimatemesh_target_face_count_186",
+      "nodeId": "186",
+      "field": "target_face_count",
+      "type": "number",
+      "label": "Target face count (polygon budget of the final mesh)",
+      "default": 700000,
+      "min": 10000,
+      "max": 2000000,
+      "step": 10000,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "primitiveint_value_288",
+      "nodeId": "288",
+      "field": "value",
+      "type": "number",
+      "label": "Texture resolution (size of the baked texture maps)",
+      "default": 4096,
+      "min": 1024,
+      "max": 8192,
+      "step": 1024,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "ksampler_seed_3",
+      "nodeId": "3",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 56,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 7
+    }
+  ],
+  "warmupParams": {
+    "loadimage_image_364": "asset:e0c02414604575.563121c5934f5.JPG",
+    "loadimage_image_378": "asset:e0c02414604575.563121c5934f5.JPG",
+    "loadimage_image_380": "asset:e0c02414604575.563121c5934f5.JPG",
+    "loadimage_image_379": "asset:e0c02414604575.563121c5934f5.JPG"
+  },
+  "presets": {}
+}

@@ -1,0 +1,165 @@
+{
+  "schemaVersion": 1,
+  "id": "video_edit_ltx2_v2v_depth_control",
+  "name": "LTX-2 — video to video (depth control + audio)",
+  "description": "Re-imagine a video while keeping its motion. Upload a source video and a start image: a depth map is estimated for every frame (Lotus) and LTX-2 paints a brand-new video that keeps the same 3D layout and camera move, in the look of your start image and prompt, with a freshly generated soundtrack (the original audio is not kept). Depth keeps the space, volumes and camera motion but lets shapes, materials and small details change more freely than the canny-edge version.\n\nThe start image becomes the first frame of the result — a restyled still of your video's first frame works best (you can make one with an image-editing workflow). Tick \"Ignore the start image\" to let the prompt alone set the look; the form still asks for an image, but it is not used. In the prompt, describe the scene, the action as it unfolds and the sounds you want.\n\nYour video is cropped to the chosen width × height and only its first frames are used (121 frames ≈ 5 s at 24 fps). This model runs a 20-step first pass and then a 2× upscale pass, so it is one of the slower video workflows — bigger sizes and more frames make it much slower.",
+  "category": "video-edit",
+  "tags": [
+    "ltx",
+    "ltx2",
+    "ic-lora",
+    "vid2vid",
+    "depth",
+    "control",
+    "video",
+    "audio"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "video_edit_ltx2_v2v_depth_control.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "checkpoint",
+        "file": "ltx-2-19b-dev-fp8.safetensors"
+      },
+      {
+        "type": "unet",
+        "file": "lotus-depth-d-v1-1.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "gemma_3_12B_it_fp4_mixed.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "vae-ft-mse-840000-ema-pruned.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "ltx-2-19b-ic-lora-depth-control.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "ltx-2-19b-distilled-lora-384.safetensors"
+      },
+      {
+        "type": "other",
+        "file": "ltx-2-spatial-upscaler-x2-1.0.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 170,
+  "exposedParameters": [
+    {
+      "key": "loadvideo_file_183",
+      "nodeId": "183",
+      "field": "file",
+      "type": "video",
+      "label": "Source video (motion to follow)",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_160",
+      "nodeId": "160",
+      "field": "image",
+      "type": "image",
+      "label": "Start image (first frame / look of the result)",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "cliptextencode_text_143_124",
+      "nodeId": "143:124",
+      "field": "text",
+      "type": "textarea",
+      "label": "Prompt (scene / action / sound)",
+      "default": "An expansive, sunlit modern lounge perched high above the city, where floor-to-ceiling glass walls flood the open-concept space with natural light and frame sweeping panoramic views of the sprawling urban skyline below. Warm, rich wood flooring and matching wood-paneled ceilings anchor the design, accented by soft orange LED cove lighting that traces the ceiling edges, while exposed-bulb chandeliers and large black pendant lamps cast a cozy glow over the communal high-top wooden table, central workstations, and plant-adorned built-in shelves, blending sleek contemporary style with a relaxed, inviting atmosphere perfect for both work and leisure.",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "cliptextencode_text_143_119",
+      "nodeId": "143:119",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt",
+      "default": "blurry, low quality, still frame, frames, watermark, overlay, titles, has blurbox, has subtitles",
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "primitiveboolean_value_169",
+      "nodeId": "169",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Ignore the start image (prompt sets the look)",
+      "default": false,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "primitiveint_value_166",
+      "nodeId": "166",
+      "field": "value",
+      "type": "number",
+      "label": "Width",
+      "default": 1280,
+      "min": 384,
+      "max": 1920,
+      "step": 64,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "primitiveint_value_167",
+      "nodeId": "167",
+      "field": "value",
+      "type": "number",
+      "label": "Height",
+      "default": 704,
+      "min": 384,
+      "max": 1920,
+      "step": 64,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "primitiveint_value_168",
+      "nodeId": "168",
+      "field": "value",
+      "type": "number",
+      "label": "Length (frames — 121 ≈ 5 s at 24 fps)",
+      "default": 121,
+      "min": 25,
+      "max": 241,
+      "step": 8,
+      "required": false,
+      "order": 7
+    },
+    {
+      "key": "randomnoise_noise_seed_143_126",
+      "nodeId": "143:126",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 8
+    }
+  ],
+  "warmupParams": {
+    "cliptextencode_text_143_124": "a calm sunlit garden, gentle breeze, soft birdsong"
+  },
+  "presets": {}
+}

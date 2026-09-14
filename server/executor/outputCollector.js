@@ -14,6 +14,11 @@ function _walk(value, nodeId, results) {
     }
     if (typeof value !== 'object') return;
     if (typeof value.filename === 'string') {
+        // A record pointing into ComfyUI's INPUT folder is a preview of what was
+        // uploaded, never a result: since ComfyUI 0.35 core LoadVideo reports its
+        // source clip this way, which put a broken extra tile in every
+        // video-input job's gallery (the file isn't under the output dir).
+        if (value.type === 'input') return;
         const { kind, mime } = classify(value.filename);
         results.push({
             kind, mime,
@@ -111,6 +116,13 @@ function collectFromHistory(historyEntry, comfyConfig) {
     const nodes = Object.entries(historyEntry.outputs);
     // Pass 1 — proper {filename, subfolder, type} media records.
     for (const [nodeId, nodeOutputs] of nodes) _walk(nodeOutputs, nodeId, out);
+    // A record can ALSO carry its absolute path (VHS_VideoCombine adds `fullpath`),
+    // which pass 2 would otherwise collect a second time — two identical tiles.
+    if (comfyConfig && comfyConfig.output_dir) {
+        for (const o of out) {
+            try { seenAbs.add(path.resolve(resolveOutputPath(o, comfyConfig))); } catch { /* unresolvable — skip */ }
+        }
+    }
     // Pass 2 — string values that are on-disk media PATHS (Pixal3D text / TRELLIS2 Preview3D result).
     for (const [nodeId, nodeOutputs] of nodes) _collectMediaPaths(nodeOutputs, nodeId, comfyConfig, out, seenAbs, mediaStrings);
     // Pass 3 — genuine text (captions), skipping any string already taken as a media path.

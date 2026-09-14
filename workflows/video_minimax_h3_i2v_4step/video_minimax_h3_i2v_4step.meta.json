@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "id": "video_minimax_h3_i2v_4step",
+  "name": "MiniMax H3 — image to video + audio (4-step turbo)",
+  "description": "Upload a picture and describe what should happen: your image becomes the first frame and MiniMax H3 animates it into a short video **with a matching audio track**. Describe the motion, the camera move and the sounds you want to hear; you can refer to your image as <Picture 1>.\n\nThe video keeps the shape (aspect ratio) of your picture. \"Size\" sets the resolution: 0.4 megapixels (about 864x480 for a landscape photo) is a good classroom default, 1.0 is close to the 768p the turbo LoRA was trained at and looks better but takes noticeably longer.\n\n\"Fast mode\" (on by default) uses the 4-step turbo LoRA and is roughly 4x faster than the plain 20-step render. Size and duration drive the cost far more than anything else — time grows roughly with width x height x seconds.",
+  "category": "i2v",
+  "tags": [
+    "minimax",
+    "h3",
+    "image-to-video",
+    "i2v",
+    "fl2va",
+    "turbo",
+    "4-step",
+    "audio",
+    "video"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "video_minimax_h3_i2v_4step.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "minimax_h3_fl2va_pruned_int8_convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_video_vae_fp16.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_audio_vae_fp32.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 36,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_114",
+      "nodeId": "114",
+      "field": "image",
+      "type": "image",
+      "label": "Start image (becomes the first frame)",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "minimaxh3imagetovideo_prompt_105_104",
+      "nodeId": "105:104",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Prompt (action / camera / sound - refer to the image as <Picture 1>)",
+      "default": "The scene from <Picture 1> comes to life. The camera slowly pushes in while the main subject begins to move naturally; light shifts gently and small details in the background drift and sway.\nAudio: soft ambient sound that matches the scene, subtle movement sounds, no music.",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "primitiveboolean_value_105_126",
+      "nodeId": "105:126",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Fast mode (4-step turbo LoRA)",
+      "default": true,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "imagescaletototalpixels_megapixels_119",
+      "nodeId": "119",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (0.4 = 864x480 for a 16:9 picture, 1.0 = 1376x768)",
+      "default": 0.4,
+      "min": 0.2,
+      "max": 1.0,
+      "step": 0.1,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "primitivefloat_value_105_111",
+      "nodeId": "105:111",
+      "field": "value",
+      "type": "number",
+      "label": "Duration (seconds, 2-15)",
+      "default": 5,
+      "min": 2,
+      "max": 15,
+      "step": 1,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "randomnoise_noise_seed_105_15",
+      "nodeId": "105:15",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 424242,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 5
+    }
+  ],
+  "warmupParams": {
+    "minimaxh3imagetovideo_prompt_105_104": "<Picture 1> comes to life, slow camera push-in, soft ambient sound"
+  },
+  "presets": {}
+}

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
-import { Save, X, Eye, EyeOff, AlertTriangle, RefreshCw, CheckCircle2, Filter, ArrowUp, ArrowDown, Search, ExternalLink, Download, Monitor } from 'lucide-react';
+import { Save, X, Eye, EyeOff, AlertTriangle, RefreshCw, CheckCircle2, Filter, ArrowUp, ArrowDown, Search, ExternalLink, Download, Monitor, FlaskConical } from 'lucide-react';
 import Modal from '../ui/Modal';
 import Button from '../ui/Button';
 import { SERVER_URL } from '../../utils/api';
@@ -189,6 +189,9 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                 }));
             const payload = {
                 ...meta,
+                // Sent explicitly: the server keeps the stored flag when a payload
+                // omits it, so this checkbox is the only way the editor changes it.
+                experimental: !!meta.experimental,
                 exposedParameters
             };
             const res = await fetch(`${SERVER_URL}/admin/workflows/${workflowId}/meta`, {
@@ -265,6 +268,18 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                             <Field label="Estimated duration (s)" type="number"
                                 value={meta.estimatedDurationSec}
                                 onChange={v => updateMeta({ estimatedDurationSec: parseFloat(v) || 60 })} />
+                            <div className="space-y-1.5">
+                                <label className="text-xs uppercase tracking-wider text-muted font-semibold">Status</label>
+                                <label className={`flex items-center gap-2 p-2 rounded-lg border cursor-pointer transition-colors ${meta.experimental ? 'border-warning/40 bg-warning/10' : 'border-border bg-background'}`}>
+                                    <input type="checkbox" checked={!!meta.experimental}
+                                        onChange={e => updateMeta({ experimental: e.target.checked })}
+                                        className="accent-amber-500" />
+                                    <FlaskConical size={14} className={meta.experimental ? 'text-warning' : 'text-muted'} />
+                                    <span className={`text-sm ${meta.experimental ? 'text-warning' : 'text-muted'}`}>
+                                        {meta.experimental ? 'Experimental — not yet validated' : 'Validated'}
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                         <div className="space-y-1.5">
                             <label className="text-xs uppercase tracking-wider text-muted font-semibold">Description</label>

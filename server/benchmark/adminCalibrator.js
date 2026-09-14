@@ -3,6 +3,7 @@ const { LocalComfyUIWorker } = require('../workers/localComfyUIWorker');
 const { killProcessOnPort } = require('../workers/comfyProcess');
 const { BenchmarkService } = require('./benchmarkService');
 const { ensureInstalled: ensureOpenerInstalled } = require('../comfyui/openerExtension');
+const { effectiveComfyConfig, runningPerfFlags, blockingFlags, PERF_FLAG_LABELS } = require('../workers/perfFlags');
 
 // After this much idle time, release the calibration ComfyUI's VRAM (but keep
 // the process up so a follow-up calibrate — or a switch to student mode, which
@@ -43,6 +44,11 @@ class AdminCalibrator {
         // with, so a later path change triggers a restart instead of silently
         // reusing the process started with the old path.
         this._spawnSig = null;
+        // Perf-flag half of that signature, kept apart so a ComfyUI spawned
+        // WITHOUT a flag for one workflow's sake (`disabledPerfFlags`) isn't
+        // bounced again by a generic launch / "Open in ComfyUI".
+        this._spawnFlagSig = null;
+        this._spawnMasked = false;
         // Whether the currently-running ComfyUI is one we spawned with the ComfyQ
         // opener extension installed (so its "Open in ComfyUI" auto-open works).
         // False for an attached external instance or before we've spawned.
@@ -55,24 +61,52 @@ class AdminCalibrator {
     get queueConfig() { return this._cfg.queue; }
     get assetsDir() { return this._cfg.assets?.dir || ''; }
 
-    _comfySig(cfg) {
-        return `${cfg.root_path || ''}|${cfg.python_executable || ''}|${cfg.api_port || ''}` +
-               `|sage=${!!cfg.use_sage_attention}|fp16acc=${!!cfg.fp16_accumulation}`;
+    _pathSig(cfg) {
+        return `${cfg.root_path || ''}|${cfg.python_executable || ''}|${cfg.api_port || ''}`;
     }
 
-    async _ensureWorker({ network = false } = {}) {
-        const cfg = this.comfyConfig; // fresh read for this call
-        const sig = this._comfySig(cfg);
+    _flagSig(cfg) {
+        return `sage=${!!cfg.use_sage_attention}|fp16acc=${!!cfg.fp16_accumulation}`;
+    }
+
+    _comfySig(cfg) {
+        return `${this._pathSig(cfg)}|${this._flagSig(cfg)}`;
+    }
+
+    // `workflowId` (calibration): run ComfyUI with exactly the perf flags that
+    // workflow will be served with — its `disabledPerfFlags` forced off, so the
+    // gauge neither saves black images nor times a different configuration.
+    async _ensureWorker({ network = false, workflowId = null } = {}) {
+        const base = this.comfyConfig; // fresh read for this call
+        const entry = workflowId ? this.registry.get(workflowId) : null;
+        const cfg = entry && !entry.unavailable ? effectiveComfyConfig(base, entry.meta) : base;
         if (this.worker && this.worker.getStatus().state !== 'down') {
-            // Already up. Restart a ComfyUI we own when either (a) the caller now
-            // needs a network-bound backend but the running instance is loopback,
-            // or (b) the saved ComfyUI paths changed since we spawned it. An
-            // externally-attached instance is always left alone.
+            // Already up. Restart a ComfyUI we own when (a) the caller now needs a
+            // network-bound backend but the running instance is loopback, (b) the
+            // saved ComfyUI paths changed since we spawned it, or (c) its perf
+            // flags differ from what's wanted — always for a calibration, but for
+            // a generic launch only if the spawn wasn't masked for a workflow.
+            // An externally-attached instance is left alone, EXCEPT when a
+            // calibration needs a flag off that it was started with.
             const needRebind = network && !this._workerNetwork && !this._external;
-            const pathsChanged = !this._external && this._spawnSig && this._spawnSig !== sig;
-            if (needRebind || pathsChanged) {
-                console.log(`[AdminCalibrator] ${pathsChanged ? 'ComfyUI paths changed' : 'rebinding ComfyUI to the network'} — restarting it…`);
+            const pathsChanged = !this._external && this._spawnSig && this._spawnSig !== this._pathSig(cfg);
+            const flagsChanged = !this._external && this._spawnFlagSig && this._spawnFlagSig !== this._flagSig(cfg)
+                && (!!workflowId || !this._spawnMasked);
+            const blockers = (this._external && workflowId) ? blockingFlags(cfg, await runningPerfFlags(this.worker.rest)) : [];
+            if (needRebind || pathsChanged || flagsChanged) {
+                const why = pathsChanged ? 'ComfyUI paths changed'
+                    : flagsChanged ? `ComfyUI performance flags differ (${this._flagSig(cfg)})`
+                    : 'rebinding ComfyUI to the network';
+                console.log(`[AdminCalibrator] ${why} — restarting it…`);
+                network = network || this._workerNetwork;
                 await this._stopWorker();
+                // stop() returns once the kill is issued; wait so the spawn below
+                // doesn't find the dying instance still answering and attach to it.
+                await this._waitForPortFree(base.api_port);
+            } else if (blockers.length > 0) {
+                console.log(`[AdminCalibrator] the external ComfyUI runs with ${blockers.map(k => PERF_FLAG_LABELS[k]).join(' + ')}, which "${workflowId}" can't use — replacing it…`);
+                network = network || !!base.lan_access;
+                await this._replaceExternal();
             } else {
                 return;
             }
@@ -98,7 +132,9 @@ class AdminCalibrator {
                 this.worker = worker;
                 this._external = !!res?.external;
                 this._workerNetwork = network && !this._external;
-                this._spawnSig = sig;
+                this._spawnSig = this._pathSig(cfg);
+                this._spawnFlagSig = this._flagSig(cfg);
+                this._spawnMasked = cfg !== base;
                 // We spawned it with the opener installed (an attached external
                 // instance we don't own may not have it).
                 this._openerLoaded = !this._external;
@@ -110,6 +146,27 @@ class AdminCalibrator {
             })();
         }
         try { await this._starting; } finally { this._starting = null; }
+        // We may have just ATTACHED to a ComfyUI started elsewhere (e.g. by the
+        // previous student session) that runs a flag this calibration can't use.
+        if (this._external && workflowId) {
+            const blockers = blockingFlags(cfg, await runningPerfFlags(this.worker.rest));
+            if (blockers.length > 0) {
+                console.log(`[AdminCalibrator] the external ComfyUI runs with ${blockers.map(k => PERF_FLAG_LABELS[k]).join(' + ')}, which "${workflowId}" can't use — replacing it…`);
+                await this._replaceExternal();
+                return this._ensureWorker({ network: network || !!base.lan_access, workflowId });
+            }
+        }
+    }
+
+    // Stop talking to an external ComfyUI and kill whatever listens on the port,
+    // then wait for it to free so the next spawn doesn't re-attach to the dying
+    // instance. Callers relaunch with _ensureWorker.
+    async _replaceExternal() {
+        const port = this.comfyConfig.api_port;
+        await this._stopWorker();
+        const { killed } = await killProcessOnPort(port);
+        console.log(`[AdminCalibrator] killed PID(s) on ${port}: ${killed.join(', ') || 'none found'}`);
+        await this._waitForPortFree(port);
     }
 
     // Tears down the worker: close our WS and kill the ComfyUI we spawned (a
@@ -121,6 +178,8 @@ class AdminCalibrator {
         this._external = false;
         this._workerNetwork = false;
         this._spawnSig = null;
+        this._spawnFlagSig = null;
+        this._spawnMasked = false;
         this._openerLoaded = false;
         if (w) {
             try { await w.shutdown(); } catch { /* WS close */ }
@@ -146,7 +205,7 @@ class AdminCalibrator {
     }
 
     async calibrate(workflowId) {
-        await this._ensureWorker();
+        await this._ensureWorker({ workflowId });
         this._clearIdle();
         try {
             return await this.bench.calibrate(workflowId);

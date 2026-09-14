@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "calibratedAt": "2026-09-14T08:40:52.195Z",
+  "estimatedDurationSec": 68,
+  "warmDurationSec": 68,
+  "coldDurationSec": 72,
+  "modelLoadSec": 4,
+  "samplesPerSec": 0.13331950760661856,
+  "steps": 10,
+  "durationMs": 72405,
+  "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+  "source": "benchmark"
+}

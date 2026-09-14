@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "id": "video_edit_wan_animate2",
+  "name": "Wan Animate 2 — make a character perform a video's motion",
+  "description": "Give your character someone else's moves. Upload a picture of your character (who) and a driving video of a person moving (what motion) — Wan Animate 2 makes your character perform that motion. The motion is read straight from the video frames; no skeleton or pose extraction is needed.\n\nThere are two prompts. The Character & background prompt describes how the character looks and where the scene takes place — looks only, no motion words; the background comes from this text, not from your image or the video. The Motion prompt briefly says what the person in the video is doing (e.g. \"a man doing an energetic street dance\").\n\nKeep the framing similar in both inputs (full body with full body, close-up with close-up) — a framing mismatch is the #1 cause of bad results. Only the first 81 frames of the video are used by default (about 3 s); both inputs are center-cropped to width × height (portrait 480×848 by default — swap the numbers for a landscape clip). Bigger sizes and more frames take longer.",
+  "category": "video-edit",
+  "tags": [
+    "wan",
+    "wan-animate-2",
+    "distilled",
+    "motion-transfer",
+    "character-animation",
+    "vid2vid",
+    "video"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "video_edit_wan_animate2.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      {
+        "type": "unet",
+        "file": "wan_animate_2_distill_int8_convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "Wan2_1_VAE_bf16.safetensors"
+      },
+      {
+        "type": "other",
+        "file": "clip_vision_h.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 150,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_189",
+      "nodeId": "189",
+      "field": "image",
+      "type": "image",
+      "label": "Character image (who)",
+      "default": "",
+      "maxInputEdge": 1024,
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadvideo_file_240",
+      "nodeId": "240",
+      "field": "file",
+      "type": "video",
+      "label": "Driving video (the motion)",
+      "default": "",
+      "maxInputEdge": 1280,
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "primitivestringmultiline_value_605",
+      "nodeId": "605",
+      "field": "value",
+      "type": "textarea",
+      "label": "Character & background prompt (looks only, no motion)",
+      "default": "Character appearance description: A realistic premium collectible action figure of a male street dancer, lifelike matte vinyl and resin material with realistic skin-like paint finish, detailed fabric folds on a black hoodie, dark cargo pants, white sneakers, subtle articulated joints, premium designer toy craftsmanship, standing in a relaxed confident pose facing the camera, full body from head to toe.\nBackground description: rainy neon-lit city street corner at night, wet asphalt reflecting purple-blue and red neon signs, light mist, cinematic night photography.",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "primitivestringmultiline_value_604",
+      "nodeId": "604",
+      "field": "value",
+      "type": "textarea",
+      "label": "Motion prompt (what the person in the video does)",
+      "default": "A man doing energetic street dance with popping body waves and fast spinning moves, rain falling around him.",
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "resizeimagemasknode_resize_type_width_261_243",
+      "nodeId": "261:243",
+      "field": "resize_type.width",
+      "type": "number",
+      "label": "Width",
+      "default": 480,
+      "min": 256,
+      "max": 1280,
+      "step": 16,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "resizeimagemasknode_resize_type_height_261_243",
+      "nodeId": "261:243",
+      "field": "resize_type.height",
+      "type": "number",
+      "label": "Height",
+      "default": 848,
+      "min": 256,
+      "max": 1280,
+      "step": 16,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "wananimate2tovideo_length_261_247",
+      "nodeId": "261:247",
+      "field": "length",
+      "type": "number",
+      "label": "Length (frames — 81 ≈ 3.4 s at 24 fps)",
+      "default": 81,
+      "min": 17,
+      "max": 121,
+      "step": 4,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "samplercustom_noise_seed_261_19",
+      "nodeId": "261:19",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 7
+    }
+  ],
+  "warmupParams": {
+    "primitivestringmultiline_value_605": "Character appearance description: a person in casual clothes, full body. Background description: a sunny city street.",
+    "primitivestringmultiline_value_604": "a person dancing",
+    "loadvideo_file_240": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
+    "loadimage_image_189": "asset:Flux2-Klein_00003_.png"
+  },
+  "presets": {}
+}

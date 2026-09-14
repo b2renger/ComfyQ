@@ -134,7 +134,8 @@ test('short names resolve to real bundle ids', () => {
     assert.strictEqual(resolveWorkflowAlias('ideogram_4_t2i', registry, index).id, 'image_ideogram4_t2i');
 });
 test('an ambiguous name is refused, never guessed', () => {
-    assert.throws(() => resolveWorkflowAlias('ltx2_3', registry, index), /matches 6 workflows/);
+    // Count-agnostic: the library grows (a new LTX 2.3 bundle must not break this).
+    assert.throws(() => resolveWorkflowAlias('ltx2_3', registry, index), /matches \d+ workflows/);
 });
 test('an unknown name names the problem', () => {
     assert.throws(() => resolveWorkflowAlias('does_not_exist', registry, index), /no workflow named/);

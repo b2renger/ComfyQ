@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "id": "video_ltx2_5_flf2v",
+  "name": "LTX 2.5 — first & last frame to video + audio",
+  "description": "Give a START image and an END image and LTX 2.5 generates a short video that travels from the first frame to the last, with a matching audio track. In the prompt, describe what happens in between — the motion, the camera move, and the sounds (e.g. \"The hand slowly opens and a glowing crystal appears above the palm; a low hum rises\").\n\nBoth images are resized and center-cropped to the width × height you choose (1280×720 by default), so use two pictures with the same framing and aspect ratio. Resolution, duration and frame rate drive the generation time far more than anything else.\n\n\"Enhance prompt with AI\" (off by default) lets a small built-in language model look at the first frame and expand a short prompt into a detailed cinematic one — useful for one-line prompts, but it adds a minute or two.",
+  "category": "i2v",
+  "tags": [
+    "ltx",
+    "ltx2.5",
+    "flf2v",
+    "i2v",
+    "auto-prompt",
+    "video",
+    "audio"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "video_ltx2_5_flf2v.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "vae",
+        "file": "ltx-2.5-audio-vae-bf16.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "ltx-2.5-video-vae-bf16.safetensors"
+      },
+      {
+        "type": "unet",
+        "file": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "gemma4_e2b_it_int8_convrot.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 40,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_31",
+      "nodeId": "31",
+      "field": "image",
+      "type": "image",
+      "label": "First frame",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_39",
+      "nodeId": "39",
+      "field": "image",
+      "type": "image",
+      "label": "Last frame",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "primitivestringmultiline_value_251_252",
+      "nodeId": "251:252",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt (motion + sound)",
+      "default": "Use the provided start image as the first frame and the provided end image as the final frame anchor. The video opens on the back of the robotic hand, four fingers slightly curled, joints glowing faintly in the darkness, a low electrical hum filling the space. The hand rotates slowly at the wrist, turning from the back view toward the palm side, the four visible fingers uncurling gently one by one, starting with the index finger, then the middle, ring, and pinky, each joint clicking softly. As the palm turns upward, the thumb swings out from the side of the hand into view, clearly separate from the four fingers, all five fingers spreading open. A blue energy crystal fades into existence above the palm, its hum rising into a resonant tone, thin energy threads coiling around it, particles crackling softly as they spiral away like sparks. The crystal rotates slowly, hovering above the fully open hand, light spilling between the five spread fingers, the crystal's steady hum filling the silence as the video ends on the open palm with the glowing crystal.\n",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "primitiveboolean_value_251_250",
+      "nodeId": "251:250",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Enhance prompt with AI (slower)",
+      "default": false,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "primitiveint_value_251_215",
+      "nodeId": "251:215",
+      "field": "value",
+      "type": "number",
+      "label": "Width",
+      "default": 1280,
+      "min": 256,
+      "max": 1920,
+      "step": 16,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "primitiveint_value_251_216",
+      "nodeId": "251:216",
+      "field": "value",
+      "type": "number",
+      "label": "Height",
+      "default": 720,
+      "min": 256,
+      "max": 1920,
+      "step": 16,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "primitiveint_value_251_198",
+      "nodeId": "251:198",
+      "field": "value",
+      "type": "number",
+      "label": "Duration (seconds)",
+      "default": 5,
+      "min": 1,
+      "max": 10,
+      "step": 1,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "primitiveint_value_251_205",
+      "nodeId": "251:205",
+      "field": "value",
+      "type": "number",
+      "label": "Frame rate (fps)",
+      "default": 24,
+      "min": 8,
+      "max": 30,
+      "step": 1,
+      "required": false,
+      "order": 7
+    },
+    {
+      "key": "randomnoise_noise_seed_251_196",
+      "nodeId": "251:196",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 8
+    }
+  ],
+  "warmupParams": {
+    "primitivestringmultiline_value_251_252": "A smooth transition from the first frame to the last, slow camera move, soft ambient sound.",
+    "loadimage_image_31": "asset:Flux2-Klein_00001_.png",
+    "loadimage_image_39": "asset:Flux2-Klein_00002_.png"
+  },
+  "presets": {}
+}

@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "id": "utility_marigold_v2_normals",
+  "name": "Marigold V2 — surface normals from a photo",
+  "description": "Upload a photo and Marigold V2 returns a surface-normal map: every pixel is coloured by the direction the surface faces — the ground facing up comes out green, surfaces facing the camera come out lilac. Useful for relighting, as a normal-map guide for other workflows, or for 3D and texture work.\n\nThere is no prompt and no seed: it runs a single deterministic step, so the same photo always gives the same map. 'Detail' sets how many megapixels the photo is processed at. 1 MP is the model's native size and takes only a few seconds; higher values keep finer detail, but the time grows with the pixel count.\n\nThis workflow runs without the optional Sage attention speed-up (it produces a black image with it), so ComfyUI restarts without it when this workflow is served.",
+  "category": "preprocessor",
+  "tags": [
+    "marigold",
+    "marigold-v2",
+    "normals",
+    "normal-map",
+    "surface-normals",
+    "qwen-image-edit",
+    "utility",
+    "preprocessor"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "utility_marigold_v2_normals.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 20,
+    "models": [
+      {
+        "type": "unet",
+        "file": "qwen_image_edit_2509_fp8_e4m3fn.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "marigold_v2\\marigold_v2_normals.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "marigold_v2\\marigold_v2_normals_vae.safetensors"
+      },
+      {
+        "type": "other",
+        "file": "marigold_v2\\marigold_v2_normals_conditioning.safetensors"
+      }
+    ],
+    "disabledPerfFlags": [
+      "use_sage_attention"
+    ]
+  },
+  "estimatedDurationSec": 8,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_12",
+      "nodeId": "12",
+      "field": "image",
+      "type": "image",
+      "label": "Photo",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "imagescaletototalpixels_megapixels_21",
+      "nodeId": "21",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Detail (megapixels — 1 is the model's native size)",
+      "default": 1,
+      "min": 0.25,
+      "max": 2,
+      "step": 0.25,
+      "required": false,
+      "order": 1
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

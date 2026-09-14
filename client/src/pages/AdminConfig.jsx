@@ -38,6 +38,10 @@ const AdminConfig = ({ currentMode }) => {
     const [editingWorkflowId, setEditingWorkflowId] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
     const [deletingWorkflowId, setDeletingWorkflowId] = useState(null);
+    // Experimental → validated sign-off: the id awaiting confirmation, and the
+    // id whose request is in flight.
+    const [confirmValidateId, setConfirmValidateId] = useState(null);
+    const [validatingId, setValidatingId] = useState(null);
     const [calibratingIds, setCalibratingIds] = useState(new Set());
     const [showEmergencyConfirm, setShowEmergencyConfirm] = useState(false);
     const [emergencyStopping, setEmergencyStopping] = useState(false);
@@ -507,6 +511,27 @@ const AdminConfig = ({ currentMode }) => {
             showToast(err.message, 'err');
         } finally {
             setCalibratingIds(prev => { const next = new Set(prev); next.delete(id); return next; });
+        }
+    };
+
+    // Clear a workflow's experimental flag once the admin has tested it by hand.
+    // The server rewrites the key in meta.json, so the sign-off is committed with
+    // the bundle rather than kept as a per-machine override.
+    const validateWorkflow = async (id) => {
+        setValidatingId(id);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/workflows/${id}/experimental`, {
+                method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ experimental: false })
+            });
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Validation failed');
+            showToast(`"${id}" validated — no longer experimental`);
+            setRefreshKey(k => k + 1);
+        } catch (err) {
+            showToast(err.message, 'err');
+        } finally {
+            setValidatingId(null);
+            setConfirmValidateId(null);
         }
     };
 
@@ -991,6 +1016,8 @@ const AdminConfig = ({ currentMode }) => {
                     onDeactivate={resetToAdmin}
                     deactivating={deactivating}
                     serving={config.mode === 'student'}
+                    onValidate={(id) => setConfirmValidateId(id)}
+                    validatingId={validatingId}
                 />
                 <div className="mt-6 flex items-center justify-end gap-2 flex-wrap">
                     {pickedWorkflow && <span className="text-xs text-muted mr-auto">Selected: <code>{pickedWorkflow.id}</code></span>}
@@ -1061,6 +1088,28 @@ const AdminConfig = ({ currentMode }) => {
                         <Button variant="ghost" onClick={() => setShowTakeoverConfirm(false)} disabled={comfyBusy}>Cancel</Button>
                         <Button variant="secondary" icon={RefreshCw} onClick={restartComfy} isLoading={comfyBusy}>
                             {comfyBusy ? 'Restarting…' : 'Yes, restart & take over'}
+                        </Button>
+                    </div>
+                </div>
+            </Modal>
+
+            <Modal isOpen={!!confirmValidateId} onClose={() => !validatingId && setConfirmValidateId(null)}
+                title="Validate this workflow?" maxWidth="max-w-md">
+                <div className="space-y-4">
+                    <p className="text-sm text-slate-300">
+                        Remove the <strong className="text-warning">Experimental</strong> tag from
+                        <code className="mx-1 px-1.5 py-0.5 bg-surface rounded text-primary">{confirmValidateId}</code>?
+                    </p>
+                    <p className="text-xs text-muted">
+                        Do this once you've run it yourself and are happy with the results. The flag is cleared in the
+                        bundle's <code>meta.json</code>, so the change is saved with the workflow. You can mark it
+                        experimental again from <strong>Edit metadata</strong>.
+                    </p>
+                    <div className="flex justify-end gap-2 pt-2 border-t border-border">
+                        <Button variant="ghost" onClick={() => setConfirmValidateId(null)} disabled={!!validatingId}>Cancel</Button>
+                        <Button variant="primary" icon={ShieldCheck} onClick={() => validateWorkflow(confirmValidateId)}
+                            isLoading={validatingId === confirmValidateId}>
+                            {validatingId ? 'Validating…' : 'Validate workflow'}
                         </Button>
                     </div>
                 </div>

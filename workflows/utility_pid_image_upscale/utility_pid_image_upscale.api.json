@@ -1,0 +1,108 @@
+{
+  "1": {
+    "inputs": {
+      "image": "example.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Image to upscale"
+    }
+  },
+  "2": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Qwen-Image VAE"
+    }
+  },
+  "3": {
+    "inputs": {
+      "pixels": [
+        "1",
+        0
+      ],
+      "vae": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "Encode the image to a latent"
+    }
+  },
+  "4": {
+    "inputs": {
+      "unet_name": "pid_1.5_qwenimage_1024_to_4096_4step_bf16.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "PiD model (Qwen-Image lane)"
+    }
+  },
+  "5": {
+    "inputs": {
+      "clip_name": "gemma_2_2b_it_elm_bf16.safetensors",
+      "type": "pixeldit",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "PiD text encoder (Gemma)"
+    }
+  },
+  "6": {
+    "inputs": {
+      "text": "",
+      "clip": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "PiD prompt (empty is fine)"
+    }
+  },
+  "7": {
+    "inputs": {
+      "latent_format": "qwenimage",
+      "max_tile": 1024,
+      "overlap": 64,
+      "seed": 42,
+      "degrade_sigma": 0,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "6",
+        0
+      ],
+      "latent": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "LatentTiledPiDDecode",
+    "_meta": {
+      "title": "Latent-Tiled PiD Decode (4x)"
+    }
+  },
+  "8": {
+    "inputs": {
+      "filename_prefix": "pid_upscale/pid_4x",
+      "images": [
+        "7",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Upscaled image"
+    }
+  }
+}

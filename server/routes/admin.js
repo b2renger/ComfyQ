@@ -867,8 +867,19 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             const apiPath = path.join(folder, `${id}.api.json`);
             if (!fs.existsSync(apiPath)) return res.status(404).json({ error: 'workflow not found' });
             const incoming = req.body || {};
+            // A client that doesn't know about the experimental flag must not
+            // silently validate a workflow by re-saving it: keep the stored value
+            // unless the payload sets it explicitly.
+            let experimental = incoming.experimental;
+            if (typeof experimental !== 'boolean') {
+                try {
+                    const current = JSON.parse(fs.readFileSync(path.join(folder, `${id}.meta.json`), 'utf8'));
+                    experimental = current.experimental === true;
+                } catch { experimental = false; }
+            }
             const meta = WorkflowMeta.parse({
                 ...incoming,
+                experimental,
                 schemaVersion: 1,
                 id,
                 apiFormat: true,
@@ -878,6 +889,50 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             registry.discover();
             res.json({ ok: true, id });
         } catch (e) { res.status(400).json({ error: e.message }); }
+    });
+
+    // Mark / unmark a workflow as experimental. Validating (experimental:false)
+    // is the admin's sign-off after testing a new bundle by hand. Written into
+    // meta.json itself — not the per-deployment config.meta.json — so the
+    // decision is committed with the bundle and every rig sees it. Only the one
+    // key is touched; the rest of the file is kept as authored.
+    router.put('/workflows/:id/experimental', adminGate, express.json(), (req, res) => {
+        try {
+            const id = req.params.id;
+            const { experimental } = req.body || {};
+            if (typeof experimental !== 'boolean') {
+                return res.status(400).json({ error: 'experimental must be a boolean' });
+            }
+            const entry = registry.get(id);
+            if (!entry) return res.status(404).json({ error: 'unknown workflow' });
+            const metaPath = entry.paths.metaPath;
+            if (!fs.existsSync(metaPath)) return res.status(404).json({ error: 'meta.json not found' });
+            const raw = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+            let next;
+            if (experimental) {
+                // Keep the flag next to the other identity fields for readability.
+                next = {};
+                for (const [k, v] of Object.entries(raw)) {
+                    if (k === 'experimental') continue;
+                    next[k] = v;
+                    if (k === 'version') next.experimental = true;
+                }
+                if (next.experimental !== true) next.experimental = true;
+            } else {
+                // false is the schema default — drop the key so a validated bundle
+                // looks exactly like one that was never experimental.
+                next = { ...raw };
+                delete next.experimental;
+            }
+            const check = WorkflowMeta.safeParse(next);
+            if (!check.success) {
+                return res.status(409).json({ error: `meta.json would be invalid: ${check.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ')}` });
+            }
+            fs.writeFileSync(metaPath, JSON.stringify(next, null, 2) + '\n', 'utf8');
+            registry.discover();
+            console.log(`[Admin] workflow ${id}: ${experimental ? 'marked experimental' : 'validated (experimental flag cleared)'}`);
+            res.json({ ok: true, id, experimental });
+        } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
     return router;

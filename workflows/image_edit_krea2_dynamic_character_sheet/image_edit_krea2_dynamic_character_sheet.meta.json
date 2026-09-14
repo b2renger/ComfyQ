@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "id": "image_edit_krea2_dynamic_character_sheet",
+  "name": "Krea 2 Turbo — dynamic character sheet (auto-prompt)",
+  "description": "Upload one picture of a subject — a person, an anime or game character, an animal, a creature, a robot, a vehicle or an object — and get back a full production-style character sheet on a 3:2 landscape page (1536x1024): a name and short visual description, a big hero view, a front/side/back turnaround, three action poses, silhouettes, an expression (or function) study and six close-up detail crops, all keeping the design from your picture.\n\nThere is nothing to type. A built-in vision-language model (Qwen3-VL) first looks at your image and writes the long, structured instruction the Dynamic Character Sheet LoRA expects — what kind of subject it is, its signature details, its rendering style — then Krea 2 Turbo draws the sheet. That writing step is why this takes longer than a plain edit.\n\n'Likeness strength' controls how hard the model copies your picture (1 is normal, 3–4 is closer). 'Steps': around 8 sticks more strictly to the layout, 12 adds detail. The names and labels on the sheet are drawn by the image model, so expect the occasional misspelling.",
+  "category": "image-edit",
+  "tags": [
+    "krea2",
+    "krea-2",
+    "turbo",
+    "character-sheet",
+    "turnaround",
+    "concept-art",
+    "auto-prompt",
+    "qwen3-vl",
+    "lora",
+    "image-edit"
+  ],
+  "thumbnail": null,
+  "author": "conradlocke / comfyui-krea2edit (Dynamic Character Sheet LoRA)",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "image_edit_krea2_dynamic_character_sheet.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      {
+        "type": "unet",
+        "file": "Krea2_Turbo_convrot_int8mixed.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "DynamicCharacterSheet_krea2_v1.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_4b_fp8_scaled.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_vae.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 45,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_72",
+      "nodeId": "72",
+      "field": "image",
+      "type": "image",
+      "label": "Subject image (a character, person, animal, creature, robot, vehicle or object)",
+      "default": "",
+      "required": true,
+      "maxInputEdge": 1024,
+      "order": 0
+    },
+    {
+      "key": "krea2editmodelpatch_ref_boost_120",
+      "nodeId": "120",
+      "field": "ref_boost",
+      "type": "number",
+      "label": "Likeness strength (1 = normal, 3–4 = copy the design more closely)",
+      "default": 1,
+      "min": 0,
+      "max": 10,
+      "step": 0.1,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "ksampler_steps_53",
+      "nodeId": "53",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps (8 = follows the layout more strictly, 12 = more detail)",
+      "default": 10,
+      "min": 6,
+      "max": 16,
+      "step": 1,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "ksampler_seed_53",
+      "nodeId": "53",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 43,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 3
+    }
+  ],
+  "warmupParams": {
+    "loadimage_image_72": "asset:Flux2-Klein_00001_.png"
+  },
+  "presets": {}
+}

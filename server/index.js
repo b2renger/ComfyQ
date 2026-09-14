@@ -31,6 +31,7 @@ const configManager = require('./config/configManager');
 const { WorkflowRegistry } = require('./workflows/workflowRegistry');
 const { JobQueue } = require('./queue/jobQueue');
 const { LocalComfyUIWorker } = require('./workers/localComfyUIWorker');
+const { effectiveComfyConfig, disabledPerfFlags, PERF_FLAG_LABELS } = require('./workers/perfFlags');
 const { JobExecutor } = require('./executor/jobExecutor');
 const { BenchmarkService } = require('./benchmark/benchmarkService');
 const { AdminCalibrator } = require('./benchmark/adminCalibrator');
@@ -329,8 +330,18 @@ async function main() {
     // ComfyUI's startup output. Resolved with config.server.port so the
     // banner shows the same backend port the boot-time banner did.
     const onMilestone = (label) => printConnectionBanner(label, config.server.port);
+    // Serve the active workflow with the ComfyUI flags it can actually run with:
+    // a bundle that lists `requirements.disabledPerfFlags` (e.g. Qwen-Image-Edit
+    // under Sage attention) would otherwise save black images.
+    const activeMeta = config.workflows.activeWorkflowId
+        ? registry.get(config.workflows.activeWorkflowId)?.meta : null;
+    const servingComfyConfig = effectiveComfyConfig(config.comfy_ui, activeMeta);
+    if (servingComfyConfig !== config.comfy_ui) {
+        const off = disabledPerfFlags(activeMeta).filter(k => config.comfy_ui[k]).map(k => PERF_FLAG_LABELS[k]);
+        console.log(`[ComfyQ]   perf flags:      ${off.join(' + ')} OFF for this workflow (it can't run with ${off.length > 1 ? 'them' : 'it'})`);
+    }
     const worker = new LocalComfyUIWorker({
-        comfyConfig: config.comfy_ui,
+        comfyConfig: servingComfyConfig,
         queueConfig: config.queue,
         onMilestone,
         // Student mode serves a class: if ComfyUI crashes, bring it back and
@@ -345,7 +356,14 @@ async function main() {
         }
     });
     try {
-        const started = await worker.start();
+        let started = await worker.start();
+        if (started?.external) {
+            // The ComfyUI left running by the previous session may carry a flag
+            // this workflow can't use — relaunch it without, rather than serve
+            // black images all class.
+            const { replaced } = await worker.ensureNoBlockingPerfFlags();
+            if (replaced) started = { external: false };
+        }
         console.log(`[ComfyQ] worker ready (${started?.external ? 'attached to external ComfyUI' : 'spawned ComfyUI'})`);
     } catch (e) {
         console.error('[ComfyQ] failed to start ComfyUI worker:', e.message);

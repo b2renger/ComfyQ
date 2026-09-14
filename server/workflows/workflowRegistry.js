@@ -192,7 +192,10 @@ class WorkflowRegistry {
                 } : null,
                 presets: Object.keys(merged.presets || {}),
                 parameterCount: merged.exposedParameters.filter(p => p.enabled !== false).length,
-                hidden: merged.hidden === true
+                hidden: merged.hidden === true,
+                experimental: meta.experimental === true,
+                // ComfyUI speed-up flags this workflow is served without.
+                disabledPerfFlags: meta.requirements?.disabledPerfFlags || []
             },
             effective: merged
         };

@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "id": "video_edit_ltx2_5_iclora_union_control",
+  "name": "LTX 2.5 IC-LoRA — video to video (depth control + audio)",
+  "description": "Restyle a video while keeping its motion and 3D layout. Upload a source video and a start image: a depth map is extracted from every frame (Video Depth Anything) and used as a guide, so LTX 2.5 generates a new video that moves like the original — in the style of your prompt and start image — with a freshly generated soundtrack (the original audio is not kept).\n\nThe start image becomes the opening frame; a restyled still of your video's first frame works best. Untick \"Use the start image\" to let the prompt alone set the look (the form still asks for an image, but it is ignored). \"Enhance prompt with AI\" lets a small Gemma model rewrite your prompt into a fuller description first. Lower \"Control strength\" to let the result drift further from the source's structure.\n\nOnly the start of your clip is used (\"Clip length used\", default 5 s), at its own frame rate and aspect ratio. The video is rendered in two passes, a fast 8-step pass at the working resolution and then a 2× upscale pass, so a working resolution of 544 gives a roughly 1088p result. Clip length and resolution drive the time.",
+  "category": "video-edit",
+  "tags": [
+    "ltx",
+    "ltx2.5",
+    "ic-lora",
+    "union-control",
+    "vid2vid",
+    "depth",
+    "distilled",
+    "video",
+    "audio"
+  ],
+  "thumbnail": null,
+  "author": "Lightricks (ComfyUI-LTXVideo)",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "video_edit_ltx2_5_iclora_union_control.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "gemma4_e2b_it_bf16.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "ltx-2.5-audio-vae-bf16.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "ltx-2.5-video-vae-bf16.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors"
+      },
+      {
+        "type": "other",
+        "file": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"
+      },
+      {
+        "type": "other",
+        "file": "video_depth_anything_vits.pth"
+      }
+    ]
+  },
+  "estimatedDurationSec": 150,
+  "exposedParameters": [
+    {
+      "key": "loadvideo_file_5001",
+      "nodeId": "5001",
+      "field": "file",
+      "type": "video",
+      "label": "Source video (motion + structure to follow)",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_2004",
+      "nodeId": "2004",
+      "field": "image",
+      "type": "image",
+      "label": "Start image (first frame / look — ignored if the box below is unticked)",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "primitivestringmultiline_value_5508",
+      "nodeId": "5508",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt (scene / style / action / sound)",
+      "default": "A hand-crafted claymation stop-motion film: soft rounded clay characters and props with visible fingerprints, warm pastel colors, soft studio lighting and a shallow depth of field. The motion follows the original shot naturally. Gentle ambient sounds match the scene.",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "comfyswitchnode_switch_5014_5556",
+      "nodeId": "5014:5556",
+      "field": "switch",
+      "type": "checkbox",
+      "label": "Enhance prompt with AI",
+      "default": false,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "primitiveboolean_value_5014_5506",
+      "nodeId": "5014:5506",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Use the start image",
+      "default": true,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "ltxaddvideoicloraguide_strength_9002_5012",
+      "nodeId": "9002:5012",
+      "field": "strength",
+      "type": "number",
+      "label": "Control strength (how strictly the source's structure is followed)",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "resizeimagemasknode_resize_type_shorter_size_5548_5026",
+      "nodeId": "5548:5026",
+      "field": "resize_type.shorter_size",
+      "type": "number",
+      "label": "Working resolution (short side — the final video is 2× this)",
+      "default": 544,
+      "min": 256,
+      "max": 640,
+      "step": 16,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "video_slice_duration_9900",
+      "nodeId": "9900",
+      "field": "duration",
+      "type": "number",
+      "label": "Clip length used (seconds, max 10 — only the start of your video is processed)",
+      "default": 5,
+      "min": 1,
+      "max": 10,
+      "step": 0.5,
+      "required": false,
+      "order": 7
+    },
+    {
+      "key": "randomnoise_noise_seed_5516_4832",
+      "nodeId": "5516:4832",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 8
+    }
+  ],
+  "warmupParams": {
+    "primitivestringmultiline_value_5508": "a claymation version of the scene, soft studio light",
+    "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+  },
+  "presets": {}
+}

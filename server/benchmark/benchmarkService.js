@@ -132,14 +132,39 @@ class BenchmarkService {
         return cands[0].full;
     }
 
+    // A warmupParams value of `asset:<file name>` names a specific file in the
+    // assets dir for that media input. Needed when the content matters, not
+    // just the type: a pose / character-replacement workflow calibrated on
+    // whatever video happens to be smallest may find no person and fail.
+    _namedAsset(value, type) {
+        if (typeof value !== 'string' || !value.startsWith('asset:')) return undefined;
+        const name = value.slice('asset:'.length).trim();
+        const full = this.assetsDir ? path.join(this.assetsDir, name) : '';
+        const ok = full && path.dirname(path.resolve(full)) === path.resolve(this.assetsDir) && fs.existsSync(full);
+        if (ok) return full;
+        console.warn(`[Benchmark]   warmupParams asks for asset "${name}" but it isn't in ${this.assetsDir || '(no assets dir)'} — picking a ${type} automatically`);
+        return null;
+    }
+
     // Stage the assets each image/video/audio input needs into ComfyUI/input and
     // return the paramValues map (basenames the Load* nodes will read). Reuses
     // the worker's InputUploader so the copies are namespaced + sweepable.
     _buildCalibrationParams(entry, benchJobId) {
         const paramValues = { ...(entry.meta.warmupParams || {}) };
         for (const p of entry.effective.exposedParameters) {
-            if (paramValues[p.key] !== undefined && paramValues[p.key] !== '') continue;
             if (!['image', 'video', 'audio', 'mask'].includes(p.type)) continue;
+            const named = this._namedAsset(paramValues[p.key], p.type);
+            if (named) {
+                const rec = this.worker.uploader.copy({
+                    jobId: benchJobId, paramKey: p.key,
+                    originalName: path.basename(named), source: named
+                });
+                paramValues[p.key] = rec.comfyFilename;
+                console.log(`[Benchmark]   ${p.type} input "${p.key}" ← ${path.basename(named)} (named in warmupParams)`);
+                continue;
+            }
+            if (named === null) delete paramValues[p.key];
+            if (paramValues[p.key] !== undefined && paramValues[p.key] !== '') continue;
             const asset = this._resolveAsset(p.type);
             if (asset) {
                 const rec = this.worker.uploader.copy({

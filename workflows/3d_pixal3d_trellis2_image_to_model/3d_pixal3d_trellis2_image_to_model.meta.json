@@ -1,0 +1,147 @@
+{
+  "schemaVersion": 1,
+  "id": "3d_pixal3d_trellis2_image_to_model",
+  "name": "Pixal3D / TRELLIS.2 (built-in nodes) — image to PBR-textured 3D model",
+  "description": "Upload one image of an object or character and get back a 3D model (.glb) with full PBR materials — colour, metallic, roughness, normal and ambient-occlusion maps baked in — that you can spin in the viewer. This version runs entirely on ComfyUI's own built-in 3D nodes and can use two different generators: Pixal3D (the default) also estimates the camera of your picture so the shape lines up closely with what you see, while TRELLIS.2 (tick 'Use TRELLIS.2') is an alternative worth trying when Pixal3D struggles with a subject. (The separate 'Pixal3D — image to 3D mesh' workflow uses the Pixal3D custom-node pack instead and only bakes a colour texture.)\n\nUse a clean, well-lit picture with the whole subject visible. Leave 'Auto-remove background' on for normal photos; turn it off only for a PNG that already has a transparent background.\n\n'Shape detail' sets how finely the geometry is sampled (higher = more detail, more memory and time). 'Target face count' is the polygon budget of the final mesh — lower is lighter to view and share. 'Texture resolution' is the size of the baked texture maps (4096 is crisp, 2048 gives a much smaller file). Generation, remeshing, UV unwrapping and texture baking all run in one go, so expect a few minutes per model.",
+  "category": "3d",
+  "tags": [
+    "pixal3d",
+    "trellis2",
+    "trellis",
+    "3d",
+    "image-to-3d",
+    "mesh",
+    "glb",
+    "pbr",
+    "textured-mesh",
+    "native"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "3d_pixal3d_trellis2_image_to_model.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 20,
+    "models": [
+      {
+        "type": "unet",
+        "file": "pixal3d_int8_convrot.safetensors"
+      },
+      {
+        "type": "unet",
+        "file": "trellis_2_int8_convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "trellis_2_shape_vae_bf16.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "trellis_2_texture_vae_bf16.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "dino_v3_L_naf_fp32.safetensors"
+      },
+      {
+        "type": "other",
+        "file": "moge_2_vitl_normal_fp16.safetensors"
+      },
+      {
+        "type": "other",
+        "file": "birefnet.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 150,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_122",
+      "nodeId": "122",
+      "field": "image",
+      "type": "image",
+      "label": "Object image (whole subject in frame)",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "primitiveboolean_value_316",
+      "nodeId": "316",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Use TRELLIS.2 instead of Pixal3D",
+      "default": false,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "comfyswitchnode_switch_248",
+      "nodeId": "248",
+      "field": "switch",
+      "type": "checkbox",
+      "label": "Auto-remove background (turn off only for a transparent PNG)",
+      "default": true,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "trellis2upsamplestage_target_resolution_94",
+      "nodeId": "94",
+      "field": "target_resolution",
+      "type": "number",
+      "label": "Shape detail (voxel resolution — higher = finer, more memory & time)",
+      "default": 1536,
+      "min": 1024,
+      "max": 2048,
+      "step": 128,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "decimatemesh_target_face_count_186",
+      "nodeId": "186",
+      "field": "target_face_count",
+      "type": "number",
+      "label": "Target face count (polygon budget of the final mesh)",
+      "default": 700000,
+      "min": 10000,
+      "max": 2000000,
+      "step": 10000,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "primitiveint_value_288",
+      "nodeId": "288",
+      "field": "value",
+      "type": "number",
+      "label": "Texture resolution (size of the baked texture maps)",
+      "default": 4096,
+      "min": 1024,
+      "max": 8192,
+      "step": 1024,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "ksampler_seed_3",
+      "nodeId": "3",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 56,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 6
+    }
+  ],
+  "warmupParams": {
+    "loadimage_image_122": "asset:e0c02414604575.563121c5934f5.JPG"
+  },
+  "presets": {}
+}

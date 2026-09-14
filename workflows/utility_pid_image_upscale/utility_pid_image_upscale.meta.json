@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "id": "utility_pid_image_upscale",
+  "name": "PiD — image upscale ×4 (up to 33 MP)",
+  "description": "Upload an image and NVIDIA's PiD pixel decoder rebuilds it 4× wider and 4× taller: a 1920×1080 picture becomes 7680×4320 (33 MP), a 1024×1024 one becomes 4096×4096. It adds real fine detail (fabric, foliage, stone, skin) instead of just enlarging the pixels, and keeps the original colours. The image is processed in overlapping tiles, so there are no visible seams.\n\nBig photos are first shrunk to fit 1920×1080 by the upload form, so the largest result is 7680×4320.\n\nClean, sharp images give the best results. Tiny, blurry or heavily compressed pictures (for example ones saved from a messaging app) can come back with invented texture or odd-looking small faces. The result files are very large (tens of MB), so opening and downloading them takes a moment. Change the seed to re-roll the fine detail.",
+  "category": "i2i",
+  "tags": [
+    "pid",
+    "upscale",
+    "super-resolution",
+    "4x",
+    "33mp",
+    "image",
+    "detail",
+    "tiled"
+  ],
+  "thumbnail": null,
+  "author": "ComfyQ (built on ComfyUI-Latent-Tiled-PiD by BennyDaBall930)",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "utility_pid_image_upscale.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 12,
+    "models": [
+      {
+        "type": "vae",
+        "file": "qwen_image_vae.safetensors"
+      },
+      {
+        "type": "unet",
+        "file": "pid_1.5_qwenimage_1024_to_4096_4step_bf16.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "gemma_2_2b_it_elm_bf16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 18,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_1",
+      "nodeId": "1",
+      "field": "image",
+      "type": "image",
+      "label": "Image to upscale",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "latenttiledpiddecode_seed_7",
+      "nodeId": "7",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed (re-rolls the fine detail)",
+      "default": 42,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 1
+    }
+  ],
+  "warmupParams": {
+    "loadimage_image_1": "asset:01-portrait_remix.png"
+  },
+  "presets": {}
+}

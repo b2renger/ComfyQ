@@ -1,0 +1,269 @@
+{
+  "29": {
+    "inputs": {
+      "filename_prefix": "krea2_identity_edit",
+      "images": [
+        "54",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Save Image"
+    }
+  },
+  "53": {
+    "inputs": {
+      "seed": 43,
+      "steps": 10,
+      "cfg": 1,
+      "sampler_name": "lcm",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "120",
+        0
+      ],
+      "positive": [
+        "119",
+        0
+      ],
+      "negative": [
+        "85",
+        0
+      ],
+      "latent_image": [
+        "156",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler"
+    }
+  },
+  "54": {
+    "inputs": {
+      "samples": [
+        "53",
+        0
+      ],
+      "vae": [
+        "57",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "55": {
+    "inputs": {
+      "unet_name": "Krea2_Turbo_convrot_int8mixed.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model"
+    }
+  },
+  "56": {
+    "inputs": {
+      "clip_name": "qwen3vl_4b_fp8_scaled.safetensors",
+      "type": "krea2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP"
+    }
+  },
+  "57": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE"
+    }
+  },
+  "72": {
+    "inputs": {
+      "image": "174fc586b254b070f2670807dbbd0d965065ce37.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Body Reference"
+    }
+  },
+  "73": {
+    "inputs": {
+      "pixels": [
+        "123",
+        0
+      ],
+      "vae": [
+        "57",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "85": {
+    "inputs": {
+      "prompt": "imperfect text, bad text, blur",
+      "grounding_px": 0,
+      "system_prompt": "",
+      "clip": [
+        "56",
+        0
+      ],
+      "image": [
+        "123",
+        0
+      ]
+    },
+    "class_type": "Krea2EditGroundedEncode",
+    "_meta": {
+      "title": "negative (leave empty)"
+    }
+  },
+  "119": {
+    "inputs": {
+      "prompt": [
+        "162",
+        0
+      ],
+      "grounding_px": 0,
+      "system_prompt": "",
+      "clip": [
+        "56",
+        0
+      ],
+      "image": [
+        "123",
+        0
+      ]
+    },
+    "class_type": "Krea2EditGroundedEncode",
+    "_meta": {
+      "title": "Krea2 Edit (grounded encode)"
+    }
+  },
+  "120": {
+    "inputs": {
+      "ref_boost": 1,
+      "ref_boost_a": 1,
+      "fit_mode": "fit",
+      "model": [
+        "164",
+        0
+      ],
+      "source_latent": [
+        "73",
+        0
+      ],
+      "vae": [
+        "57",
+        0
+      ],
+      "source_image": [
+        "123",
+        0
+      ]
+    },
+    "class_type": "Krea2EditModelPatch",
+    "_meta": {
+      "title": "Krea2 Edit (source patch)"
+    }
+  },
+  "123": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "upscale_method": "lanczos",
+      "keep_proportion": "resize",
+      "pad_color": "0, 0, 0",
+      "crop_position": "center",
+      "divisible_by": 2,
+      "device": "cpu",
+      "image": [
+        "72",
+        0
+      ]
+    },
+    "class_type": "ImageResizeKJv2",
+    "_meta": {
+      "title": "Resize Image v2"
+    }
+  },
+  "156": {
+    "inputs": {
+      "width": 1536,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "Latent"
+    }
+  },
+  "162": {
+    "inputs": {
+      "prompt": [
+        "184",
+        0
+      ],
+      "max_length": 2048,
+      "sampling_mode": "on",
+      "sampling_mode.temperature": 0.7,
+      "sampling_mode.top_k": 64,
+      "sampling_mode.top_p": 0.95,
+      "sampling_mode.min_p": 0.05,
+      "sampling_mode.repetition_penalty": 1.05,
+      "sampling_mode.seed": 0,
+      "sampling_mode.presence_penalty": 0,
+      "thinking": false,
+      "use_default_template": true,
+      "clip": [
+        "56",
+        0
+      ],
+      "image": [
+        "123",
+        0
+      ]
+    },
+    "class_type": "TextGenerate",
+    "_meta": {
+      "title": "Generate Text"
+    }
+  },
+  "164": {
+    "inputs": {
+      "lora_name": "DynamicCharacterSheet_krea2_v1.safetensors",
+      "strength_model": 1,
+      "model": [
+        "55",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "Load LoRA"
+    }
+  },
+  "184": {
+    "inputs": {
+      "value": "You are a captioning engine for a character-sheet LoRA. Given ONE reference image,\noutput a single, complete training/inferenception text —\noutput a single, complete training/inference caption. Output ONLY the caption text —\nno preamble, no markdown fences, no explanat\n\nYou MUST reproduce the FIXED LANDSCAPE SHEETEXT block, and\nthe NEGATIVE CONSTRAINTS block VERBATIM, character-for-character, exactly as shown in\nthe examples below. Only the bracket header,he IDENTITY\nLOCKS bullets + rendering-style clause change per image. Never paraphrase, shorten, or\nomit any fixed section.\n\nTEMPLATE SKELETON (fill every <PLACEHOLDER>;xt):\n\n[TASK: ENTITY_SHEET_GENERATION]\n[TEMPLATE: MULTI_ANGLE_ENTITY_SHEET_V1]\n[ENTITY_TYPE: <ENTITY_TYPE>]\n[ENTITY_ID: <entity_id>]\n\nConvert the subject in Image 1 into one standardized advanced Character Sheet. Image 1 is the sole identity and design reference for <Name>. Preserve the exact sam design, proportions, colors, materials,markings, surface wear, and every signature detail. Do not redesign, beautify, age-shift, or simplify it.\n\nFIXED LANDSCAPE SHEET FORMAT\nUse a clean 3:2 landscape canvas with a warmand generous white space. Organize onecoherent sheet with these fixed zones:\n1. LEFT METADATA COLUMN: the exact name \"<Na, and VISUAL SIGNATURE in compact readableEnglish.\n2. LARGE CENTER HERO VIEW: one dominant fullee-quarter view.\n3. TOP-RIGHT TURNAROUND ROW: neutral FRONT FULL BODY, SIDE FULL BODY, and BACK FULL BODY views at matching scale, with\nall extremities visible.\n4. MID-RIGHT <ACTION_LABEL>: three readable views including a low angle, an overhead or high angle, and one\ncharacteristic action or operating state.\n5. BOTTOM-LEFT SILHOUETTE STUDY: three solid black silhouettes that preserve the design shape.\n6. BOTTOM-CENTER <STUDY_LABEL>: one clear neee compact expression, state, or functionalstudies showing meaningful variation without changing identity or construction.\n7. BOTTOM-RIGHT DETAIL STUDY: six close-up citical features, materials, joints, face,markings, controls, or accessories.\n\nIDENTITY LOCKS\n<4 to 7 bullet lines, one verifiable signatulore>\n- Keep the subject from Image 1 recognizable in every view.\n- Keep handedness, asymmetry, markings, costcement consistent.\n- Use <rendering style clause> throughout the sheet.\n\nVISIBLE TEXT\nAll labels must be English only. Keep labelsnvent lore paragraphs.\n\nNEGATIVE CONSTRAINTS\nNo extra character or object, identity drift, species drift, wardrobe drift, material drift, inconsistent markings,\nchanged proportions, missing extremities, du, overlapping panels, logo, watermark, orunrelated decoration.\n\nFIELD RULES\n- <ENTITY_TYPE> is one of exactly these 7 (u:\n  ANIMAL, STYLIZED_CHARACTER, HUMAN, ROBOT, VEHICLE, OBJECT, CREATURE\n  - ANIMAL: real-world animal.\n  - STYLIZED_CHARACTER: anime/game/illustrated humanoid character (fictional, non-photoreal).\n  - HUMAN: photorealistic real person.\n  - ROBOT: mecha, android, machine.\n  - VEHICLE: car, motorcycle, aircraft, etc.\n  - OBJECT: product, instrument, furniture, inanimate item.\n  - CREATURE: fantastical non-human being (n\n- <entity_id>: lowercase snake_case, \"<entity_type>_<short_name>\", e.g. animal_fenna_fox,\n  stylized_character_kitsu_scout. Invent a s visible/known.\n- <ACTION_LABEL>: \"ACTION POSES\" for every entity_type except OBJECT, which uses\n  \"FUNCTIONAL CONFIGURATIONS\".\n- <STUDY_LABEL>: \"EXPRESSION STUDY\" for HUMAN, STYLIZED_CHARACTER, ANIMAL, CREATURE;\n  \"STATE / FUNCTION STUDY\" for ROBOT, VEHICL\n- IDENTITY LOCKS bullets: only things visibly verifiable in the image — exact colors,\n  markings, asymmetries, accessory shapes, mat another artist\n  could reproduce them blind. Never invent anything you can't see.\n- <rendering style clause>: match the actualistic wildlife\n  concept art with anatomically credible fur, paws, and motion\" / \"clean anime cel-shaded\n  illustration style with sharp linework\" / rame photography\n  with physically accurate anatomy, natural skin pores, and no illustrated or cartoon\n  qualities\" / \"high-end hard-surface robot joints, weathered\n  paint, and exposed cabling\" / \"premium photoreal product concept rendering with precise\n  metal, wood, glass, and matte surfaces\". A; these are\n  examples, not a fixed list.\n- Do NOT add CORE MOOD text or the DETAIL STmodel invents\n  those on its own at generation time; they are not part of this caption.\n- Even for revealing/suggestive outfits, des in plain,\n  technical terms (like a production design document), never in objectifying language.\n\n=== EXAMPLE 1 (ANIMAL) ===\n[TASK: ENTITY_SHEET_GENERATION]\n[TEMPLATE: MULTI_ANGLE_ENTITY_SHEET_V1]\n[ENTITY_TYPE: ANIMAL]\n[ENTITY_ID: animal_fenna_fox]\n\nConvert the subject in Image 1 into one standardized advanced Character Sheet. Image 1 is the sole identity and design\nreference for Fenna. Preserve the exact samedesign, proportions, colors, materials,markings, surface wear, and every signature detail. Do not redesign, beautify, age-shift, or simplify it.\n\nFIXED LANDSCAPE SHEET FORMAT\nUse a clean 3:2 landscape canvas with a warmand generous white space. Organize onecoherent sheet with these fixed zones:\n1. LEFT METADATA COLUMN: the exact name \"Fen and VISUAL SIGNATURE in compact readableEnglish.\n2. LARGE CENTER HERO VIEW: one dominant fullee-quarter view.\n3. TOP-RIGHT TURNAROUND ROW: neutral FRONT FULL BODY, SIDE FULL BODY, and BACK FULL BODY views at matching scale, with\nall extremities visible.\n4. MID-RIGHT ACTION POSES: three readable views including a low angle, an overhead or high angle, and one\ncharacteristic action or operating state.\n5. BOTTOM-LEFT SILHOUETTE STUDY: three solid black silhouettes that preserve the design shape.\n6. BOTTOM-CENTER EXPRESSION STUDY: one clearthree compact expression, state, or functional studies showing meaningful variation without changing identity or construction.\n7. BOTTOM-RIGHT DETAIL STUDY: six close-up citical features, materials, joints, face,markings, controls, or accessories.\n\nIDENTITY LOCKS\n\n- charcoal ear tips                                                                                               - narrow red tag on left foreleg\n- long plume tail with a faint gray tip                                                                           - Keep the subject from Image 1 recognizable\n- Keep handedness, asymmetry, markings, costume, hardware, and color placement consistent.                        - Use naturalistic wildlife concept art withaws, and motion throughout the sheet.\n                                                                                                                  VISIBLE TEXT\nAll labels must be English only. Keep labels short and legible. Do not invent lore paragraphs.                    \nNEGATIVE CONSTRAINTS                                                                                              No extra character or object, identity driftft, material drift, inconsistent markings,changed proportions, missing extremities, duplicated limbs, merged views, overlapping panels, logo, watermark, or unrelated decoration.\n                                                                                                                  === EXAMPLE 2 (STYLIZED_CHARACTER) ===\n[TASK: ENTITY_SHEET_GENERATION]                                                                                   [TEMPLATE: MULTI_ANGLE_ENTITY_SHEET_V1]\n[ENTITY_TYPE: STYLIZED_CHARACTER]                                                                                 [ENTITY_ID: stylized_character_kitsu_scout]\n                                                                                                                  Convert the subject in Image 1 into one stanheet. Image 1 is the sole identity and design reference for Kitsu. Preserve the exact same subject identity or object design, proportions, colors, materials,   markings, surface wear, and every signature tify, age-shift, or simplify it.\n                                                                                                                  FIXED LANDSCAPE SHEET FORMAT\nUse a clean 3:2 landscape canvas with a warm off-white paper background and generous white space. Organize one    coherent sheet with these fixed zones:\n1. LEFT METADATA COLUMN: the exact name \"Kitsu\", ENTITY TYPE, CORE MOOD, and VISUAL SIGNATURE in compact readable English.\n2. LARGE CENTER HERO VIEW: one dominant full-body or complete-object three-quarter view.                          3. TOP-RIGHT TURNAROUND ROW: neutral FRONT F BACK FULL BODY views at matching scale, with all extremities visible.                                                                                          4. MID-RIGHT ACTION POSES: three readable vi overhead or high angle, and onecharacteristic action or operating state.                                                                         5. BOTTOM-LEFT SILHOUETTE STUDY: three solidrve the design shape.\n6. BOTTOM-CENTER EXPRESSION STUDY: one clear neutral face close-up plus three compact expression, state, or functistudies showing meaningful variation withoutction.\n7. BOTTOM-RIGHT DETAIL STUDY: six close-up crops of the most identity-critical features, materials, joints, face, markings, controls, or accessories.\n                                                                                                                  IDENTITY LOCKS\n- long straight auburn/orange hair reaching past the knees, with center-parted blunt bangs                        - teal-turquoise eyes\n- long fluffy fox-like tail matching the hair color, tapering to a point                                          - green bow headband with two leaf-shaped or\n- white and green sailor-collar uniform jacket with gold buttons, black neck ribbon, green cuffs with yellow trim - pleated white skirt with green and yellow hem\n- Keep the subject from Image 1 recognizable in every view.                                                       - Keep handedness, asymmetry, markings, costement consistent.\n- Use clean anime cel-shaded illustration style with sharp linework throughout the sheet.                         \nVISIBLE TEXT                                                                                                      All labels must be English only. Keep labelsvent lore paragraphs.\n                                                                                                                  NEGATIVE CONSTRAINTS\nNo extra character or object, identity drift, species drift, wardrobe drift, material drift, inconsistent markingschanged proportions, missing extremities, du overlapping panels, logo, watermark, orunrelated decoration.                                                                                             \n=== EXAMPLE 3 (HUMAN) ===                                                                                         [TASK: ENTITY_SHEET_GENERATION]\n[TEMPLATE: MULTI_ANGLE_ENTITY_SHEET_V1]                                                                           [ENTITY_TYPE: HUMAN]\n[ENTITY_ID: photoreal_human_amara_medic]                                                                          \nConvert the subject in Image 1 into one standardized advanced Character Sheet. Image 1 is the sole identity and dereference for Amara Owusu. Preserve the exacject design, proportions, colors, materials, markings, surface wear, and every signature detail. Do not redesign, beautify, age-shift, or simplify it.         \nFIXED LANDSCAPE SHEET FORMAT                                                                                      Use a clean 3:2 landscape canvas with a warmnd generous white space. Organize onecoherent sheet with these fixed zones:                                                                            1. LEFT METADATA COLUMN: the exact name \"AmaMOOD, and VISUAL SIGNATURE in compactreadable English.                                                                                                 2. LARGE CENTER HERO VIEW: one dominant fulle-quarter view.\n3. TOP-RIGHT TURNAROUND ROW: neutral FRONT FULL BODY, SIDE FULL BODY, and BACK FULL BODY views at matching scale, all extremities visible.\n4. MID-RIGHT ACTION POSES: three readable views including a low angle, an overhead or high angle, and one         characteristic action or operating state.\n5. BOTTOM-LEFT SILHOUETTE STUDY: three solid black silhouettes that preserve the design shape.                    6. BOTTOM-CENTER EXPRESSION STUDY: one clearhree compact expression, state, or functional studies showing meaningful variation without changing identity or construction.                                   7. BOTTOM-RIGHT DETAIL STUDY: six close-up ctical features, materials, joints, face,markings, controls, or accessories.                                                                               \nIDENTITY LOCKS                                                                                                    - faint diagonal scar through the left eyebr\n- closely cropped natural black hair                                                                              - weathered red alpine shell with one reflec\n- compact white trauma pouch at the right hip                                                                     - Keep the subject from Image 1 recognizable\n- Keep handedness, asymmetry, markings, costume, hardware, and color placement consistent.                        - Use high-end live-action full-frame photoge anatomy, natural skin pores, fine facialhair, realistic hands, authentic fabric behavior, photographic depth of field, and no illustrated or cartoon qualithroughout the sheet.\n                                                                                                                  VISIBLE TEXT\nAll labels must be English only. Keep labels short and legible. Do not invent lore paragraphs.                    \nNEGATIVE CONSTRAINTS                                                                                              No extra character or object, identity driftft, material drift, inconsistent markings,changed proportions, missing extremities, duplicated limbs, merged views, overlapping panels, logo, watermark, or unrelated decoration.\n                                                                                                                  === EXAMPLE 4 (ROBOT) ===\n[TASK: ENTITY_SHEET_GENERATION]                                                                                   [TEMPLATE: MULTI_ANGLE_ENTITY_SHEET_V1]\n[ENTITY_TYPE: ROBOT]                                                                                              [ENTITY_ID: robot_kite7_scout]\n                                                                                                                  Convert the subject in Image 1 into one stanheet. Image 1 is the sole identity and design reference for KITE-7. Preserve the exact same subject identity or object design, proportions, colors, materials,  markings, surface wear, and every signature tify, age-shift, or simplify it.\n                                                                                                                  FIXED LANDSCAPE SHEET FORMAT\nUse a clean 3:2 landscape canvas with a warm off-white paper background and generous white space. Organize one    coherent sheet with these fixed zones:\n1. LEFT METADATA COLUMN: the exact name \"KITE-7\", ENTITY TYPE, CORE MOOD, and VISUAL SIGNATURE in compact readableEnglish.\n2. LARGE CENTER HERO VIEW: one dominant full-body or complete-object three-quarter view.                          3. TOP-RIGHT TURNAROUND ROW: neutral FRONT F BACK FULL BODY views at matching scale, with all extremities visible.                                                                                          4. MID-RIGHT ACTION POSES: three readable vi overhead or high angle, and onecharacteristic action or operating state.                                                                         5. BOTTOM-LEFT SILHOUETTE STUDY: three solidrve the design shape.\n6. BOTTOM-CENTER STATE / FUNCTION STUDY: one clear neutral face close-up plus three compact expression, state, or functional studies showing meaningful variat or construction.\n7. BOTTOM-RIGHT DETAIL STUDY: six close-up crops of the most identity-critical features, materials, joints, face, markings, controls, or accessories.\n                                                                                                                  IDENTITY LOCKS\n- mustard rectangular head with worn paint                                                                        - two round cyan camera eyes\n- asymmetrical antenna arrangement                                                                                - red circular rescue emblem on left shoulde\n- Keep the subject from Image 1 recognizable in every view.                                                       - Keep handedness, asymmetry, markings, costement consistent.\n- Use high-end hard-surface robot concept art with functional joints, weathered paint, and exposed cabling throughthe sheet.\n                                                                                                                  VISIBLE TEXT\nAll labels must be English only. Keep labels short and legible. Do not invent lore paragraphs.                    \nNEGATIVE CONSTRAINTS                                                                                              No extra character or object, identity driftft, material drift, inconsistent markings,changed proportions, missing extremities, duplicated limbs, merged views, overlapping panels, logo, watermark, or unrelated decoration.\n                                                                                                                  === EXAMPLE 5 (OBJECT) ===\n[TASK: ENTITY_SHEET_GENERATION]                                                                                   [TEMPLATE: MULTI_ANGLE_ENTITY_SHEET_V1]\n[ENTITY_TYPE: OBJECT]                                                                                             [ENTITY_ID: object_ember_espresso]\n                                                                                                                  Convert the subject in Image 1 into one stanheet. Image 1 is the sole identity and design reference for Ember One. Preserve the exact same subject identity or object design, proportions, colors, materialsmarkings, surface wear, and every signature tify, age-shift, or simplify it.\n                                                                                                                  FIXED LANDSCAPE SHEET FORMAT\nUse a clean 3:2 landscape canvas with a warm off-white paper background and generous white space. Organize one    coherent sheet with these fixed zones:\n1. LEFT METADATA COLUMN: the exact name \"Ember One\", ENTITY TYPE, CORE MOOD, and VISUAL SIGNATURE in compact readaEnglish.\n2. LARGE CENTER HERO VIEW: one dominant full-body or complete-object three-quarter view.                          3. TOP-RIGHT TURNAROUND ROW: neutral FRONT F BACK FULL BODY views at matching scale, with all extremities visible.                                                                                          4. MID-RIGHT FUNCTIONAL CONFIGURATIONS: threlow angle, an overhead or high angle, and one characteristic action or operating state.                                                                         5. BOTTOM-LEFT SILHOUETTE STUDY: three solidrve the design shape.\n6. BOTTOM-CENTER STATE / FUNCTION STUDY: one clear neutral face close-up plus three compact expression, state, or functional studies showing meaningful variat or construction.\n7. BOTTOM-RIGHT DETAIL STUDY: six close-up crops of the most identity-critical features, materials, joints, face,\nmarkings, controls, or accessories.\n\nIDENTITY LOCKS\n- matte black rectangular body\n- single copper pressure gauge\n- two ivory toggle switches\n- low walnut platform and amber status line\n- Keep the subject from Image 1 recognizable in every view.\n- Keep handedness, asymmetry, markings, costume, hardware, and color placement consistent.\n- Use premium photoreal product concept rendd, glass, and matte surfaces throughout thesheet.\n\nVISIBLE TEXT\nAll labels must be English only. Keep labelsvent lore paragraphs.\n\nNEGATIVE CONSTRAINTS\nNo extra character or object, identity driftft, material drift, inconsistent markings,changed proportions, missing extremities, duplicated limbs, merged views, overlapping panels, logo, watermark, or\nunrelated decoration.\n\nNow output the caption for the image the usen text only."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Prompt Template (Important)"
+    }
+  }
+}

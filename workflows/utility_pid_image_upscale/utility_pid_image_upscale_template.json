@@ -1,0 +1,611 @@
+{
+  "id": "00000000-0000-0000-0000-000000000000",
+  "revision": 0,
+  "last_node_id": 9,
+  "last_link_id": 14,
+  "nodes": [
+    {
+      "id": 1,
+      "type": "LoadImage",
+      "pos": [
+        40,
+        60
+      ],
+      "size": [
+        340,
+        340
+      ],
+      "flags": {},
+      "order": 0,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "image",
+          "name": "image",
+          "type": "COMBO",
+          "widget": {
+            "name": "image"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "choose file to upload",
+          "name": "upload",
+          "type": "IMAGEUPLOAD",
+          "widget": {
+            "name": "upload"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            8
+          ]
+        },
+        {
+          "localized_name": "MASK",
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
+        }
+      ],
+      "title": "Image to upscale",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.35.0",
+        "Node name for S&R": "LoadImage"
+      },
+      "widgets_values": [
+        "example.png",
+        "image"
+      ],
+      "widgets_values_named": {
+        "image": "example.png",
+        "upload": "image"
+      }
+    },
+    {
+      "id": 2,
+      "type": "VAELoader",
+      "pos": [
+        40,
+        440
+      ],
+      "size": [
+        270,
+        62
+      ],
+      "flags": {},
+      "order": 1,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "vae_name",
+          "name": "vae_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "vae_name"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "VAE",
+          "name": "VAE",
+          "type": "VAE",
+          "links": [
+            9
+          ]
+        }
+      ],
+      "title": "Qwen-Image VAE",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.35.0",
+        "Node name for S&R": "VAELoader"
+      },
+      "widgets_values": [
+        "qwen_image_vae.safetensors"
+      ],
+      "widgets_values_named": {
+        "vae_name": "qwen_image_vae.safetensors"
+      }
+    },
+    {
+      "id": 3,
+      "type": "VAEEncode",
+      "pos": [
+        420,
+        300
+      ],
+      "size": [
+        225,
+        54
+      ],
+      "flags": {},
+      "order": 5,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "pixels",
+          "name": "pixels",
+          "type": "IMAGE",
+          "link": 8
+        },
+        {
+          "localized_name": "vae",
+          "name": "vae",
+          "type": "VAE",
+          "link": 9
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "LATENT",
+          "name": "LATENT",
+          "type": "LATENT",
+          "links": [
+            13
+          ]
+        }
+      ],
+      "title": "Encode the image to a latent",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.35.0",
+        "Node name for S&R": "VAEEncode"
+      }
+    },
+    {
+      "id": 4,
+      "type": "UNETLoader",
+      "pos": [
+        40,
+        600
+      ],
+      "size": [
+        270,
+        86
+      ],
+      "flags": {},
+      "order": 2,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "unet_name",
+          "name": "unet_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "unet_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "weight_dtype",
+          "name": "weight_dtype",
+          "type": "COMBO",
+          "widget": {
+            "name": "weight_dtype"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "MODEL",
+          "name": "MODEL",
+          "type": "MODEL",
+          "links": [
+            11
+          ]
+        }
+      ],
+      "title": "PiD model (Qwen-Image lane)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.35.0",
+        "Node name for S&R": "UNETLoader"
+      },
+      "widgets_values": [
+        "pid_1.5_qwenimage_1024_to_4096_4step_bf16.safetensors",
+        "default"
+      ],
+      "widgets_values_named": {
+        "unet_name": "pid_1.5_qwenimage_1024_to_4096_4step_bf16.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    {
+      "id": 5,
+      "type": "CLIPLoader",
+      "pos": [
+        40,
+        740
+      ],
+      "size": [
+        270,
+        114
+      ],
+      "flags": {},
+      "order": 3,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip_name",
+          "name": "clip_name",
+          "type": "COMBO",
+          "widget": {
+            "name": "clip_name"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "type",
+          "name": "type",
+          "type": "COMBO",
+          "widget": {
+            "name": "type"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "device",
+          "name": "device",
+          "shape": 7,
+          "type": "COMBO",
+          "widget": {
+            "name": "device"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CLIP",
+          "name": "CLIP",
+          "type": "CLIP",
+          "links": [
+            10
+          ]
+        }
+      ],
+      "title": "PiD text encoder (Gemma)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.35.0",
+        "Node name for S&R": "CLIPLoader"
+      },
+      "widgets_values": [
+        "gemma_2_2b_it_elm_bf16.safetensors",
+        "pixeldit",
+        "default"
+      ],
+      "widgets_values_named": {
+        "clip_name": "gemma_2_2b_it_elm_bf16.safetensors",
+        "type": "pixeldit",
+        "device": "default"
+      }
+    },
+    {
+      "id": 6,
+      "type": "CLIPTextEncode",
+      "pos": [
+        420,
+        700
+      ],
+      "size": [
+        340,
+        120
+      ],
+      "flags": {},
+      "order": 6,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "clip",
+          "name": "clip",
+          "type": "CLIP",
+          "link": 10
+        },
+        {
+          "localized_name": "text",
+          "name": "text",
+          "type": "STRING",
+          "widget": {
+            "name": "text"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "CONDITIONING",
+          "name": "CONDITIONING",
+          "type": "CONDITIONING",
+          "links": [
+            12
+          ]
+        }
+      ],
+      "title": "PiD prompt (empty is fine)",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.35.0",
+        "Node name for S&R": "CLIPTextEncode"
+      },
+      "widgets_values": [
+        ""
+      ],
+      "widgets_values_named": {
+        "text": ""
+      }
+    },
+    {
+      "id": 7,
+      "type": "LatentTiledPiDDecode",
+      "pos": [
+        820,
+        300
+      ],
+      "size": [
+        360,
+        230
+      ],
+      "flags": {},
+      "order": 7,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "model",
+          "name": "model",
+          "type": "MODEL",
+          "link": 11
+        },
+        {
+          "localized_name": "positive",
+          "name": "positive",
+          "type": "CONDITIONING",
+          "link": 12
+        },
+        {
+          "localized_name": "latent",
+          "name": "latent",
+          "type": "LATENT",
+          "link": 13
+        },
+        {
+          "localized_name": "latent_format",
+          "name": "latent_format",
+          "type": "COMBO",
+          "widget": {
+            "name": "latent_format"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "max_tile",
+          "name": "max_tile",
+          "type": "INT",
+          "widget": {
+            "name": "max_tile"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "overlap",
+          "name": "overlap",
+          "type": "INT",
+          "widget": {
+            "name": "overlap"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "seed",
+          "name": "seed",
+          "type": "INT",
+          "widget": {
+            "name": "seed"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "degrade_sigma",
+          "name": "degrade_sigma",
+          "type": "FLOAT",
+          "widget": {
+            "name": "degrade_sigma"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "IMAGE",
+          "name": "IMAGE",
+          "type": "IMAGE",
+          "links": [
+            14
+          ]
+        }
+      ],
+      "title": "Latent-Tiled PiD Decode (4x)",
+      "properties": {
+        "cnr_id": "comfyui-workflow-encrypt",
+        "ver": "1.0.0",
+        "Node name for S&R": "LatentTiledPiDDecode"
+      },
+      "widgets_values": [
+        "qwenimage",
+        1024,
+        64,
+        42,
+        "randomize",
+        0
+      ],
+      "widgets_values_named": {
+        "latent_format": "qwenimage",
+        "max_tile": 1024,
+        "overlap": 64,
+        "seed": 42,
+        "control_after_generate": "randomize",
+        "degrade_sigma": 0
+      }
+    },
+    {
+      "id": 8,
+      "type": "SaveImage",
+      "pos": [
+        1240,
+        300
+      ],
+      "size": [
+        420,
+        420
+      ],
+      "flags": {},
+      "order": 8,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "link": 14
+        },
+        {
+          "localized_name": "filename_prefix",
+          "name": "filename_prefix",
+          "type": "STRING",
+          "widget": {
+            "name": "filename_prefix"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "images",
+          "name": "images",
+          "type": "IMAGE",
+          "links": null
+        }
+      ],
+      "title": "Upscaled image",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "ver": "0.35.0",
+        "Node name for S&R": "SaveImage"
+      },
+      "widgets_values": [
+        "pid_upscale/pid_4x"
+      ],
+      "widgets_values_named": {
+        "filename_prefix": "pid_upscale/pid_4x"
+      }
+    },
+    {
+      "id": 9,
+      "type": "Note",
+      "pos": [
+        420,
+        40
+      ],
+      "size": [
+        360,
+        220
+      ],
+      "flags": {},
+      "order": 4,
+      "mode": 0,
+      "inputs": [],
+      "outputs": [],
+      "title": "How it works",
+      "properties": {},
+      "widgets_values": [
+        "Image -> 4x upscale with NVIDIA PiD (Pixel Diffusion Decoder).\n\n1. The uploaded image is VAE-encoded with the Qwen-Image VAE.\n2. Latent-Tiled PiD decodes that latent as overlapping tiles (each inside PiD's 1024->4096 envelope) and feather-blends them: output = 4x the input, with synthesized fine detail.\n\nKeep max_tile 1024 / overlap 64 / degrade_sigma 0 (raising degrade_sigma re-invents content and drifts colour). The Qwen lane was picked over the FLUX.2 lane after an A/B on real photos: truer colours, more detail."
+      ],
+      "widgets_values_named": {
+        "text": "Image -> 4x upscale with NVIDIA PiD (Pixel Diffusion Decoder).\n\n1. The uploaded image is VAE-encoded with the Qwen-Image VAE.\n2. Latent-Tiled PiD decodes that latent as overlapping tiles (each inside PiD's 1024->4096 envelope) and feather-blends them: output = 4x the input, with synthesized fine detail.\n\nKeep max_tile 1024 / overlap 64 / degrade_sigma 0 (raising degrade_sigma re-invents content and drifts colour). The Qwen lane was picked over the FLUX.2 lane after an A/B on real photos: truer colours, more detail."
+      },
+      "color": "#432",
+      "bgcolor": "#653"
+    }
+  ],
+  "links": [
+    [
+      8,
+      1,
+      0,
+      3,
+      0,
+      "IMAGE"
+    ],
+    [
+      9,
+      2,
+      0,
+      3,
+      1,
+      "VAE"
+    ],
+    [
+      10,
+      5,
+      0,
+      6,
+      0,
+      "CLIP"
+    ],
+    [
+      11,
+      4,
+      0,
+      7,
+      0,
+      "MODEL"
+    ],
+    [
+      12,
+      6,
+      0,
+      7,
+      1,
+      "CONDITIONING"
+    ],
+    [
+      13,
+      3,
+      0,
+      7,
+      2,
+      "LATENT"
+    ],
+    [
+      14,
+      7,
+      0,
+      8,
+      0,
+      "IMAGE"
+    ]
+  ],
+  "groups": [],
+  "config": {},
+  "extra": {
+    "ds": {
+      "scale": 0.9,
+      "offset": [
+        416,
+        110
+      ]
+    }
+  },
+  "version": 0.4
+}

@@ -25,12 +25,24 @@ const SAGE_MESSAGE =
 const NO_FACE_MESSAGE =
     'No face was detected in the image. Please upload a clear photo with a single, fully visible face — front-facing, well lit, and not too small in the frame.';
 
+// Workflows that keep or re-encode the source soundtrack (e.g. the LTX 2.5 deblur
+// upscaler) die in VAEEncodeAudio when the uploaded clip has no audio stream —
+// screen recordings, GIF conversions and many exported renders are silent.
+const NO_AUDIO_MSG_RX = /input audio is none|no audio (track|stream)/i;
+const NO_AUDIO_NODE_RX = /encodeaudio/i;
+const NONE_RX = /\bnone\b|nonetype/i;
+const NO_AUDIO_MESSAGE =
+    'Your video has no sound track, and this workflow keeps the original audio. Please upload a clip that has sound.';
+
 // message: the raw exception text from ComfyUI; nodeType: the failing node's
 // class_type (both available on the execution_error event and in history status).
 function humanizeFailure(message, nodeType) {
     const msg = String(message ?? '').trim();
     const node = String(nodeType ?? '');
     if (SAGE_RX.test(msg)) return SAGE_MESSAGE;
+    if (NO_AUDIO_MSG_RX.test(msg) || (NO_AUDIO_NODE_RX.test(node) && NONE_RX.test(msg) && !MEMORY_RX.test(msg))) {
+        return NO_AUDIO_MESSAGE;
+    }
     const faceMsg = FACE_MSG_RX.test(msg);
     const faceNode = FACE_NODE_RX.test(node) && !MEMORY_RX.test(msg);
     if (faceMsg || faceNode) return NO_FACE_MESSAGE;
@@ -89,5 +101,5 @@ function humanizeSubmitRejection(data) {
 
 module.exports = {
     humanizeFailure, isSageIncompatibility, humanizeSubmitRejection,
-    NO_FACE_MESSAGE, SAGE_MESSAGE
+    NO_FACE_MESSAGE, SAGE_MESSAGE, NO_AUDIO_MESSAGE
 };

@@ -1,0 +1,151 @@
+{
+  "schemaVersion": 1,
+  "id": "utility_seedvr2_3b_int8_video_upscale",
+  "name": "SeedVR2 3B (int8) — video upscale & restore",
+  "description": "Upload a video and SeedVR2 rebuilds every frame at a larger size, restoring real detail (textures, edges, blocky compression) instead of just stretching the pixels. The original frame rate and audio are kept. This is the light int8 build of the 3B model, running on ComfyUI's built-in SeedVR2 support.\n\nUpscale factor multiplies the size of your clip, up to ×2: 540p becomes 1080p, and 1080p becomes 4K, which is already very heavy. Time grows with the output size times the number of frames, so keep clips short and the factor modest. Turn on Trim to process just a few seconds (start time + length), and turn on \"Process in chunks\" if a longer clip fails for lack of memory.\n\nIf the colours drift away from the original, pick a colour correction (\"lab\" is the most faithful). Change the seed to re-roll the generated detail.\n\nThe time estimate shown is for a 3-second clip; longer clips take proportionally longer.",
+  "category": "preprocessor",
+  "tags": [
+    "seedvr2",
+    "upscale",
+    "super-resolution",
+    "restore",
+    "video",
+    "int8",
+    "3b"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "utility_seedvr2_3b_int8_video_upscale.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 12,
+    "models": [
+      {
+        "type": "unet",
+        "file": "seedvr2_3b_int8_convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "seedvr2_ema_vae_fp16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 120,
+  "exposedParameters": [
+    {
+      "key": "loadvideo_file_73",
+      "nodeId": "73",
+      "field": "file",
+      "type": "video",
+      "label": "Source video",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "resizeimagemasknode_resize_type_multiplier_66_57",
+      "nodeId": "66:57",
+      "field": "resize_type.multiplier",
+      "type": "number",
+      "label": "Upscale factor (×2 = twice as wide and tall — the maximum)",
+      "default": 2,
+      "min": 1,
+      "max": 2,
+      "step": 0.5,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "comfyswitchnode_switch_66_81",
+      "nodeId": "66:81",
+      "field": "switch",
+      "type": "checkbox",
+      "label": "Trim the clip before upscaling",
+      "default": false,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "video_slice_start_time_66_79",
+      "nodeId": "66:79",
+      "field": "start_time",
+      "type": "number",
+      "label": "Trim start (seconds)",
+      "default": 0,
+      "min": 0,
+      "max": 3600,
+      "step": 0.1,
+      "disabledWhen": {
+        "param": "comfyswitchnode_switch_66_81",
+        "equals": false
+      },
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "video_slice_duration_66_79",
+      "nodeId": "66:79",
+      "field": "duration",
+      "type": "number",
+      "label": "Trim length (seconds, 0 = to the end)",
+      "default": 5,
+      "min": 0,
+      "max": 600,
+      "step": 0.1,
+      "disabledWhen": {
+        "param": "comfyswitchnode_switch_66_81",
+        "equals": false
+      },
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "primitiveboolean_value_66_105",
+      "nodeId": "66:105",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Process in chunks (for long clips / out-of-memory errors)",
+      "default": false,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "seedvr2postprocessing_color_correction_method_66_59",
+      "nodeId": "66:59",
+      "field": "color_correction_method",
+      "type": "select",
+      "label": "Colour correction (match the original colours)",
+      "default": "none",
+      "options": [
+        "lab",
+        "wavelet",
+        "adain",
+        "none"
+      ],
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "ksampler_seed_66_54",
+      "nodeId": "66:54",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 42,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 7
+    }
+  ],
+  "warmupParams": {
+    "comfyswitchnode_switch_66_81": true,
+    "video_slice_start_time_66_79": 0,
+    "video_slice_duration_66_79": 3,
+    "loadvideo_file_73": "asset:original.mp4"
+  },
+  "presets": {}
+}

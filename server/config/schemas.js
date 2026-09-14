@@ -64,6 +64,11 @@ const WorkflowMeta = z.object({
     thumbnail: z.string().nullable().default(null),
     author: z.string().default('Unknown'),
     version: z.string().default('1.0.0'),
+    // A bundle that was built but not yet tested by hand. The admin library
+    // badges it and offers a one-click "Validate" that clears the flag (written
+    // back into meta.json so the decision travels with the bundle). It is purely
+    // a label — an experimental workflow can still be calibrated and served.
+    experimental: z.boolean().default(false),
     workflowFile: z.string().min(1),
     apiFormat: z.literal(true),
     requirements: z.object({
@@ -71,8 +76,12 @@ const WorkflowMeta = z.object({
         models: z.array(z.object({
             type: z.enum(['unet', 'vae', 'clip', 'lora', 'checkpoint', 'other']),
             file: z.string()
-        })).default([])
-    }).default({ minVRAM: 0, models: [] }),
+        })).default([]),
+        // Global ComfyUI performance flags this workflow cannot run with (it
+        // doesn't crash — it saves black images). The ComfyUI that serves or
+        // calibrates it is launched without them; see workers/perfFlags.js.
+        disabledPerfFlags: z.array(z.enum(['use_sage_attention', 'fp16_accumulation'])).default([])
+    }).default({ minVRAM: 0, models: [], disabledPerfFlags: [] }),
     estimatedDurationSec: z.number().positive().default(60),
     exposedParameters: z.array(ExposedParameter).default([]),
     warmupParams: z.record(z.any()).default({}),

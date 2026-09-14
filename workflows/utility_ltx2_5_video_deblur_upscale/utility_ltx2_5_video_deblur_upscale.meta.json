@@ -1,0 +1,139 @@
+{
+  "schemaVersion": 1,
+  "id": "utility_ltx2_5_video_deblur_upscale",
+  "name": "LTX 2.5 — video deblur & detail upscale (keeps original audio)",
+  "description": "Clean up a soft, blurry or low-resolution video. Upload a clip and LTX 2.5 re-renders every frame with sharp, fresh detail using the Deblur (2× pixel-upscaler) IC-LoRA, keeping the original motion and the original soundtrack untouched. Your clip must have a sound track — silent videos fail.\n\n\"Output size\" is the short side of the result (576 ≈ 1024×576 for a 16:9 clip). The model reads your video at half that size and rebuilds the detail, so raise it to 704 or 1088 for a bigger, sharper result — it gets slower. The prompt is optional: a short description of what's in the clip, or just the look you want, can help.\n\nYou can also upload a sharp still of the first frame and tick \"Use the start image\" to anchor the result to it; otherwise upload any picture — it is ignored. Only the start of your clip is used (\"Clip length used\", default 5 s). This is a fast single 8-step pass.",
+  "category": "preprocessor",
+  "tags": [
+    "ltx",
+    "ltx2.5",
+    "ic-lora",
+    "deblur",
+    "upscale",
+    "restore",
+    "vid2vid",
+    "distilled",
+    "video"
+  ],
+  "thumbnail": null,
+  "author": "Lightricks (ComfyUI-LTXVideo)",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "utility_ltx2_5_video_deblur_upscale.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "gemma4_e2b_it_bf16.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "ltx-2.5-audio-vae-bf16.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "ltx-2.5-video-vae-bf16.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "ltx-2.5-22b-ic-lora-pixel-spatial-upscaler-x2-1.0.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "exposedParameters": [
+    {
+      "key": "loadvideo_file_5001",
+      "nodeId": "5001",
+      "field": "file",
+      "type": "video",
+      "label": "Video to clean up (must have a sound track)",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_2004",
+      "nodeId": "2004",
+      "field": "image",
+      "type": "image",
+      "label": "Start image (optional sharp still — only used when the box below is ticked)",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "primitivestringmultiline_value_5508",
+      "nodeId": "5508",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt (optional — what's in the clip / the look you want)",
+      "default": "Sharp, highly detailed footage with clean textures, natural colors and crisp edges.",
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "primitiveboolean_value_5014_5506",
+      "nodeId": "5014:5506",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Use the start image",
+      "default": false,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "resizeimagemasknode_resize_type_shorter_size_5548_5026",
+      "nodeId": "5548:5026",
+      "field": "resize_type.shorter_size",
+      "type": "number",
+      "label": "Output size (short side, in pixels — snapped to a multiple of 64)",
+      "default": 576,
+      "min": 256,
+      "max": 1088,
+      "step": 64,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "video_slice_duration_9900",
+      "nodeId": "9900",
+      "field": "duration",
+      "type": "number",
+      "label": "Clip length used (seconds, max 10 — only the start of your video is processed)",
+      "default": 5,
+      "min": 1,
+      "max": 10,
+      "step": 0.5,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "randomnoise_noise_seed_5516_4832",
+      "nodeId": "5516:4832",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 6
+    }
+  ],
+  "warmupParams": {
+    "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+  },
+  "presets": {}
+}

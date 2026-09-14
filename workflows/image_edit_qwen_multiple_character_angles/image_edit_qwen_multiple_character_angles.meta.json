@@ -20,6 +20,7 @@
   "apiFormat": true,
   "requirements": {
     "minVRAM": 24,
+    "disabledPerfFlags": ["use_sage_attention"],
     "models": [
       {
         "type": "unet",

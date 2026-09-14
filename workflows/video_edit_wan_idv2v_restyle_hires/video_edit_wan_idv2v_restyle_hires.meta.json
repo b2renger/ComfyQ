@@ -1,0 +1,130 @@
+{
+  "schemaVersion": 1,
+  "id": "video_edit_wan_idv2v_restyle_hires",
+  "name": "Wan 2.1 ID-V2V — restyle a video from one keyframe",
+  "description": "Restyle a video while the people in it keep their face, expression and movement. Upload your source video and a stylized keyframe — the first frame of that same video, repainted in the look you want (make it with an image-edit workflow such as Flux Klein or Qwen Image-Edit, keeping the same framing). The whole clip is re-rendered in the keyframe's style and lighting. Add a short prompt describing what happens in the clip.\n\nOnly the first 81 frames are used (about 3.4 s, read at 24 fps), so trim your video to the moment you want and make sure it is at least that long. The result has no sound.\n\nWidth and height MUST match your video's shape, otherwise the picture gets cropped and the style transfer becomes much weaker: square 960×960, landscape 1280×704, portrait 704×1280 — or for a faster test 640×640, 832×480, 480×832. Bigger sizes look cleaner but take longer. Change the seed to re-roll.\n\nA run takes about 3 minutes at 960×960 (under 1½ minutes at 640×640).",
+  "category": "video-edit",
+  "tags": [
+    "wan",
+    "wan2.1",
+    "id-v2v",
+    "vace",
+    "restyle",
+    "vid2vid",
+    "keyframe",
+    "identity",
+    "video",
+    "hires",
+    "requires-idv2v-patch"
+  ],
+  "thumbnail": null,
+  "author": "ID-V2V (Eyeline Labs) — Kijai reference workflow",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "video_edit_wan_idv2v_restyle_hires.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "wan_2.1_idv2v_int8_convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "Wan2_1_VAE_bf16.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "clip_vision_h.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "lightx2v_I2V_14B_480p_cfg_step_distill_rank64_bf16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 190,
+  "exposedParameters": [
+    {
+      "key": "vhs_loadvideo_video_33",
+      "nodeId": "33",
+      "field": "video",
+      "type": "video",
+      "label": "Source video (the first ~3.4 s / 81 frames are used)",
+      "default": "",
+      "maxInputEdge": 1280,
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_189",
+      "nodeId": "189",
+      "field": "image",
+      "type": "image",
+      "label": "Stylized keyframe (your video's first frame, repainted in the new style)",
+      "default": "",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "cliptextencode_text_3",
+      "nodeId": "3",
+      "field": "text",
+      "type": "textarea",
+      "label": "Prompt (describe what happens in the clip)",
+      "default": "",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "primitiveint_value_245",
+      "nodeId": "245",
+      "field": "value",
+      "type": "number",
+      "label": "Width (must match your video's shape)",
+      "default": 960,
+      "min": 480,
+      "max": 1280,
+      "step": 16,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "primitiveint_value_246",
+      "nodeId": "246",
+      "field": "value",
+      "type": "number",
+      "label": "Height",
+      "default": 960,
+      "min": 480,
+      "max": 1280,
+      "step": 16,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "samplercustom_noise_seed_19",
+      "nodeId": "19",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 3,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 5
+    }
+  ],
+  "warmupParams": {
+    "cliptextencode_text_3": "a person dancing",
+    "vhs_loadvideo_video_33": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
+    "loadimage_image_189": "asset:Flux2-Klein_00003_.png"
+  },
+  "presets": {}
+}

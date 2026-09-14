@@ -1,0 +1,169 @@
+{
+  "schemaVersion": 1,
+  "id": "video_edit_minimax_h3_fun_controlnet_depth",
+  "name": "MiniMax H3 ControlNet (depth) — restyle a video from its 3D layout + audio",
+  "description": "Upload a video and describe a new look. A temporally stable depth map (Video Depth Anything) is extracted from every frame and MiniMax H3 generates a brand-new video that keeps the 3D layout and motion — shapes, distances, camera move — while surfaces, materials, characters and lighting follow your prompt. A matching audio track is generated too; the original colours and sound are not kept.\n\nDepth is looser than edges: fine textures and small details are free to change, which makes it the better choice for noisy or grainy footage. \"Control strength\" sets how tightly the result follows the depth (1 = closely, lower = looser). Describe the scene, what happens over time, the camera and the sounds.\n\nOnly the first seconds of your clip are used (\"Duration\", default 5 s), and the video is centre-cropped to the aspect ratio you pick. Time grows with duration and size; the default 20-step render takes a few minutes, \"Fast mode\" (4-step turbo LoRA) is several times faster at some cost in quality.",
+  "category": "video-edit",
+  "tags": [
+    "minimax",
+    "h3",
+    "controlnet",
+    "fun-controlnet",
+    "depth",
+    "video-depth-anything",
+    "vid2vid",
+    "video-edit",
+    "audio",
+    "video"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "video_edit_minimax_h3_fun_controlnet_depth.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "minimax_h3_ref2va_pruned_int8_convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_video_vae_fp16.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_audio_vae_fp32.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors"
+      },
+      {
+        "type": "other",
+        "file": "minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors"
+      },
+      {
+        "type": "other",
+        "file": "video_depth_anything_vits.pth"
+      }
+    ]
+  },
+  "estimatedDurationSec": 185,
+  "exposedParameters": [
+    {
+      "key": "loadvideo_file_174",
+      "nodeId": "174",
+      "field": "file",
+      "type": "video",
+      "label": "Source video (its depth and motion guide the new video)",
+      "default": "",
+      "required": true,
+      "maxInputEdge": 1280,
+      "order": 0
+    },
+    {
+      "key": "primitivestringmultiline_value_138",
+      "nodeId": "138",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt (new scene / action / camera / sound)",
+      "default": "Scene: Hyperreal desert-storm aesthetic. A humanoid figure made of packed sand dances in a barren wasteland, each move shedding dust, the wind eroding and reshaping its body.\n[0s-2s] Pale desert, a sand humanoid begins to move from stillness, surface grains trickling off and dragging mist-like trails in the wind.\n[2s-4s] Spins and arm swings keep dissolving and rebuilding its edges, raised sand columns glowing gold in hard light under a searing white sky.\n[4s-5s] On the final pose, half the body has already been carried away by wind as a hanging line of sand, not yet fallen.\nCamera: medium fixed shot, focus pull from sand-grain close-up to full body.\nAudio: fine sand-scrape texture throughout, one distant desert wind call at 2s, no music.\nNegative: no dissolve transitions / no text overlays / no human face / no camera shake",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "primitiveboolean_value_146",
+      "nodeId": "146",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Fast mode (4-step turbo LoRA)",
+      "default": false,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "resolutionselector_aspect_ratio_115",
+      "nodeId": "115",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio (pick the one closest to your video)",
+      "default": "16:9 (Widescreen)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "resolutionselector_megapixels_115",
+      "nodeId": "115",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (0.4 = 864x480 at 16:9, 1.0 = 1376x768)",
+      "default": 0.4,
+      "min": 0.2,
+      "max": 1.0,
+      "step": 0.1,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "primitivefloat_value_132",
+      "nodeId": "132",
+      "field": "value",
+      "type": "number",
+      "label": "Duration (seconds, 2-15)",
+      "default": 5,
+      "min": 2,
+      "max": 15,
+      "step": 1,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "minimaxh3funcontrolnetapply_strength_172",
+      "nodeId": "172",
+      "field": "strength",
+      "type": "number",
+      "label": "Control strength (1 = follow the video closely, lower = looser)",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "randomnoise_noise_seed_129",
+      "nodeId": "129",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 424242,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 7
+    }
+  ],
+  "warmupParams": {
+    "primitivestringmultiline_value_138": "a figure made of sand moving through a desert, wind and sand sounds",
+    "loadvideo_file_174": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+  },
+  "presets": {}
+}

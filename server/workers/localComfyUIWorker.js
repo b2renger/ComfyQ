@@ -1,5 +1,6 @@
 const { Worker } = require('./workerInterface');
-const { ComfyProcess } = require('./comfyProcess');
+const { ComfyProcess, killProcessOnPort } = require('./comfyProcess');
+const { runningPerfFlags, blockingFlags, PERF_FLAG_LABELS } = require('./perfFlags');
 const { ComfyRestClient } = require('./comfyRestClient');
 const { ComfyWsClient } = require('./comfyWsClient');
 const { InputUploader } = require('./inputUploader');
@@ -233,6 +234,35 @@ class LocalComfyUIWorker extends Worker {
             console.error('[Worker] could not restart ComfyUI without sage attention:', e.message);
             this._setState('down', e.message);
             return false;
+        }
+    }
+
+    // Make sure the ComfyUI we're talking to was not launched with a performance
+    // flag this worker's config has turned off (a workflow's
+    // `disabledPerfFlags`, see perfFlags.js). Such a flag doesn't crash — it
+    // saves black images — so a mismatch is replaced, not just logged. The usual
+    // culprit is an EXTERNAL instance: the ComfyUI the previous admin/student
+    // session left running for a different workflow.
+    async ensureNoBlockingPerfFlags() {
+        const wanted = {
+            use_sage_attention: this.process.useSageAttention,
+            fp16_accumulation: this.process.fp16Accumulation
+        };
+        const blockers = blockingFlags(wanted, await runningPerfFlags(this.rest));
+        if (blockers.length === 0) return { replaced: false, blockers };
+        const labels = blockers.map(k => PERF_FLAG_LABELS[k]).join(' + ');
+        console.warn(`[Worker] the running ComfyUI was started with ${labels}, which this workflow cannot use — relaunching it without`);
+        try {
+            if (this.process.proc) await this.process.stop();
+            else await killProcessOnPort(this.port);
+            await this._waitForPortFree(20000);
+            this.process._stopping = false;
+            await this.start();
+            return { replaced: true, blockers };
+        } catch (e) {
+            console.error('[Worker] could not relaunch ComfyUI without those flags:', e.message);
+            this._setState('down', e.message);
+            throw e;
         }
     }
 
