@@ -30,7 +30,6 @@
   "thumbnail": null,
   "author": "Lightricks (ComfyUI-LTXVideo)",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "video_edit_ltx2_5_iclora_canny_control.api.json",
   "apiFormat": true,
   "requirements": {

@@ -364,7 +364,12 @@ class RealtimeBus {
                 if (!files.length && p.default) files = [p.default];
                 else if (p.default && !files.includes(p.default)) files = [p.default, ...files];
                 entry.options = files;
-                entry.optionLabels = files.map(prettyModelLabel);
+                // Show a linked trigger word next to the LoRA it belongs to.
+                const hints = (p.linkedValues || []).find(l => l.map && Object.values(l.map).some(v => typeof v === 'string' && v));
+                entry.optionLabels = files.map(f => {
+                    const hint = hints && typeof hints.map[f] === 'string' && hints.map[f] ? ` — ${hints.map[f]}` : '';
+                    return prettyModelLabel(f) + hint;
+                });
             }
             out[p.key] = entry;
         }

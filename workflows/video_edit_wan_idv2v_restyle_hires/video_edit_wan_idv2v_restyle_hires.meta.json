@@ -20,7 +20,6 @@
   "thumbnail": null,
   "author": "ID-V2V (Eyeline Labs) — Kijai reference workflow",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "video_edit_wan_idv2v_restyle_hires.api.json",
   "apiFormat": true,
   "requirements": {

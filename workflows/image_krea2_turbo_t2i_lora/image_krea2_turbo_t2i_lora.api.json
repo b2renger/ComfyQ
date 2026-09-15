@@ -173,7 +173,7 @@
       "sampling_mode.repetition_penalty": 1.05,
       "sampling_mode.seed": 0,
       "sampling_mode.presence_penalty": 0,
-      "thinking": false,
+      "thinking": true,
       "use_default_template": true,
       "clip": [
         "30:11",
@@ -188,7 +188,7 @@
   "30:17": {
     "inputs": {
       "string_a": [
-        "30:18",
+        "9921",
         0
       ],
       "string_b": [
@@ -204,7 +204,7 @@
   },
   "30:18": {
     "inputs": {
-      "value": "You are an expert prompt engineer for text-to-image models. Your task is to expand the user's prompt into a highly effective image-generation prompt.\n\nThink step by step about the request before writing the answer:\n- What is the subject and mood?\n- What visual styles, mediums, and lighting options would fit? Consider two or three alternatives and pick the one that best serves the caption.\n- What composition, framing, and grounded details will help the text-to-image model?\n\nThen output a single expanded prompt paragraph.\n\nFollow these rules strictly:\n1. **Faithfulness First:** Preserve all original subjects, actions, colors, and spatial relationships. Do not add new objects, props, characters, or animals unless the user clearly implies them.\n2. **Practical T2I Structure:** Write a prompt that a text-to-image model can parse cleanly. Group subjects with their own attributes and actions. Use grounded phrasing for poses, interactions, and spatial layout.\n3. **Style Planning Stays Internal:** Use your internal reasoning to choose style, medium, framing, and lighting. Do not emit planning tags or wrappers in the visible answer body.\n4. **Text Rendering:** If the user requests visible text, quotes, labels, or typography, specify the exact text clearly and wrap requested words in quotes.\n5. **Avoid Over-Specification:** Do not invent highly specific clothing, colors, materials, or scene details unless the input supports them.\n6. **Structure:** Write one cohesive paragraph after the thinking block. No bullets, JSON, or markdown.\n7. **Respect Existing Detail:** If the user's prompt is already detailed, lightly polish and finalize rather than heavily expanding — preserve their phrasing and direction.\n8. **Respect the Human Form:** Treat depictions of people with dignity. Assume clothing covers genitals and intimate anatomy.\n9. **Preserve User Medium:** When the user explicitly requests a medium (e.g. \"photo of\", \"photograph of\", \"illustration of\", \"painting of\", \"sketch of\", \"3D render of\"), honor it. Do not pivot to a different medium to avoid difficulty — match the user's stated intent.\n\nUser's Input:\n\n"
+      "value": "You are an expert prompt engineer for text-to-image models. Rewrite the user's prompt into one highly effective image-generation prompt.\n\nPlan silently before you answer: think about the subject and mood, the composition and framing, and the grounded details that will help the image model. Never write that planning down.\n\nFollow these rules strictly:\n1. **Output Only the Prompt:** Reply with the final prompt and nothing else: one cohesive paragraph of plain descriptive sentences. No introduction, no steps or analysis, no headings or labels such as \"Final prompt:\", no bullets, JSON or markdown, and no quotation marks around the paragraph.\n2. **Faithfulness First:** Preserve all original subjects, actions, colors, and spatial relationships. Do not add new objects, props, characters, or animals unless the user clearly implies them.\n3. **Practical T2I Structure:** Group subjects with their own attributes and actions. Use grounded phrasing for poses, interactions, and spatial layout.\n4. **Visible Text Only When Asked:** Only if the user requests visible text, quotes, labels, or typography, specify the exact text and wrap those words in quotes. Otherwise do not mention text, letters, captions, signs, labels, or watermarks at all.\n5. **Avoid Over-Specification:** Do not invent highly specific clothing, colors, materials, or scene details unless the input supports them.\n6. **Respect Existing Detail:** If the user's prompt is already detailed, lightly polish and finalize rather than heavily expanding — preserve their phrasing and direction.\n7. **Respect the Human Form:** Treat depictions of people with dignity. Assume clothing covers genitals and intimate anatomy.\n8. **One Clear Style:** Choose a single fitting visual style, medium, and lighting, and describe it clearly. When the user explicitly requests a medium (e.g. \"photo of\", \"illustration of\", \"painting of\", \"sketch of\", \"3D render of\"), honor it — do not pivot to a different medium.\n\nUser's Input:\n\n"
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
@@ -231,7 +231,7 @@
         0
       ],
       "on_true": [
-        "30:16",
+        "9926",
         0
       ]
     },
@@ -310,6 +310,120 @@
     "class_type": "ComfySwitchNode",
     "_meta": {
       "title": "Switch"
+    }
+  },
+  "9920": {
+    "inputs": {
+      "value": "You are an expert prompt engineer for text-to-image models. Rewrite the user's prompt into one highly effective image-generation prompt.\n\nPlan silently before you answer: think about the subject and mood, the composition and framing, and the grounded details that will help the image model. Never write that planning down.\n\nFollow these rules strictly:\n1. **Output Only the Prompt:** Reply with the final prompt and nothing else: one cohesive paragraph of plain descriptive sentences. No introduction, no steps or analysis, no headings or labels such as \"Final prompt:\", no bullets, JSON or markdown, and no quotation marks around the paragraph.\n2. **Faithfulness First:** Preserve all original subjects, actions, colors, and spatial relationships. Do not add new objects, props, characters, or animals unless the user clearly implies them.\n3. **Practical T2I Structure:** Group subjects with their own attributes and actions. Use grounded phrasing for poses, interactions, and spatial layout.\n4. **Visible Text Only When Asked:** Only if the user requests visible text, quotes, labels, or typography, specify the exact text and wrap those words in quotes. Otherwise do not mention text, letters, captions, signs, labels, or watermarks at all.\n5. **Avoid Over-Specification:** Do not invent highly specific clothing, colors, materials, or scene details unless the input supports them.\n6. **Respect Existing Detail:** If the user's prompt is already detailed, lightly polish and finalize rather than heavily expanding — preserve their phrasing and direction.\n7. **Respect the Human Form:** Treat depictions of people with dignity. Assume clothing covers genitals and intimate anatomy.\n8. **No Style Words:** A visual style is applied separately. Do not name any art style, artistic medium, rendering technique, or artist, and do not call the image a photo, photograph, painting, illustration, drawing, or render — describe only the content, composition, and lighting. If the user names a style or medium themselves, keep their words unchanged.\n\nUser's Input:\n\n"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "System prompt when a style LoRA is on (ComfyQ)"
+    }
+  },
+  "9921": {
+    "inputs": {
+      "switch": [
+        "30:23",
+        0
+      ],
+      "on_false": [
+        "30:18",
+        0
+      ],
+      "on_true": [
+        "9920",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Pick the system prompt (ComfyQ)"
+    }
+  },
+  "9922": {
+    "inputs": {
+      "string": [
+        "30:16",
+        0
+      ],
+      "regex_pattern": "^.*</think>\\s*",
+      "replace": "",
+      "case_insensitive": true,
+      "multiline": false,
+      "dotall": true,
+      "count": 1
+    },
+    "class_type": "RegexReplace",
+    "_meta": {
+      "title": "Drop any thinking block (ComfyQ)"
+    }
+  },
+  "9923": {
+    "inputs": {
+      "string": [
+        "9922",
+        0
+      ],
+      "regex_pattern": "^.*?\\b(?:final|expanded|rewritten|improved|refined|enhanced)\\b[^\\n:]{0,40}\\bprompt\\b[\\s*_#]*:[\\s*_]*",
+      "replace": "",
+      "case_insensitive": true,
+      "multiline": false,
+      "dotall": true,
+      "count": 1
+    },
+    "class_type": "RegexReplace",
+    "_meta": {
+      "title": "Drop a leading \"Final prompt:\" label (ComfyQ)"
+    }
+  },
+  "9924": {
+    "inputs": {
+      "string": [
+        "9923",
+        0
+      ],
+      "mode": "Both"
+    },
+    "class_type": "StringTrim",
+    "_meta": {
+      "title": "Trim (ComfyQ)"
+    }
+  },
+  "9925": {
+    "inputs": {
+      "string": [
+        "9924",
+        0
+      ],
+      "regex_pattern": "\\A(?!\\s*(?:i[’']?m sorry|i am sorry|sorry\\b|i can[’']?t\\b|i cannot\\b|i[’']?m unable|i am unable|i[’']?m not able|as an ai\\b))[\\s\\S]*\\S",
+      "case_insensitive": true,
+      "multiline": false,
+      "dotall": false
+    },
+    "class_type": "RegexMatch",
+    "_meta": {
+      "title": "Is the rewrite usable (not empty, not a refusal)? (ComfyQ)"
+    }
+  },
+  "9926": {
+    "inputs": {
+      "switch": [
+        "9925",
+        0
+      ],
+      "on_false": [
+        "30:19",
+        0
+      ],
+      "on_true": [
+        "9924",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Rewrite, or the original prompt if empty (ComfyQ)"
     }
   }
 }

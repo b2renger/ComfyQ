@@ -29,7 +29,6 @@
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "video_edit_minimax_h3_v2v_video_reference.api.json",
   "apiFormat": true,
   "requirements": {
@@ -118,7 +117,7 @@
       "label": "Size in megapixels (0.4 = 864x480 at 16:9, 1.0 = 1376x768)",
       "default": 0.4,
       "min": 0.2,
-      "max": 1.0,
+      "max": 1,
       "step": 0.1,
       "required": false,
       "order": 4

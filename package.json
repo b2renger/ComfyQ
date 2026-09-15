@@ -14,7 +14,7 @@
         "desktop": "npm --prefix desktop start",
         "desktop:install": "npm install --prefix desktop && node desktop/node_modules/electron/install.js",
         "postinstall": "npm install --prefix client && npm install --prefix server",
-        "test:storyboard": "node server/storyboard/storyboard.test.js && node server/storyboard/storyboardRoutes.test.js && node server/executor/sageRecovery.test.js && node server/workers/selectValidation.test.js && node server/workers/optionalMedia.test.js"
+        "test:storyboard": "node server/storyboard/storyboard.test.js && node server/storyboard/storyboardRoutes.test.js && node server/executor/sageRecovery.test.js && node server/workers/selectValidation.test.js && node server/workers/optionalMedia.test.js && node server/workers/linkedValues.test.js"
     },
     "dependencies": {
         "concurrently": "^8.2.2"

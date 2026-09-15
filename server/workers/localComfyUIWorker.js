@@ -320,6 +320,24 @@ class LocalComfyUIWorker extends Worker {
     _materializeWorkflow(apiWorkflow, { paramValues, exposedParameters, inputs, filenamePrefix }) {
         const wf = JSON.parse(JSON.stringify(apiWorkflow));
 
+        // 0) Linked values: a param's choice also sets other node fields (a LoRA
+        //    dropdown writing its trigger word). Runs first so an exposed param
+        //    targeting the same field overrides it.
+        for (const p of exposedParameters) {
+            if (!Array.isArray(p.linkedValues) || p.linkedValues.length === 0) continue;
+            const raw = paramValues ? paramValues[p.key] : undefined;
+            const chosen = (raw === undefined || raw === null || raw === '') ? p.default : raw;
+            for (const l of p.linkedValues) {
+                const node = wf[l.nodeId];
+                if (!node) continue;
+                const inMap = l.map && chosen !== undefined && Object.prototype.hasOwnProperty.call(l.map, String(chosen));
+                const value = inMap ? l.map[String(chosen)] : l.fallback;
+                if (value === undefined) continue;
+                node.inputs = node.inputs || {};
+                node.inputs[l.field] = value;
+            }
+        }
+
         // 1) Apply parameter values via exposedParameters mapping. For
         //    image/video/audio types the value is the comfy-side filename the
         //    /upload endpoint returned; injecting it directly is equivalent to

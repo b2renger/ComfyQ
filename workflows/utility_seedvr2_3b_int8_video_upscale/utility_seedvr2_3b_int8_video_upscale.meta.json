@@ -16,7 +16,6 @@
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "utility_seedvr2_3b_int8_video_upscale.api.json",
   "apiFormat": true,
   "requirements": {

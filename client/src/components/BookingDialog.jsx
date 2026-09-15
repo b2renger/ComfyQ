@@ -302,7 +302,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         : '';
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Book Generation Slot" maxWidth="max-w-lg">
+        <Modal isOpen={isOpen} onClose={onClose} title="Book Generation Slot" maxWidth="max-w-2xl">
             <form onSubmit={handleSubmit} className="space-y-6">
                 {state.workflow_info?.id && (state.workflow_info.description || state.workflow_info.name) && (
                     <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">

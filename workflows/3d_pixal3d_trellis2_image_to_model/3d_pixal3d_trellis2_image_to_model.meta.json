@@ -19,7 +19,6 @@
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "3d_pixal3d_trellis2_image_to_model.api.json",
   "apiFormat": true,
   "requirements": {

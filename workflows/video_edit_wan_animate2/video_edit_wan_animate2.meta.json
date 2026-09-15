@@ -16,7 +16,6 @@
   "thumbnail": null,
   "author": "Template - ComfyUI",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "video_edit_wan_animate2.api.json",
   "apiFormat": true,
   "requirements": {

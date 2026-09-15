@@ -184,6 +184,8 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                     // Preserved through edit/save (there's no UI to edit it yet, but a
                     // re-save must not drop a workflow's existing field gating).
                     disabledWhen: p.disabledWhen,
+                    // Preserved like disabledWhen (no UI to edit it).
+                    linkedValues: p.linkedValues,
                     required: p.required ?? false,
                     order: i
                 }));

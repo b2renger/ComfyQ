@@ -76,6 +76,47 @@ export const isMediaNeeded = (config, values = {}, paramMap = {}) => {
     return !!dw && Object.prototype.hasOwnProperty.call(paramMap, dw.param);
 };
 
+// Prompt boxes open tall enough for a long prompt and can be dragged taller or
+// shorter (vertical resize handle). The height a student drags to is remembered
+// in this browser, separately for main and negative prompts, so the next
+// booking opens at the same size.
+const PROMPT_BOX_HEIGHT = { prompt: 208, negative: 104 };
+const promptBoxKey = (kind) => `comfyq.promptBoxHeight.${kind}`;
+const readPromptBoxHeight = (kind) => {
+    try {
+        const h = parseInt(localStorage.getItem(promptBoxKey(kind)), 10);
+        if (Number.isFinite(h) && h >= 72 && h <= 2000) return h;
+    } catch { /* storage unavailable: use the default */ }
+    return PROMPT_BOX_HEIGHT[kind];
+};
+
+const PromptTextarea = ({ kind, disabled, value, onChange, placeholder }) => {
+    const ref = React.useRef(null);
+    const [height] = React.useState(() => readPromptBoxHeight(kind));
+    // The resize handle has no event of its own: compare the height when the
+    // pointer goes down on the box with the height when it is released.
+    const watchResize = () => {
+        const before = ref.current?.offsetHeight;
+        window.addEventListener('pointerup', () => {
+            const after = ref.current?.offsetHeight;
+            if (!after || after === before) return;
+            try { localStorage.setItem(promptBoxKey(kind), String(after)); } catch { /* per-browser convenience only */ }
+        }, { once: true });
+    };
+    return (
+        <textarea
+            ref={ref}
+            style={{ height }}
+            onPointerDown={watchResize}
+            disabled={disabled}
+            className={`block w-full bg-background border border-border rounded-lg p-3 text-white leading-relaxed focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-colors placeholder:text-muted/50 min-h-[4.5rem] max-h-[70vh] resize-y ${disabled ? 'cursor-not-allowed' : ''}`}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+        />
+    );
+};
+
 const DynamicParamFields = ({
     paramMap,
     values = {},
@@ -107,6 +148,11 @@ const DynamicParamFields = ({
                 const dw = config.disabledWhen;
                 const disabled = isParamDisabled(config, values);
                 const ctrlLabel = dw && (paramMap[dw.param]?.label || 'the toggle above');
+                const disabledNote = disabled && (
+                    <span className="text-[10px] font-normal text-muted normal-case">
+                        — not used; change “{ctrlLabel}” to use it
+                    </span>
+                );
 
                 // Mask input — the user paints a region on an uploaded image;
                 // MaskDrawField composites it into an RGBA PNG and hands that
@@ -162,10 +208,10 @@ const DynamicParamFields = ({
                     const labels = config.optionLabels || [];
                     const empty = opts.length === 0;
                     return (
-                        <div key={key} className="space-y-1.5">
-                            <label className="text-sm font-medium text-slate-300">{label}</label>
+                        <div key={key} className={`space-y-1.5 ${disabled ? 'opacity-50' : ''}`}>
+                            <label className="text-sm font-medium text-slate-300 flex items-center gap-2 flex-wrap">{label}{disabledNote}</label>
                             <select
-                                disabled={empty}
+                                disabled={empty || disabled}
                                 className="w-full bg-background border border-border rounded-lg p-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                 value={values[key] || ''}
                                 onChange={(e) => setVal(key, e.target.value)}
@@ -183,17 +229,18 @@ const DynamicParamFields = ({
                 if (type === 'checkbox') {
                     const checked = !!values[key];
                     return (
-                        <label key={key} className="flex items-center gap-3 cursor-pointer select-none py-1">
+                        <label key={key} className={`flex items-center gap-3 select-none py-1 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}>
                             <button
                                 type="button"
                                 role="switch"
                                 aria-checked={checked}
+                                disabled={disabled}
                                 onClick={() => setVal(key, !checked)}
-                                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 ${checked ? 'bg-primary' : 'bg-surface border border-border'}`}
+                                className={`relative w-10 h-6 rounded-full transition-colors shrink-0 disabled:cursor-not-allowed ${checked ? 'bg-primary' : 'bg-surface border border-border'}`}
                             >
                                 <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-on-primary shadow transition-transform ${checked ? 'translate-x-4' : ''}`} />
                             </button>
-                            <span className="text-sm font-medium text-slate-300">{label}</span>
+                            <span className="text-sm font-medium text-slate-300 flex items-center gap-2 flex-wrap">{label}{disabledNote}</span>
                         </label>
                     );
                 }
@@ -210,9 +257,9 @@ const DynamicParamFields = ({
                                     </span>
                                 )}
                             </label>
-                            <textarea
+                            <PromptTextarea
+                                kind={/negative/i.test(`${key} ${label}`) ? 'negative' : 'prompt'}
                                 disabled={disabled}
-                                className={`w-full bg-background border border-border rounded-lg p-3 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-muted/50 min-h-[100px] resize-none ${disabled ? 'cursor-not-allowed' : ''}`}
                                 value={values[key] || ''}
                                 onChange={(e) => setVal(key, e.target.value)}
                                 placeholder={`Enter ${label}...`}
@@ -252,14 +299,15 @@ const DynamicParamFields = ({
 
                 // Default Input (Text/Number)
                 return (
-                    <div key={key} className="space-y-1.5">
-                        <label className="text-sm font-medium text-slate-300">{label}</label>
+                    <div key={key} className={`space-y-1.5 ${disabled ? 'opacity-50' : ''}`}>
+                        <label className="text-sm font-medium text-slate-300 flex items-center gap-2 flex-wrap">{label}{disabledNote}</label>
                         <input
                             type={type === 'number' ? 'number' : 'text'}
+                            disabled={disabled}
                             min={type === 'number' && Number.isFinite(config.min) ? config.min : undefined}
                             max={type === 'number' && Number.isFinite(config.max) ? config.max : undefined}
                             step={type === 'number' && Number.isFinite(config.step) ? config.step : undefined}
-                            className="w-full bg-background border border-border rounded-lg p-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all"
+                            className="w-full bg-background border border-border rounded-lg p-2.5 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all disabled:cursor-not-allowed"
                             value={values[key] ?? ''}
                             onChange={(e) => {
                                 if (type !== 'number') return setVal(key, e.target.value);

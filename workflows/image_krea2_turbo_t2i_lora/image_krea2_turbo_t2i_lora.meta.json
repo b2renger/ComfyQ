@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "image_krea2_turbo_t2i_lora",
   "name": "Krea-2 Turbo — text to image (+ style LoRA)",
-  "description": "Fast text-to-image with Krea-2 Turbo (8-step distilled). Type a prompt, choose an aspect ratio, and pick a Krea-2 style LoRA from the dropdown — 'realism' is on by default. An AI step expands short prompts into richer descriptions before generation. Only Krea-2-compatible LoRAs are listed.",
+  "description": "Fast text-to-image with Krea 2 Turbo (8 steps). Type a prompt, pick an aspect ratio and, if you like, a style LoRA.\n\n\"Enhance prompt with AI\" lets a small language model rewrite your prompt into a richer description before the image is made; untick it to use your words exactly as written. Keep \"Thinking mode\" on: with it off, the rewrite sometimes comes back as the AI's working notes, an empty answer or a refusal instead of a description (when ComfyQ can tell, it uses your own words instead).\n\n\"Use a style LoRA\" applies a trained look (realism is the default). Each style's trigger words are added to the prompt automatically, and while a style LoRA is on the AI rewrite leaves style words out so the LoRA's look is not mixed with another one. Around 1.0 is a good strength; some styles look best near 0.8.",
   "category": "t2i",
   "tags": [
     "krea",
@@ -53,6 +53,40 @@
   "estimatedDurationSec": 30,
   "exposedParameters": [
     {
+      "key": "primitivestringmultiline_value_30_19",
+      "nodeId": "30:19",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt",
+      "default": "A photorealistic portrait of a person in warm afternoon light, shallow depth of field",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "primitiveboolean_value_30_24",
+      "nodeId": "30:24",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Enhance prompt with AI (rewrites your prompt into a richer description)",
+      "default": true,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "textgenerate_thinking_30_16",
+      "nodeId": "30:16",
+      "field": "thinking",
+      "type": "checkbox",
+      "label": "Thinking mode (recommended — more reliable rewrites)",
+      "default": true,
+      "required": false,
+      "disabledWhen": {
+        "param": "primitiveboolean_value_30_24",
+        "equals": false
+      },
+      "order": 2
+    },
+    {
       "key": "resolutionselector_aspect_ratio_49",
       "nodeId": "49",
       "field": "aspect_ratio",
@@ -70,39 +104,78 @@
         "21:9 (Ultrawide)"
       ],
       "required": false,
-      "order": 0
+      "order": 3
     },
     {
       "key": "primitiveboolean_value_30_23",
       "nodeId": "30:23",
       "field": "value",
       "type": "checkbox",
-      "label": "Apply a style LoRA",
+      "label": "Use a style LoRA",
       "default": true,
       "required": false,
-      "order": 1
-    },
-    {
-      "key": "primitivestringmultiline_value_30_19",
-      "nodeId": "30:19",
-      "field": "value",
-      "type": "textarea",
-      "label": "Prompt",
-      "default": "A photorealistic portrait of a person in warm afternoon light, shallow depth of field",
-      "required": true,
-      "order": 2
+      "order": 4
     },
     {
       "key": "loraloadermodelonly_lora_name_30_15",
       "nodeId": "30:15",
       "field": "lora_name",
       "type": "lora",
-      "label": "Style LoRA",
+      "label": "Style LoRA (its trigger words are added for you)",
       "default": "krea2_realism_lora.safetensors",
       "optionsDir": "loras",
       "optionsFilter": "krea2_",
       "required": false,
-      "order": 3
+      "order": 5,
+      "disabledWhen": {
+        "param": "primitiveboolean_value_30_23",
+        "equals": false
+      },
+      "linkedValues": [
+        {
+          "nodeId": "30:27",
+          "field": "string_b",
+          "map": {
+            "krea2_coolblue.safetensors": "teal watercolor illustration style",
+            "krea2_darkbrush.safetensors": "monochrome ink wash style",
+            "krea2_dotmatrix.safetensors": "monochrome stippling style",
+            "krea2_embroidered-textile-diorama-comfy.safetensors": "embroidered textile diorama style",
+            "krea2_kidsdrawing.safetensors": "naive expressive sketch style",
+            "krea2_neondrip.safetensors": "textured abstract style",
+            "krea2_nos_invisibles_krea2.safetensors": "antique spiritualist watercolor",
+            "krea2_plasmoid.safetensors": "ethereal shimmering light style",
+            "krea2_rainywindow.safetensors": "rainy window style",
+            "krea2_realism_lora.safetensors": "",
+            "krea2_retroanime.safetensors": "purple retro anime style",
+            "krea2_softwatercolor.safetensors": "art deco watercolor style",
+            "krea2_sunsetblur.safetensors": "ethereal motion blur style",
+            "krea2_vintagetarot.safetensors": "vintage tarot style",
+            "krea2_warmpastel.safetensors": "muted minimalist sketch style"
+          },
+          "fallback": ""
+        },
+        {
+          "nodeId": "30:27",
+          "field": "delimiter",
+          "map": {
+            "krea2_coolblue.safetensors": ", ",
+            "krea2_darkbrush.safetensors": ", ",
+            "krea2_dotmatrix.safetensors": ", ",
+            "krea2_embroidered-textile-diorama-comfy.safetensors": ", ",
+            "krea2_kidsdrawing.safetensors": ", ",
+            "krea2_neondrip.safetensors": ", ",
+            "krea2_nos_invisibles_krea2.safetensors": ", ",
+            "krea2_plasmoid.safetensors": ", ",
+            "krea2_rainywindow.safetensors": ", ",
+            "krea2_retroanime.safetensors": ", ",
+            "krea2_softwatercolor.safetensors": ", ",
+            "krea2_sunsetblur.safetensors": ", ",
+            "krea2_vintagetarot.safetensors": ", ",
+            "krea2_warmpastel.safetensors": ", "
+          },
+          "fallback": ""
+        }
+      ]
     },
     {
       "key": "loraloadermodelonly_strength_model_30_15",
@@ -115,7 +188,11 @@
       "max": 5,
       "step": 0.01,
       "required": false,
-      "order": 4
+      "order": 6,
+      "disabledWhen": {
+        "param": "primitiveboolean_value_30_23",
+        "equals": false
+      }
     },
     {
       "key": "ksampler_seed_30_3",
@@ -128,7 +205,7 @@
       "max": 4294967295,
       "step": 1,
       "required": false,
-      "order": 5
+      "order": 7
     }
   ],
   "warmupParams": {

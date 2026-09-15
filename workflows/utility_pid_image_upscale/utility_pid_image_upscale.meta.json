@@ -17,7 +17,6 @@
   "thumbnail": null,
   "author": "ComfyQ (built on ComfyUI-Latent-Tiled-PiD by BennyDaBall930)",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "utility_pid_image_upscale.api.json",
   "apiFormat": true,
   "requirements": {

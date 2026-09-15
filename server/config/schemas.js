@@ -47,6 +47,17 @@ const ExposedParameter = z.object({
     // "Enhance" checkbox). The disabled field still submits its value — harmless
     // when the workflow's switch ignores the unselected branch.
     disabledWhen: z.object({ param: z.string().min(1), equals: z.any() }).optional(),
+    // Other node fields this param's value also sets — e.g. a LoRA dropdown that
+    // writes the matching trigger word. `map` is keyed by the chosen value; a
+    // value missing from the map writes `fallback` (omit it to leave the graph
+    // literal alone). Applied before the exposed params, so an exposed param on
+    // the same field still wins.
+    linkedValues: z.array(z.object({
+        nodeId: z.string().min(1),
+        field: z.string().min(1),
+        map: z.record(z.string(), z.any()),
+        fallback: z.any().optional()
+    })).optional(),
     required: z.boolean().default(false),
     order: z.number().int().default(0)
 });

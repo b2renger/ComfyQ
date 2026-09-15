@@ -715,6 +715,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                         step: found.step,
                         maxInputEdge: found.maxInputEdge,
                         disabledWhen: found.disabledWhen,
+                        linkedValues: found.linkedValues,
                         required: found.required ?? d.required,
                         order: found.order ?? d.order,
                         enabled: true
@@ -722,6 +723,12 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 }
                 return { ...d, enabled: false };
             });
+            // Exposed params first, in the order students see them; the rest keep
+            // graph order. The editor saves `order` from list position, so without
+            // this its preview (and any re-save) followed graph order instead.
+            merged.sort((a, b) => (a.enabled === b.enabled)
+                ? (a.enabled ? (a.order ?? 0) - (b.order ?? 0) : 0)
+                : (a.enabled ? -1 : 1));
             // apiWorkflow lets the editor offer a "Download JSON" (drag it into
             // the ComfyUI canvas to inspect the node graph) without a second route.
             // When the bundle also ships the original UI-format export, hand that
