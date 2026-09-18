@@ -2,6 +2,7 @@ import React from 'react';
 import { Dices } from 'lucide-react';
 import MediaCaptureField from './capture/MediaCaptureField';
 import MaskDrawField from './capture/MaskDrawField';
+import { IdeogramPromptTools } from './capture/IdeogramComposer';
 
 // A param qualifies as a "seed" if its key or field looks like one. Catches
 // both KSampler.seed (Flux1) and RandomNoise.noise_seed (Flux2), plus any
@@ -245,8 +246,14 @@ const DynamicParamFields = ({
                     );
                 }
 
-                // Textarea Input
+                // Textarea Input. A prompt whose meta declares
+                // `format: "ideogram4-caption"` also gets the visual composer and
+                // a live check of Ideogram's JSON format underneath.
                 if (type === 'textarea' || key === 'prompt') {
+                    const ideogram = config.format === 'ideogram4-caption';
+                    const aspectKey = ideogram
+                        ? Object.keys(paramMap).find(k => paramMap[k]?.field === 'aspect_ratio')
+                        : null;
                     return (
                         <div key={key} className={`space-y-1.5 ${disabled ? 'opacity-50' : ''}`}>
                             <label className="text-sm font-medium text-slate-300 flex items-center gap-2 flex-wrap">
@@ -264,6 +271,15 @@ const DynamicParamFields = ({
                                 onChange={(e) => setVal(key, e.target.value)}
                                 placeholder={`Enter ${label}...`}
                             />
+                            {ideogram && (
+                                <IdeogramPromptTools
+                                    value={values[key] || ''}
+                                    onChange={(v) => setVal(key, v)}
+                                    disabled={disabled}
+                                    label={label}
+                                    aspectOption={aspectKey ? (values[aspectKey] ?? paramMap[aspectKey]?.default) : null}
+                                />
+                            )}
                         </div>
                     );
                 }

@@ -65,31 +65,65 @@ function pickHeadlinePrompt(finalParams, parameterMap = {}) {
 // (the shared field renderer). isSeedParam + randomSeed are imported above for
 // the form-init effect; the field rendering itself uses the shared component.
 
+// A recalled (or default) dropdown value the workflow no longer offers would
+// display as the first option while submitting something else, so snap it to a
+// value that is actually in the list.
+const normalizeChoice = (value, config) => {
+    const opts = config?.options;
+    if (!Array.isArray(opts) || opts.length === 0) return value;
+    if (opts.includes(value)) return value;
+    if (opts.includes(config.default)) return config.default;
+    return opts[0];
+};
+
 const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams }) => {
     const { state } = useSocket();
+    const paramMap = state.workflow?.parameter_map || null;
+    const workflowId = state.workflow_info?.id || null;
     const [scheduledTime, setScheduledTime] = useState(initialTime);
     const [isCollision, setIsCollision] = useState(false);
     const [formParams, setFormParams] = useState({});
     const [mediaFiles, setMediaFiles] = useState({}); // { paramKey: File }
-    const [mediaPreviews, setMediaPreviews] = useState({}); // { paramKey: dataURL }
+    const [mediaPreviews, setMediaPreviews] = useState({}); // { paramKey: blob/server URL }
     const [recalledMedia, setRecalledMedia] = useState({}); // { paramKey: comfyFilename } reused from a prior job
     const [isUploading, setIsUploading] = useState(false);
     const [uploadError, setUploadError] = useState(''); // server-side upload rejection (too big / HEIC)
+    const [recallNote, setRecallNote] = useState('');   // a reused file that is no longer on the machine
+    const submitting = useRef(false);                   // one booking per click
 
-    // Initialize form params once per dialog-open session. We deliberately do
-    // NOT depend on state.workflow — the server rebroadcasts state_update on a
-    // heartbeat (every 5s) with a fresh parameter_map object reference, which
-    // would otherwise wipe whatever the user has typed.
-    const stateRef = useRef(state);
-    useEffect(() => { stateRef.current = state; }, [state]);
+    // Preview URLs we created, revoked when replaced / on close, so a recalled
+    // 200 MB video isn't held in memory for the rest of the session.
+    const objectUrls = useRef(new Set());
+    const revokePreviews = () => {
+        for (const u of objectUrls.current) URL.revokeObjectURL(u);
+        objectUrls.current.clear();
+    };
+    useEffect(() => revokePreviews, []);
 
+    // Which workflow the form has been filled in for, during this opening.
+    // Cleared on close so the next opening fills again.
+    const filledFor = useRef(null);
+    const initialTimeRef = useRef(initialTime);
+    useEffect(() => { initialTimeRef.current = initialTime; }, [initialTime]);
+
+    // Fill the form: on opening, and again if the parameter_map only arrives
+    // afterwards (dialog opened before the first broadcast — the form used to
+    // stay empty) or the admin switches the served workflow while it is open.
+    // Re-running on an unchanged map can't happen: mergeState keeps its
+    // identity across broadcasts, and `filledFor` guards the rest, so nothing
+    // the user typed gets wiped.
     useEffect(() => {
-        if (!isOpen) return;
-        const wf = stateRef.current.workflow;
-        if (!wf?.parameter_map) return;
+        if (!isOpen) { filledFor.current = null; return; }
+        if (!paramMap) return;
+        if (filledFor.current === workflowId) return;
+        // Refilled while open because the machine switched workflow: say so,
+        // otherwise the form appears to reset itself for no reason.
+        const switched = filledFor.current !== null && filledFor.current !== workflowId;
+        filledFor.current = workflowId;
+
         const next = {};
         const recalledM = {};
-        Object.entries(wf.parameter_map).forEach(([key, config]) => {
+        Object.entries(paramMap).forEach(([key, config]) => {
             const recalled = initialParams?.[key];
             const isMedia = MEDIA_TYPES.includes(config.type);
             if (isMedia) {
@@ -99,11 +133,11 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                 // no re-upload needed. The user can still Replace it.
                 if (typeof recalled === 'string' && recalled) recalledM[key] = recalled;
             } else if (recalled !== undefined) {
-                next[key] = recalled;
+                next[key] = normalizeChoice(recalled, config);
             } else if (isSeedParam(key, config)) {
                 next[key] = randomSeed();
             } else {
-                next[key] = config.default !== undefined ? config.default : '';
+                next[key] = normalizeChoice(config.default !== undefined ? config.default : '', config);
             }
         });
         // Show the reused asset right away: its file is still served from
@@ -111,12 +145,43 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         // audio play) instead of leaving the field empty.
         const recalledPreviews = {};
         Object.entries(recalledM).forEach(([k, fn]) => { recalledPreviews[k] = getInputUrl(fn); });
+        revokePreviews();
         setFormParams(next);
         setRecalledMedia(recalledM);
         setMediaFiles({});
         setMediaPreviews(recalledPreviews);
         setUploadError('');
-    }, [isOpen, initialParams]);
+        setRecallNote(switched
+            ? `This machine switched to “${state.workflow_info?.name || workflowId}” — the form was rebuilt with its settings.`
+            : '');
+        setScheduledTime(initialTimeRef.current);
+
+        // A reused file can be gone (a storyboard's chained frame is swept after
+        // a day, or the input folder was cleared). Drop those fields and say so,
+        // instead of booking a job that fails in ComfyUI.
+        const reused = Object.entries(recalledM);
+        if (reused.length === 0) return;
+        const ac = new AbortController();
+        (async () => {
+            const missing = [];
+            await Promise.all(reused.map(async ([key, fn]) => {
+                try {
+                    const r = await fetch(getInputUrl(fn), { method: 'HEAD', signal: ac.signal, headers: accessHeaders() });
+                    if (!r.ok) missing.push(key);
+                } catch { /* aborted or offline — leave it; submit-time check still guards */ }
+            }));
+            if (ac.signal.aborted || missing.length === 0) return;
+            const drop = (obj) => {
+                const n = { ...obj };
+                for (const k of missing) delete n[k];
+                return n;
+            };
+            setRecalledMedia(drop);
+            setMediaPreviews(drop);
+            setRecallNote(`${missing.map(k => paramMap[k]?.label || k).join(' · ')}: the file used before is no longer on this machine — please add it again.`);
+        })();
+        return () => ac.abort();
+    }, [isOpen, initialParams, paramMap, workflowId]);
 
     useEffect(() => {
         setScheduledTime(initialTime);
@@ -156,14 +221,23 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        if (isCollision || isUploading) return;
+        if (isCollision || isUploading || submitting.current) return;
+        submitting.current = true;
+        try {
+            await submitBooking();
+        } finally {
+            submitting.current = false;
+        }
+    };
+
+    const submitBooking = async () => {
 
         // Check for the media uploads this booking needs (optional ones only
         // while their toggle switches them on) and say which are missing —
         // returning silently leaves the Start button looking broken.
-        const paramMap = state.workflow?.parameter_map || {};
-        const missingMedia = Object.entries(paramMap)
-            .filter(([, v]) => MEDIA_TYPES.includes(v.type) && isMediaNeeded(v, formParams, paramMap))
+        const map = paramMap || {};
+        const missingMedia = Object.entries(map)
+            .filter(([, v]) => MEDIA_TYPES.includes(v.type) && isMediaNeeded(v, formParams, map))
             .filter(([key]) => !mediaFiles[key] && !recalledMedia[key]);
         if (missingMedia.length > 0) {
             setUploadError(`Please add: ${missingMedia.map(([key, v]) => v.label || key).join(' · ')}`);
@@ -216,15 +290,33 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         // value the user actually typed regardless of its key.
         const headlinePrompt = pickHeadlinePrompt(finalParams, state.workflow?.parameter_map);
 
-        onConfirm({
+        // Wait for the server to confirm. On a refusal (slot taken, connection
+        // lost…) the dialog stays open with everything the student entered.
+        const result = await onConfirm({
             prompt: headlinePrompt,
             params: finalParams,
             time: scheduledTime
         });
         setIsUploading(false);
+        if (result && result.ok === false) {
+            setUploadError(result.error || 'The booking did not go through. Please try again.');
+            // Files already uploaded are reused on retry instead of sent twice.
+            setRecalledMedia(prev => ({ ...prev, ...uploadedFilenames }));
+            setMediaFiles({});
+            return;
+        }
         onClose();
         setMediaFiles({});
+        revokePreviews();
         setMediaPreviews({});
+    };
+
+    // Release a preview URL we created for this field (server URLs aren't ours).
+    const dropPreviewUrl = (url) => {
+        if (url && objectUrls.current.has(url)) {
+            URL.revokeObjectURL(url);
+            objectUrls.current.delete(url);
+        }
     };
 
     const handleMediaRemove = (paramKey) => () => {
@@ -235,6 +327,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         });
         setMediaPreviews(prev => {
             const newPreviews = { ...prev };
+            dropPreviewUrl(newPreviews[paramKey]);
             delete newPreviews[paramKey];
             return newPreviews;
         });
@@ -252,6 +345,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     const handleMediaChange = (paramKey) => (file) => {
         if (!file) return;
         setUploadError('');
+        setRecallNote('');
         setMediaFiles(prev => ({ ...prev, [paramKey]: file }));
         // A fresh upload supersedes any recalled (reused) asset for this key.
         setRecalledMedia(prev => {
@@ -259,11 +353,14 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
             delete n[paramKey];
             return n;
         });
-        const reader = new FileReader();
-        reader.onloadend = () => {
-            setMediaPreviews(prev => ({ ...prev, [paramKey]: reader.result }));
-        };
-        reader.readAsDataURL(file);
+        // An object URL, not a base64 data URL: reading a phone video into a
+        // data URL blocks the tab and keeps ~1.4× the file size in memory.
+        const url = URL.createObjectURL(file);
+        objectUrls.current.add(url);
+        setMediaPreviews(prev => {
+            dropPreviewUrl(prev[paramKey]);
+            return { ...prev, [paramKey]: url };
+        });
     };
 
     const adjustTime = (minutes) => {
@@ -277,7 +374,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
      */
     const renderDynamicFields = () => (
         <DynamicParamFields
-            paramMap={state.workflow?.parameter_map}
+            paramMap={paramMap}
             values={formParams}
             onValueChange={(key, value) => setFormParams(prev => ({ ...prev, [key]: value }))}
             mediaPreviews={mediaPreviews}
@@ -397,6 +494,13 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                 {/* Dynamic Fields Rendering */}
                 {renderDynamicFields()}
 
+                {recallNote && (
+                    <div className="flex items-start gap-2 text-amber-500 text-xs font-medium bg-amber-500/10 p-2.5 rounded-lg border border-amber-500/20">
+                        <AlertTriangle size={14} className="shrink-0 mt-0.5" />
+                        <span>{recallNote}</span>
+                    </div>
+                )}
+
                 {uploadError && (
                     <div className="flex items-start gap-2 text-danger text-xs font-medium bg-danger/10 p-2.5 rounded-lg border border-danger/20">
                         <AlertTriangle size={14} className="shrink-0 mt-0.5" />
@@ -414,7 +518,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                         icon={Sparkles}
                         disabled={isCollision || isUploading}
                     >
-                        {isUploading ? 'Uploading...' : scheduledTime ? 'Book Slot' : 'Start ASAP'}
+                        {isUploading ? 'Booking…' : scheduledTime ? 'Book Slot' : 'Start ASAP'}
                     </Button>
                 </div>
             </form>

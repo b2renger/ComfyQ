@@ -186,6 +186,7 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                     disabledWhen: p.disabledWhen,
                     // Preserved like disabledWhen (no UI to edit it).
                     linkedValues: p.linkedValues,
+                    format: p.format,
                     required: p.required ?? false,
                     order: i
                 }));
@@ -598,6 +599,7 @@ const StudentPreview = ({ params, headers }) => {
                 step: p.step,
                 maxInputEdge: p.maxInputEdge,
                 disabledWhen: p.disabledWhen,
+                format: p.format,
                 required: p.required,
                 field: p.field,        // needed for seed detection
                 order: i,

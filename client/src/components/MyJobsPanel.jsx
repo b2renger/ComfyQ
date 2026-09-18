@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useSocket } from '../context/SocketContext';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
@@ -35,10 +35,12 @@ const MyJobsPanel = ({ onClose }) => {
     // (My / All) for cross-user views. Anonymous users (no username) see
     // nothing in the sidebar.
     const q = searchQuery.trim().toLowerCase();
-    const allJobs = state.jobs
+    // Recomputed only when the jobs, the name or the search change — not on
+    // every broadcast (progress ticks arrive several times a second).
+    const allJobs = useMemo(() => state.jobs
         .filter(j => username && j.user_id === username)
         .filter(j => !q || getDisplayPrompt(j).toLowerCase().includes(q))
-        .sort((a, b) => b.time_slot - a.time_slot);
+        .sort((a, b) => b.time_slot - a.time_slot), [state.jobs, username, q]);
 
     return (
         <Card className="h-full flex flex-col border-l border-border rounded-none bg-surface/30 backdrop-blur-sm shadow-2xl relative" noPadding>

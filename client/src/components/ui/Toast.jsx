@@ -1,17 +1,22 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, AlertTriangle, X } from 'lucide-react';
 
-const Toast = ({ message, onClose, duration = 5000, kind = 'ok' }) => {
+// onClose is called with `id`. It's read through a ref so a parent re-render
+// (a new callback identity) doesn't restart the dismiss timer.
+const Toast = ({ id, message, onClose, duration = 5000, kind = 'ok' }) => {
     const [isVisible, setIsVisible] = useState(true);
+    const closeRef = useRef(() => onClose?.(id));
+    useEffect(() => { closeRef.current = () => onClose?.(id); }, [onClose, id]);
 
     useEffect(() => {
+        let closeTimer;
         const timer = setTimeout(() => {
             setIsVisible(false);
-            setTimeout(onClose, 300); // Wait for animation
+            closeTimer = setTimeout(() => closeRef.current(), 300); // Wait for animation
         }, duration);
 
-        return () => clearTimeout(timer);
-    }, [duration, onClose]);
+        return () => { clearTimeout(timer); clearTimeout(closeTimer); };
+    }, [duration]);
 
     const isErr = kind === 'err';
     const wrap = isErr
@@ -36,7 +41,7 @@ const Toast = ({ message, onClose, duration = 5000, kind = 'ok' }) => {
                 <button
                     onClick={() => {
                         setIsVisible(false);
-                        setTimeout(onClose, 300);
+                        setTimeout(() => closeRef.current(), 300);
                     }}
                     className="p-1 hover:bg-white/10 rounded-full transition-colors"
                 >

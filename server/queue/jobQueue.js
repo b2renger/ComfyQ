@@ -219,6 +219,29 @@ class JobQueue {
         return rows.map(rowToJob);
     }
 
+    // Every job that hasn't finished (scheduled + in flight), oldest first.
+    // Unbounded on purpose: the count is naturally small, and a LIMIT here
+    // would hide the running job once a workshop's history grows.
+    listActive() {
+        const terminal = [...sm.TERMINAL_STATES];
+        const rows = this.db.prepare(
+            `SELECT * FROM jobs WHERE status NOT IN (${terminal.map(() => '?').join(',')})
+             ORDER BY scheduled_at ASC, created_at ASC`
+        ).all(...terminal);
+        return rows.map(rowToJob);
+    }
+
+    // The `limit` most recent jobs, oldest first. list() with a limit keeps the
+    // OLDEST rows, so once a workshop passes the limit it would silently drop
+    // every new booking — the live broadcast uses this instead.
+    listRecent(limit = 500) {
+        const rows = this.db.prepare(
+            `SELECT * FROM (SELECT * FROM jobs ORDER BY scheduled_at DESC, created_at DESC LIMIT ?)
+             ORDER BY scheduled_at ASC, created_at ASC`
+        ).all(limit);
+        return rows.map(rowToJob);
+    }
+
     // The next job the executor may actually run. A job whose chained inputs
     // (job_deps) are not all COMPLETED is skipped rather than returned, so a
     // storyboard video waiting on its still-unrendered frame never blocks the

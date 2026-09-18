@@ -103,9 +103,11 @@ function jobsState({ runtime, registry }) {
     let running = null;
     const scheduled = [];
     try {
-        // list() returns scheduled_at ASC across all statuses; partition the
-        // non-terminal ones into "running now" (in-flight) vs "planned".
-        for (const j of queue.list({ limit: 500 })) {
+        // Unfinished jobs, scheduled_at ASC; partition them into "running now"
+        // (in-flight) vs "planned". Asking the queue for only the unfinished
+        // ones matters: list({limit}) keeps the OLDEST rows, so past 500 jobs
+        // the fleet monitor reported an idle machine while it was working.
+        for (const j of queue.listActive()) {
             if (sm.isTerminal(j.status)) continue;
             if (j.status === sm.STATES.SCHEDULED) {
                 if (scheduled.length < MAX_SCHEDULED) scheduled.push(compact(j));

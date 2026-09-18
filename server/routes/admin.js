@@ -716,6 +716,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                         maxInputEdge: found.maxInputEdge,
                         disabledWhen: found.disabledWhen,
                         linkedValues: found.linkedValues,
+                        format: found.format,
                         required: found.required ?? d.required,
                         order: found.order ?? d.order,
                         enabled: true

@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { SocketProvider } from './context/SocketContext';
+import { SocketProvider, useSocket } from './context/SocketContext';
 import SchedulerPage from './pages/Scheduler';
 import DashboardPage from './pages/Dashboard';
 import AdminConfig from './pages/AdminConfig';
-import { LayoutDashboard, Calendar, Settings } from 'lucide-react';
+import { LayoutDashboard, Calendar, Settings, WifiOff, Wand2, X } from 'lucide-react';
 import UsernameModal from './components/UsernameModal';
 import AccessGate from './components/AccessGate';
 import ThemeToggle from './components/ui/ThemeToggle';
@@ -19,6 +19,51 @@ import { Link, useLocation } from 'react-router-dom';
  * Includes the navigation bar, username modal, and a consistent background.
  * Uses <Outlet> to render child routes (Scheduler, Dashboard).
  */
+/**
+ * Says so when the websocket has dropped. Without it the page keeps showing the
+ * last state it received, which looks like a frozen queue rather than a lost
+ * connection. socket.io reconnects on its own; bookings are refused meanwhile
+ * (rather than queued) so a retry can't book twice.
+ */
+const ConnectionBanner = () => {
+  const { connection } = useSocket();
+  if (connection !== 'reconnecting') return null;
+  return (
+    <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 bg-amber-500/15 border-b border-amber-500/30 text-amber-500 text-xs font-medium">
+      <WifiOff size={13} className="shrink-0" />
+      Connection lost — reconnecting. What you see may be out of date, and booking is paused until it comes back.
+    </div>
+  );
+};
+
+/**
+ * Announces that the machine switched to another workflow. A tab left open
+ * across a switch holds a form built for the previous workflow, so without this
+ * the only hint was that booking behaved oddly — students had to reload.
+ * The forms rebuild themselves; this says why they changed.
+ */
+const WorkflowSwitchBanner = () => {
+  const { workflowChange, dismissWorkflowChange } = useSocket();
+  if (!workflowChange) return null;
+  return (
+    <div className="shrink-0 flex items-center gap-2 px-4 py-2 bg-primary/15 border-b border-primary/30 text-xs font-medium text-foreground">
+      <Wand2 size={13} className="text-primary shrink-0" />
+      <span className="flex-1">
+        {workflowChange.id
+          ? <>This machine now serves <strong>{workflowChange.name}</strong>. Your booking form has been updated to its settings — anything you had typed for the previous workflow is gone.</>
+          : <>This machine stopped serving a workflow. Booking is paused until an admin starts one.</>}
+      </span>
+      <button
+        onClick={dismissWorkflowChange}
+        className="p-1 rounded text-muted hover:text-foreground hover:bg-white/5 shrink-0"
+        title="Dismiss"
+      >
+        <X size={13} />
+      </button>
+    </div>
+  );
+};
+
 const StudentLayout = () => {
   return (
     <div className="h-screen bg-background text-foreground flex flex-col font-sans antialiased selection:bg-primary/20 selection:text-foreground relative">
@@ -65,6 +110,9 @@ const StudentLayout = () => {
           <ThemeToggle />
         </div>
       </nav>
+
+      <ConnectionBanner />
+      <WorkflowSwitchBanner />
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
         <Outlet />

@@ -7,6 +7,12 @@ const ingredientsStore = require('../storage/ingredientsStore');
 const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
 
 const HEARTBEAT_MS = 5000;
+// Progress arrives once per sampler step — or per tile / frame on some nodes —
+// and every tick used to push the whole job list to every client. Changes are
+// now merged into at most one broadcast per interval.
+const BROADCAST_MIN_INTERVAL_MS = 250;
+// Jobs carried in a state_update: the most recent ones.
+const BROADCAST_JOB_LIMIT = 500;
 
 // RealtimeBus — broadcasts state to clients and translates socket events into
 // queue / executor actions. Wire format kept compatible with the v1 client:
@@ -43,6 +49,9 @@ class RealtimeBus {
         // running jobs, not just HTTP traffic.
         this.activity = activity || { lastTs: Date.now(), clients: new Map() };
         this.connectedUsers = new Map();
+        this._broadcastTimer = null;
+        this._lastBroadcastAt = 0;
+        this._lastStateJson = null;   // last state sent to everyone, to skip repeats
 
         this.io = new Server(httpServer, {
             cors: { origin: '*', methods: ['GET', 'POST'] }
@@ -102,6 +111,10 @@ class RealtimeBus {
             const guestId = `Guest-${socket.id.substring(0, 4)}`;
             this.connectedUsers.set(socket.id, { socketId: socket.id, userId: guestId });
             this._bumpActivity();
+            // The newcomer gets the full state right away; everyone else only
+            // needs the new user count, which the merged broadcast carries.
+            try { socket.emit('state_update', this._buildState()); }
+            catch (e) { console.error('[RealtimeBus] initial state err:', e); }
             this.broadcast();
 
             socket.on('register_user', (name) => {
@@ -160,8 +173,10 @@ class RealtimeBus {
                     });
                     if (typeof ack === 'function') ack({ ok: true, jobId: job.id });
                 } catch (e) {
-                    socket.emit('error', { message: e.message });
+                    // A client that asked for an ack shows the refusal in its
+                    // booking form; the error event is for older clients.
                     if (typeof ack === 'function') ack({ ok: false, error: e.message });
+                    else socket.emit('error', { message: e.message });
                 }
             });
 
@@ -299,39 +314,62 @@ class RealtimeBus {
         };
     }
 
+    // Ask for a state_update. Calls in a burst (a status transition, then the
+    // executor's notify, then a progress tick) collapse into one send, spaced
+    // at least BROADCAST_MIN_INTERVAL_MS apart.
     broadcast() {
+        if (this._broadcastTimer) return;
+        const wait = Math.max(0, this._lastBroadcastAt + BROADCAST_MIN_INTERVAL_MS - Date.now());
+        this._broadcastTimer = setTimeout(() => {
+            this._broadcastTimer = null;
+            this._lastBroadcastAt = Date.now();
+            this._emitState();
+        }, wait);
+    }
+
+    // Send the state to everyone, unless it is identical to the last send —
+    // the 5 s heartbeat then costs clients nothing (no re-render) when idle.
+    _emitState() {
         try {
-            const cfg = this.configManager.load().config;
-            const activeId = cfg.workflows.activeWorkflowId;
-            const entry = activeId ? this.registry.get(activeId) : null;
-            const parameter_map = entry && !entry.unavailable
-                ? this._buildParameterMap(entry.effective.exposedParameters, cfg.comfy_ui?.root_path)
-                : {};
-            const workflow_info = entry && !entry.unavailable ? {
-                id: entry.id,
-                name: entry.summary.name,
-                description: entry.summary.description,
-                category: entry.summary.category,
-                promptGuides: entry.summary.promptGuides || [],
-                samplesPerSec: entry.summary.samplesPerSec,
-                estimatedDurationSec: entry.summary.estimatedDurationSec
-            } : { id: null, name: 'No workflow configured', description: '', category: 'other', promptGuides: [], samplesPerSec: null, estimatedDurationSec: null };
-            const benchmarkMs = entry && !entry.unavailable
-                ? (entry.summary.estimatedDurationSec * 1000) : 60000;
-            const workerStatus = this.worker.getStatus();
-            const systemStatus = workerStatus.state === 'idle' || workerStatus.state === 'busy' ? 'ready' : workerStatus.state;
-            const jobs = this.queue.list({ limit: 500 }).map(j => this._toWireJob(j));
-            this.io.emit('state_update', {
-                system_status: systemStatus,
-                benchmark_ms: benchmarkMs,
-                connected_users: Array.from(this.connectedUsers.values()),
-                jobs,
-                workflow: { parameter_map },
-                workflow_info
-            });
+            const state = this._buildState();
+            const json = JSON.stringify(state);
+            if (json === this._lastStateJson) return;
+            this._lastStateJson = json;
+            this.io.emit('state_update', state);
         } catch (e) {
             console.error('[RealtimeBus] broadcast err:', e);
         }
+    }
+
+    _buildState() {
+        const cfg = this.configManager.load().config;
+        const activeId = cfg.workflows.activeWorkflowId;
+        const entry = activeId ? this.registry.get(activeId) : null;
+        const parameter_map = entry && !entry.unavailable
+            ? this._buildParameterMap(entry.effective.exposedParameters, cfg.comfy_ui?.root_path)
+            : {};
+        const workflow_info = entry && !entry.unavailable ? {
+            id: entry.id,
+            name: entry.summary.name,
+            description: entry.summary.description,
+            category: entry.summary.category,
+            promptGuides: entry.summary.promptGuides || [],
+            samplesPerSec: entry.summary.samplesPerSec,
+            estimatedDurationSec: entry.summary.estimatedDurationSec
+        } : { id: null, name: 'No workflow configured', description: '', category: 'other', promptGuides: [], samplesPerSec: null, estimatedDurationSec: null };
+        const benchmarkMs = entry && !entry.unavailable
+            ? (entry.summary.estimatedDurationSec * 1000) : 60000;
+        const workerStatus = this.worker.getStatus();
+        const systemStatus = workerStatus.state === 'idle' || workerStatus.state === 'busy' ? 'ready' : workerStatus.state;
+        const jobs = this.queue.listRecent(BROADCAST_JOB_LIMIT).map(j => this._toWireJob(j));
+        return {
+            system_status: systemStatus,
+            benchmark_ms: benchmarkMs,
+            connected_users: Array.from(this.connectedUsers.values()),
+            jobs,
+            workflow: { parameter_map },
+            workflow_info
+        };
     }
 
     _buildParameterMap(exposed, comfyRoot) {
@@ -352,6 +390,7 @@ class RealtimeBus {
                 step: p.step,
                 maxInputEdge: p.maxInputEdge,
                 disabledWhen: p.disabledWhen,
+                format: p.format,
                 required: p.required
             };
             // A `lora` param's dropdown is filled at broadcast time by scanning

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Timeline, DataSet } from 'vis-timeline/standalone';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import { useSocket } from '../context/SocketContext';
@@ -8,6 +8,7 @@ import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import MyJobsPanel from '../components/MyJobsPanel';
+import JobCard from '../components/JobCard';
 import ImageLightbox from '../components/ImageLightbox';
 import MediaPreview from '../components/ui/MediaPreview';
 import WorkflowChip from '../components/ui/WorkflowChip';
@@ -101,6 +102,50 @@ const SchedulerPage = () => {
     useEffect(() => {
         followNowRef.current = followNow;
     }, [followNow]);
+
+    // Filtering/sorting runs only when the inputs change, not on every
+    // broadcast; JobCard is memoized so unchanged cards don't re-render.
+    const visibleJobs = useMemo(() => {
+        const q = searchQuery.trim().toLowerCase();
+        return state.jobs
+            .filter((job) => {
+                if (activeTab === 'mine' && job.user_id !== username) return false;
+                if (activeTab === 'all' && userFilter !== 'all' && job.user_id !== userFilter) return false;
+                if (q) {
+                    // Search the resolved display prompt so jobs whose headline
+                    // `prompt` was empty (LTX-style with positive_prompt) still
+                    // match what the user actually typed.
+                    const prompt = getDisplayPrompt(job).toLowerCase();
+                    const user = (job.user_id || '').toLowerCase();
+                    if (!prompt.includes(q) && !user.includes(q)) return false;
+                }
+                return true;
+            })
+            .sort((a, b) => b.time_slot - a.time_slot);
+    }, [state.jobs, activeTab, userFilter, searchQuery, username]);
+
+    const openJob = useCallback((job) => {
+        setSelectedJob(job);
+        if (job.status === 'completed') setLightboxJob(job);
+    }, []);
+
+    const openBooking = useCallback(() => {
+        setBookingTime(null);
+        setIsBookingOpen(true);
+    }, []);
+
+    const closeBooking = useCallback(() => {
+        setIsBookingOpen(false);
+        setPrefillParams(null);
+    }, []);
+
+    const confirmBooking = useCallback(({ prompt, params, time }) => bookJob(time, prompt, params), [bookJob]);
+
+    // A recalled parameter set belongs to the workflow it came from; drop it
+    // when the machine starts serving another one so the booking form doesn't
+    // prefill values the new workflow has no use for.
+    const servedWorkflowId = state.workflow_info?.id;
+    useEffect(() => { setPrefillParams(null); }, [servedWorkflowId]);
 
     const slideToNow = () => {
         if (!timelineRef.current) return;
@@ -272,10 +317,10 @@ const SchedulerPage = () => {
 
             // update existing items or add new ones, removing old ones
             const existingIds = itemsRef.current.getIds();
-            const newIds = itemsData.map(i => i.id);
+            const newIds = new Set(itemsData.map(i => i.id));
 
             // Remove items not in the new list
-            const toRemove = existingIds.filter(id => !newIds.includes(id));
+            const toRemove = existingIds.filter(id => !newIds.has(id));
             if (toRemove.length > 0) itemsRef.current.remove(toRemove);
 
             // Update or add items
@@ -324,12 +369,9 @@ const SchedulerPage = () => {
                             variant="primary"
                             size="lg"
                             icon={Sparkles}
-                            onClick={() => {
-                                // No slot → ASAP (null). Double-clicking the timeline
-                                // still books an explicit slot.
-                                setBookingTime(null);
-                                setIsBookingOpen(true);
-                            }}
+                            // No slot → ASAP (null). Double-clicking the timeline
+                            // still books an explicit slot.
+                            onClick={openBooking}
                             className="shadow-lg shadow-primary/20"
                         >
                             Schedule a job
@@ -413,10 +455,10 @@ const SchedulerPage = () => {
 
                 <BookingDialog
                     isOpen={isBookingOpen}
-                    onClose={() => { setIsBookingOpen(false); setPrefillParams(null); }}
+                    onClose={closeBooking}
                     initialTime={bookingTime}
                     initialParams={prefillParams}
-                    onConfirm={({ prompt, params, time }) => bookJob(time, prompt, params)}
+                    onConfirm={confirmBooking}
                 />
 
                 <ImageLightbox
@@ -486,209 +528,32 @@ const SchedulerPage = () => {
                         </div>
                     </div>
 
-                    {(() => {
-                        const q = searchQuery.trim().toLowerCase();
-                        const filtered = state.jobs.filter(job => {
-                            if (activeTab === 'mine' && job.user_id !== username) return false;
-                            if (activeTab === 'all' && userFilter !== 'all' && job.user_id !== userFilter) return false;
-                            if (q) {
-                                // Search against the resolved display prompt so jobs whose
-                                // headline `prompt` was empty (LTX-style with positive_prompt)
-                                // still match on what the user actually typed.
-                                const prompt = getDisplayPrompt(job).toLowerCase();
-                                const user = (job.user_id || '').toLowerCase();
-                                if (!prompt.includes(q) && !user.includes(q)) return false;
-                            }
-                            return true;
-                        });
-                        return (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
-                        {filtered.length === 0 ? (
+                        {visibleJobs.length === 0 ? (
                             <div className="col-span-full py-12 flex flex-col items-center justify-center text-center space-y-4 opacity-30">
                                 <Clock size={48} />
                                 <p className="text-lg font-medium">
-                                    {q
+                                    {searchQuery.trim()
                                         ? `No jobs match "${searchQuery}"`
                                         : activeTab === 'mine' ? "You haven't generated anything yet" : 'No jobs match this filter'}
                                 </p>
-                                {activeTab === 'mine' && !q && <Button variant="ghost" onClick={() => { setBookingTime(null); setIsBookingOpen(true); }}>Book your first slot</Button>}
+                                {activeTab === 'mine' && !searchQuery.trim() && <Button variant="ghost" onClick={openBooking}>Book your first slot</Button>}
                             </div>
                         ) : (
-                            filtered.sort((a, b) => b.time_slot - a.time_slot).map((job) => (
-                                <Card
+                            visibleJobs.map((job) => (
+                                <JobCard
                                     key={job.id}
-                                    className={`group relative overflow-hidden transition-all duration-300 hover:scale-[1.02] cursor-pointer ${selectedJob?.id === job.id ? 'ring-2 ring-primary border-primary/50' : 'hover:border-primary/30'}`}
-                                    onClick={() => {
-                                        setSelectedJob(job);
-                                        if (job.status === 'completed') setLightboxJob(job);
-                                    }}
-                                >
-                                    {(() => {
-                                        const isMine = job.user_id === username;
-                                        const isScheduled = job.status === 'scheduled';
-                                        const isProcessing = job.status === 'processing';
-                                        const isCompletedOrFailed = job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled';
-                                        const hasAction = isScheduled || isProcessing || isCompletedOrFailed;
-                                        if (!hasAction && !isMine) return null;
-                                        return (
-                                            <div className="absolute top-0 right-0 flex items-center z-10">
-                                                {hasAction && (() => {
-                                                    let title, message, kind;
-                                                    if (isProcessing) {
-                                                        title = 'Cancel running job?';
-                                                        message = isMine
-                                                            ? 'This will interrupt ComfyUI for your job. The job will be marked as cancelled.'
-                                                            : `Cancel ${job.user_id}'s running job? ComfyUI will be interrupted.`;
-                                                        kind = 'cancel';
-                                                    } else if (isScheduled) {
-                                                        title = 'Cancel scheduled job?';
-                                                        message = isMine
-                                                            ? 'Remove this scheduled job from the timeline?'
-                                                            : `Remove ${job.user_id}'s scheduled job from the timeline?`;
-                                                        kind = 'delete';
-                                                    } else {
-                                                        title = 'Delete this result?';
-                                                        message = isMine
-                                                            ? 'Delete this job record and its output file from disk? This cannot be undone.'
-                                                            : `Delete ${job.user_id}'s job record and output file from disk? This cannot be undone.`;
-                                                        kind = 'delete';
-                                                    }
-                                                    return (
-                                                        <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setPendingAction({ jobId: job.id, kind, isMine, title, message, userId: job.user_id });
-                                                            }}
-                                                            className="p-1.5 bg-danger/10 text-danger hover:bg-danger hover:text-on-primary transition-colors rounded-bl-lg border-l border-b border-danger/20"
-                                                            title={isMine ? title : `${title} (admin password required)`}
-                                                        >
-                                                            <X size={12} />
-                                                        </button>
-                                                    );
-                                                })()}
-                                                {isMine && (
-                                                    <div className="p-1 px-2 bg-primary/20 text-primary text-[8px] font-bold uppercase tracking-tighter rounded-bl-lg border-l border-b border-primary/20">
-                                                        Yours
-                                                    </div>
-                                                )}
-                                            </div>
-                                        );
-                                    })()}
-
-                                    <div className="flex flex-col h-full space-y-4">
-                                        <div className="flex justify-between items-start">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center space-x-2">
-                                                    <Clock size={12} className="text-muted" />
-                                                    <span className="text-[10px] font-mono text-muted">{new Date(job.time_slot).toLocaleTimeString()}</span>
-                                                </div>
-                                                <Badge variant={job.status === 'completed' ? 'success' : job.status === 'processing' ? 'warning' : 'primary'}>
-                                                    {job.status}
-                                                </Badge>
-                                            </div>
-                                            <span className="text-[10px] text-muted font-mono">#{job.id.substring(0, 6)}</span>
-                                        </div>
-
-                                        <div className="flex-1 aspect-video bg-background rounded-lg border border-border/50 flex items-center justify-center overflow-hidden relative shadow-inner">
-                                            {job.status === 'completed' ? (
-                                                <div className="relative w-full h-full group/img">
-                                                    <MediaPreview filename={getPrimaryDownloadFilename(job) || job.result_filename} text={getJobText(job)} />
-                                                    {(() => {
-                                                        const imgCount = (job.outputs || []).filter(o => o.kind === 'image' && o.type !== 'temp').length;
-                                                        return imgCount > 1 ? (
-                                                            <span className="absolute top-2 left-2 px-2 py-0.5 rounded-full bg-black/70 text-white text-[10px] font-semibold backdrop-blur-md border border-white/10 pointer-events-none">
-                                                                {imgCount} views
-                                                            </span>
-                                                        ) : null;
-                                                    })()}
-                                                    <button
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            const dl = getPrimaryDownloadFilename(job);
-                                                            if (!dl) return;
-                                                            const link = document.createElement('a');
-                                                            link.href = getDownloadUrl(dl);
-                                                            link.download = dl;
-                                                            document.body.appendChild(link);
-                                                            link.click();
-                                                            document.body.removeChild(link);
-                                                        }}
-                                                        className="absolute bottom-2 right-2 p-2 rounded-full bg-black/60 hover:bg-primary text-white backdrop-blur-md opacity-0 group-hover/img:opacity-100 transition-all duration-300 scale-75 group-hover/img:scale-100 shadow-lg border border-white/10"
-                                                        title="Download Image"
-                                                    >
-                                                        <Download size={14} />
-                                                    </button>
-                                                </div>
-                                            ) : (
-                                                <div className="flex flex-col items-center text-muted/20 w-full px-4">
-                                                    <Sparkles size={32} className={job.status === 'processing' ? 'animate-pulse text-primary/50' : ''} />
-                                                    <span className="text-[10px] mt-2 font-medium">
-                                                        {job.status === 'processing' ? (job.current_node ? `Executing: ${job.current_node}` : 'Generating...') : 'Pending'}
-                                                    </span>
-                                                    {job.status === 'processing' && job.progress && (
-                                                        <div className="w-full mt-4">
-                                                            <ProgressViz
-                                                                progress={job.progress}
-                                                                etaSeconds={computeEtaSeconds(job, workflowsById, state.workflow_info)}
-                                                                size="sm"
-                                                            />
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                            {job.status === 'processing' && !job.progress && (
-                                                <div className="absolute bottom-0 left-0 right-0 p-2">
-                                                    <ProgressViz progress={null} currentNode={job.current_node} size="sm" />
-                                                </div>
-                                            )}
-                                        </div>
-
-                                        {(() => {
-                                            const prompt = getDisplayPrompt(job);
-                                            return (
-                                                <p className="text-xs text-slate-300 line-clamp-2 italic leading-relaxed">
-                                                    {prompt ? `"${prompt}"` : <span className="text-muted not-italic">no prompt</span>}
-                                                </p>
-                                            );
-                                        })()}
-
-                                        <div className="flex items-center justify-between pt-2 border-t border-border/30 gap-2">
-                                            {(() => {
-                                                const color = getUserColor(job.user_id);
-                                                return (
-                                                    <div className="flex items-center space-x-1.5 overflow-hidden" title={`User: ${job.user_id || 'anonymous'}`}>
-                                                        <div
-                                                            className="w-3 h-3 rounded-full shrink-0 ring-1 ring-black/30"
-                                                            style={{ backgroundColor: color.dot }}
-                                                        />
-                                                        <span
-                                                            className="text-[10px] truncate font-medium"
-                                                            style={{ color: color.ring }}
-                                                        >
-                                                            {job.user_id === username ? 'You' : job.user_id}
-                                                        </span>
-                                                    </div>
-                                                );
-                                            })()}
-                                            <div className="flex items-center gap-2 shrink-0">
-                                                {(() => {
-                                                    const genMs = getGenerationMs(job);
-                                                    return job.status === 'completed' && genMs != null ? (
-                                                        <span className="flex items-center gap-1 text-[10px] text-muted whitespace-nowrap" title="Time to generate">
-                                                            <Clock size={10} />{formatDuration(genMs)}
-                                                        </span>
-                                                    ) : null;
-                                                })()}
-                                                <WorkflowChip workflowId={job.workflow_id} workflowsById={workflowsById} />
-                                            </div>
-                                        </div>
-                                    </div>
-                                </Card>
+                                    job={job}
+                                    isMine={job.user_id === username}
+                                    isSelected={selectedJob?.id === job.id}
+                                    workflowsById={workflowsById}
+                                    workflowInfo={state.workflow_info}
+                                    onOpen={openJob}
+                                    onRequestAction={setPendingAction}
+                                />
                             ))
                         )}
                     </div>
-                    );
-                    })()}
                 </div>
             </div>
 

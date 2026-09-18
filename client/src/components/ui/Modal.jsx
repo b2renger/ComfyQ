@@ -2,16 +2,24 @@ import React, { useEffect } from 'react';
 import { X } from 'lucide-react';
 import Card from './Card';
 
+// Modals overlap (the lightbox's "Use these settings" opens the booking dialog
+// while the lightbox closes), so the scroll lock is counted rather than set and
+// cleared: the page unlocks when the LAST modal closes, not the first.
+let lockCount = 0;
+const lockScroll = () => {
+    lockCount += 1;
+    document.body.style.overflow = 'hidden';
+};
+const unlockScroll = () => {
+    lockCount = Math.max(0, lockCount - 1);
+    if (lockCount === 0) document.body.style.overflow = 'unset';
+};
+
 const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-md' }) => {
     useEffect(() => {
-        if (isOpen) {
-            document.body.style.overflow = 'hidden';
-        } else {
-            document.body.style.overflow = 'unset';
-        }
-        return () => {
-            document.body.style.overflow = 'unset';
-        };
+        if (!isOpen) return;
+        lockScroll();
+        return unlockScroll;
     }, [isOpen]);
 
     if (!isOpen) return null;

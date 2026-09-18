@@ -58,6 +58,12 @@ const ExposedParameter = z.object({
         map: z.record(z.string(), z.any()),
         fallback: z.any().optional()
     })).optional(),
+    // What kind of text a textarea holds, when that matters to ComfyQ.
+    //   ideogram4-caption — Ideogram 4's structured JSON prompt: the booking form
+    //   adds the visual composer and a format check, and the worker sends valid
+    //   JSON to the model compacted (measured on the rig: the same caption
+    //   pretty-printed came back "Image blocked by safety filter").
+    format: z.enum(['ideogram4-caption']).optional(),
     required: z.boolean().default(false),
     order: z.number().int().default(0)
 });

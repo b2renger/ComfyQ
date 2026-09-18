@@ -8,6 +8,7 @@ const { ModelLifecycle } = require('./modelLifecycle');
 const { humanizeFailure, humanizeSubmitRejection } = require('../executor/errorMessages');
 const { validateSelects } = require('./selectValidation');
 const { fillOptionalImages } = require('./optionalMedia');
+const { formatPromptValue } = require('./promptFormat');
 
 const CLIENT_ID_PREFIX = 'comfyq';
 
@@ -348,9 +349,10 @@ class LocalComfyUIWorker extends Worker {
             if (raw === undefined || raw === null || raw === '') continue;
             const node = wf[p.nodeId];
             if (!node) continue;
-            const v = clampParamValue(raw, p);
-            if (v === undefined) continue;                 // unusable number, leave the graph literal
-            if (v !== raw) console.warn(`[Worker] param ${p.key}: ${JSON.stringify(raw)} adjusted to fit its declared bounds → ${v}`);
+            const clamped = clampParamValue(raw, p);
+            if (clamped === undefined) continue;           // unusable number, leave the graph literal
+            if (clamped !== raw) console.warn(`[Worker] param ${p.key}: ${JSON.stringify(raw)} adjusted to fit its declared bounds → ${clamped}`);
+            const v = formatPromptValue(clamped, p.format);
             node.inputs = node.inputs || {};
             node.inputs[p.field] = v;
         }

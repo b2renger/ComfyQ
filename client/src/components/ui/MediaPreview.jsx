@@ -1,8 +1,56 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { isVideo, isModel3d, isSplat, isAudio, getImageUrl } from '../../utils/api';
-import { Play, Sparkles, FileText } from 'lucide-react';
+import { Play, Sparkles, FileText, Box } from 'lucide-react';
 import ModelViewer from './ModelViewer';
 import AudioPlayer from './AudioPlayer';
+import { useInView } from '../../hooks/useInView';
+
+// A card's video: plays while it is on screen, pauses when it scrolls away, so
+// a grid of results doesn't keep dozens of decoders running.
+const LazyVideo = ({ url, className, showPlayIcon }) => {
+    const [ref, inView] = useInView();
+    const videoRef = useRef(null);
+    useEffect(() => {
+        const v = videoRef.current;
+        if (!v) return;
+        if (inView) { const p = v.play(); if (p?.catch) p.catch(() => { /* autoplay refused — the poster frame stays */ }); }
+        else v.pause();
+    }, [inView]);
+    return (
+        <div ref={ref} className={`relative w-full h-full ${className}`}>
+            <video
+                ref={videoRef}
+                src={url}
+                className="w-full h-full object-cover"
+                muted
+                loop
+                playsInline
+                preload="metadata"
+            />
+            {showPlayIcon && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
+                    <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30">
+                        <Play size={16} className="text-white fill-current" />
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// A card's 3D mesh: the viewer (and its WebGL context) exists only while the
+// card is on screen. Off screen it is a placeholder, so scrolling past many 3D
+// results can't exhaust the browser's context limit.
+const LazyModel = ({ url, className }) => {
+    const [ref, inView] = useInView();
+    return (
+        <div ref={ref} className="w-full h-full">
+            {inView
+                ? <ModelViewer url={url} className={className} compact />
+                : <div className={`w-full h-full flex items-center justify-center bg-black text-muted ${className}`}><Box size={24} /></div>}
+        </div>
+    );
+};
 
 const MediaPreview = ({ filename, className = '', alt = 'Preview', showPlayIcon = true, text = null }) => {
     // Text-output jobs (image captioning / LLM describe) have no media file —
@@ -46,35 +94,18 @@ const MediaPreview = ({ filename, className = '', alt = 'Preview', showPlayIcon 
     // doesn't trigger parent click handlers (eg the Scheduler card click
     // that opens the lightbox — user clicks outside the viewer for that).
     if (is3d) {
-        return <ModelViewer url={url} className={className} compact />;
+        return <LazyModel url={url} className={className} />;
     }
 
     if (isVid) {
-        return (
-            <div className={`relative w-full h-full ${className}`}>
-                <video
-                    src={url}
-                    className="w-full h-full object-cover"
-                    muted
-                    loop
-                    playsInline
-                    autoPlay
-                />
-                {showPlayIcon && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-black/20 pointer-events-none">
-                        <div className="p-2 rounded-full bg-white/20 backdrop-blur-sm border border-white/30">
-                            <Play size={16} className="text-white fill-current" />
-                        </div>
-                    </div>
-                )}
-            </div>
-        );
+        return <LazyVideo url={url} className={className} showPlayIcon={showPlayIcon} />;
     }
 
     return (
         <img
             src={url}
             alt={alt}
+            loading="lazy"
             className={`w-full h-full object-cover ${className}`}
         />
     );
