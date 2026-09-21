@@ -46,7 +46,7 @@ const WINDOW_AFTER_MS = 50 * 60 * 1000;
 const FOLLOW_TICK_MS = 10 * 1000;
 
 const SchedulerPage = () => {
-    const { state, bookJob, deleteJob, cancelJob, reorderJob, username, workflowsById } = useSocket();
+    const { state, bookJob, deleteJob, cancelJob, reorderJob, username, workflowsById, scopedWorkflowId } = useSocket();
     const timelineRef = useRef(null);
     const containerRef = useRef(null);
     const itemsRef = useRef(null); // vis-data DataSet
@@ -140,6 +140,24 @@ const SchedulerPage = () => {
         if (moreInView && hasMoreCards) setCardLimit(n => n + CARD_PAGE);
     }, [moreInView, hasMoreCards, shownJobs.length]);
 
+    // The model this tab is for. A machine can serve several at once, but each
+    // tab is opened for one of them (…/user?workflow=<id>, how the fleet monitor
+    // opens them), so only that one is announced here.
+    const servedModels = useMemo(() => {
+        const lanes = state.lanes || [];
+        const asModel = l => ({
+            id: l.workflow_id, name: l.name, description: l.description,
+            category: l.category, promptGuides: l.promptGuides, busy: l.busy,
+        });
+        if (lanes.length) {
+            const scoped = scopedWorkflowId && lanes.find(l => l.workflow_id === scopedWorkflowId);
+            if (scoped) return [asModel(scoped)];
+            const primary = lanes.find(l => l.primary) || lanes[0];
+            return [asModel(primary)];
+        }
+        return state.workflow_info?.id ? [state.workflow_info] : [];
+    }, [state.lanes, state.workflow_info, scopedWorkflowId]);
+
     const openJob = useCallback((job) => {
         setSelectedJob(job);
         if (job.status === 'completed') setLightboxJob(job);
@@ -155,7 +173,7 @@ const SchedulerPage = () => {
         setPrefillParams(null);
     }, []);
 
-    const confirmBooking = useCallback(({ prompt, params, time }) => bookJob(time, prompt, params), [bookJob]);
+    const confirmBooking = useCallback(({ prompt, params, time, workflowId }) => bookJob(time, prompt, params, workflowId), [bookJob]);
 
     // A recalled parameter set belongs to the workflow it came from; drop it
     // when the machine starts serving another one so the booking form doesn't
@@ -361,24 +379,31 @@ const SchedulerPage = () => {
                         </div>
                         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Timeline</h2>
                         <p className="text-muted text-sm sm:text-base mt-1">Hello, <span className="text-primary font-bold">{username}</span>. Plan your generations.</p>
-                        {state.workflow_info?.id && (
-                            <div className="mt-2 rounded-lg bg-primary/5 border border-primary/20 p-3 max-w-2xl space-y-1.5">
+                        {/* What this machine is serving. It can run several models at
+                            once, each in its own lane with its own queue — so list them
+                            all, not just the first, or the others are invisible until
+                            the booking form is opened. */}
+                        {servedModels.map((wf, i) => (
+                            <div key={wf.id || i} className="mt-2 rounded-lg bg-primary/5 border border-primary/20 p-3 max-w-2xl space-y-1.5">
                                 <div className="flex items-center gap-2 flex-wrap">
                                     <Sparkles size={12} className="text-primary" />
                                     <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">Active workflow</span>
-                                    <span className="text-xs font-medium text-primary">{state.workflow_info.name}</span>
-                                    {state.workflow_info.category && state.workflow_info.category !== 'other' && (
-                                        <Badge variant="primary" className="text-[9px] py-0 h-4 uppercase">{state.workflow_info.category}</Badge>
+                                    <span className="text-xs font-medium text-primary">{wf.name}</span>
+                                    {wf.category && wf.category !== 'other' && (
+                                        <Badge variant="primary" className="text-[9px] py-0 h-4 uppercase">{wf.category}</Badge>
+                                    )}
+                                    {wf.busy && (
+                                        <span className="text-[10px] text-success">generating now</span>
                                     )}
                                 </div>
-                                <PromptGuideLinks guides={state.workflow_info.promptGuides} />
-                                {state.workflow_info.description && (
+                                <PromptGuideLinks guides={wf.promptGuides} />
+                                {wf.description && (
                                     <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                        {state.workflow_info.description}
+                                        {wf.description}
                                     </p>
                                 )}
                             </div>
-                        )}
+                        ))}
                     </div>
                     <div className="flex items-center space-x-2 sm:space-x-4">
                         <Button

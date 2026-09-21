@@ -15,7 +15,9 @@ const PORT_SETTLE_MS = 90000;
 // If ComfyUI exits, we emit 'exited' and let the LocalComfyUIWorker decide
 // whether to respawn (default: yes, with backoff).
 class ComfyProcess extends EventEmitter {
-    constructor({ rootPath, pythonExecutable, host, bindHost, port, installationType, onMilestone, useSageAttention = false, fp16Accumulation = false }) {
+    constructor({ rootPath, pythonExecutable, host, bindHost, port, installationType, onMilestone,
+        useSageAttention = false, fp16Accumulation = false,
+        userDir = null, tempDir = null, vramHeadroomGb = null }) {
         super();
         this.rootPath = rootPath;
         this.pythonExecutable = pythonExecutable;
@@ -31,6 +33,12 @@ class ComfyProcess extends EventEmitter {
         // turns them on.
         this.useSageAttention = !!useSageAttention;
         this.fp16Accumulation = !!fp16Accumulation;
+        // Per-lane state directories. Null means "use the install's own", which
+        // is what a single-lane machine does — byte-identical to before.
+        this.userDir = userDir || null;
+        this.tempDir = tempDir || null;
+        // GB this instance keeps free for the others sharing the card.
+        this.vramHeadroomGb = vramHeadroomGb || null;
         this.proc = null;
         // Boot-milestone callback (see LocalComfyUIWorker). Used here to
         // reprint the LAN URL banner the moment ComfyUI's comfyregistry
@@ -145,6 +153,26 @@ class ComfyProcess extends EventEmitter {
         // Pass the single feature by name — bare `--fast` enables everything in
         // the PerformanceFeature enum, which ComfyUI itself calls untested.
         if (this.fp16Accumulation) comfyArgs.push('--fast', 'fp16_accumulation');
+        // A second lane's ComfyUI runs from the same install but must not share
+        // its user or temp directory: the user dir holds a sqlite database that
+        // ComfyUI locks exclusively (a second process exits immediately), and
+        // the temp dir is deleted wholesale at startup, which would pull the
+        // rug from under the lane already running. These paths live under
+        // ComfyQ — the portable install itself is never written to. ComfyUI
+        // requires the user dir to exist already, and appends "temp" to
+        // whatever --temp-directory it is given.
+        if (this.userDir) {
+            fs.mkdirSync(this.userDir, { recursive: true });
+            comfyArgs.push('--user-directory', this.userDir);
+        }
+        if (this.tempDir) {
+            fs.mkdirSync(this.tempDir, { recursive: true });
+            comfyArgs.push('--temp-directory', this.tempDir);
+        }
+        // Leave room on the card for the other lanes. ComfyUI's DynamicVRAM
+        // reads actual free memory via NVML, so it already sees the other
+        // process; this is the politeness margin on top.
+        if (this.vramHeadroomGb) comfyArgs.push('--vram-headroom', String(this.vramHeadroomGb));
         const args = [...pyArgs, mainPy, ...comfyArgs];
         // Sanitize the env so an active conda/venv in the parent shell can't
         // leak Python paths into the spawned interpreter. Without this, the

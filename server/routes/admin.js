@@ -495,6 +495,62 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         } catch (e) { res.status(400).json({ error: e.message }); }
     });
 
+    // Where a workflow's ComfyUI keeps its saved workflows. A workflow being
+    // served in its own lane has its own user directory (see LaneManager);
+    // everything else uses the install's.
+    const laneUserRoot = (workflowId, root) => {
+        const lane = runtime?.lanes?.get(workflowId) || null;
+        return lane?.comfyConfig?.user_dir || path.join(root, 'user');
+    };
+
+    // ---- Lanes -------------------------------------------------------------
+    // A lane is a workflow plus the ComfyUI process running it. Several run at
+    // once on one GPU, so a second model can be served without switching the
+    // machine over — and without the restart that activate-workflow does, which
+    // drops every open student tab.
+
+    router.get('/lanes', (req, res) => {
+        const lanes = runtime?.lanes;
+        if (!lanes) return res.json({ lanes: [], available: false });
+        const cardGb = lanes.cardVramGb();
+        const usedGb = +lanes.list().reduce((t, l) => t + (l.vramGb || 0), 0).toFixed(2);
+        // What each workflow would need, and whether it would fit right now —
+        // so the library can say "serve alongside" or explain why it can't.
+        const fit = {};
+        for (const s of registry.summaries({ includeHidden: false })) {
+            if (s.unavailable) continue;
+            fit[s.id] = lanes.fit(s.id);
+        }
+        res.json({ available: true, lanes: lanes.list(), card: { vramGb: cardGb, usedGb }, fit });
+    });
+
+    router.post('/lanes', adminGate, express.json(), async (req, res) => {
+        const lanes = runtime?.lanes;
+        if (!lanes) return res.status(409).json({ error: 'lanes are only available while serving' });
+        const { workflowId, force = false } = req.body || {};
+        if (!workflowId) return res.status(400).json({ error: 'workflowId required' });
+        try {
+            const lane = await lanes.open(workflowId, { force: !!force });
+            res.json({ ok: true, lane });
+        } catch (e) {
+            // A refusal carries the numbers so the UI can explain itself, and
+            // `force` lets the admin overrule a "can't tell" verdict.
+            res.status(e.fit ? 409 : 500).json({ error: e.message, code: e.code || null, fit: e.fit || null });
+        }
+    });
+
+    router.delete('/lanes/:workflowId', adminGate, async (req, res) => {
+        const lanes = runtime?.lanes;
+        if (!lanes) return res.status(409).json({ error: 'lanes are only available while serving' });
+        const lane = lanes.get(req.params.workflowId);
+        if (!lane) return res.status(404).json({ error: 'no such lane' });
+        if (lane.primary) {
+            return res.status(409).json({ error: 'This is the machine\'s main lane — use "Stop serving" to close it.' });
+        }
+        await lanes.close(req.params.workflowId);
+        res.json({ ok: true });
+    });
+
     // Clean every output file referenced by any completed job, then clear
     // the outputs field on each so the UI no longer offers broken downloads.
     // Job records themselves are preserved (history). Gated by admin password
@@ -790,7 +846,11 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             const root = configManager.load().config.comfy_ui.root_path;
             if (!root) return res.status(400).json({ error: 'ComfyUI root path is not configured (Admin → ComfyUI settings).' });
             const openName = `${id}_template`;
-            const dir = path.join(root, 'user', 'default', 'workflows');
+            // A workflow served in its own lane has its own ComfyUI with its own
+            // user directory; staging into the install's would put the workflow
+            // in front of the WRONG ComfyUI, and the lane's canvas would open
+            // empty.
+            const dir = path.join(laneUserRoot(id, root), 'default', 'workflows');
             fs.mkdirSync(dir, { recursive: true });
             const dest = path.join(dir, `${openName}.json`);
             fs.copyFileSync(entry.templatePath, dest);
@@ -822,13 +882,20 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             // never overwrite an admin's own hand-saved ComfyUI workflow of the
             // same id, and it's clear in the sidebar this is the ComfyQ template.
             const openName = `${id}_template`;
-            const dir = path.join(cfg.root_path, 'user', 'default', 'workflows');
+            const lane = runtime?.lanes?.get(id) || null;
+            const dir = path.join(laneUserRoot(id, cfg.root_path), 'default', 'workflows');
             fs.mkdirSync(dir, { recursive: true });
             fs.copyFileSync(entry.templatePath, path.join(dir, `${openName}.json`));
-            // Ensure ComfyUI is up with the opener extension (launch/restart as needed).
             let port = cfg.api_port;
             let autoOpen = false;
-            if (backend && typeof backend.ensureOpenerLoaded === 'function') {
+            if (lane) {
+                // The lane already has a ComfyUI running on its own port, and the
+                // opener extension lives in the install's shared custom_nodes, so
+                // every lane loads it. Nothing to launch or restart.
+                port = lane.port;
+                autoOpen = fs.existsSync(path.join(cfg.root_path, 'custom_nodes', 'comfyq_opener'));
+            } else if (backend && typeof backend.ensureOpenerLoaded === 'function') {
+                // Ensure ComfyUI is up with the opener extension (launch/restart as needed).
                 const st = await backend.ensureOpenerLoaded();
                 port = st.port || port;
                 autoOpen = st.openerLoaded === true;

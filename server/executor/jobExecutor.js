@@ -11,11 +11,17 @@ const FAST_POLL_WINDOW_MS = 60000;
 // Drives the JobQueue + Worker. One job at a time in M0; the executor stays
 // loop-driven so it composes cleanly with future multi-worker pools.
 class JobExecutor {
-    constructor({ queue, worker, registry, comfyConfig, onSageIncompatible = null }) {
+    constructor({ queue, worker, registry, comfyConfig, onSageIncompatible = null, workflowIds = null, label = '' }) {
         this.queue = queue;
         this.worker = worker;
         this.registry = registry;
         this.comfyConfig = comfyConfig;
+        // The workflows this executor is responsible for. null = every job,
+        // which is the single-lane behaviour. With several lanes running in
+        // parallel each one claims only its own workflow's jobs.
+        this.workflowIds = workflowIds;
+        // Prefix for this executor's log lines, so two lanes are tellable apart.
+        this.label = label;
         // Called once, the first time a job dies because ComfyUI's optional
         // sage-attention flag does not support that model's head dimension.
         // Should turn the flag off, bring ComfyUI back without it, and resolve
@@ -204,7 +210,7 @@ class JobExecutor {
         // Otherwise look for the next ready job. findReady already skips jobs
         // whose chained inputs are not COMPLETED yet, so a waiting video never
         // blocks the images queued behind it.
-        const ready = this.queue.findReady();
+        const ready = this.queue.findReady(Date.now(), this.workflowIds);
         if (!ready) return;
 
         // Reject jobs whose workflow disappeared / became unavailable.

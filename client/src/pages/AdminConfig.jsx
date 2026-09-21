@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen, Gauge, Clapperboard, ListChecks } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen, Gauge, Clapperboard, ListChecks, Radio } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import StoryboardUpload from '../components/admin/StoryboardUpload';
@@ -25,6 +25,13 @@ const AdminConfig = ({ currentMode }) => {
     const [pickedWorkflow, setPickedWorkflow] = useState(null);
     const [activatingId, setActivatingId] = useState(null);
     const [deactivating, setDeactivating] = useState(false);
+    // Workflows being served in parallel, and whether each other workflow would
+    // fit alongside them on this machine's card.
+    const [lanes, setLanes] = useState([]);
+    const [laneFit, setLaneFit] = useState({});
+    const [laneCard, setLaneCard] = useState(null);
+    const [serveAlongsideId, setServeAlongsideId] = useState(null);
+    const [closingLaneId, setClosingLaneId] = useState(null);
     const [adminPassword, setAdminPassword] = useState('');
     const [passwordValid, setPasswordValid] = useState(false);
     const [newAdminPassword, setNewAdminPassword] = useState('');
@@ -483,6 +490,61 @@ const AdminConfig = ({ currentMode }) => {
     // Stop serving the active workflow: flip the server back to admin mode (so
     // students can no longer book) and restart. Surfaced both as the header
     // button and as a per-card "Stop serving" button on the serving workflow.
+    // ---- Lanes --------------------------------------------------------------
+    // The machine can serve several workflows at once, each on its own ComfyUI.
+    // Unlike "Activate & serve", adding one does NOT restart the server, so
+    // students already booking are not interrupted.
+    const refreshLanes = React.useCallback(async () => {
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/lanes`, { headers: adminHeaders() });
+            if (!res.ok) return;
+            const data = await res.json();
+            setLanes(data.lanes || []);
+            setLaneFit(data.fit || {});
+            setLaneCard(data.card || null);
+        } catch { /* the panel still works without lane info */ }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    useEffect(() => {
+        refreshLanes();
+        // A lane's ComfyUI takes a while to come up, and one may be generating —
+        // keep the cards and the VRAM verdicts current while the panel is open.
+        const t = setInterval(refreshLanes, 5000);
+        return () => clearInterval(t);
+    }, [refreshLanes]);
+
+    const serveAlongside = async (workflowId) => {
+        setServeAlongsideId(workflowId);
+        showToast('Starting a second ComfyUI for this workflow — this takes a minute…');
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/lanes`, {
+                method: 'POST', headers: adminHeaders(),
+                body: JSON.stringify({ workflowId })
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(body.error || 'Could not start the lane');
+            showToast(`Now serving “${body.lane?.name || workflowId}” in parallel on port ${body.lane?.port}.`);
+        } catch (e) {
+            showToast(e.message, 'err');
+        } finally {
+            setServeAlongsideId(null);
+            refreshLanes();
+        }
+    };
+
+    const closeLane = async (workflowId) => {
+        setClosingLaneId(workflowId);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/lanes/${encodeURIComponent(workflowId)}`, {
+                method: 'DELETE', headers: adminHeaders()
+            });
+            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Could not stop the lane');
+            showToast('Lane stopped — its VRAM is free again.');
+        } catch (e) { showToast(e.message, 'err'); }
+        finally { setClosingLaneId(null); refreshLanes(); }
+    };
+
     const resetToAdmin = async () => {
         setDeactivating(true);
         try {
@@ -999,6 +1061,21 @@ const AdminConfig = ({ currentMode }) => {
                         <Badge variant="primary">Active: {config.workflows.activeWorkflowId}</Badge>
                     )}
                 </div>
+                {lanes.length > 0 && laneCard?.vramGb && (
+                    <div className="mb-4 flex items-center gap-3 flex-wrap px-3 py-2 rounded-lg bg-surface border border-border text-xs">
+                        <span className="font-medium text-foreground">
+                            Serving {lanes.length} workflow{lanes.length > 1 ? 's' : ''} in parallel
+                        </span>
+                        <span className="text-muted">
+                            {laneCard.usedGb} of {laneCard.vramGb} GB of models · {Math.max(0, +(laneCard.vramGb - laneCard.usedGb - 2).toFixed(2))} GB free for another
+                        </span>
+                        {lanes.map(l => (
+                            <span key={l.workflowId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/30">
+                                <Radio size={11} />:{l.port} {l.name}{l.busy ? ' · generating' : ''}
+                            </span>
+                        ))}
+                    </div>
+                )}
                 <WorkflowSelector
                     key={refreshKey}
                     selectedWorkflowId={config.workflows.activeWorkflowId}
@@ -1018,6 +1095,12 @@ const AdminConfig = ({ currentMode }) => {
                     serving={config.mode === 'student'}
                     onValidate={(id) => setConfirmValidateId(id)}
                     validatingId={validatingId}
+                    lanes={lanes}
+                    laneFit={laneFit}
+                    onServeAlongside={serveAlongside}
+                    serveAlongsideId={serveAlongsideId}
+                    onCloseLane={closeLane}
+                    closingLaneId={closingLaneId}
                 />
                 <div className="mt-6 flex items-center justify-end gap-2 flex-wrap">
                     {pickedWorkflow && <span className="text-xs text-muted mr-auto">Selected: <code>{pickedWorkflow.id}</code></span>}

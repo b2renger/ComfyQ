@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "id": "image_qwen_image_2_1_t2i",
+  "name": "Qwen Image 2.1 — text to image",
+  "description": "Make an image from a written description with Qwen Image 2.1. It is unusually good at TEXT inside the picture — signs, posters, packaging, handwriting — in Latin and Chinese alike, so put the words you want rendered in quotes and say where they sit.\n\nSize: the default 1 megapixel is 1024×1024. This model is trained for 2K, so for a big print set the size to 4 megapixels (2048×2048 at 1:1). Pick the aspect ratio first; the width and height follow.\n\nTransparent PNG: wrap your prompt exactly like this and the model returns a cut-out with a real alpha channel —\n\"This is an RGBA format image with transparency. <your subject>. The image has an alpha channel and a transparent background.\"\n\nSteps: 25 is a quick pass. Qwen's own pipeline uses 40–50, which is worth it for detailed scenes and for clean lettering. There is no negative prompt: guidance is fixed at 1, which is how this model is meant to run.",
+  "category": "t2i",
+  "tags": [
+    "qwen",
+    "qwen-image",
+    "2.1",
+    "text2image",
+    "text-rendering",
+    "transparent",
+    "2k"
+  ],
+  "experimental": true,
+  "promptGuides": [
+    {
+      "label": "Qwen-Image-2.1 — official model card",
+      "url": "https://huggingface.co/Qwen/Qwen-Image-2.1",
+      "tip": "Describe the scene in full sentences and put any words to be rendered in \"quotes\", saying where they appear. For a transparent PNG, use the RGBA wording in the description above — it is the phrasing Qwen documents."
+    },
+    {
+      "label": "Comfy-Org/Qwen-Image-2.1 — the models this bundle runs",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1"
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_qwen_image_2_1_t2i.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 18,
+    "models": [
+      { "type": "unet", "file": "qwen_image_2.1_int8_convrot.safetensors" },
+      { "type": "clip", "file": "qwen3vl_8b_int8_convrot.safetensors" },
+      { "type": "vae", "file": "qwen_image_2.1_vae_bf16.safetensors" }
+    ]
+  },
+  "estimatedDurationSec": 30,
+  "exposedParameters": [
+    {
+      "key": "textencodeqwenimage21_prompt_459_452",
+      "nodeId": "459:452",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Prompt",
+      "default": "A weathered enamel shop sign above a rainy Parisian street, the sign reads \"CAFÉ DES ARTS\" in cream lettering on deep green, warm window light spilling onto wet cobbles, shallow depth of field, photographic",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "resolutionselector_aspect_ratio_13",
+      "nodeId": "13",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio",
+      "default": "1:1 (Square)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "resolutionselector_megapixels_13",
+      "nodeId": "13",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+      "default": 1,
+      "min": 0.25,
+      "max": 4,
+      "step": 0.25,
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "ksampler_steps_459_458",
+      "nodeId": "459:458",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps (25 is quick, 40–50 is Qwen's own setting)",
+      "default": 25,
+      "min": 10,
+      "max": 60,
+      "step": 1,
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "ksampler_seed_459_458",
+      "nodeId": "459:458",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 593103825222985,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 4
+    }
+  ],
+  "warmupParams": {
+    "textencodeqwenimage21_prompt_459_452": "a single red apple on a white table",
+    "ksampler_steps_459_458": 25
+  },
+  "presets": {}
+}

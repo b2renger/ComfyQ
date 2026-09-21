@@ -3,7 +3,7 @@ import {
     Image, Video, Wand2, Music, Box, LayoutGrid, List,
     RefreshCw, ChevronRight, Sparkles, Clock, Tag,
     Pencil, Trash2, Gauge, Cpu, FileText, Wrench, Search, X,
-    ExternalLink, Power, Radio, Square, Brush, Film, FlaskConical, ShieldCheck
+    ExternalLink, Power, Radio, Square, Brush, Film, FlaskConical, ShieldCheck, MemoryStick
 } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
@@ -45,13 +45,81 @@ const groupOf = (cat) => CATEGORY_GROUP[cat] || 'other';
 const PERF_FLAG_LABELS = { use_sage_attention: 'Sage attention', fp16_accumulation: 'fp16 accumulation' };
 
 /**
+ * What this workflow's models weigh, measured against this machine's card.
+ *
+ * The number is the sum of the model files on the graph's active path (see
+ * server/workflows/vramEstimate.js) — an upper bound on resident weights, and
+ * the figure to use when deciding whether a second workflow can be served
+ * beside this one. A bundle whose models are resolved inside its nodes reports
+ * nothing rather than pretending to be free.
+ */
+const VramChip = ({ vram, gpu, fit, servedHere, measured }) => {
+    if (!vram && !measured) return null;
+    // A measured peak from calibration beats the static estimate — and it is
+    // the only figure for a pipeline whose models aren't named as files in the
+    // graph (the 3D bundles load a HuggingFace repo and stage through it).
+    if (measured) {
+        const tone = servedHere ? 'text-success' : fit ? (fit.ok ? 'text-success' : 'text-danger') : '';
+        return (
+            <span className={`flex items-center gap-1 ${tone}`}
+                title={`Measured on this GPU during calibration: ${measured} GB at peak.`
+                    + (vram?.known ? ` The models on disk add up to ${vram.weightsGb} GB — the run never holds all of it at once.` : '')}>
+                <MemoryStick size={12} />{measured} GB measured
+            </span>
+        );
+    }
+    if (!vram.known) {
+        return (
+            <span className="flex items-center gap-1" title="This workflow's nodes resolve their models internally, so the size can't be read from the graph. Calibrate it and the real figure is measured on the card.">
+                <MemoryStick size={12} />VRAM unknown — calibrate to measure
+            </span>
+        );
+    }
+    const card = gpu?.vramGb || null;
+    const overCard = card ? vram.weightsGb > card : false;
+    const parts = vram.components.slice(0, 6).map(c => `${c.gb} GB ${c.kind}`).join(' + ');
+    const missing = vram.unresolved.length ? `\n${vram.unresolved.length} model(s) not found on this machine: ${vram.unresolved.join(', ')}` : '';
+    const pruned = vram.prunedGb ? `\n${vram.prunedGb} GB on unused switch branches is not counted.` : '';
+
+    // Once the machine is serving something, this says at a glance whether this
+    // workflow could run beside it: green it fits, red it does not.
+    let tone = overCard ? 'text-warning' : '';
+    let verdict = '';
+    if (servedHere) { tone = 'text-success'; verdict = '\nBeing served right now.'; }
+    else if (fit) {
+        tone = fit.ok ? 'text-success' : 'text-danger';
+        verdict = fit.ok
+            ? `\nFits alongside what is already running — ${fit.freeGb} GB free.`
+            : fit.reason === 'not-enough-vram'
+                ? `\nWon't fit alongside what is running: needs ${fit.needGb} GB, ${fit.freeGb} GB free.`
+                : fit.reason === 'size-unknown'
+                    ? '\nIts size cannot be read, so it cannot be placed automatically.'
+                    : '\nCannot be added right now.';
+    }
+    return (
+        <span
+            className={`flex items-center gap-1 ${tone}`}
+            title={`Models on the active path: ${parts}.${pruned}${missing}\n${overCard
+                ? `More than this card holds (${card} GB) — ComfyUI streams the weights from RAM, and nothing else will fit beside it.`
+                : card ? `This card has ${card} GB.` : ''}${verdict}`}
+        >
+            <MemoryStick size={12} />{vram.weightsGb} GB{overCard ? ' — over this card' : ''}
+        </span>
+    );
+};
+
+/**
  * WorkflowSelector
  * Lists workflows from /workflows and lets the admin pick one.
  * Calls onSelect(workflowDetails) when a workflow is chosen.
  * Calls onPresetSelect(name, values) when a preset chip is clicked.
  */
-const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false, onValidate, validatingId = null }) => {
+const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false, onValidate, validatingId = null,
+    lanes = [], laneFit = {}, onServeAlongside = null, serveAlongsideId = null, onCloseLane = null, closingLaneId = null }) => {
     const [workflows, setWorkflows] = useState([]);
+    // This machine's card, so "17.3 GB" can be judged against what it has —
+    // the same workflow is comfortable on a 96 GB card and impossible on 24.
+    const [gpu, setGpu] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [viewMode, setViewMode] = useState('grid');
@@ -75,6 +143,7 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
             if (!res.ok) throw new Error('Failed to fetch workflows');
             const data = await res.json();
             setWorkflows(data.workflows || []);
+            setGpu(data.gpu || null);
         } catch (err) {
             setError(err.message);
         } finally {
@@ -283,6 +352,12 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                     // "Serving" is only true when the server is actually in student
                     // mode serving this workflow; in admin mode nothing is served.
                     const isServing = isActive && serving;
+                    // Lanes: this machine can serve several workflows at once,
+                    // each with its own ComfyUI. A card is either one of them,
+                    // or a candidate that fits (or doesn't) beside them.
+                    const lane = lanes.find(l => l.workflowId === w.id) || null;
+                    const anyLaneRunning = lanes.length > 0;
+                    const fit = lane ? null : (laneFit[w.id] || null);
                     const isCalibrating = calibratingIds.has(w.id);
                     return (
                         <div
@@ -356,6 +431,7 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                         : 'Not yet calibrated — estimate from meta.json'}>
                                         <Clock size={12} />~{w.estimatedDurationSec}s {w.hasCalibration ? '' : '(uncalibrated)'}
                                     </span>
+                                    <VramChip vram={w.vram} gpu={gpu} fit={anyLaneRunning ? fit : null} servedHere={!!lane} measured={w.calibration?.vramPeakGb || null} />
                                     {w.hasCalibration && w.calibration?.gpu && (
                                         <span className="flex items-center gap-1 text-success/80"
                                             title={`Time measured on this GPU. Move to a different GPU and re-calibrate for an accurate estimate.`}>
@@ -404,7 +480,53 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                             <span>Validate</span>
                                         </button>
                                     )}
-                                    {onActivate && (
+                                    {/* A lane this machine is already running, but not the
+                                        main one: it can be closed without stopping the machine. */}
+                                    {lane && !lane.primary && (
+                                        <div className="inline-flex items-center gap-1.5 ml-auto">
+                                            <span
+                                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-success/15 border border-success/40 text-success"
+                                                title={`Running in parallel on port ${lane.port}${lane.busy ? ' — currently generating' : ''}`}
+                                            >
+                                                <Radio size={13} /> Lane :{lane.port}
+                                            </span>
+                                            {onCloseLane && (
+                                                <button
+                                                    type="button"
+                                                    disabled={closingLaneId === w.id}
+                                                    onClick={(e) => { e.stopPropagation(); onCloseLane(w.id); }}
+                                                    className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-background border border-border hover:border-danger/50 text-muted hover:text-danger transition-colors disabled:opacity-60 disabled:cursor-wait"
+                                                    title="Stop this lane and give its VRAM back. The machine keeps serving the others."
+                                                >
+                                                    {closingLaneId === w.id ? <RefreshCw size={13} className="animate-spin" /> : <Square size={13} />}
+                                                    <span>{closingLaneId === w.id ? 'Closing…' : 'Close lane'}</span>
+                                                </button>
+                                            )}
+                                        </div>
+                                    )}
+                                    {/* The machine is already serving something else: offer this
+                                        one as a second lane, greyed out when it will not fit. */}
+                                    {!lane && anyLaneRunning && onServeAlongside && (
+                                        <button
+                                            type="button"
+                                            disabled={!fit?.ok || serveAlongsideId !== null}
+                                            onClick={(e) => { e.stopPropagation(); onServeAlongside(w.id); }}
+                                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
+                                            title={fit?.ok
+                                                ? `Serve this as well, in parallel on its own ComfyUI — ${fit.needGb} GB of ${fit.freeGb} GB free.`
+                                                : fit?.reason === 'not-enough-vram'
+                                                    ? `Not enough VRAM: needs ${fit.needGb} GB, only ${fit.freeGb} GB free of the ${fit.cardGb} GB card (${fit.usedGb} GB already in use).`
+                                                    : fit?.reason === 'size-unknown'
+                                                        ? 'How much VRAM this needs cannot be read from its graph, so it cannot be placed automatically.'
+                                                        : fit?.reason === 'card-unknown'
+                                                            ? 'This machine’s VRAM could not be detected.'
+                                                            : 'Cannot be served alongside right now.'}
+                                        >
+                                            {serveAlongsideId === w.id ? <RefreshCw size={13} className="animate-spin" /> : <Power size={13} />}
+                                            <span>{serveAlongsideId === w.id ? 'Starting…' : 'Serve alongside'}</span>
+                                        </button>
+                                    )}
+                                    {onActivate && (!lane || lane.primary) && (!anyLaneRunning || lane?.primary) && (
                                         isServing ? (
                                             <div className="inline-flex items-center gap-1.5 ml-auto">
                                                 <span

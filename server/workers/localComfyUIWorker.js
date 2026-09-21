@@ -7,7 +7,7 @@ const { InputUploader, PLACEHOLDER_IMAGE } = require('./inputUploader');
 const { ModelLifecycle } = require('./modelLifecycle');
 const { humanizeFailure, humanizeSubmitRejection } = require('../executor/errorMessages');
 const { validateSelects } = require('./selectValidation');
-const { fillOptionalImages } = require('./optionalMedia');
+const { fillOptionalImages, unlinkEmptyMedia } = require('./optionalMedia');
 const { formatPromptValue } = require('./promptFormat');
 
 const CLIENT_ID_PREFIX = 'comfyq';
@@ -67,7 +67,15 @@ class LocalComfyUIWorker extends Worker {
             installationType: comfyConfig.installation_type,
             onMilestone: this.onMilestone,
             useSageAttention: comfyConfig.use_sage_attention,
-            fp16Accumulation: comfyConfig.fp16_accumulation
+            fp16Accumulation: comfyConfig.fp16_accumulation,
+            // Per-lane state, so a second ComfyUI can run from the SAME portable
+            // install without touching it: these directories live under ComfyQ.
+            // Both are required for a second process — ComfyUI takes an
+            // exclusive lock on <user-dir>/comfyui.db, and wipes its temp dir on
+            // startup, so sharing either one breaks the other lane.
+            userDir: comfyConfig.user_dir || null,
+            tempDir: comfyConfig.temp_dir || null,
+            vramHeadroomGb: comfyConfig.vram_headroom_gb || null
         });
         this.rest = new ComfyRestClient({ host: this.host, port: this.port });
         this.uploader = new InputUploader({
@@ -431,7 +439,13 @@ class LocalComfyUIWorker extends Worker {
         });
         if (lifecycleResult.freed) console.log(`[Worker] /free invoked: ${lifecycleResult.reason}`);
 
-        const wf = this._materializeWorkflow(apiWorkflow, { paramValues, exposedParameters, inputs, filenamePrefix });
+        // Unused reference slots are removed from the graph rather than filled
+        // with a placeholder the model would actually look at (see optionalMedia).
+        const pruned = unlinkEmptyMedia({ apiWorkflow, exposedParameters, paramValues });
+        if (pruned.unlinked.length) {
+            console.log(`[Worker] ${pruned.unlinked.length} unused reference input(s) removed from the graph: ${pruned.unlinked.join(', ')}`);
+        }
+        const wf = this._materializeWorkflow(pruned.workflow, { paramValues, exposedParameters, inputs, filenamePrefix });
 
         let resp;
         try {

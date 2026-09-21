@@ -30,9 +30,8 @@ function lanAddresses() {
 const configManager = require('./config/configManager');
 const { WorkflowRegistry } = require('./workflows/workflowRegistry');
 const { JobQueue } = require('./queue/jobQueue');
-const { LocalComfyUIWorker } = require('./workers/localComfyUIWorker');
 const { effectiveComfyConfig, disabledPerfFlags, PERF_FLAG_LABELS } = require('./workers/perfFlags');
-const { JobExecutor } = require('./executor/jobExecutor');
+const { LaneManager } = require('./lanes/laneManager');
 const { BenchmarkService } = require('./benchmark/benchmarkService');
 const { AdminCalibrator } = require('./benchmark/adminCalibrator');
 const { RealtimeBus } = require('./realtime/realtimeBus');
@@ -322,70 +321,25 @@ async function main() {
     // under Sage attention) would otherwise save black images.
     const activeMeta = config.workflows.activeWorkflowId
         ? registry.get(config.workflows.activeWorkflowId)?.meta : null;
-    const servingComfyConfig = effectiveComfyConfig(config.comfy_ui, activeMeta);
-    if (servingComfyConfig !== config.comfy_ui) {
+    if (effectiveComfyConfig(config.comfy_ui, activeMeta) !== config.comfy_ui) {
         const off = disabledPerfFlags(activeMeta).filter(k => config.comfy_ui[k]).map(k => PERF_FLAG_LABELS[k]);
         console.log(`[ComfyQ]   perf flags:      ${off.join(' + ')} OFF for this workflow (it can't run with ${off.length > 1 ? 'them' : 'it'})`);
     }
-    const worker = new LocalComfyUIWorker({
-        comfyConfig: servingComfyConfig,
-        queueConfig: config.queue,
+    // Lanes. A lane is a workflow + the ComfyUI running it + the executor
+    // feeding it; several can run at once on one GPU so a class can use two
+    // models in parallel instead of the machine being switched over. The first
+    // lane uses the configured port and the install's own directories, so a
+    // single-lane machine behaves exactly as it always has.
+    const lanes = new LaneManager({
+        queue, registry, configManager,
         onMilestone,
-        // Student mode serves a class: if ComfyUI crashes, bring it back and
-        // carry on serving the same workflow rather than stranding everyone.
-        autoRespawn: true,
-        onRespawn: () => {
-            const active = configManager.get().workflows?.activeWorkflowId;
-            const name = (active && registry.get(active)?.summary?.name) || active || 'none';
-            console.log(`[ComfyQ] ComfyUI recovered — still serving "${name}" (${active || 'no workflow'})`);
-            printConnectionBanner('ComfyUI recovered — back in service', config.server.port);
-            try { runtime.bus?.broadcast(); } catch { /* bus not up yet */ }
-        }
-    });
-    // A restart mid-class (nodemon, an admin relaunch, a Windows update) can
-    // land while the previous ComfyUI is still dying or still loading: the port
-    // is taken, so our spawn can't bind and the API never answers. Dropping to
-    // admin mode there takes the machine OUT OF SERVICE silently — every open
-    // student tab keeps reconnecting to a server that no longer schedules — so
-    // try again before giving up. Only a repeated failure (bad paths, broken
-    // install) flips the mode.
-    const WORKER_START_ATTEMPTS = 3;
-    const WORKER_RETRY_MS = 8000;
-    let workerUp = false;
-    for (let attempt = 1; attempt <= WORKER_START_ATTEMPTS && !workerUp; attempt++) {
-        try {
-            let started = await worker.start();
-            if (started?.external) {
-                // The ComfyUI left running by the previous session may carry a flag
-                // this workflow can't use — relaunch it without, rather than serve
-                // black images all class.
-                const { replaced } = await worker.ensureNoBlockingPerfFlags();
-                if (replaced) started = { external: false };
-            }
-            console.log(`[ComfyQ] worker ready (${started?.external ? 'attached to external ComfyUI' : 'spawned ComfyUI'})`);
-            workerUp = true;
-        } catch (e) {
-            console.error(`[ComfyQ] failed to start ComfyUI worker (attempt ${attempt}/${WORKER_START_ATTEMPTS}): ${e.message}`);
-            if (attempt < WORKER_START_ATTEMPTS) {
-                console.error(`[ComfyQ] retrying in ${WORKER_RETRY_MS / 1000}s — staying in student mode so the machine keeps serving`);
-                await new Promise(r => setTimeout(r, WORKER_RETRY_MS));
-            }
-        }
-    }
-    if (!workerUp) {
-        console.error('[ComfyQ] ComfyUI would not start after several attempts — reverting to admin mode');
-        configManager.update(c => { c.mode = 'admin'; return c; });
-        return exitForRestart('admin');   // stop resuming — see above
-    }
-
-    const executor = new JobExecutor({
-        queue, worker, registry, comfyConfig: config.comfy_ui,
+        onChange: () => { try { runtime.bus?.broadcast(); } catch { /* bus not up yet */ } },
         // Sage attention is an opt-in global speed-up that only supports certain
         // attention head dimensions. One incompatible model would otherwise take
         // down every remaining job that uses it, so the flag is turned off for
         // good, ComfyUI comes back without it, and the job is retried.
-        onSageIncompatible: async () => {
-            const ok = await worker.restartWithoutSageAttention();
+        onSageIncompatible: async (laneWorker) => {
+            const ok = await laneWorker.restartWithoutSageAttention();
             if (!ok) return false;
             try {
                 configManager.update(c => { c.comfy_ui.use_sage_attention = false; return c; });
@@ -396,14 +350,41 @@ async function main() {
             }
             try { runtime.bus?.broadcast(); } catch { /* bus not up yet */ }
             return true;
-        }
+        },
     });
-    executor.start();
+    runtime.lanes = lanes;
+
+    // A restart mid-class (nodemon, an admin relaunch, a Windows update) can
+    // land while the previous ComfyUI is still dying or still loading: the port
+    // is taken, so our spawn can't bind and the API never answers. Dropping to
+    // admin mode there takes the machine OUT OF SERVICE silently — every open
+    // student tab keeps reconnecting to a server that no longer schedules — so
+    // LaneManager retries before giving up. Only a repeated failure (bad paths,
+    // broken install) flips the mode.
+    try {
+        await lanes.open(config.workflows.activeWorkflowId, { primary: true });
+    } catch (e) {
+        console.error('[ComfyQ] ComfyUI would not start after several attempts — reverting to admin mode:', e.message);
+        configManager.update(c => { c.mode = 'admin'; return c; });
+        return exitForRestart('admin');   // stop resuming — see above
+    }
+    // Bring back any extra lanes this machine was serving before it restarted,
+    // so a nodemon reload or a crash doesn't quietly drop a class to one model.
+    // Done after the primary lane so the first workflow is servable as early as
+    // possible; failures are logged and forgotten rather than fatal.
+    lanes.restoreRemembered().catch(e => console.warn('[ComfyQ] lane restore failed:', e.message));
+
+    const primaryLane = lanes.get(config.workflows.activeWorkflowId);
+    // The primary lane's worker/executor stand in wherever the rest of the
+    // server still expects exactly one of each (calibration, emergency stop,
+    // the fleet snapshot).
+    const worker = primaryLane.worker;
+    const executor = primaryLane.executor;
     console.log('[ComfyQ] executor loop started');
 
-    const benchmarkService = new BenchmarkService({ worker, registry, comfyConfig: config.comfy_ui, assetsDir: config.assets?.dir || '' });
+    const benchmarkService = new BenchmarkService({ worker, registry, comfyConfig: config.comfy_ui, assetsDir: config.assets?.dir || '', lanes });
 
-    const bus = new RealtimeBus({ httpServer: server, queue, executor, registry, configManager, worker, comfyConfig: config.comfy_ui, activity: runtime.activity });
+    const bus = new RealtimeBus({ httpServer: server, queue, executor, registry, configManager, worker, lanes, comfyConfig: config.comfy_ui, activity: runtime.activity });
     runtime.bus = bus;     // fleet snapshot reads connected-user count from here
 
     // Expose student-mode runtime to the admin router (emergency-stop) and the

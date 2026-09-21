@@ -63,6 +63,34 @@ function activeWorkflow({ config, registry }) {
     }
 }
 
+// Every workflow this machine is serving right now, one per lane. A machine
+// can run several models in parallel, and the fleet monitor shows a card per
+// model — so this must list them all, not just the configured active one.
+// Falls back to the single active workflow on a machine with no lanes (admin
+// mode, or an older build).
+function servedWorkflows({ config, registry, runtime }) {
+    const lanes = runtime?.lanes?.list?.() || [];
+    if (!lanes.length) {
+        const one = activeWorkflow({ config, registry });
+        return one ? [{ ...one, primary: true, busy: false, port: config.comfy_ui?.api_port || null }] : [];
+    }
+    return lanes.map(l => {
+        const entry = registry.get(l.workflowId);
+        const usable = entry && !entry.unavailable;
+        return {
+            id: l.workflowId,
+            name: l.name,
+            description: usable ? (entry.summary?.description || entry.meta?.description || '') : '',
+            category: usable ? (entry.summary?.category || null) : null,
+            estimatedDurationSec: usable ? (entry.summary?.estimatedDurationSec || null) : null,
+            primary: !!l.primary,
+            busy: !!l.busy,
+            vramGb: l.vramGb || null,
+            port: l.port,
+        };
+    });
+}
+
 // People currently using this server + how long since the last activity.
 function usage({ runtime }) {
     const now = Date.now();
@@ -144,6 +172,9 @@ function buildSnapshot({ configManager, registry, runtime, sysInfo }) {
         ramGb: sysInfo?.ramGb || 0,
         comfy: comfyState({ runtime, configManager }),
         activeWorkflow: activeWorkflow({ config, registry }),
+        // All of them, for a monitor that shows one card per served model.
+        // `activeWorkflow` above stays for older Discovery builds.
+        servedWorkflows: servedWorkflows({ config, registry, runtime }),
         usage: usage({ runtime }),
         // True when this machine is reserved behind a student access password
         // — a fleet monitor can show a lock instead of an open "Schedule a job".

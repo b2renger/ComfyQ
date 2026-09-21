@@ -154,6 +154,7 @@
       "batch_size": 4,
       "force_projection": true,
       "apply_mask": true,
+      "refine_steps": 3,
       "moge_model": [
         "55",
         0
