@@ -13,6 +13,18 @@ const { classify, KIND_BY_EXT } = require('./mediaTypes');
 //   GET /images/:filename(*)
 //   GET /download/:filename(*)
 
+// A finished result never changes: ComfyQ namespaces every output filename with
+// the user, the date and the job id, so a URL always points at the same bytes.
+// Express' sendFile defaults to `max-age=0`, which makes the browser revalidate
+// EVERY tile on every render — one round trip per result per tab, which is what
+// made a grid of generations slow to appear and several open tabs crawl. A year
+// of immutable caching means a result is fetched once per browser and then read
+// from disk on every other tab, scroll and reload.
+const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
+// ComfyUI's temp/ dir is not namespaced by us, so a name there could be reused
+// by a later preview. Cache it briefly instead of for a year.
+const TEMP_CACHE = 'public, max-age=60';
+
 function _resolveSafe(rootDir, fileRel) {
     const decoded = decodeURIComponent(fileRel);
     if (decoded.includes('..')) return null;
@@ -21,10 +33,11 @@ function _resolveSafe(rootDir, fileRel) {
     return abs;
 }
 
+// Returns { abs, immutable } — `immutable` only for the durable output dir.
 function _findInRoots(roots, fileRel) {
     for (const r of roots) {
-        const abs = _resolveSafe(r, fileRel);
-        if (abs && fs.existsSync(abs)) return abs;
+        const abs = _resolveSafe(r.dir, fileRel);
+        if (abs && fs.existsSync(abs)) return { abs, immutable: r.immutable };
     }
     return null;
 }
@@ -33,20 +46,24 @@ function makeRouter(comfyConfig) {
     const router = express.Router();
     const outputDir = comfyConfig.output_dir;
     const tempDir = path.resolve(comfyConfig.root_path, 'temp');
-    const roots = [outputDir, tempDir];
+    const roots = [{ dir: outputDir, immutable: true }, { dir: tempDir, immutable: false }];
 
     function serve(req, res) {
         const filename = req.params.filename;
         if (!filename) return res.status(400).send('Missing filename');
-        const abs = _findInRoots(roots, filename);
-        if (!abs) return res.status(404).send('Not found');
+        const found = _findInRoots(roots, filename);
+        if (!found) return res.status(404).send('Not found');
+        const { abs, immutable } = found;
         const { mime } = classify(abs);
         res.type(mime);
+        res.setHeader('Cache-Control', immutable ? IMMUTABLE_CACHE : TEMP_CACHE);
         const wantDownload = req.query.download === '1' || req.path.startsWith('/download');
         if (wantDownload) {
-            res.download(abs, path.basename(abs));
+            // cacheControl:false — sendFile would otherwise overwrite the header
+            // set above with its own `max-age=0`.
+            res.download(abs, path.basename(abs), { cacheControl: false });
         } else {
-            res.sendFile(abs);
+            res.sendFile(abs, { cacheControl: false });
         }
     }
 

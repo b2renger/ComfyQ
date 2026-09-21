@@ -9,6 +9,7 @@ import Badge from '../components/ui/Badge';
 import Button from '../components/ui/Button';
 import MyJobsPanel from '../components/MyJobsPanel';
 import JobCard from '../components/JobCard';
+import { useInView } from '../hooks/useInView';
 import ImageLightbox from '../components/ImageLightbox';
 import MediaPreview from '../components/ui/MediaPreview';
 import WorkflowChip from '../components/ui/WorkflowChip';
@@ -38,6 +39,8 @@ import PromptGuideLinks from '../components/PromptGuideLinks';
  * - MyJobsPanel: Sidebar for managing user's own jobs
  */
 // Visible timeline window: 10 minutes of past context, 50 minutes ahead.
+// Cards mounted per batch in the results grid (see cardLimit below).
+const CARD_PAGE = 60;
 const WINDOW_BEFORE_MS = 10 * 60 * 1000;
 const WINDOW_AFTER_MS = 50 * 60 * 1000;
 const FOLLOW_TICK_MS = 10 * 1000;
@@ -123,6 +126,19 @@ const SchedulerPage = () => {
             })
             .sort((a, b) => b.time_slot - a.time_slot);
     }, [state.jobs, activeTab, userFilter, searchQuery, username]);
+
+    // How many cards are mounted at once. A workshop's history runs into the
+    // hundreds and every card carries media, so mounting them all is what made
+    // the grid slow to open and heavy to scroll; the rest follow as the student
+    // reaches the bottom.
+    const [cardLimit, setCardLimit] = useState(CARD_PAGE);
+    useEffect(() => { setCardLimit(CARD_PAGE); }, [activeTab, userFilter, searchQuery]);
+    const shownJobs = useMemo(() => visibleJobs.slice(0, cardLimit), [visibleJobs, cardLimit]);
+    const hasMoreCards = visibleJobs.length > shownJobs.length;
+    const [moreRef, moreInView] = useInView({ rootMargin: '600px' });
+    useEffect(() => {
+        if (moreInView && hasMoreCards) setCardLimit(n => n + CARD_PAGE);
+    }, [moreInView, hasMoreCards, shownJobs.length]);
 
     const openJob = useCallback((job) => {
         setSelectedJob(job);
@@ -540,7 +556,7 @@ const SchedulerPage = () => {
                                 {activeTab === 'mine' && !searchQuery.trim() && <Button variant="ghost" onClick={openBooking}>Book your first slot</Button>}
                             </div>
                         ) : (
-                            visibleJobs.map((job) => (
+                            shownJobs.map((job) => (
                                 <JobCard
                                     key={job.id}
                                     job={job}
@@ -552,6 +568,16 @@ const SchedulerPage = () => {
                                     onRequestAction={setPendingAction}
                                 />
                             ))
+                        )}
+                        {hasMoreCards && (
+                            <div ref={moreRef} className="col-span-full py-6 flex justify-center">
+                                <button
+                                    onClick={() => setCardLimit(n => n + CARD_PAGE)}
+                                    className="text-xs font-medium text-muted hover:text-foreground px-3 py-2 rounded-lg border border-border bg-surface"
+                                >
+                                    Showing {shownJobs.length} of {visibleJobs.length} — load more
+                                </button>
+                            </div>
                         )}
                     </div>
                 </div>

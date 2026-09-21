@@ -4,7 +4,7 @@ import { SocketProvider, useSocket } from './context/SocketContext';
 import SchedulerPage from './pages/Scheduler';
 import DashboardPage from './pages/Dashboard';
 import AdminConfig from './pages/AdminConfig';
-import { LayoutDashboard, Calendar, Settings, WifiOff, Wand2, X } from 'lucide-react';
+import { LayoutDashboard, Calendar, Settings, WifiOff, Wand2, X, RotateCw, Moon, Play } from 'lucide-react';
 import UsernameModal from './components/UsernameModal';
 import AccessGate from './components/AccessGate';
 import ThemeToggle from './components/ui/ThemeToggle';
@@ -54,6 +54,13 @@ const WorkflowSwitchBanner = () => {
           : <>This machine stopped serving a workflow. Booking is paused until an admin starts one.</>}
       </span>
       <button
+        onClick={() => window.location.reload()}
+        className="shrink-0 flex items-center gap-1 px-2 py-1 rounded border border-primary/40 bg-primary/10 hover:bg-primary/20 text-foreground"
+        title="Reload the page for a clean form"
+      >
+        <RotateCw size={12} /> Reload
+      </button>
+      <button
         onClick={dismissWorkflowChange}
         className="p-1 rounded text-muted hover:text-foreground hover:bg-white/5 shrink-0"
         title="Dismiss"
@@ -64,7 +71,52 @@ const WorkflowSwitchBanner = () => {
   );
 };
 
+/**
+ * Counts down to this tab parking itself. Only shown to someone who is looking
+ * at it — any click, key or scroll cancels it (see SocketContext).
+ */
+const IdleWarningBanner = () => {
+  const { parkWarning } = useSocket();
+  if (!parkWarning) return null;
+  return (
+    <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 bg-amber-500/15 border-b border-amber-500/30 text-amber-500 text-xs font-medium">
+      <Moon size={13} className="shrink-0" />
+      This tab has been idle and nothing of yours is queued — it will pause in {parkWarning}s. Move the mouse or press a key to keep it.
+    </div>
+  );
+};
+
+/**
+ * What a parked tab shows instead of the app. The point is that everything
+ * heavy is unmounted: no socket, no job grid, no videos or 3D contexts. A
+ * machine can be left with a dozen forgotten tabs and pay for none of them.
+ */
+const ParkedScreen = () => {
+  const { resumeSession } = useSocket();
+  return (
+    <div className="flex-1 flex flex-col items-center justify-center gap-5 p-8 text-center">
+      <div className="w-14 h-14 rounded-2xl bg-surface border border-border flex items-center justify-center text-muted">
+        <Moon size={26} />
+      </div>
+      <div className="space-y-1.5 max-w-md">
+        <h2 className="text-lg font-bold tracking-tight">Tab paused</h2>
+        <p className="text-sm text-muted">
+          Nothing of yours was queued and this tab sat idle for five minutes, so it let go of the
+          machine. Nothing was lost — your jobs and results are on the server.
+        </p>
+      </div>
+      <button
+        onClick={resumeSession}
+        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-medium hover:opacity-90 transition-opacity"
+      >
+        <Play size={15} /> Resume
+      </button>
+    </div>
+  );
+};
+
 const StudentLayout = () => {
+  const { paused } = useSocket();
   return (
     <div className="h-screen bg-background text-foreground flex flex-col font-sans antialiased selection:bg-primary/20 selection:text-foreground relative">
       <UsernameModal />
@@ -113,9 +165,10 @@ const StudentLayout = () => {
 
       <ConnectionBanner />
       <WorkflowSwitchBanner />
+      <IdleWarningBanner />
 
       <main className="flex-1 flex flex-col overflow-hidden relative">
-        <Outlet />
+        {paused ? <ParkedScreen /> : <Outlet />}
       </main>
     </div>
   );

@@ -11,8 +11,17 @@ const HEARTBEAT_MS = 5000;
 // and every tick used to push the whole job list to every client. Changes are
 // now merged into at most one broadcast per interval.
 const BROADCAST_MIN_INTERVAL_MS = 250;
-// Jobs carried in a state_update: the most recent ones.
+// Jobs carried in a full snapshot: the most recent ones.
 const BROADCAST_JOB_LIMIT = 500;
+// A progress tick changes ONE job, but the snapshot holding it grows with the
+// day's history (a few hundred KB after a workshop) and lands every ~250 ms on
+// every open tab — which is what made several tabs lag and the fleet feel slow.
+// So a change is normally sent as a patch (`state_patch`) carrying only the
+// jobs that differ. A full `state_update` is still sent on connect, on request,
+// when most of the list changed, and every FULL_RESYNC_MS as a self-heal.
+const FULL_RESYNC_MS = 60000;
+// Past this many changed jobs the patch stops being a saving; send the snapshot.
+const PATCH_MAX_JOBS = 60;
 
 // RealtimeBus — broadcasts state to clients and translates socket events into
 // queue / executor actions. Wire format kept compatible with the v1 client:
@@ -27,11 +36,22 @@ const BROADCAST_JOB_LIMIT = 500;
 //            current_node, workflow_id, error_reason }],
 //   workflow: { parameter_map },               // for active workflow
 //   workflow_info: { id, name, description, category, promptGuides,
-//                    samplesPerSec, estimatedDurationSec }  // for ETA + ProgressViz
+//                    samplesPerSec, estimatedDurationSec },  // for ETA + ProgressViz
+//   seq                                        // sequence of this send
+// })
+//
+// and the incremental form, which is what a running job actually produces:
+//
+// emit('state_patch', {
+//   seq,                                       // must be the previous seq + 1
+//   jobs: [ ...only the jobs that changed ],   // absent when none did
+//   removed_jobs: [ ...ids no longer sent ],   // absent when none went
+//   ...any changed top-level field (system_status, connected_users, workflow, …)
 // })
 //
 // Inbound events:
 //   register_user(name)
+//   request_state()              resend the full snapshot to this socket
 //   book_job({ scheduledTime, prompt, params, user_id, workflow_id?, admin_password? })
 //   delete_job(jobId)            with optional admin_password
 //   reorder_job({ jobId, newTimeSlot })
@@ -51,7 +71,12 @@ class RealtimeBus {
         this.connectedUsers = new Map();
         this._broadcastTimer = null;
         this._lastBroadcastAt = 0;
-        this._lastStateJson = null;   // last state sent to everyone, to skip repeats
+        // What everyone has already been sent, so a broadcast can carry just the
+        // difference (and send nothing at all when there is none).
+        this._sentJobs = new Map();   // job id -> its serialized wire form
+        this._sentHead = {};          // top-level field -> its serialized value
+        this._seq = 0;                // bumped per send; clients detect a gap
+        this._lastFullAt = 0;
 
         this.io = new Server(httpServer, {
             cors: { origin: '*', methods: ['GET', 'POST'] }
@@ -113,9 +138,22 @@ class RealtimeBus {
             this._bumpActivity();
             // The newcomer gets the full state right away; everyone else only
             // needs the new user count, which the merged broadcast carries.
-            try { socket.emit('state_update', this._buildState()); }
+            try { this._emitFull(socket); }
             catch (e) { console.error('[RealtimeBus] initial state err:', e); }
             this.broadcast();
+
+            // A client that sees a gap in the patch sequence (only possible
+            // across a reconnect) asks for the whole state rather than showing a
+            // list with holes in it.
+            // Throttled: building the snapshot costs a query over the whole
+            // history, and a client only ever needs one per gap.
+            let lastResync = 0;
+            socket.on('request_state', () => {
+                if (Date.now() - lastResync < 2000) return;
+                lastResync = Date.now();
+                try { this._emitFull(socket); }
+                catch (e) { console.error('[RealtimeBus] resync err:', e); }
+            });
 
             socket.on('register_user', (name) => {
                 if (!name) return;
@@ -327,18 +365,54 @@ class RealtimeBus {
         }, wait);
     }
 
-    // Send the state to everyone, unless it is identical to the last send —
-    // the 5 s heartbeat then costs clients nothing (no re-render) when idle.
+    // Send what changed since the last broadcast — nothing at all when the state
+    // is identical (so the 5 s heartbeat costs an idle client nothing), a patch
+    // when a few jobs moved (the progress-tick case), a full snapshot when most
+    // of the list changed or the periodic resync is due.
     _emitState() {
         try {
             const state = this._buildState();
-            const json = JSON.stringify(state);
-            if (json === this._lastStateJson) return;
-            this._lastStateJson = json;
-            this.io.emit('state_update', state);
+            const { jobs, ...head } = state;
+            const jobsJson = new Map();
+            for (const j of jobs) jobsJson.set(j.id, JSON.stringify(j));
+
+            // Per-field, so a student connecting doesn't re-send the whole
+            // parameter_map to every tab along with the new user count.
+            const headJson = {};
+            const changedHead = {};
+            for (const [k, v] of Object.entries(head)) {
+                headJson[k] = JSON.stringify(v);
+                if (headJson[k] !== this._sentHead[k]) changedHead[k] = v;
+            }
+            const changed = jobs.filter(j => jobsJson.get(j.id) !== this._sentJobs.get(j.id));
+            const removed = [];
+            for (const id of this._sentJobs.keys()) if (!jobsJson.has(id)) removed.push(id);
+            const headKeys = Object.keys(changedHead);
+            if (!headKeys.length && !changed.length && !removed.length) return;
+
+            this._sentHead = headJson;
+            this._sentJobs = jobsJson;
+            this._seq++;
+
+            if (changed.length > PATCH_MAX_JOBS || Date.now() - this._lastFullAt > FULL_RESYNC_MS) {
+                this._emitFull(this.io, state);
+                return;
+            }
+            const patch = { seq: this._seq, ...changedHead };
+            if (changed.length) patch.jobs = changed;
+            if (removed.length) patch.removed_jobs = removed;
+            this.io.emit('state_patch', patch);
         } catch (e) {
             console.error('[RealtimeBus] broadcast err:', e);
         }
+    }
+
+    // A full snapshot, stamped with the current sequence so the receiver knows
+    // which patch comes next. `target` is io (everyone) or one socket.
+    _emitFull(target, state = null) {
+        const full = state || this._buildState();
+        if (target === this.io) this._lastFullAt = Date.now();
+        target.emit('state_update', { ...full, seq: this._seq });
     }
 
     _buildState() {

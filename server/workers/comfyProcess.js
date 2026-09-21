@@ -7,6 +7,10 @@ const axios = require('axios');
 
 const execFileAsync = promisify(execFile);
 
+// How long to give a ComfyUI that holds the port but isn't answering yet (see
+// start()). A cold ComfyUI on this class of machine needs 30–90 s.
+const PORT_SETTLE_MS = 90000;
+
 // Owns the ComfyUI child process lifecycle. v2 design: spawn once, keep alive.
 // If ComfyUI exits, we emit 'exited' and let the LocalComfyUIWorker decide
 // whether to respawn (default: yes, with backoff).
@@ -59,6 +63,22 @@ class ComfyProcess extends EventEmitter {
         } catch { return false; }
     }
 
+    // Is anything LISTENING on the port, answering the API or not? A ComfyUI
+    // that is still importing torch, or busy loading a 20 GB model, does not
+    // reply within the API probe's 1.5 s — but it does hold the port, so
+    // spawning our own would produce a process that cannot bind.
+    async isPortBound() {
+        const net = require('net');
+        return new Promise(resolve => {
+            const sock = net.connect({ host: this.host, port: this.port });
+            const done = (v) => { sock.removeAllListeners(); sock.destroy(); resolve(v); };
+            sock.setTimeout(1500);
+            sock.once('connect', () => done(true));
+            sock.once('timeout', () => done(false));
+            sock.once('error', () => done(false));
+        });
+    }
+
     async start() {
         this.validate();
         // If something is already responding on the port, assume an external
@@ -67,6 +87,34 @@ class ComfyProcess extends EventEmitter {
             console.log('[ComfyProcess] External ComfyUI already responding; using it.');
             this.proc = null;
             return { external: true };
+        }
+        // Nothing answered, but the port may still be held — by a ComfyUI that
+        // is mid-boot, or by the one the previous ComfyQ owned and is now
+        // shutting down. This is the situation every restart lands in, and
+        // spawning a competitor there is what used to take the machine out of
+        // service: the second process cannot bind, so nothing ever answers.
+        // Wait it out instead: attach if it comes up, spawn once the port is
+        // genuinely free.
+        if (await this.isPortBound()) {
+            console.log(`[ComfyProcess] Port ${this.port} is held but not answering yet — waiting before spawning.`);
+            const deadline = Date.now() + PORT_SETTLE_MS;
+            while (Date.now() < deadline) {
+                if (await this.isApiResponsive()) {
+                    console.log('[ComfyProcess] The ComfyUI already on the port came up; using it.');
+                    this.proc = null;
+                    return { external: true };
+                }
+                if (!await this.isPortBound()) {
+                    console.log('[ComfyProcess] Port is free now — spawning our own ComfyUI.');
+                    break;
+                }
+                await new Promise(r => setTimeout(r, 2000));
+            }
+            if (await this.isPortBound() && !await this.isApiResponsive()) {
+                // Still stuck. Spawning would fail to bind, so say so plainly
+                // rather than leaving a mystery in the log.
+                throw new Error(`Port ${this.port} is held by a process that never answered the ComfyUI API (waited ${PORT_SETTLE_MS / 1000}s). Close it, then retry.`);
+            }
         }
         const mainPy = path.join(this.rootPath, 'main.py');
         // Portable installs match the run_nvidia_gpu.bat launcher:

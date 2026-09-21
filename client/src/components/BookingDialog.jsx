@@ -7,6 +7,7 @@ import { SERVER_URL, getInputUrl } from '../utils/api';
 import { accessHeaders } from '../utils/access';
 import DynamicParamFields, { isSeedParam, randomSeed, isMediaNeeded } from './DynamicParamFields';
 import PromptGuideLinks from './PromptGuideLinks';
+import { acquireIdleHold } from '../utils/idleHold';
 
 // Param types whose value is an uploaded file (handled via mediaFiles + /upload
 // + recall), as opposed to a plain form value. 'mask' is an image the user
@@ -77,6 +78,14 @@ const normalizeChoice = (value, config) => {
 };
 
 const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams }) => {
+    // While this form is open it may hold an upload, a painted mask or a long
+    // prompt nobody has sent yet: the tab must not park itself or reload
+    // because the machine switched workflow.
+    useEffect(() => {
+        if (!isOpen) return undefined;
+        return acquireIdleHold();
+    }, [isOpen]);
+
     const { state } = useSocket();
     const paramMap = state.workflow?.parameter_map || null;
     const workflowId = state.workflow_info?.id || null;

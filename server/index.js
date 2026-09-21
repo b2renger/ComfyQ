@@ -95,41 +95,22 @@ function printConnectionBanner(label, serverPort) {
     console.log('');
 }
 
-// One-shot "boot into student mode next time" marker. /activate-workflow is
-// the ONLY path into student mode, and it drops this flag right before it
-// restarts; boot consumes (deletes) it. Every other start — cold `npm run dev`,
-// machine reboot, reset-to-admin, emergency-stop, restart-server — leaves no
-// flag and so lands in admin mode ("ComfyQ always starts in admin"). Lives
-// under the gitignored server/data/ so it never travels with the repo.
-const STUDENT_BOOT_FLAG = path.join(__dirname, 'data', '.boot-student');
+// The two boot markers (.boot-student one-shot, .serving standing intent) and
+// the boot-mode decision live in one small module so they can be tested
+// without starting a server — see servingFlags.js for what each one means.
+const {
+    markNextBootStudent, consumeStudentBootFlag,
+    setServingIntent, isServingIntended, resolveBootMode,
+} = require('./config/servingFlags');
 
-function markNextBootStudent() {
-    try {
-        fs.mkdirSync(path.dirname(STUDENT_BOOT_FLAG), { recursive: true });
-        fs.writeFileSync(STUDENT_BOOT_FLAG, '');
-    } catch (e) {
-        console.warn('[ComfyQ] could not write student-boot flag:', e.message);
-    }
-}
-
-// True exactly once after markNextBootStudent(); deletes the flag so the
-// *following* boot is admin again.
-function consumeStudentBootFlag() {
-    try {
-        if (fs.existsSync(STUDENT_BOOT_FLAG)) {
-            fs.unlinkSync(STUDENT_BOOT_FLAG);
-            return true;
-        }
-    } catch (e) {
-        console.warn('[ComfyQ] could not clear student-boot flag:', e.message);
-    }
-    return false;
-}
-
+// nextMode: 'student' = serve after the restart (and keep serving through
+// later ones); 'admin' = stop serving on purpose; omitted = a neutral restart
+// that leaves the machine doing whatever it was doing.
 function exitForRestart(nextMode) {
-    // Any value other than 'student' restarts into admin (the default).
-    if (nextMode === 'student') markNextBootStudent();
-    console.log(`[ComfyQ] Exiting for restart → ${nextMode === 'student' ? 'student' : 'admin'} mode`);
+    if (nextMode === 'student') { markNextBootStudent(); setServingIntent(true); }
+    else if (nextMode === 'admin') setServingIntent(false);
+    const willServe = nextMode === 'student' || (nextMode !== 'admin' && isServingIntended());
+    console.log(`[ComfyQ] Exiting for restart → ${willServe ? 'student' : 'admin'} mode`);
     // nodemon does NOT auto-restart on a clean exit — it only restarts on a
     // watched-file change. Bumping the mtime of this file makes nodemon's
     // watcher pick up the "change" and re-spawn us. No content edit.
@@ -171,11 +152,15 @@ async function main() {
     } catch (e) {
         console.warn('[ComfyQ] ComfyUI auto-detect failed:', e.message);
     }
-    // "Always start in admin." config.mode persists the *running* mode (so the
-    // admin UI reports reality) but never decides the boot: student mode is
-    // entered only via the one-shot flag /activate-workflow drops. Resolve the
-    // boot mode from the flag, then sync the persisted mode to match.
-    const bootMode = consumeStudentBootFlag() ? 'student' : 'admin';
+    // config.mode persists the *running* mode (so the admin UI reports reality)
+    // but never decides the boot. Student mode is entered by /activate-workflow
+    // (the one-shot flag) and KEPT across later restarts by the standing
+    // serving intent, so a rig that crashes or reboots mid-class comes back
+    // serving instead of dropping out of it. Stopping on purpose clears it.
+    const oneShotStudent = consumeStudentBootFlag();
+    const resumeServing = !oneShotStudent && isServingIntended();
+    if (resumeServing) console.log('[ComfyQ] this machine was serving when it last stopped — resuming student mode');
+    const bootMode = resolveBootMode(oneShotStudent, resumeServing);
     if (rawConfig.mode !== bootMode) {
         try { configManager.setMode(bootMode); }
         catch (e) { console.warn('[ComfyQ] could not persist boot mode:', e.message); }
@@ -315,7 +300,9 @@ async function main() {
     if (!config.comfy_ui.root_path || !config.comfy_ui.python_executable) {
         console.error('[ComfyQ] ComfyUI paths are not configured. Switching to admin mode.');
         configManager.update(c => { c.mode = 'admin'; return c; });
-        return exitForRestart();
+        // 'admin' clears the serving intent: a machine that cannot serve must
+        // settle in admin, not restart into student mode over and over.
+        return exitForRestart('admin');
     }
 
     console.log('[ComfyQ] opening sqlite job queue…');
@@ -355,21 +342,40 @@ async function main() {
             try { runtime.bus?.broadcast(); } catch { /* bus not up yet */ }
         }
     });
-    try {
-        let started = await worker.start();
-        if (started?.external) {
-            // The ComfyUI left running by the previous session may carry a flag
-            // this workflow can't use — relaunch it without, rather than serve
-            // black images all class.
-            const { replaced } = await worker.ensureNoBlockingPerfFlags();
-            if (replaced) started = { external: false };
+    // A restart mid-class (nodemon, an admin relaunch, a Windows update) can
+    // land while the previous ComfyUI is still dying or still loading: the port
+    // is taken, so our spawn can't bind and the API never answers. Dropping to
+    // admin mode there takes the machine OUT OF SERVICE silently — every open
+    // student tab keeps reconnecting to a server that no longer schedules — so
+    // try again before giving up. Only a repeated failure (bad paths, broken
+    // install) flips the mode.
+    const WORKER_START_ATTEMPTS = 3;
+    const WORKER_RETRY_MS = 8000;
+    let workerUp = false;
+    for (let attempt = 1; attempt <= WORKER_START_ATTEMPTS && !workerUp; attempt++) {
+        try {
+            let started = await worker.start();
+            if (started?.external) {
+                // The ComfyUI left running by the previous session may carry a flag
+                // this workflow can't use — relaunch it without, rather than serve
+                // black images all class.
+                const { replaced } = await worker.ensureNoBlockingPerfFlags();
+                if (replaced) started = { external: false };
+            }
+            console.log(`[ComfyQ] worker ready (${started?.external ? 'attached to external ComfyUI' : 'spawned ComfyUI'})`);
+            workerUp = true;
+        } catch (e) {
+            console.error(`[ComfyQ] failed to start ComfyUI worker (attempt ${attempt}/${WORKER_START_ATTEMPTS}): ${e.message}`);
+            if (attempt < WORKER_START_ATTEMPTS) {
+                console.error(`[ComfyQ] retrying in ${WORKER_RETRY_MS / 1000}s — staying in student mode so the machine keeps serving`);
+                await new Promise(r => setTimeout(r, WORKER_RETRY_MS));
+            }
         }
-        console.log(`[ComfyQ] worker ready (${started?.external ? 'attached to external ComfyUI' : 'spawned ComfyUI'})`);
-    } catch (e) {
-        console.error('[ComfyQ] failed to start ComfyUI worker:', e.message);
-        console.error('[ComfyQ] reverting to admin mode');
+    }
+    if (!workerUp) {
+        console.error('[ComfyQ] ComfyUI would not start after several attempts — reverting to admin mode');
         configManager.update(c => { c.mode = 'admin'; return c; });
-        return exitForRestart();
+        return exitForRestart('admin');   // stop resuming — see above
     }
 
     const executor = new JobExecutor({

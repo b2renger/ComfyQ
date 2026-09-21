@@ -574,11 +574,14 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     router.post('/reset-to-admin', adminGate, (req, res) => {
         configManager.update(c => { c.mode = 'admin'; return c; });
         res.json({ ok: true, mode: 'admin' });
-        if (exitForRestart) setTimeout(() => exitForRestart(), 250);
+        // 'admin' = stop serving on purpose, so later restarts stay in admin.
+        if (exitForRestart) setTimeout(() => exitForRestart('admin'), 250);
     });
 
     router.post('/restart-server', adminGate, (req, res) => {
         res.json({ ok: true });
+        // Neutral: a machine that was serving comes back serving. Use
+        // "Reset to admin" to actually stop.
         if (exitForRestart) setTimeout(() => exitForRestart(), 250);
     });
 
@@ -630,7 +633,9 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             // Flip to admin mode and restart so we don't auto-relaunch ComfyUI.
             configManager.update(c => { c.mode = 'admin'; return c; });
             res.json({ ok: true, ...result, restarting: true });
-            if (exitForRestart) setTimeout(() => exitForRestart(), 250);
+            // Emergency stop is a deliberate halt — do not resume on the
+            // next boot.
+            if (exitForRestart) setTimeout(() => exitForRestart('admin'), 250);
         } catch (e) {
             res.status(500).json({ ok: false, error: e.message, ...result });
         }

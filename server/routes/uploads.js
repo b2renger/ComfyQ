@@ -157,7 +157,11 @@ function makeRouter({ comfyConfig }) {
         if (!name.startsWith('comfyq_')) return res.status(404).end();
         const full = path.join(inputDir, name);
         if (!full.startsWith(inputDir + path.sep) || !fs.existsSync(full)) return res.status(404).end();
-        res.sendFile(full);
+        // An upload's name carries its timestamp, so it is immutable too: let the
+        // browser keep it instead of re-fetching a phone video every time a
+        // recalled job's preview is rendered.
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.sendFile(full, { cacheControl: false });
     });
 
     return router;
