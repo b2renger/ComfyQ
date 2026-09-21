@@ -35,6 +35,14 @@ const INITIAL_STATE = {
     workflow: null
 };
 
+// Which workflow this tab is for. The fleet monitor opens one tab per model
+// being served (…/user?workflow=<id>), so a tab books that model and nothing
+// else; without the parameter the tab follows the machine's primary lane.
+const scopedWorkflowIdFromUrl = () => {
+    try { return new URLSearchParams(window.location.search).get('workflow') || null; }
+    catch { return null; }
+};
+
 const readOnce = (key) => {
     try {
         const v = sessionStorage.getItem(key);
@@ -84,6 +92,8 @@ export const SocketProvider = ({ children, onAccessDenied }) => {
     // Seconds left before this tab parks itself; 0 = not counting down.
     const [parkWarning, setParkWarning] = useState(0);
     const lastActivityRef = useRef(Date.now());
+
+    const [scopedWorkflowId] = useState(scopedWorkflowIdFromUrl);
 
     const [toasts, setToasts] = useState([]);
     const [workflowsById, setWorkflowsById] = useState({});
@@ -370,7 +380,7 @@ export const SocketProvider = ({ children, onAccessDenied }) => {
     // Resolves { ok: true, jobId } once the server has queued the job, or
     // { ok: false, error } — so the booking form can stay open (and keep what
     // the student typed) when the booking didn't go through.
-    const bookJob = useCallback((scheduledTime, prompt, params = {}) => new Promise((resolve) => {
+    const bookJob = useCallback((scheduledTime, prompt, params = {}, workflowId = undefined) => new Promise((resolve) => {
         const s = socketRef.current;
         // Don't queue the emit while offline: socket.io would replay it on
         // reconnect, and a student who retries meanwhile would book twice.
@@ -380,7 +390,7 @@ export const SocketProvider = ({ children, onAccessDenied }) => {
         }
         s.timeout(BOOK_TIMEOUT_MS).emit(
             'book_job',
-            { scheduledTime, prompt, params, user_id: usernameRef.current },
+            { scheduledTime, prompt, params, user_id: usernameRef.current, workflow_id: workflowId },
             (err, res) => {
                 if (err) {
                     resolve({ ok: false, error: 'The server did not confirm the booking. Check the timeline before booking again.' });
@@ -415,9 +425,9 @@ export const SocketProvider = ({ children, onAccessDenied }) => {
     const value = useMemo(() => ({
         socket, connection, state, bookJob, deleteJob, cancelJob, reorderJob, username, registerUser,
         workflowsById, workflowChange, dismissWorkflowChange,
-        paused, parkWarning, resumeSession,
+        paused, parkWarning, resumeSession, scopedWorkflowId,
     }), [socket, connection, state, bookJob, deleteJob, cancelJob, reorderJob, username, registerUser,
-        workflowsById, workflowChange, dismissWorkflowChange, paused, parkWarning, resumeSession]);
+        workflowsById, workflowChange, dismissWorkflowChange, paused, parkWarning, resumeSession, scopedWorkflowId]);
 
     return (
         <SocketContext.Provider value={value}>

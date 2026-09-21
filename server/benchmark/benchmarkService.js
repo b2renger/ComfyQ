@@ -81,8 +81,12 @@ function _makeSolidPng(width, height, [r, g, b]) {
 }
 
 class BenchmarkService {
-    constructor({ worker, registry, comfyConfig, assetsDir }) {
+    constructor({ worker, registry, comfyConfig, assetsDir, lanes = null }) {
         this.worker = worker;
+        // When a workflow is being served in its own lane, calibrate it on THAT
+        // lane's ComfyUI: it is the process that will actually run it, and the
+        // VRAM measured is the VRAM that lane will hold.
+        this.lanes = lanes;
         this.registry = registry;
         this.comfyConfig = comfyConfig;
         // Directory of sample media for auto-calibration (config.assets.dir).
@@ -220,6 +224,60 @@ class BenchmarkService {
     // Submit the workflow once and resolve when ComfyUI reports the prompt
     // finished. Returns timing (absolute timestamps + the sampler-step window).
     // Always leaves the worker idle (finalize) so a later job/run can submit.
+    /**
+     * Poll ComfyUI's device memory for the length of a run.
+     *
+     * `/system_stats` reports, per device, the card's own total/free and the
+     * torch allocator's total/free. The difference of the torch pair is what
+     * THIS ComfyUI is holding; the difference of the card pair includes every
+     * other process (another lane, the desktop). Returns a handle whose stop()
+     * takes one last reading a few seconds after the run, which is what stays
+     * resident between jobs — the number that decides what else fits beside it.
+     */
+    _watchVram({ intervalMs = 2000, settleMs = 4000 } = {}) {
+        const GB = 1024 ** 3;
+        let peak = 0, cardPeak = 0, seen = false, baseCard = null;
+        const read = async () => {
+            try {
+                const stats = await this.worker.rest.ping();
+                const dev = (stats?.devices || []).find(d => d?.type === 'cuda') || stats?.devices?.[0];
+                if (!dev) return null;
+                const mine = (dev.torch_vram_total || 0) - (dev.torch_vram_free || 0);
+                const card = (dev.vram_total || 0) - (dev.vram_free || 0);
+                if (mine > 0 || card > 0) seen = true;
+                if (baseCard === null) baseCard = card;   // what was on the card before this run
+                peak = Math.max(peak, mine);
+                cardPeak = Math.max(cardPeak, card);
+                return { mine, card };
+            } catch { return null; }
+        };
+        const timer = setInterval(read, intervalMs);
+        return {
+            stop: async () => {
+                clearInterval(timer);
+                await read();
+                // Let ComfyUI settle, then see what it kept loaded.
+                await new Promise(r => setTimeout(r, settleMs));
+                const last = await read();
+                const round = (bytes) => bytes > 0 ? +(bytes / GB).toFixed(2) : null;
+                // torch_vram only counts PyTorch's own allocator. Nodes with
+                // their own CUDA kernels (the 3D pipelines, flash-attention
+                // sparse ops) allocate outside it, and reporting only the torch
+                // figure would badly understate them — which, for deciding
+                // whether a second workflow fits, is the dangerous direction to
+                // be wrong in. So take the larger of "what torch held" and "how
+                // much the whole card grew during the run".
+                const grew = baseCard !== null ? Math.max(0, cardPeak - baseCard) : 0;
+                return {
+                    peakGb: seen ? round(Math.max(peak, grew)) : null,
+                    torchPeakGb: seen ? round(peak) : null,
+                    residentGb: seen && last ? round(last.mine) : null,
+                    cardPeakGb: seen ? round(cardPeak) : null,
+                };
+            },
+        };
+    }
+
     async _runOnce(entry, apiWorkflow, paramValues, runId) {
         let stepsDone = 0, stepsTotal = 0, firstStepAt = null, lastStepAt = null;
         let resolveDone, rejectDone;
@@ -281,7 +339,15 @@ class BenchmarkService {
         if (!entry || entry.unavailable) {
             throw new Error(`Cannot calibrate unavailable workflow: ${workflowId}`);
         }
+        // Run on this workflow's own lane when it has one. Calibration is
+        // serialized (the guard below refuses a busy worker), so swapping the
+        // worker for the duration is safe; it is restored in the finally at the
+        // end of the run.
+        const defaultWorker = this.worker;
+        const laneWorker = this.lanes?.get?.(workflowId)?.worker || null;
+        if (laneWorker) this.worker = laneWorker;
         if (this.worker.getStatus().state !== 'idle') {
+            this.worker = defaultWorker;
             throw new Error('Worker is busy; calibrate after queue drains');
         }
 
@@ -299,7 +365,14 @@ class BenchmarkService {
                 console.warn(`[Benchmark] pre-run /free failed (continuing): ${e.message}`);
             }
             console.log(`[Benchmark] ${workflowId}: timed run (load models → generate; ${seedsRandomized} seed(s) randomized to avoid the result cache)…`);
+            // Watch VRAM for the length of the run. This is the only honest
+            // figure for a pipeline whose models aren't named as files in the
+            // graph (the 3D bundles load a HuggingFace repo and stage through
+            // it), and it is what decides whether two workflows can be served
+            // side by side on one card.
+            const vram = this._watchVram();
             const run = await this._runOnce(entry, wf, paramValues, `${benchJobId}-run`);
+            const vramPeak = await vram.stop();
 
             // Split the single run. If the workflow emits no sampler progress at
             // all (firstStepAt stays null), treat the whole run as generation.
@@ -337,12 +410,24 @@ class BenchmarkService {
                 steps: run.stepsTotal || 0,
                 durationMs: coldMs,
                 gpu,
+                // What it actually took on the card: this lane's own peak, and
+                // what it still held a few seconds after finishing (what a
+                // second workflow would have to fit beside). Null when ComfyUI
+                // didn't report device memory.
+                vramPeakGb: vramPeak.peakGb,
+                vramTorchPeakGb: vramPeak.torchPeakGb,
+                vramResidentGb: vramPeak.residentGb,
+                vramCardPeakGb: vramPeak.cardPeakGb,
                 source: 'benchmark'
             };
             this.registry.writeRuntime(workflowId, runtime);
             console.log(`[Benchmark] ${workflowId}: first run ${runtime.coldDurationSec}s = model-load ~${runtime.modelLoadSec}s + generation ~${runtime.estimatedDurationSec}s${gpu ? ` · ${gpu}` : ''}`);
+            if (runtime.vramPeakGb) {
+                console.log(`[Benchmark] ${workflowId}: VRAM peak ${runtime.vramPeakGb} GB, still resident after the run ${runtime.vramResidentGb} GB`);
+            }
             return runtime;
         } finally {
+            this.worker = defaultWorker;
             // Remove the namespaced asset copies we staged into ComfyUI/input.
             try { this.worker.uploader.cleanupJob(benchJobId); } catch { /* ignore */ }
         }

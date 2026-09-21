@@ -1,4 +1,5 @@
 const express = require('express');
+const { estimateWorkflowVram } = require('../workflows/vramEstimate');
 
 function makeRouter({ registry, configManager, benchmarkService, adminGate }) {
     const router = express.Router();
@@ -16,10 +17,25 @@ function makeRouter({ registry, configManager, benchmarkService, adminGate }) {
                 'preprocessor': 'Preprocessor', 'description': 'Description', 'other': 'Other'
             };
             const cfg = configManager.load().config;
+            // How much VRAM each one needs, so the admin can see what will fit
+            // beside what before serving a second workflow on the same card.
+            // Computed here rather than in the registry because it depends on
+            // the ComfyUI install, which the registry knows nothing about.
+            const comfyRoot = cfg.comfy_ui?.root_path;
+            const workflows = summaries.map(s => {
+                if (s.unavailable) return s;
+                const graph = registry.get(s.id)?.apiWorkflow;
+                if (!graph) return s;
+                try { return { ...s, vram: estimateWorkflowVram(graph, comfyRoot) }; }
+                catch { return s; }   // never let an estimate break the library
+            });
             res.json({
-                workflows: summaries,
+                workflows,
                 categories,
-                activeWorkflowId: cfg.workflows.activeWorkflowId
+                activeWorkflowId: cfg.workflows.activeWorkflowId,
+                // This machine's card, detected at boot — the yardstick the UI
+                // compares against. Different on every rig in the fleet.
+                gpu: { name: cfg.instance?.gpu || null, vramGb: cfg.instance?.vramGb || null }
             });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });

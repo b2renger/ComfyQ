@@ -50,4 +50,38 @@ function fillOptionalImages({ exposedParameters = [], paramValues = {}, placehol
     return { paramValues: out, errors, filled };
 }
 
-module.exports = { fillOptionalImages, isSwitchedOn };
+
+// Optional media whose consumer is an AUTOGROW input — Qwen Image 2.1's
+// `images.image_N` reference slots, and the same pattern elsewhere. There is no
+// switch to hide a placeholder behind: a black placeholder would be *used* as a
+// reference image and quietly change the result. The right move is to take the
+// link out of the graph, which is exactly what an autogrow input expects when a
+// slot is unused.
+//
+// Opt in per parameter with `whenEmpty: "unlink"`. For each such param left
+// empty, every link pointing at its loader node is deleted, and the loader —
+// now feeding nothing — is dropped from the prompt.
+//
+// Returns a NEW graph; the caller's is untouched.
+function unlinkEmptyMedia({ apiWorkflow, exposedParameters = [], paramValues = {} }) {
+    const targets = exposedParameters.filter(p =>
+        p.whenEmpty === 'unlink' && isEmpty(paramValues[p.key]) && p.nodeId != null);
+    if (!targets.length) return { workflow: apiWorkflow, unlinked: [] };
+
+    const wf = JSON.parse(JSON.stringify(apiWorkflow));
+    const unlinked = [];
+    for (const p of targets) {
+        const nodeId = String(p.nodeId);
+        if (!wf[nodeId]) continue;
+        for (const node of Object.values(wf)) {
+            for (const [field, value] of Object.entries(node.inputs || {})) {
+                if (Array.isArray(value) && String(value[0]) === nodeId) delete node.inputs[field];
+            }
+        }
+        delete wf[nodeId];
+        unlinked.push(p.key);
+    }
+    return { workflow: wf, unlinked };
+}
+
+module.exports = { fillOptionalImages, isSwitchedOn, unlinkEmptyMedia };

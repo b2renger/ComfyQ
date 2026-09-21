@@ -64,6 +64,12 @@ const ExposedParameter = z.object({
     //   JSON to the model compacted (measured on the rig: the same caption
     //   pretty-printed came back "Image blocked by safety filter").
     format: z.enum(['ideogram4-caption']).optional(),
+    // What to do when an optional media param is left empty. The default fills a
+    // neutral placeholder, which the graph must hide behind a switch; 'unlink'
+    // removes the loader and every link to it, which is what an AUTOGROW
+    // reference slot (Qwen 2.1's images.image_N) needs — a placeholder there
+    // would be used as a reference picture and change the result.
+    whenEmpty: z.enum(['placeholder', 'unlink']).optional(),
     required: z.boolean().default(false),
     order: z.number().int().default(0)
 });
@@ -180,8 +186,13 @@ const AppConfig = z.object({
     }).default({}),
     workflows: z.object({
         dir: z.string().default('./workflows'),
-        activeWorkflowId: z.string().nullable().default(null)
-    }).default({ dir: './workflows', activeWorkflowId: null }),
+        activeWorkflowId: z.string().nullable().default(null),
+        // Extra workflows served in parallel beside the active one, each in its
+        // own lane with its own ComfyUI. Remembered so a restart — nodemon, a
+        // crash, a reboot — brings the machine back serving everything it was,
+        // instead of silently dropping to one model mid-class.
+        extraLaneWorkflowIds: z.array(z.string()).default([])
+    }).default({ dir: './workflows', activeWorkflowId: null, extraLaneWorkflowIds: [] }),
     // Directory of sample media (images / videos / audio) used to auto-calibrate
     // workflows without any admin upload: the BenchmarkService picks a file
     // matching each exposed input's type and feeds it through a real cold+warm

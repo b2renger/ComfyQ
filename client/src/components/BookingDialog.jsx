@@ -87,8 +87,26 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     }, [isOpen]);
 
     const { state } = useSocket();
-    const paramMap = state.workflow?.parameter_map || null;
-    const workflowId = state.workflow_info?.id || null;
+    // This machine may be serving several workflows in parallel, each in its
+    // own lane, but a tab books exactly ONE of them — whichever its URL names
+    // (?workflow=…, how the fleet monitor opens it), else the primary lane.
+    // The model is chosen before the tab opens, not inside the form.
+    const lanes = state.lanes || [];
+    const { scopedWorkflowId } = useSocket();
+    const activeWorkflowId = state.workflow_info?.id || null;
+    const selectedLane = lanes.find(l => l.workflow_id === scopedWorkflowId)
+        || lanes.find(l => l.workflow_id === activeWorkflowId)
+        || (lanes.length === 1 ? lanes[0] : null);
+    const paramMap = (selectedLane ? selectedLane.parameter_map : state.workflow?.parameter_map) || null;
+    const workflowId = selectedLane ? selectedLane.workflow_id : activeWorkflowId;
+    // Name / description / guides for whichever lane is selected.
+    const wfInfo = selectedLane
+        ? {
+            id: selectedLane.workflow_id, name: selectedLane.name,
+            description: selectedLane.description, category: selectedLane.category,
+            promptGuides: selectedLane.promptGuides,
+        }
+        : state.workflow_info;
     const [scheduledTime, setScheduledTime] = useState(initialTime);
     const [isCollision, setIsCollision] = useState(false);
     const [formParams, setFormParams] = useState({});
@@ -261,7 +279,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         for (const [key, file] of Object.entries(mediaFiles)) {
             const formData = new FormData();
             formData.append('file', file); // Use 'file' as per updated server route
-            const fieldLabel = state.workflow?.parameter_map?.[key]?.label || key;
+            const fieldLabel = paramMap?.[key]?.label || key;
 
             try {
                 const response = await fetch(`${SERVER_URL}/upload`, {
@@ -297,14 +315,17 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         // for LTX i2v, `text` for some primitive-fallback parses. The server
         // stores ONE field for the cards / lightbox / search, so surface the
         // value the user actually typed regardless of its key.
-        const headlinePrompt = pickHeadlinePrompt(finalParams, state.workflow?.parameter_map);
+        const headlinePrompt = pickHeadlinePrompt(finalParams, paramMap);
 
         // Wait for the server to confirm. On a refusal (slot taken, connection
         // lost…) the dialog stays open with everything the student entered.
         const result = await onConfirm({
             prompt: headlinePrompt,
             params: finalParams,
-            time: scheduledTime
+            time: scheduledTime,
+            // Which lane runs it. The server falls back to the active
+            // workflow when this is absent (single-lane machines).
+            workflowId: workflowId || undefined,
         });
         setIsUploading(false);
         if (result && result.ok === false) {
@@ -410,22 +431,22 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Book Generation Slot" maxWidth="max-w-2xl">
             <form onSubmit={handleSubmit} className="space-y-6">
-                {state.workflow_info?.id && (state.workflow_info.description || state.workflow_info.name) && (
+                {wfInfo?.id && (wfInfo.description || wfInfo.name) && (
                     <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
                         <div className="flex items-center gap-2">
                             <Info size={14} className="text-primary shrink-0" />
                             <span className="text-[10px] uppercase tracking-widest font-bold text-muted">Active workflow</span>
-                            <span className="text-sm font-semibold text-foreground">{state.workflow_info.name}</span>
-                            {state.workflow_info.category && state.workflow_info.category !== 'other' && (
+                            <span className="text-sm font-semibold text-foreground">{wfInfo.name}</span>
+                            {wfInfo.category && wfInfo.category !== 'other' && (
                                 <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                                    {state.workflow_info.category}
+                                    {wfInfo.category}
                                 </span>
                             )}
                         </div>
-                        <PromptGuideLinks guides={state.workflow_info.promptGuides} />
-                        {state.workflow_info.description && (
+                        <PromptGuideLinks guides={wfInfo.promptGuides} />
+                        {wfInfo.description && (
                             <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                {state.workflow_info.description}
+                                {wfInfo.description}
                             </p>
                         )}
                     </div>

@@ -246,17 +246,25 @@ class JobQueue {
     // (job_deps) are not all COMPLETED is skipped rather than returned, so a
     // storyboard video waiting on its still-unrendered frame never blocks the
     // jobs queued behind it. With no deps this is the original query.
-    findReady(now = Date.now()) {
+    // `workflowIds` restricts the search to the workflows one lane serves, so
+    // several lanes can run side by side without stealing each other's work.
+    // Lanes never share a workflow (see LaneManager), which is what makes the
+    // find-then-claim below safe without a lease.
+    findReady(now = Date.now(), workflowIds = null) {
+        const ids = Array.isArray(workflowIds) ? workflowIds.filter(Boolean) : null;
+        if (ids && ids.length === 0) return null;
+        const laneFilter = ids ? `AND j.workflow_id IN (${ids.map(() => '?').join(',')})` : '';
         const r = this.db.prepare(`
             SELECT j.* FROM jobs j
             WHERE j.status = ? AND j.scheduled_at <= ?
+              ${laneFilter}
               AND NOT EXISTS (
                   SELECT 1 FROM job_deps d
                   LEFT JOIN jobs s ON s.id = d.source_job_id
                   WHERE d.job_id = j.id AND (s.id IS NULL OR s.status != ?)
               )
             ORDER BY j.scheduled_at ASC, j.created_at ASC LIMIT 1
-        `).get(sm.STATES.SCHEDULED, now, sm.STATES.COMPLETED);
+        `).get(sm.STATES.SCHEDULED, now, ...(ids || []), sm.STATES.COMPLETED);
         return rowToJob(r);
     }
 

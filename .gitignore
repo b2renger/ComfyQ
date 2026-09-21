@@ -65,6 +65,9 @@ error.log
 # Sqlite job queue and per-deployment state.
 server/data/
 
+# Per-lane ComfyUI state (user + temp dirs for extra lanes).
+.comfyq-lanes/
+
 # Personal config overrides (keep config.json template but ignore local copies)
 config.local.json
 config.development.json

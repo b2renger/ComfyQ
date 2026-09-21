@@ -189,7 +189,12 @@ class WorkflowRegistry {
                     coldDurationSec: runtime.coldDurationSec,
                     modelLoadSec: runtime.modelLoadSec,
                     gpu: runtime.gpu || null,
-                    calibratedAt: runtime.calibratedAt || null
+                    calibratedAt: runtime.calibratedAt || null,
+                    // Measured on the card during the calibration run. Beats the
+                    // static estimate, and is the ONLY figure for a pipeline
+                    // whose models aren't named as files in the graph.
+                    vramPeakGb: runtime.vramPeakGb || null,
+                    vramResidentGb: runtime.vramResidentGb || null
                 } : null,
                 presets: Object.keys(merged.presets || {}),
                 parameterCount: merged.exposedParameters.filter(p => p.enabled !== false).length,

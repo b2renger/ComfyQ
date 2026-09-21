@@ -2,6 +2,15 @@
 // Receives machine snapshots over the `fleet` bridge and renders one card each.
 // No inline handlers (CSP) — listeners are attached after render.
 
+// Every model a machine is serving. `servedWorkflows` is the current shape;
+// older servers send a single `activeWorkflow`. A machine serving nothing gets
+// one card so it still appears in the list.
+function servedOf(p) {
+    if (Array.isArray(p.servedWorkflows) && p.servedWorkflows.length) return p.servedWorkflows;
+    return [p.activeWorkflow || {}];
+}
+const cardKey = (p, wf) => `${p._key || p.id || ''}${wf && wf.id ? `::${wf.id}` : ''}`;
+
 const appEl = document.getElementById('app');
 const emptyEl = document.getElementById('empty');
 const countEl = document.getElementById('count');
@@ -156,7 +165,11 @@ function idleText(sec) {
 
 function classify(p) {
     if (p._stale) return 'stale';
-    if (p.mode === 'student' && p.comfy && p.comfy.running && p.activeWorkflow) return 'serving';
+    // Serving = student mode, ComfyUI up, and at least one model being served.
+    // A machine can run several models in parallel, so ask servedWorkflows —
+    // activeWorkflow only ever names the first one.
+    const serves = servedOf(p).some(w => w && w.id);
+    if (p.mode === 'student' && p.comfy && p.comfy.running && serves) return 'serving';
     if (p.comfy && p.comfy.running) return 'backend';
     return 'idle';
 }
@@ -186,11 +199,18 @@ function jobRow(j, running) {
         </div>`;
 }
 
-function cardHtml(p, selfIps) {
+// One card per served model. A machine can run several at once (each in its own
+// lane with its own queue), and the model is chosen HERE — clicking a card opens
+// the scheduler for that model alone (…/user?workflow=<id>), so the booking form
+// on the other side never has to ask which one.
+function cardHtml(p, selfIps, wf) {
     const kind = classify(p);
     const ip = (p.ips && p.ips[0]) || '';
     const uiPort = p.uiPort || 5173;
-    const url = ip ? `http://${ip}:${uiPort}` : '';
+    // Scope the tab to this card's model. Older servers send no workflow id —
+    // then the plain URL opens whatever that machine is serving.
+    const wfQuery = wf && wf.id ? `/user?workflow=${encodeURIComponent(wf.id)}` : '';
+    const url = ip ? `http://${ip}:${uiPort}${wfQuery}` : '';
     const adminUrl = ip ? `http://${ip}:${uiPort}/admin` : '';
     const isServing = kind === 'serving';
     const isAdmin = p.mode === 'admin';
@@ -212,7 +232,6 @@ function cardHtml(p, selfIps) {
         </div>`;
 
     // Serving banner — prominent, right under the IP: category icon + workflow name.
-    const wf = p.activeWorkflow || {};
     const servingBanner = isServing ? `
         <div class="serving-banner">
             <span class="wf-icon" title="${esc(GROUP_LABEL[groupOfWf(wf)] || 'Workflow')}">${catIconSvg(wf)}</span>
@@ -235,7 +254,7 @@ function cardHtml(p, selfIps) {
                 <div class="jobs-label">Queue${jobs.scheduled && jobs.scheduled.length ? ` · ${jobs.scheduled.length} waiting` : ''}</div>
                 ${parts.length ? parts.join('') : '<div class="no-jobs">Nothing queued</div>'}
             </div>
-            <button class="btn" data-url="${esc(url)}" data-id="${esc(p._key || p.id || url)}" data-name="${esc(wf.name || 'a workflow')}" data-machine="${esc(p.name || 'Machine')}" ${url ? '' : 'disabled'}${p.accessLocked ? ' title="You will be asked for the access password of this machine"' : ''}>Schedule a job ${p.accessLocked ? '🔒' : ''}↗</button>`;
+            <div class="open-hint">${p.accessLocked ? `${LOCK_SVG} Click to schedule — you'll be asked for this machine's password` : 'Click this card to schedule a job ↗'}</div>`;
     } else {
         workHtml = `<div class="standby">${isAdmin ? 'Not serving a workflow right now.' : 'Ready — no workflow active.'}</div>`;
     }
@@ -260,7 +279,9 @@ function cardHtml(p, selfIps) {
         : '';
 
     return `
-        <div class="card ${kind === 'stale' ? 'stale' : ''}${isSelf ? ' self' : ''}" data-id="${esc(p._key || p.id || '')}">
+        <div class="card ${kind === 'stale' ? 'stale' : ''}${isSelf ? ' self' : ''}${isServing && url ? ' clickable' : ''}"
+             data-id="${esc(cardKey(p, wf))}" data-peer="${esc(p._key || p.id || '')}"
+             ${isServing && url ? `data-url="${esc(url)}" data-name="${esc(wf.name || 'a workflow')}" data-machine="${esc(p.name || 'Machine')}"` : ''}>
             <div class="card-head">
                 <div class="head-main">
                     <div class="machine-name">${esc(p.name || 'Unknown machine')}${isSelf ? '<span class="self-tag">This machine</span>' : ''}</div>
@@ -317,14 +338,15 @@ function render(data) {
     const sig = cardsSignature(peers, selfIps);
     if (sig !== lastCardsSig) {
         lastCardsSig = sig;
-        appEl.innerHTML = peers.map(p => cardHtml(p, selfIps)).join('');
+        appEl.innerHTML = peers.map(p => servedOf(p).map(wf => cardHtml(p, selfIps, wf || {})).join('')).join('');
     } else {
         for (const p of peers) {
-            const card = appEl.querySelector(`.card[data-id="${cssAttr(p._key || p.id)}"]`);
-            if (!card) continue;
-            const upd = card.querySelector('.updated');
-            if (upd) upd.setAttribute('data-ts', p._lastSeen || Date.now());
-            card.classList.toggle('stale', !!p._stale);
+            const cards = appEl.querySelectorAll(`.card[data-peer="${cssAttr(p._key || p.id)}"]`);
+            for (const card of cards) {
+                const upd = card.querySelector('.updated');
+                if (upd) upd.setAttribute('data-ts', p._lastSeen || Date.now());
+                card.classList.toggle('stale', !!p._stale);
+            }
         }
     }
     tickTimes();
@@ -341,6 +363,7 @@ function cardsSignature(peers, selfIps) {
         p._key, p.id, p.name, p.hostname, p._idClash, (p.ips || []).join(','), p.gpu, p.vramGb, p.ramGb, p.mode,
         !!(p.comfy && p.comfy.running),
         p.activeWorkflow && [p.activeWorkflow.id, p.activeWorkflow.name, p.activeWorkflow.description, p.activeWorkflow.category],
+        servedOf(p).map(w => [w.id, w.name, w.description, w.category, w.busy]),
         p.usage && p.usage.usersConnected, !!p.accessLocked,
         Math.floor(((p.usage && p.usage.idleSec) || 0) / 30),
         p._stale, p._source,
@@ -520,7 +543,7 @@ appEl.addEventListener('click', (e) => {
             .catch(() => showToast('Could not copy'));
         return;
     }
-    const sched = e.target.closest && e.target.closest('.btn[data-url]');
+    const sched = e.target.closest && e.target.closest('[data-url]');
     if (sched && sched.getAttribute('data-url')) {
         openMachineTab(sched.getAttribute('data-id'), sched.getAttribute('data-name'), sched.getAttribute('data-url'), sched.getAttribute('data-machine'));
     }

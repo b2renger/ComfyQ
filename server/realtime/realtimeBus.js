@@ -57,12 +57,16 @@ const PATCH_MAX_JOBS = 60;
 //   reorder_job({ jobId, newTimeSlot })
 //   cancel_job(jobId)            with optional admin_password
 class RealtimeBus {
-    constructor({ httpServer, queue, executor, registry, configManager, worker, comfyConfig, activity }) {
+    constructor({ httpServer, queue, executor, registry, configManager, worker, lanes = null, comfyConfig, activity }) {
         this.queue = queue;
         this.executor = executor;
         this.registry = registry;
         this.configManager = configManager;
         this.worker = worker;
+        // Every workflow this machine is serving right now. `workflow` and
+        // `workflow_info` below stay pointed at the first lane, so a client
+        // that knows nothing about lanes keeps working unchanged.
+        this.lanes = lanes;
         this.comfyConfig = comfyConfig;
         // Shared activity tracker (see server/index.js) — bumped on real user
         // interactions so the fleet monitor's "last activity" reflects bookings /
@@ -172,6 +176,13 @@ class RealtimeBus {
                     if (!wfId) throw new Error('No active workflow configured');
                     const entry = this.registry.get(wfId);
                     if (!entry || entry.unavailable) throw new Error(`Workflow unavailable: ${entry?.reason || wfId}`);
+                    // Each lane's executor only claims its own workflow's jobs,
+                    // so booking one nobody serves would leave the job waiting
+                    // for ever. Refuse it while the student can still see why.
+                    const served = this.lanes?.servedWorkflowIds?.() || [];
+                    if (served.length && !served.includes(wfId)) {
+                        throw new Error(`“${entry.summary?.name || wfId}” is not being served on this machine right now.`);
+                    }
 
                     const duration = (entry.summary?.estimatedDurationSec || entry.meta.estimatedDurationSec) * 1000;
                     // No slot picked (or a stale/past time) → run ASAP: drop the
@@ -436,13 +447,38 @@ class RealtimeBus {
         const workerStatus = this.worker.getStatus();
         const systemStatus = workerStatus.state === 'idle' || workerStatus.state === 'busy' ? 'ready' : workerStatus.state;
         const jobs = this.queue.listRecent(BROADCAST_JOB_LIMIT).map(j => this._toWireJob(j));
+        // One entry per workflow the machine is serving in parallel. Each
+        // carries everything a booking form needs, so a student can choose
+        // which model to book without the machine switching over.
+        const lanes = (this.lanes?.list() || []).map(l => {
+            const entry = this.registry.get(l.workflowId);
+            const usable = entry && !entry.unavailable;
+            return {
+                workflow_id: l.workflowId,
+                name: l.name,
+                port: l.port,
+                primary: l.primary,
+                state: l.state,
+                busy: l.busy,
+                vram_gb: l.vramGb,
+                description: usable ? entry.summary.description : '',
+                category: usable ? entry.summary.category : 'other',
+                promptGuides: usable ? (entry.summary.promptGuides || []) : [],
+                estimatedDurationSec: usable ? entry.summary.estimatedDurationSec : null,
+                samplesPerSec: usable ? entry.summary.samplesPerSec : null,
+                parameter_map: usable
+                    ? this._buildParameterMap(entry.effective.exposedParameters, cfg.comfy_ui?.root_path)
+                    : {},
+            };
+        });
         return {
             system_status: systemStatus,
             benchmark_ms: benchmarkMs,
             connected_users: Array.from(this.connectedUsers.values()),
             jobs,
             workflow: { parameter_map },
-            workflow_info
+            workflow_info,
+            lanes
         };
     }
 
