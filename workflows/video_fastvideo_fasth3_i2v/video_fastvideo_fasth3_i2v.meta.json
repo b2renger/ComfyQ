@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "id": "video_fastvideo_fasth3_i2v",
+  "name": "FastVideo FastH3 — first frame to video with sound (8 steps)",
+  "description": "Start from a picture and let it move — with a soundtrack generated in sync, dialogue and effects included.\n\nThe first frame is where the clip begins, and it also sets the size and aspect of the video. Add a LAST frame as well and the model travels between the two, which is the way to animate between two stills; leave it empty and it invents where to go.\n\nWrite the prompt the way this model expects: bind the picture to the timeline first, then describe the shot. The default prompt shows the form —\n\"For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\" followed by \"integrated_multimodal_description: [Shot 1] …\".\n\nThen describe camera, action and sound in that one block. Naming the audio (\"we hear rain on metal, a distant siren\") is what earns a deliberate soundtrack rather than an invented one.\n\nThis is MiniMax H3 distilled by FastVideo to 8 sampling steps, so it is several times quicker than the full model. Multi-reference conditioning was not distilled — for that use the base MiniMax H3 bundles.",
+  "category": "i2v",
+  "tags": [
+    "minimax",
+    "h3",
+    "fastvideo",
+    "image2video",
+    "first-frame",
+    "audio",
+    "8-step"
+  ],
+  "experimental": true,
+  "promptGuides": [
+    {
+      "label": "MiniMax H3 — official video prompt guide",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/VIDEO_PROMPT_WRITING_GUIDE_base_en.md",
+      "tip": "Bind the picture to a time first (\"at 0.00 seconds … <Picture 1> is fully referenced\"), then write one block covering framing, camera move, action and the sound."
+    },
+    {
+      "label": "FastVideo FastH3 8-Step V2 — the distilled checkpoint",
+      "url": "https://huggingface.co/FastVideo/FastVideo-FastH3-8-Step-V2"
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_fastvideo_fasth3_i2v.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_video_vae_fp16.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_audio_vae_fp32.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_136",
+      "nodeId": "136",
+      "field": "image",
+      "type": "image",
+      "label": "First frame — the clip starts here (and it sets the video size)",
+      "required": true,
+      "order": 0,
+      "maxInputEdge": 1376
+    },
+    {
+      "key": "loadimage_image_300",
+      "nodeId": "300",
+      "field": "image",
+      "type": "image",
+      "label": "Last frame — optional (the clip ends here)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 1,
+      "maxInputEdge": 1376
+    },
+    {
+      "key": "minimaxh3imagetovideo_prompt_105_104",
+      "nodeId": "105:104",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Prompt — bind the picture to 0.00 s, then the shot, action and sound",
+      "default": "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\nintegrated_multimodal_description: [Shot 1] The camera pushes in slowly as the subject turns towards the lens, natural light, handheld feel. We hear a quiet room tone, fabric movement, and a distant street outside.",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "primitivefloat_value_105_111",
+      "nodeId": "105:111",
+      "field": "value",
+      "type": "number",
+      "label": "Duration in seconds",
+      "default": 5,
+      "min": 1,
+      "max": 12,
+      "step": 1,
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "basicscheduler_steps_105_9",
+      "nodeId": "105:9",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps (8 is what this checkpoint was distilled for)",
+      "default": 8,
+      "min": 4,
+      "max": 16,
+      "step": 1,
+      "required": true,
+      "order": 4
+    },
+    {
+      "key": "randomnoise_noise_seed_105_15",
+      "nodeId": "105:15",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 793369680225544,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 5
+    }
+  ],
+  "warmupParams": {
+    "primitivefloat_value_105_111": 1
+  },
+  "presets": {}
+}
