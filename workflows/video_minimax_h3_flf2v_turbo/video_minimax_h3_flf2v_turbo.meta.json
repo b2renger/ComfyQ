@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 1,
+  "id": "video_minimax_h3_flf2v_turbo",
+  "name": "MiniMax H3 — first / last frame to video with sound",
+  "description": "Grow a short film with its own soundtrack from a written scene, and optionally pin how it starts and how it ends.\n\nGive a FIRST frame and the clip begins there. Give a LAST frame and it arrives there. Give both and the model travels between them — the classic way to animate between two stills. Give neither and it is plain text-to-video. Every combination is allowed; a slot you leave empty is removed from the graph, so it cannot influence the result.\n\nStill describe the motion in the prompt: the frames say where to start and finish, the words say what happens in between and what is heard. Fast mode runs the 4-step turbo LoRA; switch it off for the 20-step path when a clip matters more than the wait.\n\nA first/last frame works best when the two pictures share a subject and a camera position — hand the model an impossible jump and it will invent a cut.",
+  "category": "i2v",
+  "tags": [
+    "minimax",
+    "h3",
+    "flf2v",
+    "first-last-frame",
+    "video",
+    "audio",
+    "turbo"
+  ],
+  "promptGuides": [
+    {
+      "label": "MiniMax H3 video prompt guide — MiniMax",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_base_en.md",
+      "tip": "Start with the overall style and opening framing, then describe what happens in order. Name camera moves with their speed (\"slowly pulls out\"), and describe sounds and music concretely — instruments, tempo — rather than moods."
+    },
+    {
+      "label": "H3 prompt tips for ComfyUI — Comfy-Org",
+      "url": "https://docs.comfy.org/tutorials/video/minimax/minimax-h3-prompt-guide"
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_minimax_h3_flf2v_turbo.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "checkpoint",
+        "file": "minimax_h3_fl2va_pruned_int8_convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_video_vae_fp16.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_audio_vae_fp32.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 35,
+  "exposedParameters": [
+    {
+      "key": "minimaxh3imagetovideo_prompt_11",
+      "nodeId": "11",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Prompt (scene / action / camera / sound)",
+      "default": "A slow cinematic dolly shot through a sunlit forest, dust motes drifting in shafts of light, gentle ambient wind and distant birdsong",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_300",
+      "nodeId": "300",
+      "field": "image",
+      "type": "image",
+      "label": "First frame — optional (the clip starts here)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 1,
+      "maxInputEdge": 1376
+    },
+    {
+      "key": "loadimage_image_301",
+      "nodeId": "301",
+      "field": "image",
+      "type": "image",
+      "label": "Last frame — optional (the clip ends here)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 2,
+      "maxInputEdge": 1376
+    },
+    {
+      "key": "minimaxh3imagetovideo_width_11",
+      "nodeId": "11",
+      "field": "width",
+      "type": "number",
+      "label": "Width — ignored when a first/last frame is given (the frame sets the size)",
+      "default": 848,
+      "min": 256,
+      "max": 1344,
+      "step": 32,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "minimaxh3imagetovideo_height_11",
+      "nodeId": "11",
+      "field": "height",
+      "type": "number",
+      "label": "Height — ignored when a first/last frame is given (the frame sets the size)",
+      "default": 480,
+      "min": 256,
+      "max": 768,
+      "step": 32,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "primitiveboolean_value_3",
+      "nodeId": "3",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Fast mode (4-step turbo LoRA)",
+      "default": true,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "minimaxh3imagetovideo_length_11",
+      "nodeId": "11",
+      "field": "length",
+      "type": "number",
+      "label": "Length (frames — 124 is about 5 s at 24 fps)",
+      "default": 124,
+      "min": 5,
+      "max": 362,
+      "step": 17,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "randomnoise_noise_seed_15",
+      "nodeId": "15",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 424242,
+      "min": 0,
+      "max": 999999999999,
+      "step": 1,
+      "required": false,
+      "order": 7
+    }
+  ],
+  "warmupParams": {
+    "minimaxh3imagetovideo_prompt_11": "a calm sunlit forest, gentle wind",
+    "minimaxh3imagetovideo_width_11": 848,
+    "minimaxh3imagetovideo_height_11": 480,
+    "minimaxh3imagetovideo_length_11": 124
+  },
+  "experimental": true
+}

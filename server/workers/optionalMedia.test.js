@@ -3,7 +3,7 @@
 // Run with:  node server/workers/optionalMedia.test.js
 
 const assert = require('assert');
-const { fillOptionalImages } = require('./optionalMedia');
+const { fillOptionalImages, unlinkEmptyMedia } = require('./optionalMedia');
 
 let fails = 0;
 function test(name, fn) {
@@ -73,6 +73,69 @@ test('the caller\'s paramValues object is not mutated', () => {
     const pv = { vid: 'a.mp4' };
     fillOptionalImages({ exposedParameters: [video, toggle, startImage], paramValues: pv, placeholderName: PH });
     assert.deepStrictEqual(pv, { vid: 'a.mp4' });
+});
+
+
+// --- unused reference slots are removed, not placeholder-filled -------------
+// Qwen Image 2.1 takes up to ten reference pictures on an AUTOGROW input. A
+// placeholder there would be USED as a reference picture, so an empty slot has
+// to leave the graph instead of being filled.
+const refGraph = () => ({
+    '1': { class_type: 'LoadImage', inputs: { image: 'a.png' } },
+    '2': { class_type: 'LoadImage', inputs: { image: 'b.png' } },
+    '3': { class_type: 'LoadImage', inputs: { image: 'c.png' } },
+    '9': {
+        class_type: 'TextEncodeQwenImage21',
+        inputs: { prompt: 'x', 'images.image_1': ['1', 0], 'images.image_2': ['2', 0], 'images.image_3': ['3', 0] },
+    },
+    '10': { class_type: 'SaveImage', inputs: { images: ['9', 0] } },
+});
+const refParams = [
+    { key: 'img1', nodeId: '1', field: 'image', type: 'image', required: true },
+    { key: 'img2', nodeId: '2', field: 'image', type: 'image', required: false, whenEmpty: 'unlink' },
+    { key: 'img3', nodeId: '3', field: 'image', type: 'image', required: false, whenEmpty: 'unlink' },
+];
+
+test('an empty reference slot loses its loader and its link', () => {
+    const r = unlinkEmptyMedia({ apiWorkflow: refGraph(), exposedParameters: refParams, paramValues: { img1: 'p.png' } });
+    assert.strictEqual(r.workflow['2'], undefined);
+    assert.strictEqual(r.workflow['3'], undefined);
+    assert.strictEqual(r.workflow['9'].inputs['images.image_2'], undefined);
+    assert.strictEqual(r.workflow['9'].inputs['images.image_3'], undefined);
+    assert.deepStrictEqual(r.unlinked.slice().sort(), ['img2', 'img3']);
+});
+
+test('a slot that was filled stays wired', () => {
+    const r = unlinkEmptyMedia({ apiWorkflow: refGraph(), exposedParameters: refParams, paramValues: { img1: 'p.png', img2: 'q.png' } });
+    assert.ok(r.workflow['2'], 'the filled loader survives');
+    assert.deepStrictEqual(r.workflow['9'].inputs['images.image_2'], ['2', 0]);
+    assert.strictEqual(r.workflow['3'], undefined);
+    assert.deepStrictEqual(r.unlinked, ['img3']);
+});
+
+test('the required image is never unlinked', () => {
+    const r = unlinkEmptyMedia({ apiWorkflow: refGraph(), exposedParameters: refParams, paramValues: {} });
+    assert.ok(r.workflow['1'], 'image 1 stays even with nothing booked');
+    assert.deepStrictEqual(r.workflow['9'].inputs['images.image_1'], ['1', 0]);
+});
+
+test('a param without whenEmpty keeps the placeholder behaviour', () => {
+    const plain = [{ key: 'img2', nodeId: '2', field: 'image', type: 'image', required: false }];
+    const r = unlinkEmptyMedia({ apiWorkflow: refGraph(), exposedParameters: plain, paramValues: {} });
+    assert.ok(r.workflow['2'], 'untouched without the opt-in');
+    assert.deepStrictEqual(r.unlinked, []);
+});
+
+test('the caller\'s graph is not mutated', () => {
+    const g = refGraph();
+    unlinkEmptyMedia({ apiWorkflow: g, exposedParameters: refParams, paramValues: {} });
+    assert.ok(g['2'] && g['3'], 'the original graph still has every loader');
+});
+
+test('nothing to unlink returns the same graph object', () => {
+    const g = refGraph();
+    const r = unlinkEmptyMedia({ apiWorkflow: g, exposedParameters: refParams, paramValues: { img2: 'a', img3: 'b' } });
+    assert.strictEqual(r.workflow, g);
 });
 
 if (fails) { console.error(`\n${fails} failing`); process.exit(1); }

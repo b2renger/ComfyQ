@@ -1,0 +1,198 @@
+{
+  "schemaVersion": 1,
+  "id": "image_qwen_image_2_1_image_edit",
+  "name": "Qwen Image 2.1 — image edit with references",
+  "description": "Edit a picture by describing the change, and hand the model up to ten reference pictures to work from.\n\nRefer to them in the prompt as <image1>, <image2>, <image3>… — that is how Qwen addresses them. Image 1 is the picture being edited; the rest are references, and every one of them is optional. Typical uses: put the garment from <image2> onto the person in <image1>; restyle <image1> in the look of <image2>; drop the object from <image2> into the scene of <image1>.\n\nSay what must STAY as clearly as what changes — \"keep the pose, the face, the background and the lighting\" — otherwise the model reinterprets more than you wanted. The result follows the size and aspect of image 1.\n\nA reference slot you leave empty is removed from the graph completely, so an unused slot can never influence the picture.",
+  "category": "image-edit",
+  "tags": [
+    "qwen",
+    "qwen-image",
+    "2.1",
+    "image-edit",
+    "reference",
+    "multi-image"
+  ],
+  "experimental": true,
+  "promptGuides": [
+    {
+      "label": "Qwen-Image-2.1 — official model card",
+      "url": "https://huggingface.co/Qwen/Qwen-Image-2.1",
+      "tip": "Name your pictures in the prompt as <image1>, <image2>… and state what must stay unchanged as explicitly as what should change. Up to 10 reference images are supported."
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_qwen_image_2_1_image_edit.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 18,
+    "models": [
+      {
+        "type": "unet",
+        "file": "qwen_image_2.1_int8_convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_8b_int8_convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_2.1_vae_bf16.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 35,
+  "exposedParameters": [
+    {
+      "key": "textencodeqwenimage21_prompt_459_474",
+      "nodeId": "459:474",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "What to change (name your pictures as <image1>, <image2>, …)",
+      "default": "Keep the character and pose in <image1> unchanged, put the light blue denim shirt from <image2> on the character, preserve the original facial features, hair, body shape and pose, keep the original background and lighting, realistic fabric texture, sharp details",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_470",
+      "nodeId": "470",
+      "field": "image",
+      "type": "image",
+      "label": "Image 1 — the picture to edit",
+      "required": true,
+      "order": 1,
+      "maxInputEdge": 2048
+    },
+    {
+      "key": "loadimage_image_475",
+      "nodeId": "475",
+      "field": "image",
+      "type": "image",
+      "label": "Image 2 — optional reference (<image2>)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 3,
+      "maxInputEdge": 2048
+    },
+    {
+      "key": "loadimage_image_476",
+      "nodeId": "476",
+      "field": "image",
+      "type": "image",
+      "label": "Image 3 — optional reference (<image3>)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 4,
+      "maxInputEdge": 2048
+    },
+    {
+      "key": "loadimage_image_477",
+      "nodeId": "477",
+      "field": "image",
+      "type": "image",
+      "label": "Image 4 — optional reference (<image4>)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 5,
+      "maxInputEdge": 2048
+    },
+    {
+      "key": "loadimage_image_478",
+      "nodeId": "478",
+      "field": "image",
+      "type": "image",
+      "label": "Image 5 — optional reference (<image5>)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 6,
+      "maxInputEdge": 2048
+    },
+    {
+      "key": "loadimage_image_479",
+      "nodeId": "479",
+      "field": "image",
+      "type": "image",
+      "label": "Image 6 — optional reference (<image6>)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 7,
+      "maxInputEdge": 2048
+    },
+    {
+      "key": "loadimage_image_480",
+      "nodeId": "480",
+      "field": "image",
+      "type": "image",
+      "label": "Image 7 — optional reference (<image7>)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 8,
+      "maxInputEdge": 2048
+    },
+    {
+      "key": "loadimage_image_481",
+      "nodeId": "481",
+      "field": "image",
+      "type": "image",
+      "label": "Image 8 — optional reference (<image8>)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 9,
+      "maxInputEdge": 2048
+    },
+    {
+      "key": "loadimage_image_482",
+      "nodeId": "482",
+      "field": "image",
+      "type": "image",
+      "label": "Image 9 — optional reference (<image9>)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 10,
+      "maxInputEdge": 2048
+    },
+    {
+      "key": "loadimage_image_483",
+      "nodeId": "483",
+      "field": "image",
+      "type": "image",
+      "label": "Image 10 — optional reference (<image10>)",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 11,
+      "maxInputEdge": 2048
+    },
+    {
+      "key": "ksampler_steps_459_458",
+      "nodeId": "459:458",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps (25 is quick, 40–50 is Qwen’s own setting)",
+      "default": 25,
+      "min": 10,
+      "max": 60,
+      "step": 1,
+      "required": true,
+      "order": 12
+    },
+    {
+      "key": "ksampler_seed_459_458",
+      "nodeId": "459:458",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 1070478148268574,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 13
+    }
+  ],
+  "warmupParams": {
+    "textencodeqwenimage21_prompt_459_474": "make the background a plain studio grey",
+    "ksampler_steps_459_458": 25
+  },
+  "presets": {}
+}
