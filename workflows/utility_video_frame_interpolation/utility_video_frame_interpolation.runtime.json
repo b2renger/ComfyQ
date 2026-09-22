@@ -1,13 +1,18 @@
 {
   "schemaVersion": 1,
-  "calibratedAt": "2026-06-17T11:08:10.335Z",
+  "calibratedAt": "2026-09-22T08:46:33.032Z",
   "estimatedDurationSec": 18,
   "warmDurationSec": 18,
-  "coldDurationSec": 20,
-  "modelLoadSec": 2,
-  "samplesPerSec": 12.266666666666667,
+  "coldDurationSec": 29,
+  "modelLoadSec": 11,
+  "samplesPerSec": 12.977242806093662,
   "steps": 139,
-  "durationMs": 20394,
+  "durationMs": 29414,
   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
-  "source": "benchmark"
+  "vramPeakGb": 2.41,
+  "vramTorchPeakGb": 0.67,
+  "vramResidentGb": 0.01,
+  "vramCardPeakGb": 2.46,
+  "source": "benchmark",
+  "note": "VRAM peak varies between runs (observed 2.41 and 0.88 GB on the same asset — frame buffers, not weights). Kept the HIGH-WATER mark: lane admission must not be told the optimistic figure."
 }

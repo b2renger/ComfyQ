@@ -10,5 +10,10 @@
   "durationMs": 18000,
   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
   "source": "manual",
-  "note": "Measured by hand at the largest upload (1920x1080 -> 7680x4320, 4 tiles): 18 s on three warm runs and 18 s after /free (the 8 GB of models reload from RAM). The automatic calibration reported 8 s warm / 17 s cold on its 1536x1024 asset because PiD's progress bar counts tiles, so the first tile was billed as model load. Re-calibrating will overwrite these numbers with that underestimate."
+  "note": "Measured by hand at the largest upload (1920x1080 -> 7680x4320, 4 tiles): 18 s on three warm runs and 18 s after /free (the 8 GB of models reload from RAM). The automatic calibration reported 8 s warm / 17 s cold on its 1536x1024 asset because PiD's progress bar counts tiles, so the first tile was billed as model load. Re-calibrating will overwrite these numbers with that underestimate. The vram* fields ARE from the automatic run on 2026-09-22 and are valid — tile-counting only breaks the load/generate time split, not the memory watch.",
+  "vramPeakGb": 12.32,
+  "vramTorchPeakGb": 4.66,
+  "vramResidentGb": 0.03,
+  "vramCardPeakGb": 14.08,
+  "vramMeasuredAt": "2026-09-22T08:32:57.557Z"
 }

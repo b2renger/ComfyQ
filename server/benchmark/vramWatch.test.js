@@ -106,6 +106,63 @@ const run = async () => {
         assert.strictEqual(out.peakGb, null, 'nothing seen means no figure, not 0 GB');
     });
 
+    // --- the gauge must not time a run it knows will be broken ----------------
+    // These flags don't crash, they silently save black images. AdminCalibrator
+    // relaunches ComfyUI without them first; the student-mode route reaches
+    // calibrate() directly, on the ComfyUI already serving, so the refusal has
+    // to live here.
+    const stubFor = (disabledPerfFlags, argv) => {
+        const worker = {
+            getStatus: () => ({ state: 'idle' }),
+            rest: { ping: async () => ({ system: { argv } }) },
+        };
+        const registry = {
+            get: () => ({
+                unavailable: false,
+                meta: { requirements: { disabledPerfFlags } },
+                effective: { exposedParameters: [] },
+                apiWorkflow: {},
+            }),
+        };
+        return new BenchmarkService({
+            worker, registry, assetsDir: '',
+            comfyConfig: { use_sage_attention: true, fp16_accumulation: true },
+        });
+    };
+
+    await atest('refuses a workflow whose ComfyUI has a flag it cannot use', async () => {
+        const svc = stubFor(['fp16_accumulation'], ['main.py', '--fast', 'fp16_accumulation']);
+        await assert.rejects(() => svc.calibrate('seedvr2'), (e) => {
+            assert.match(e.message, /fp16 accumulation/, 'names the offending flag');
+            assert.match(e.message, /admin mode|lane/, 'says what to do about it');
+            return true;
+        });
+    });
+
+    await atest('sage is caught the same way', async () => {
+        const svc = stubFor(['use_sage_attention'], ['main.py', '--use-sage-attention']);
+        await assert.rejects(() => svc.calibrate('marigold'), /Sage attention/);
+    });
+
+    await atest('does not block a workflow that declares nothing', async () => {
+        const svc = stubFor([], ['main.py', '--use-sage-attention', '--fast', 'fp16_accumulation']);
+        // It gets past the guard and fails further in, on the empty stub graph —
+        // any error EXCEPT the perf-flag refusal proves the guard let it through.
+        await assert.rejects(() => svc.calibrate('anything'), (e) => {
+            assert.doesNotMatch(e.message, /lists as incompatible/, 'must not be refused');
+            return true;
+        });
+    });
+
+    await atest('a flag that is off is not a blocker', async () => {
+        // Sage declared off, and ComfyUI is running without it — nothing to do.
+        const svc = stubFor(['use_sage_attention'], ['main.py', '--fast', 'fp16_accumulation']);
+        await assert.rejects(() => svc.calibrate('marigold'), (e) => {
+            assert.doesNotMatch(e.message, /lists as incompatible/);
+            return true;
+        });
+    });
+
     console.log(`\nvramWatch: all ${passed} checks passed`);
 };
 

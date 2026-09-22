@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const { effectiveComfyConfig, runningPerfFlags, blockingFlags, PERF_FLAG_LABELS } = require('../workers/perfFlags');
 
 // BenchmarkService — runs each workflow's `warmupParams` once and writes a
 // sidecar `<id>.runtime.json` with measured wall-time + samples-per-sec.
@@ -392,6 +393,25 @@ class BenchmarkService {
             this.worker = defaultWorker;
             throw new Error('Worker is busy; calibrate after queue drains');
         }
+        // Refuse to gauge a workflow whose ComfyUI is running with a flag that
+        // workflow declares it cannot use. AdminCalibrator masks those flags and
+        // restarts before it calls us, but in STUDENT mode the route reaches
+        // this method directly, on the ComfyUI already serving — and these flags
+        // do not crash, they silently save black images (SeedVR2 7B under
+        // fp16_accumulation, Marigold and Qwen-Image-Edit under Sage). Timing a
+        // black run and writing it to runtime.json as fact is worse than not
+        // measuring at all, so say plainly what is wrong and what to do.
+        const blocked = blockingFlags(effectiveComfyConfig(this.comfyConfig, entry.meta),
+            await runningPerfFlags(this.worker.rest));
+        if (blocked.length) {
+            this.worker = defaultWorker;
+            const names = blocked.map(k => PERF_FLAG_LABELS[k] || k).join(' and ');
+            throw new Error(
+                `Cannot calibrate ${workflowId}: the ComfyUI it would run on was started with ${names}, `
+                + `which this workflow lists as incompatible — the run would produce black output and the `
+                + `timing would be meaningless. Stop serving and calibrate from admin mode (which relaunches `
+                + `ComfyUI without it), or open a lane for this workflow.`);
+        }
 
         const benchJobId = `bench-${workflowId}-${Date.now()}`;
         console.log(`[Benchmark] ${workflowId}: preparing calibration inputs…`);
@@ -418,8 +438,15 @@ class BenchmarkService {
             // it), and it is what decides whether two workflows can be served
             // side by side on one card.
             const vram = this._watchVram();
-            const run = await this._runOnce(entry, wf, paramValues, `${benchJobId}-run`);
-            const vramPeak = await vram.stop();
+            // stop() in a finally, or a run that throws leaves the 2 s poller
+            // running for the life of the server — one more every time a
+            // calibration fails.
+            let run, vramPeak;
+            try {
+                run = await this._runOnce(entry, wf, paramValues, `${benchJobId}-run`);
+            } finally {
+                vramPeak = await vram.stop();
+            }
 
             // Split the single run. If the workflow emits no sampler progress at
             // all (firstStepAt stays null), treat the whole run as generation.
