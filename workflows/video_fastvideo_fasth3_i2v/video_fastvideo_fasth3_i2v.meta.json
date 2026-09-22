@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "id": "video_fastvideo_fasth3_i2v",
-  "name": "FastVideo FastH3 — first frame to video with sound (8 steps)",
-  "description": "Start from a picture and let it move — with a soundtrack generated in sync, dialogue and effects included.\n\nThe first frame is where the clip begins, and it also sets the size and aspect of the video. Add a LAST frame as well and the model travels between the two, which is the way to animate between two stills; leave it empty and it invents where to go.\n\nWrite the prompt the way this model expects: bind the picture to the timeline first, then describe the shot. The default prompt shows the form —\n\"For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\" followed by \"integrated_multimodal_description: [Shot 1] …\".\n\nThen describe camera, action and sound in that one block. Naming the audio (\"we hear rain on metal, a distant siren\") is what earns a deliberate soundtrack rather than an invented one.\n\nThis is MiniMax H3 distilled by FastVideo to 8 sampling steps, so it is several times quicker than the full model. Multi-reference conditioning was not distilled — for that use the base MiniMax H3 bundles.",
+  "name": "FastVideo FastH3 — video with sound, from a first and/or last frame (8 steps)",
+  "description": "Write a scene and get a short film back with its own soundtrack — and optionally pin how it starts, how it ends, or both.\n\nGive a FIRST frame and the clip begins there. Give a LAST frame and it arrives there. Give both and the model travels between them, which is the way to animate between two stills. Give neither and it is plain text-to-video. A slot you leave empty is removed from the graph, so it cannot influence the result.\n\n★ Pick the shape that matches your first frame. The model stretches the first frame to fill the video, so a portrait picture in a widescreen video comes out squashed. The LAST frame is treated differently — it is cropped to fit rather than stretched, so its shape matters less.\n\nWrite the prompt the way this model expects: bind the picture to the timeline first, then describe the shot. The default prompt shows the form —\n\"For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\" followed by \"integrated_multimodal_description: [Shot 1] …\".\n\nThen describe camera, action and sound in that one block. Naming the audio (\"we hear rain on metal, a distant siren\") is what earns a deliberate soundtrack rather than an invented one. With no frames at all you can drop the binding line and write the description alone.\n\nThis is MiniMax H3 distilled by FastVideo to 8 sampling steps, so it is several times quicker than the full model. Multi-reference conditioning was not distilled — for that use the base MiniMax H3 bundles.",
   "category": "i2v",
   "tags": [
     "minimax",
@@ -10,6 +10,8 @@
     "fastvideo",
     "image2video",
     "first-frame",
+    "last-frame",
+    "flf2v",
     "audio",
     "8-step"
   ],
@@ -54,14 +56,25 @@
   "estimatedDurationSec": 60,
   "exposedParameters": [
     {
+      "key": "minimaxh3imagetovideo_prompt_105_104",
+      "nodeId": "105:104",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Prompt — bind the picture to 0.00 s, then the shot, action and sound",
+      "default": "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\nintegrated_multimodal_description: [Shot 1] The camera pushes in slowly as the subject turns towards the lens, natural light, handheld feel. We hear a quiet room tone, fabric movement, and a distant street outside.",
+      "required": true,
+      "order": 0
+    },
+    {
       "key": "loadimage_image_136",
       "nodeId": "136",
       "field": "image",
       "type": "image",
-      "label": "First frame — the clip starts here (and it sets the video size)",
-      "required": true,
-      "order": 0,
-      "maxInputEdge": 1376
+      "label": "First frame — optional (the clip starts here)",
+      "required": false,
+      "order": 1,
+      "maxInputEdge": 1376,
+      "whenEmpty": "unlink"
     },
     {
       "key": "loadimage_image_300",
@@ -71,18 +84,41 @@
       "label": "Last frame — optional (the clip ends here)",
       "required": false,
       "whenEmpty": "unlink",
-      "order": 1,
+      "order": 2,
       "maxInputEdge": 1376
     },
     {
-      "key": "minimaxh3imagetovideo_prompt_105_104",
-      "nodeId": "105:104",
-      "field": "prompt",
-      "type": "textarea",
-      "label": "Prompt — bind the picture to 0.00 s, then the shot, action and sound",
-      "default": "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\nintegrated_multimodal_description: [Shot 1] The camera pushes in slowly as the subject turns towards the lens, natural light, handheld feel. We hear a quiet room tone, fabric movement, and a distant street outside.",
+      "key": "resolutionselector_aspect_ratio_143",
+      "nodeId": "143",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Shape of the video — match your first frame, it is stretched to fit",
+      "default": "16:9 (Widescreen)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
       "required": true,
-      "order": 2
+      "order": 3
+    },
+    {
+      "key": "resolutionselector_megapixels_143",
+      "nodeId": "143",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (0.4 ≈ 848×480, 1.0 ≈ 1376×768)",
+      "default": 0.4,
+      "min": 0.2,
+      "max": 1,
+      "step": 0.1,
+      "required": true,
+      "order": 4
     },
     {
       "key": "primitivefloat_value_105_111",
@@ -95,7 +131,7 @@
       "max": 12,
       "step": 1,
       "required": true,
-      "order": 3
+      "order": 5
     },
     {
       "key": "basicscheduler_steps_105_9",
@@ -108,7 +144,7 @@
       "max": 16,
       "step": 1,
       "required": true,
-      "order": 4
+      "order": 6
     },
     {
       "key": "randomnoise_noise_seed_105_15",
@@ -121,7 +157,7 @@
       "max": 999999999999999,
       "step": 1,
       "required": true,
-      "order": 5
+      "order": 7
     }
   ],
   "warmupParams": {

@@ -1,8 +1,8 @@
 {
   "id": "e3f2b845-8f2c-4b5a-9caf-eac1029d3e7e",
   "revision": 0,
-  "last_node_id": 143,
-  "last_link_id": 274,
+  "last_node_id": 300,
+  "last_link_id": 275,
   "nodes": [
     {
       "id": 92,
@@ -74,7 +74,7 @@
           "name": "last_frame",
           "shape": 7,
           "type": "IMAGE",
-          "link": null
+          "link": 275
         },
         {
           "name": "width",
@@ -170,8 +170,7 @@
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            262,
-            270
+            262
           ]
         },
         {
@@ -190,7 +189,8 @@
       "widgets_values_named": {
         "image": "red_line_barrier.png",
         "upload": "image"
-      }
+      },
+      "title": "First frame (optional)"
     },
     {
       "id": 139,
@@ -247,26 +247,20 @@
       "bgcolor": "#000"
     },
     {
-      "id": 141,
-      "type": "GetImageSize",
+      "id": 144,
+      "type": "ResolutionSelector",
       "pos": [
         -1190,
         5480
       ],
       "size": [
-        230,
-        100
+        270,
+        106
       ],
       "flags": {},
       "order": 4,
       "mode": 0,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 269
-        }
-      ],
+      "inputs": [],
       "outputs": [
         {
           "name": "width",
@@ -281,65 +275,65 @@
           "links": [
             272
           ]
-        },
-        {
-          "name": "batch_size",
-          "type": "INT",
-          "links": null
         }
       ],
       "properties": {
-        "Node name for S&R": "GetImageSize",
+        "Node name for S&R": "ResolutionSelector",
         "cnr_id": "comfy-core",
-        "ver": "0.33.0"
+        "ver": "0.37.0"
+      },
+      "widgets_values": [
+        "16:9 (Widescreen)",
+        0.4,
+        32
+      ],
+      "widgets_values_named": {
+        "aspect_ratio": "16:9 (Widescreen)",
+        "megapixels": 0.4,
+        "multiple": 32
       }
     },
     {
-      "id": 142,
-      "type": "ImageScaleToTotalPixels",
+      "id": 300,
+      "type": "LoadImage",
       "pos": [
-        -1220,
-        5270
+        -1230,
+        5240
       ],
       "size": [
-        280,
-        170
+        290,
+        330
       ],
       "flags": {},
-      "order": 3,
+      "order": 1,
       "mode": 0,
-      "showAdvanced": true,
-      "inputs": [
-        {
-          "name": "image",
-          "type": "IMAGE",
-          "link": 270
-        }
-      ],
+      "inputs": [],
       "outputs": [
         {
           "name": "IMAGE",
           "type": "IMAGE",
           "links": [
-            269
+            275
           ]
+        },
+        {
+          "name": "MASK",
+          "type": "MASK",
+          "links": null
         }
       ],
       "properties": {
-        "Node name for S&R": "ImageScaleToTotalPixels",
-        "cnr_id": "comfy-core",
-        "ver": "0.33.0"
+        "Node name for S&R": "LoadImage"
       },
       "widgets_values": [
-        "nearest-exact",
-        0.4,
-        32
+        "example.png",
+        "image"
       ],
       "widgets_values_named": {
-        "upscale_method": "nearest-exact",
-        "megapixels": 0.4,
-        "resolution_steps": 32
-      }
+        "image": "example.png",
+        "upload": "image"
+      },
+      "title": "Last frame (optional)"
     }
   ],
   "links": [
@@ -360,24 +354,8 @@
       "IMAGE"
     ],
     [
-      269,
-      142,
-      0,
-      141,
-      0,
-      "IMAGE"
-    ],
-    [
-      270,
-      136,
-      0,
-      142,
-      0,
-      "IMAGE"
-    ],
-    [
       271,
-      141,
+      144,
       0,
       105,
       2,
@@ -385,11 +363,19 @@
     ],
     [
       272,
-      141,
+      144,
       1,
       105,
       3,
       "INT"
+    ],
+    [
+      275,
+      300,
+      0,
+      105,
+      1,
+      "IMAGE"
     ]
   ],
   "groups": [],
