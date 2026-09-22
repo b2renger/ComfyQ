@@ -234,6 +234,34 @@ class BenchmarkService {
      * takes one last reading a few seconds after the run, which is what stays
      * resident between jobs — the number that decides what else fits beside it.
      */
+    /**
+     * Poll until the card stops giving memory back, so a run that follows
+     * another one starts from a real floor. Bounded: a lane that legitimately
+     * keeps a model resident (a second lane serving) never drops, and waiting
+     * for it would hang every calibration.
+     */
+    async _waitForVramSettle({ timeoutMs = 25000, intervalMs = 1500, quietMs = 3000 } = {}) {
+        const GB = 1024 ** 3;
+        const deadline = Date.now() + timeoutMs;
+        let lowest = Infinity, lastDropAt = Date.now();
+        while (Date.now() < deadline) {
+            let used = null;
+            try {
+                const stats = await this.worker.rest.ping();
+                const dev = (stats?.devices || []).find(d => d?.type === 'cuda') || stats?.devices?.[0];
+                if (dev) used = (dev.vram_total || 0) - (dev.vram_free || 0);
+            } catch { /* ComfyUI busy or restarting — just stop waiting */ }
+            if (used === null) return;
+            if (used < lowest - 0.25 * GB) { lowest = used; lastDropAt = Date.now(); }
+            else if (Date.now() - lastDropAt >= quietMs) {
+                console.log(`[Benchmark] card settled at ${(used / GB).toFixed(2)} GB before the timed run`);
+                return;
+            }
+            await new Promise(r => setTimeout(r, intervalMs));
+        }
+        console.warn('[Benchmark] card never settled — the VRAM baseline may include another process');
+    }
+
     _watchVram({ intervalMs = 2000, settleMs = 4000 } = {}) {
         const GB = 1024 ** 3;
         let peak = 0, cardPeak = 0, seen = false, baseCard = null;
@@ -245,16 +273,30 @@ class BenchmarkService {
                 const mine = (dev.torch_vram_total || 0) - (dev.torch_vram_free || 0);
                 const card = (dev.vram_total || 0) - (dev.vram_free || 0);
                 if (mine > 0 || card > 0) seen = true;
-                if (baseCard === null) baseCard = card;   // what was on the card before this run
+                // The floor this run grew FROM. Take the LOWEST reading, not the
+                // first: ComfyUI frees lazily — /free answers 200 while the
+                // previous run's weights are still resident — so a first-sample
+                // baseline makes a calibration that follows another run report a
+                // fraction of its own footprint. (Measured: the FastVideo i2v
+                // reported 8.79 GB against a 31.14 GB card peak because the t2v
+                // before it was still loaded at baseline time.) Reading low here
+                // overstates the growth, and overstating is the safe direction —
+                // understating is what admits a lane that does not fit.
+                baseCard = baseCard === null ? card : Math.min(baseCard, card);
                 peak = Math.max(peak, mine);
                 cardPeak = Math.max(cardPeak, card);
                 return { mine, card };
             } catch { return null; }
         };
+        // Read once straight away: the first interval tick is 2 s in, by which
+        // time a fast loader has already put several GB on the card and the
+        // baseline would swallow them.
+        const first = read();
         const timer = setInterval(read, intervalMs);
         return {
             stop: async () => {
                 clearInterval(timer);
+                await first;
                 await read();
                 // Let ComfyUI settle, then see what it kept loaded.
                 await new Promise(r => setTimeout(r, settleMs));
@@ -364,6 +406,11 @@ class BenchmarkService {
             } catch (e) {
                 console.warn(`[Benchmark] pre-run /free failed (continuing): ${e.message}`);
             }
+            // …and wait for the card to actually give the memory back. /free
+            // returns as soon as it has asked, so without this both the model
+            // load time and the VRAM baseline are measured against the previous
+            // run's weights.
+            await this._waitForVramSettle();
             console.log(`[Benchmark] ${workflowId}: timed run (load models → generate; ${seedsRandomized} seed(s) randomized to avoid the result cache)…`);
             // Watch VRAM for the length of the run. This is the only honest
             // figure for a pipeline whose models aren't named as files in the

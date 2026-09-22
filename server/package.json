@@ -9,7 +9,7 @@
     "scripts": {
         "start": "node index.js",
         "dev": "nodemon index.js",
-        "test:storyboard": "node storyboard/storyboard.test.js && node storyboard/storyboardRoutes.test.js && node executor/sageRecovery.test.js && node workers/selectValidation.test.js && node workers/optionalMedia.test.js && node workers/linkedValues.test.js && node workers/promptFormat.test.js && node config/servingFlags.test.js && node workflows/vramEstimate.test.js && node lanes/laneManager.test.js"
+        "test:storyboard": "node storyboard/storyboard.test.js && node storyboard/storyboardRoutes.test.js && node executor/sageRecovery.test.js && node workers/selectValidation.test.js && node workers/optionalMedia.test.js && node workers/linkedValues.test.js && node workers/promptFormat.test.js && node config/servingFlags.test.js && node workflows/vramEstimate.test.js && node lanes/laneManager.test.js && node benchmark/vramWatch.test.js"
     },
     "dependencies": {
         "archiver": "^7.0.1",

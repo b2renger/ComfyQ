@@ -137,8 +137,7 @@
     }
   ],
   "warmupParams": {
-    "minimaxh3imagetovideo_prompt_105_104": "a candle burning on a table, we hear a quiet room tone",
-    "primitivefloat_value_105_111": 1
+    "minimaxh3imagetovideo_prompt_105_104": "a candle burning on a table, we hear a quiet room tone"
   },
   "presets": {}
 }

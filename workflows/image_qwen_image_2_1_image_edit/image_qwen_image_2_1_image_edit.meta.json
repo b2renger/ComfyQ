@@ -192,7 +192,17 @@
   ],
   "warmupParams": {
     "textencodeqwenimage21_prompt_459_474": "make the background a plain studio grey",
-    "ksampler_steps_459_458": 25
+    "ksampler_steps_459_458": 25,
+    "loadimage_image_475": null,
+    "loadimage_image_476": null,
+    "loadimage_image_477": null,
+    "loadimage_image_478": null,
+    "loadimage_image_479": null,
+    "loadimage_image_480": null,
+    "loadimage_image_481": null,
+    "loadimage_image_482": null,
+    "loadimage_image_483": null,
+    "loadimage_image_470": "asset:Woman.png"
   },
   "presets": {}
 }

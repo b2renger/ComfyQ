@@ -174,7 +174,9 @@
   ],
   "warmupParams": {
     "primitivestringmultiline_value_30_19": "a small ceramic cup on a table",
-    "primitiveboolean_value_30_24": false
+    "primitiveboolean_value_30_24": false,
+    "loadimage_image_77": null,
+    "loadimage_image_78": null
   },
   "presets": {}
 }

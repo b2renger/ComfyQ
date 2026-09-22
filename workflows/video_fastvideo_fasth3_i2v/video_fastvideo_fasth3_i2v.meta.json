@@ -125,7 +125,8 @@
     }
   ],
   "warmupParams": {
-    "primitivefloat_value_105_111": 1
+    "minimaxh3imagetovideo_prompt_105_104": "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\nintegrated_multimodal_description: [Shot 1] The camera holds still as light shifts across the scene. We hear a quiet room tone.",
+    "loadimage_image_300": null
   },
   "presets": {}
 }
