@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "id": "image_qwen_image_2_1_viggle_turbo",
+  "name": "Qwen Image 2.1 Viggle Turbo — 4 steps",
+  "description": "The same Qwen Image 2.1 you already have, running in FOUR sampling steps instead of twenty-five. Viggle distilled the full model into a student that reaches a comparable picture in a fraction of the passes, and that student is applied here as an adapter on top of the base weights.\n\nUse it when you want to iterate — trying compositions, testing prompts, letting a room full of people generate. Use the plain Qwen Image 2.1 bundle when the picture matters more than the wait.\n\nPrompt it exactly like the base model: full sentences, and any words you want rendered in \"quotes\" with a note on where they go.\n\n★ Known limits, from Viggle’s own notes: this is a PREVIEW. It still falls short of the full model on multi-reference composition, face swaps and identity-preserving edits, and small or long stretches of rendered text can garble. Steps above 4 do not help — the schedule is baked in — and there is no negative prompt (guidance is fixed at 1).\n\n⚠ Licence: Qwen Research License — research and evaluation only, no commercial use. The base Qwen Image 2.1 on this machine carries the same licence, so this changes nothing about what was already installed, but it is worth knowing before a commission.",
+  "category": "t2i",
+  "tags": [
+    "qwen",
+    "qwen-image",
+    "2.1",
+    "turbo",
+    "distilled",
+    "few-step",
+    "viggle",
+    "fast"
+  ],
+  "experimental": true,
+  "promptGuides": [
+    {
+      "label": "Qwen-Image-2.1 — official model card",
+      "url": "https://huggingface.co/Qwen/Qwen-Image-2.1",
+      "tip": "Describe the scene in full sentences and put any words to be rendered in \"quotes\", saying where they appear. For a transparent PNG, use the RGBA wording in the description above — it is the phrasing Qwen documents."
+    },
+    {
+      "label": "Comfy-Org/Qwen-Image-2.1 — the models this bundle runs",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1"
+    },
+    {
+      "label": "Viggle Qwen-Image-2.1 turbo — the distilled student",
+      "url": "https://huggingface.co/Viggle/Qwen-Image-2.1-viggle-turbo",
+      "tip": "A few-step distillation of Qwen Image 2.1. Sampled at 4 steps with guidance 1 and no negative prompt; more steps do not improve it."
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_qwen_image_2_1_viggle_turbo.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 18,
+    "models": [
+      {
+        "type": "unet",
+        "file": "qwen_image_2.1_int8_convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_8b_int8_convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_2.1_vae_bf16.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "Qwen-Image-2.1-viggle-turbo-v0.2-5step-lora-r256.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 6,
+  "exposedParameters": [
+    {
+      "key": "textencodeqwenimage21_prompt_459_452",
+      "nodeId": "459:452",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Prompt",
+      "default": "A weathered enamel shop sign above a rainy Parisian street, the sign reads \"CAFÉ DES ARTS\" in cream lettering on deep green, warm window light spilling onto wet cobbles, shallow depth of field, photographic",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "resolutionselector_aspect_ratio_13",
+      "nodeId": "13",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio",
+      "default": "1:1 (Square)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "resolutionselector_megapixels_13",
+      "nodeId": "13",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+      "default": 1,
+      "min": 0.25,
+      "max": 4,
+      "step": 0.25,
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "ksampler_steps_459_458",
+      "nodeId": "459:458",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps (4 is what it was distilled for — more does not help)",
+      "default": 4,
+      "min": 4,
+      "max": 8,
+      "step": 1,
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "ksampler_seed_459_458",
+      "nodeId": "459:458",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 593103825222985,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 4
+    }
+  ],
+  "warmupParams": {
+    "textencodeqwenimage21_prompt_459_452": "a single red apple on a white table",
+    "ksampler_steps_459_458": 4
+  },
+  "presets": {}
+}
