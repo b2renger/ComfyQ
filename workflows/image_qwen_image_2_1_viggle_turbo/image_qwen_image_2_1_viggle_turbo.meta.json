@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
   "id": "image_qwen_image_2_1_viggle_turbo",
-  "name": "Qwen Image 2.1 Viggle Turbo — 4 steps",
-  "description": "The same Qwen Image 2.1 you already have, running in FOUR sampling steps instead of twenty-five. Viggle distilled the full model into a student that reaches a comparable picture in a fraction of the passes, and that student is applied here as an adapter on top of the base weights.\n\nUse it when you want to iterate — trying compositions, testing prompts, letting a room full of people generate. Use the plain Qwen Image 2.1 bundle when the picture matters more than the wait.\n\nPrompt it exactly like the base model: full sentences, and any words you want rendered in \"quotes\" with a note on where they go.\n\n★ Known limits, from Viggle’s own notes: this is a PREVIEW. It still falls short of the full model on multi-reference composition, face swaps and identity-preserving edits, and small or long stretches of rendered text can garble. Steps above 4 do not help — the schedule is baked in — and there is no negative prompt (guidance is fixed at 1).\n\n⚠ Licence: Qwen Research License — research and evaluation only, no commercial use. The base Qwen Image 2.1 on this machine carries the same licence, so this changes nothing about what was already installed, but it is worth knowing before a commission.",
+  "name": "Qwen Image 2.1 Viggle Turbo — fewer steps",
+  "description": "The same Qwen Image 2.1 you already have, with Viggle’s distilled adapter so it needs far fewer sampling steps. Measured on this machine: a clean scene at 12 steps in about 8 s, against about 16 s for the standard bundle at 25.\n\n★ How many steps you need depends on how busy the picture is, and this is the thing to know before using it:\n· A single subject or a tight portrait is clean at 4–6 steps (about 3 s) and looks excellent.\n· A scene with two or more distinct objects — an apple AND a glass — needs about 12. Below that the model draws several overlapping transparent copies of each object: ghosting. It is obvious when it happens.\n· If a result comes back ghosted, raise the steps and run again. 12 fixed every case tested here, and 25 is always clean.\n\nThis is a preview distillation, and that ghosting is its documented weakness on compositional prompts — not something a different prompt wording fixes. For a complex scene that has to be right, use the standard Qwen Image 2.1 bundle.\n\nPrompt it exactly like the base model: full sentences, and any words you want rendered in \"quotes\" with a note on where they go.\n\n⚠ Licence: Qwen Research License — research and evaluation only, no commercial use. The base Qwen Image 2.1 on this machine carries the same licence.",
   "category": "t2i",
   "tags": [
     "qwen",
@@ -107,10 +107,10 @@
       "nodeId": "459:458",
       "field": "steps",
       "type": "number",
-      "label": "Steps (4 is what it was distilled for — more does not help)",
-      "default": 4,
+      "label": "Steps (12 for a scene; 4–6 is enough for a single subject or portrait)",
+      "default": 12,
       "min": 4,
-      "max": 8,
+      "max": 25,
       "step": 1,
       "required": true,
       "order": 3
@@ -131,7 +131,7 @@
   ],
   "warmupParams": {
     "textencodeqwenimage21_prompt_459_452": "a single red apple on a white table",
-    "ksampler_steps_459_458": 4
+    "ksampler_steps_459_458": 12
   },
   "presets": {}
 }

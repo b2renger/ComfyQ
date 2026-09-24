@@ -150,15 +150,16 @@ the names say. Or merge into one with a model dropdown.
 ## 6b. Qwen 2.1 base vs Viggle Turbo — a speed/quality pair, not a duplicate
 
 `image_qwen_image_2_1_t2i` (25 steps, 14 s) and `image_qwen_image_2_1_viggle_turbo`
-(4 steps, 2 s) run the **same model and the same graph**; the turbo one adds a distilled
+(12 steps, 7 s) run the **same model and the same graph**; the turbo one adds a distilled
 LoRA. Identical VRAM (14.44 GB).
 
-- **Pro of keeping both:** measured, the turbo matches the 25-step base on sharpness and
-  exposure — but Viggle's own notes call it a preview that falls short on multi-reference
+- **Pro of keeping both:** the turbo is about 2x faster at a comparable result, and excellent
+  on single subjects at 4-6 steps — but it GHOSTS (overlapping transparent copies) below
+  ~12 steps on prompts with several objects, and Viggle's own notes call it a preview that falls short on multi-reference
   composition, face swaps and long rendered text. Iterate on the turbo, finish on the base.
 - **Con:** two cards for one model is exactly the kind of choice a student shouldn't have
   to make. A single bundle with a "Fast / Quality" checkbox driving a `ComfySwitchNode`
-  (model base↔LoRA, steps 25↔4) is the pattern the Flux.2 and MiniMax bundles already use.
+  (model base↔LoRA, steps 25↔12) is the pattern the Flux.2 and MiniMax bundles already use.
 
 **Suggestion:** merge them behind a Fast-mode toggle once the turbo has been eyeballed on
 real classroom prompts. Until then keeping both is the honest arrangement.
