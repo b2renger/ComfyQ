@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "id": "image_qwen_image_2_1_control_depth",
+  "name": "Qwen Image 2.1 - draw from depth (ControlNet depth)",
+  "description": "Upload a picture and the model draws something NEW that keeps its SHAPE and depth - what is near, what is far, how the space is arranged - while the prompt decides what everything actually is.\n\nDepth holds on to volume and composition rather than outlines, so it copes with soft or busy photographs where edge control struggles, and it is the better choice for landscapes, portraits and anything where the silhouette matters more than the fine lines.\n\nA depth map is worked out from your picture automatically - you upload an ordinary photograph. If the result follows the original too literally, lower the control strength.\n\nThe structure picture is scaled to the output size you choose, so pick an aspect ratio close to it or it will be cropped to fit.\n\nLicence note: the ControlNet weights are Qwen Research License - research and evaluation only, no commercial use.",
+  "category": "t2i",
+  "tags": [
+    "qwen",
+    "controlnet",
+    "depth",
+    "structure",
+    "composition"
+  ],
+  "experimental": true,
+  "promptGuides": [
+    {
+      "label": "Qwen-Image-2.1 — official model card",
+      "url": "https://huggingface.co/Qwen/Qwen-Image-2.1",
+      "tip": "Describe the scene in full sentences and put any words to be rendered in \"quotes\", saying where they appear. For a transparent PNG, use the RGBA wording in the description above — it is the phrasing Qwen documents."
+    },
+    {
+      "label": "Comfy-Org/Qwen-Image-2.1 — the models this bundle runs",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1"
+    },
+    {
+      "label": "Qwen-Image-2.1-Fun-Controlnet-Union - the control model",
+      "url": "https://huggingface.co/alibaba-pai/Qwen-Image-2.1-Fun-Controlnet-Union",
+      "tip": "Describe the whole target image, not just the part you want changed - the structure comes from the picture, the content from these words."
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_qwen_image_2_1_control_depth.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "qwen_image_2.1_int8_convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_8b_int8_convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_2.1_vae_bf16.safetensors"
+      },
+      {
+        "type": "controlnet",
+        "file": "Qwen-Image-2.1-Fun-Controlnet-Union.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 35,
+  "exposedParameters": [
+    {
+      "key": "textencodeqwenimage21_prompt_459_452",
+      "nodeId": "459:452",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "What to draw - the picture supplies the structure, this supplies everything else",
+      "default": "A castle carved from pink coral on the sea floor, shafts of sunlight through green water, small fish, photograph",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_900",
+      "nodeId": "900",
+      "field": "image",
+      "type": "image",
+      "label": "Structure image - its shapes are kept, its content is not",
+      "required": true,
+      "maxInputEdge": 2048,
+      "order": 1
+    },
+    {
+      "key": "controlnet_strength_903",
+      "nodeId": "903",
+      "field": "strength",
+      "type": "number",
+      "label": "How closely to follow the structure (1.0 is the trained strength)",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "resolutionselector_aspect_ratio_13",
+      "nodeId": "13",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio",
+      "default": "1:1 (Square)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "resolutionselector_megapixels_13",
+      "nodeId": "13",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+      "default": 1,
+      "min": 0.25,
+      "max": 4,
+      "step": 0.25,
+      "required": true,
+      "order": 4
+    },
+    {
+      "key": "ksampler_steps_459_458",
+      "nodeId": "459:458",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps (25 is quick, 40–50 is Qwen's own setting)",
+      "default": 20,
+      "min": 10,
+      "max": 40,
+      "step": 1,
+      "required": true,
+      "order": 5
+    },
+    {
+      "key": "ksampler_seed_459_458",
+      "nodeId": "459:458",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 593103825222985,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 6
+    }
+  ],
+  "warmupParams": {
+    "textencodeqwenimage21_prompt_459_452": "a stone lighthouse on a cliff at sunset, photograph"
+  },
+  "presets": {}
+}

@@ -104,7 +104,10 @@ const WorkflowMeta = z.object({
     requirements: z.object({
         minVRAM: z.number().nonnegative().default(0),
         models: z.array(z.object({
-            type: z.enum(['unet', 'vae', 'clip', 'lora', 'checkpoint', 'other']),
+            // 'controlnet' added 2026-09-25 for the Qwen 2.1 Fun ControlNet bundles.
+            // Adding an enum value is backwards compatible; every existing meta
+            // still validates.
+            type: z.enum(['unet', 'vae', 'clip', 'lora', 'checkpoint', 'controlnet', 'other']),
             file: z.string()
         })).default([]),
         // Global ComfyUI performance flags this workflow cannot run with (it

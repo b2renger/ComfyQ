@@ -1,0 +1,182 @@
+{
+  "schemaVersion": 1,
+  "id": "image_qwen_image_2_1_control_canny",
+  "name": "Qwen Image 2.1 - draw from edges (ControlNet canny)",
+  "description": "Upload a picture and the model draws something NEW that keeps its outlines - the shapes and the layout stay, everything else comes from your prompt.\n\nIt works from the edges of your picture, so it is at its best where structure is made of clear lines: buildings, objects, vehicles, interiors, a strong silhouette. A hazy or very soft photograph gives it little to hold on to.\n\nTwo edge controls decide how much of the picture it traces. Lower \"edge detail\" finds more lines, including texture you may not want; raise \"edge strength\" to keep only the confident ones. If the result feels like a tracing, lower the control strength.\n\nThe structure picture is scaled to the output size you choose, so pick an aspect ratio close to it or it will be cropped to fit.\n\nLicence note: the ControlNet weights are Qwen Research License - research and evaluation only, no commercial use.",
+  "category": "t2i",
+  "tags": [
+    "qwen",
+    "controlnet",
+    "canny",
+    "structure",
+    "edges"
+  ],
+  "experimental": true,
+  "promptGuides": [
+    {
+      "label": "Qwen-Image-2.1 — official model card",
+      "url": "https://huggingface.co/Qwen/Qwen-Image-2.1",
+      "tip": "Describe the scene in full sentences and put any words to be rendered in \"quotes\", saying where they appear. For a transparent PNG, use the RGBA wording in the description above — it is the phrasing Qwen documents."
+    },
+    {
+      "label": "Comfy-Org/Qwen-Image-2.1 — the models this bundle runs",
+      "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1"
+    },
+    {
+      "label": "Qwen-Image-2.1-Fun-Controlnet-Union - the control model",
+      "url": "https://huggingface.co/alibaba-pai/Qwen-Image-2.1-Fun-Controlnet-Union",
+      "tip": "Describe the whole target image, not just the part you want changed - the structure comes from the picture, the content from these words."
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_qwen_image_2_1_control_canny.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "qwen_image_2.1_int8_convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_8b_int8_convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_2.1_vae_bf16.safetensors"
+      },
+      {
+        "type": "controlnet",
+        "file": "Qwen-Image-2.1-Fun-Controlnet-Union.safetensors"
+      }
+    ]
+  },
+  "estimatedDurationSec": 35,
+  "exposedParameters": [
+    {
+      "key": "textencodeqwenimage21_prompt_459_452",
+      "nodeId": "459:452",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "What to draw - the picture supplies the structure, this supplies everything else",
+      "default": "A castle carved from pink coral on the sea floor, shafts of sunlight through green water, small fish, photograph",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_900",
+      "nodeId": "900",
+      "field": "image",
+      "type": "image",
+      "label": "Structure image - its shapes are kept, its content is not",
+      "required": true,
+      "maxInputEdge": 2048,
+      "order": 1
+    },
+    {
+      "key": "controlnet_strength_903",
+      "nodeId": "903",
+      "field": "strength",
+      "type": "number",
+      "label": "How closely to follow the structure (1.0 is the trained strength)",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "canny_low_threshold_901",
+      "nodeId": "901",
+      "field": "low_threshold",
+      "type": "number",
+      "label": "Edge detail - lower finds more lines",
+      "default": 0.4,
+      "min": 0.01,
+      "max": 0.99,
+      "step": 0.01,
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "canny_high_threshold_901",
+      "nodeId": "901",
+      "field": "high_threshold",
+      "type": "number",
+      "label": "Edge strength - higher keeps only strong lines",
+      "default": 0.8,
+      "min": 0.01,
+      "max": 0.99,
+      "step": 0.01,
+      "required": true,
+      "order": 4
+    },
+    {
+      "key": "resolutionselector_aspect_ratio_13",
+      "nodeId": "13",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio",
+      "default": "1:1 (Square)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "required": true,
+      "order": 5
+    },
+    {
+      "key": "resolutionselector_megapixels_13",
+      "nodeId": "13",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+      "default": 1,
+      "min": 0.25,
+      "max": 4,
+      "step": 0.25,
+      "required": true,
+      "order": 6
+    },
+    {
+      "key": "ksampler_steps_459_458",
+      "nodeId": "459:458",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps (25 is quick, 40–50 is Qwen's own setting)",
+      "default": 20,
+      "min": 10,
+      "max": 40,
+      "step": 1,
+      "required": true,
+      "order": 7
+    },
+    {
+      "key": "ksampler_seed_459_458",
+      "nodeId": "459:458",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 593103825222985,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 8
+    }
+  ],
+  "warmupParams": {
+    "textencodeqwenimage21_prompt_459_452": "a stone lighthouse on a cliff at sunset, photograph"
+  },
+  "presets": {}
+}
