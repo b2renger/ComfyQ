@@ -1,0 +1,12 @@
+{
+  "name": "comfyq-api-to-ui",
+  "private": true,
+  "description": "Convert ComfyUI API-format bundles back to the UI/litegraph template through ComfyUI's own frontend (headless Chrome), round-trip verified.",
+  "type": "module",
+  "scripts": {
+    "convert": "node convert.mjs"
+  },
+  "dependencies": {
+    "puppeteer-core": "^25.0.0"
+  }
+}

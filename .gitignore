@@ -233,3 +233,6 @@ docs/.doctrees/
 site/
 ./config.json
 config.json
+
+# Converter run reports (tools/ui-to-api, tools/api-to-ui)
+tools/*/_report.json
