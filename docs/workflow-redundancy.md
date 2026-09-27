@@ -147,6 +147,37 @@ the names say. Or merge into one with a model dropdown.
 
 ---
 
+## 6a. Qwen 2.1 edit now subsumes Qwen 2.1 text-to-image
+
+**Changed 2026-09-27**, owner request: every reference picture in
+`image_qwen_image_2_1_image_edit` is optional (16 slots, the model's own maximum), and
+with none supplied it is a plain text-to-image generator at the chosen aspect ratio.
+
+| bundle | what it does now |
+|---|---|
+| `image_qwen_image_2_1_t2i` | prompt → picture |
+| `image_qwen_image_2_1_image_edit` | prompt → picture, **plus** up to 16 optional pictures |
+
+The edit bundle is now a strict superset: same model files, same sampler settings, same
+aspect-ratio and megapixel fields, and the empty-input path was verified to render at the
+chosen ratio (1376×768 at 16:9, not the 1024×1024 square the encoder returns on its own).
+
+- **Pro of cutting the t2i bundle:** one card instead of two for the same model, and no
+  "which Qwen do I pick?" moment.
+- **Con — and it is the real one:** the t2i card shows a student **three fields**
+  (prompt, aspect, size). The edit card shows **twenty-one**, sixteen of them upload
+  slots they will not use. For a class that only wants to generate, that is a worse form,
+  not a better one — the same argument that keeps `video_fastvideo_fasth3_t2v` alive
+  beside its i2v sibling.
+- **Con:** the two now differ in what the size fields mean. On the t2i bundle they always
+  apply; on the edit bundle they apply only when nothing is uploaded.
+
+**Suggestion:** keep both. Cut the t2i one only if the library is being trimmed hard, and
+accept the longer form. If ComfyQ ever grows collapsible parameter groups ("add reference
+pictures ▸"), this pair becomes a clear merge.
+
+---
+
 ## 6b. Qwen 2.1 base vs Viggle Turbo — a speed/quality pair, not a duplicate
 
 `image_qwen_image_2_1_t2i` (25 steps, 14 s) and `image_qwen_image_2_1_viggle_turbo`

@@ -3,7 +3,7 @@
 // Run with:  node server/workers/optionalMedia.test.js
 
 const assert = require('assert');
-const { fillOptionalImages, unlinkEmptyMedia } = require('./optionalMedia');
+const { fillOptionalImages, unlinkEmptyMedia, applyWhenEmptySet } = require('./optionalMedia');
 
 let fails = 0;
 function test(name, fn) {
@@ -136,6 +136,77 @@ test('nothing to unlink returns the same graph object', () => {
     const g = refGraph();
     const r = unlinkEmptyMedia({ apiWorkflow: g, exposedParameters: refParams, paramValues: { img2: 'a', img3: 'b' } });
     assert.strictEqual(r.workflow, g);
+});
+
+// --- whenEmptySet: an empty param flips the graph onto its other branch -----
+//
+// Why this matters concretely: with every reference slot unlinked,
+// TextEncodeQwenImage21's latent output is a fixed 1024x1024 square, so an edit
+// bundle with no pictures would silently ignore the student's aspect ratio.
+// Measured on the rig - the same prompt at "16:9" came back 1024x1024.
+const branchGraph = () => ({
+    '1': { class_type: 'LoadImage', inputs: { image: 'a.png' } },
+    '9': { class_type: 'TextEncodeQwenImage21', inputs: { prompt: 'x', 'images.image_1': ['1', 0] } },
+    '13': { class_type: 'ResolutionSelector', inputs: { aspect_ratio: '16:9 (Widescreen)' } },
+    '56': { class_type: 'EmptyLatentImage', inputs: { width: ['13', 0], height: ['13', 1] } },
+    '68': { class_type: 'ComfySwitchNode', inputs: { switch: false, on_false: ['9', 2], on_true: ['56', 0] } },
+});
+const branchParams = [{
+    key: 'img1', nodeId: '1', field: 'image', type: 'image', required: false, whenEmpty: 'unlink',
+    whenEmptySet: [{ nodeId: '68', field: 'switch', value: true }],
+}];
+
+test('an empty param sets the fields it declares', () => {
+    const r = applyWhenEmptySet({ apiWorkflow: branchGraph(), exposedParameters: branchParams, paramValues: {} });
+    assert.strictEqual(r.workflow['68'].inputs.switch, true);
+    assert.strictEqual(r.applied.length, 1);
+});
+
+test('a filled param leaves the graph on its normal branch', () => {
+    const r = applyWhenEmptySet({ apiWorkflow: branchGraph(), exposedParameters: branchParams, paramValues: { img1: 'photo.png' } });
+    assert.strictEqual(r.workflow['68'].inputs.switch, false);
+    assert.deepStrictEqual(r.applied, []);
+});
+
+test('unlink and whenEmptySet agree on what "empty" means', () => {
+    // The pair must fire together: a slot unlinked without its switch flipped
+    // is exactly the broken graph this exists to prevent.
+    const pv = {};
+    const pruned = unlinkEmptyMedia({ apiWorkflow: branchGraph(), exposedParameters: branchParams, paramValues: pv });
+    const out = applyWhenEmptySet({ apiWorkflow: pruned.workflow, exposedParameters: branchParams, paramValues: pv });
+    assert.strictEqual(out.workflow['1'], undefined, 'loader gone');
+    assert.strictEqual(out.workflow['9'].inputs['images.image_1'], undefined, 'link gone');
+    assert.strictEqual(out.workflow['68'].inputs.switch, true, 'switch flipped');
+});
+
+test('a target node already unlinked is not an error', () => {
+    const params = [{ ...branchParams[0], whenEmptySet: [{ nodeId: '404', field: 'switch', value: true }] }];
+    const r = applyWhenEmptySet({ apiWorkflow: branchGraph(), exposedParameters: params, paramValues: {} });
+    assert.deepStrictEqual(r.applied, []);
+});
+
+test("the caller's graph is not mutated by whenEmptySet", () => {
+    const g = branchGraph();
+    applyWhenEmptySet({ apiWorkflow: g, exposedParameters: branchParams, paramValues: {} });
+    assert.strictEqual(g['68'].inputs.switch, false);
+});
+
+test('no whenEmptySet anywhere returns the same graph object', () => {
+    const g = branchGraph();
+    const r = applyWhenEmptySet({ apiWorkflow: g, exposedParameters: refParams, paramValues: {} });
+    assert.strictEqual(r.workflow, g);
+});
+
+// --- both fields must survive a meta save ----------------------------------
+test('whenEmpty and whenEmptySet survive the meta schema', () => {
+    const { ExposedParameter } = require('../config/schemas');
+    const parsed = ExposedParameter.parse({
+        key: 'img1', nodeId: '1', field: 'image', type: 'image', label: 'Image 1',
+        required: false, whenEmpty: 'unlink',
+        whenEmptySet: [{ nodeId: '68', field: 'switch', value: true }],
+    });
+    assert.strictEqual(parsed.whenEmpty, 'unlink');
+    assert.deepStrictEqual(parsed.whenEmptySet, [{ nodeId: '68', field: 'switch', value: true }]);
 });
 
 if (fails) { console.error(`\n${fails} failing`); process.exit(1); }

@@ -84,4 +84,46 @@ function unlinkEmptyMedia({ apiWorkflow, exposedParameters = [], paramValues = {
     return { workflow: wf, unlinked };
 }
 
-module.exports = { fillOptionalImages, isSwitchedOn, unlinkEmptyMedia };
+// Node fields a param sets when it is left EMPTY (`whenEmptySet`).
+//
+// The companion to `unlink`: taking an unused loader out of the graph is only
+// half the job when the rest of the graph still expects it. Qwen Image 2.1's
+// encoder returns a latent sized from the FIRST reference picture, and with no
+// pictures at all that is a fixed 1024x1024 square
+// (`latent_w = latent_h = resolution or 1024`, comfy_extras/nodes_qwen.py) —
+// so an edit bundle with every picture left empty would quietly ignore the
+// student's aspect ratio and render a square. Verified on the rig: the same
+// prompt at "16:9" came back 1024x1024 without this, and 1376x768 with it.
+//
+// The alternative is a visible toggle the student must flip to match what they
+// uploaded, which is the pattern this replaces — a toggle that disagrees with
+// the uploads is a silently wrong result, and nothing in the form shows it.
+//
+// Emptiness is judged exactly as `unlinkEmptyMedia` judges it (the booked value
+// alone, not the meta default) because the two must agree: a slot that is
+// unlinked but whose switch was not flipped is precisely the broken graph this
+// exists to prevent.
+//
+// Returns a NEW graph; the caller's is untouched.
+function applyWhenEmptySet({ apiWorkflow, exposedParameters = [], paramValues = {} }) {
+    const targets = exposedParameters.filter(p =>
+        Array.isArray(p.whenEmptySet) && p.whenEmptySet.length > 0 && isEmpty(paramValues[p.key]));
+    if (!targets.length) return { workflow: apiWorkflow, applied: [] };
+
+    const wf = JSON.parse(JSON.stringify(apiWorkflow));
+    const applied = [];
+    for (const p of targets) {
+        for (const s of p.whenEmptySet) {
+            const node = wf[String(s.nodeId)];
+            // The node may itself have been unlinked out of the graph; that is
+            // not an error, there is simply nothing left to set.
+            if (!node) continue;
+            node.inputs = node.inputs || {};
+            node.inputs[s.field] = s.value;
+            applied.push(`${p.key} -> ${s.nodeId}.${s.field} = ${JSON.stringify(s.value)}`);
+        }
+    }
+    return { workflow: wf, applied };
+}
+
+module.exports = { fillOptionalImages, isSwitchedOn, unlinkEmptyMedia, applyWhenEmptySet };

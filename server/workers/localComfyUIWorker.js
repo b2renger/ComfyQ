@@ -7,7 +7,7 @@ const { InputUploader, PLACEHOLDER_IMAGE } = require('./inputUploader');
 const { ModelLifecycle } = require('./modelLifecycle');
 const { humanizeFailure, humanizeSubmitRejection } = require('../executor/errorMessages');
 const { validateSelects } = require('./selectValidation');
-const { fillOptionalImages, unlinkEmptyMedia } = require('./optionalMedia');
+const { fillOptionalImages, unlinkEmptyMedia, applyWhenEmptySet } = require('./optionalMedia');
 const { formatPromptValue } = require('./promptFormat');
 
 const CLIENT_ID_PREFIX = 'comfyq';
@@ -445,7 +445,14 @@ class LocalComfyUIWorker extends Worker {
         if (pruned.unlinked.length) {
             console.log(`[Worker] ${pruned.unlinked.length} unused reference input(s) removed from the graph: ${pruned.unlinked.join(', ')}`);
         }
-        const wf = this._materializeWorkflow(pruned.workflow, { paramValues, exposedParameters, inputs, filenamePrefix });
+        // A param left empty can also flip the graph onto its other branch —
+        // without this, an edit with no pictures renders a 1024x1024 square and
+        // ignores the chosen aspect ratio (see optionalMedia).
+        const branched = applyWhenEmptySet({ apiWorkflow: pruned.workflow, exposedParameters, paramValues });
+        if (branched.applied.length) {
+            console.log(`[Worker] empty input(s) switched the graph: ${branched.applied.join(', ')}`);
+        }
+        const wf = this._materializeWorkflow(branched.workflow, { paramValues, exposedParameters, inputs, filenamePrefix });
 
         let resp;
         try {

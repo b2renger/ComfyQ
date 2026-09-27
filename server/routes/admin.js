@@ -777,6 +777,12 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                         maxInputEdge: found.maxInputEdge,
                         disabledWhen: found.disabledWhen,
                         linkedValues: found.linkedValues,
+                        // whenEmpty/whenEmptySet were missing here: a re-save
+                        // silently dropped `unlink`, which turns an unused
+                        // reference slot back into a black placeholder the
+                        // model actually LOOKS at.
+                        whenEmpty: found.whenEmpty,
+                        whenEmptySet: found.whenEmptySet,
                         format: found.format,
                         required: found.required ?? d.required,
                         order: found.order ?? d.order,

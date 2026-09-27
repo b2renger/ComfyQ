@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "image_qwen_image_2_1_image_edit",
   "name": "Qwen Image 2.1 — image edit with references",
-  "description": "Edit a picture by describing the change, and hand the model up to ten reference pictures to work from.\n\nRefer to them in the prompt as <image1>, <image2>, <image3>… — that is how Qwen addresses them. Image 1 is the picture being edited; the rest are references, and every one of them is optional. Typical uses: put the garment from <image2> onto the person in <image1>; restyle <image1> in the look of <image2>; drop the object from <image2> into the scene of <image1>.\n\nSay what must STAY as clearly as what changes — \"keep the pose, the face, the background and the lighting\" — otherwise the model reinterprets more than you wanted. The result follows the size and aspect of image 1.\n\nA reference slot you leave empty is removed from the graph completely, so an unused slot can never influence the picture.",
+  "description": "Edit a picture with Qwen Image 2.1 — or, with no picture at all, just generate one from the prompt.\n\nUpload up to 16 pictures and refer to them in the prompt as <image1>, <image2> and so on. Image 1 is the one being edited; the rest are references the model can borrow from — a garment, a face, a style, a background. Everything you leave empty is removed from the graph, so an unused slot cannot influence the result.\n\nUpload nothing and it becomes a plain text-to-image generator, and the aspect ratio and size fields decide the output. Upload Image 1 and those two fields are ignored: the result keeps Image 1's size, because any other size shifts the edit.\n\nSay what should STAY as well as what should change — \"keep the pose, the face and the background, replace only the jacket\" — vague instructions let the model redraw more than you wanted.\n\nLicence note: Qwen Research License — research and evaluation only, no commercial use.",
   "category": "image-edit",
   "tags": [
     "qwen",
@@ -49,7 +49,7 @@
       "nodeId": "459:474",
       "field": "prompt",
       "type": "textarea",
-      "label": "What to change (name your pictures as <image1>, <image2>, …)",
+      "label": "What to change, or what to draw (name your pictures as <image1>, <image2>, …)",
       "default": "Keep the character and pose in <image1> unchanged, put the light blue denim shirt from <image2> on the character, preserve the original facial features, hair, body shape and pose, keep the original background and lighting, realistic fabric texture, sharp details",
       "required": true,
       "order": 0
@@ -59,10 +59,18 @@
       "nodeId": "470",
       "field": "image",
       "type": "image",
-      "label": "Image 1 — the picture to edit",
-      "required": true,
+      "label": "Image 1 — the picture to edit, or leave empty to generate from the prompt alone",
+      "required": false,
       "order": 1,
-      "maxInputEdge": 2048
+      "maxInputEdge": 2048,
+      "whenEmpty": "unlink",
+      "whenEmptySet": [
+        {
+          "nodeId": "459:468",
+          "field": "switch",
+          "value": true
+        }
+      ]
     },
     {
       "key": "loadimage_image_475",
@@ -72,7 +80,7 @@
       "label": "Image 2 — optional reference (<image2>)",
       "required": false,
       "whenEmpty": "unlink",
-      "order": 3,
+      "order": 2,
       "maxInputEdge": 2048
     },
     {
@@ -83,7 +91,7 @@
       "label": "Image 3 — optional reference (<image3>)",
       "required": false,
       "whenEmpty": "unlink",
-      "order": 4,
+      "order": 3,
       "maxInputEdge": 2048
     },
     {
@@ -94,7 +102,7 @@
       "label": "Image 4 — optional reference (<image4>)",
       "required": false,
       "whenEmpty": "unlink",
-      "order": 5,
+      "order": 4,
       "maxInputEdge": 2048
     },
     {
@@ -105,7 +113,7 @@
       "label": "Image 5 — optional reference (<image5>)",
       "required": false,
       "whenEmpty": "unlink",
-      "order": 6,
+      "order": 5,
       "maxInputEdge": 2048
     },
     {
@@ -116,7 +124,7 @@
       "label": "Image 6 — optional reference (<image6>)",
       "required": false,
       "whenEmpty": "unlink",
-      "order": 7,
+      "order": 6,
       "maxInputEdge": 2048
     },
     {
@@ -127,7 +135,7 @@
       "label": "Image 7 — optional reference (<image7>)",
       "required": false,
       "whenEmpty": "unlink",
-      "order": 8,
+      "order": 7,
       "maxInputEdge": 2048
     },
     {
@@ -138,7 +146,7 @@
       "label": "Image 8 — optional reference (<image8>)",
       "required": false,
       "whenEmpty": "unlink",
-      "order": 9,
+      "order": 8,
       "maxInputEdge": 2048
     },
     {
@@ -149,7 +157,7 @@
       "label": "Image 9 — optional reference (<image9>)",
       "required": false,
       "whenEmpty": "unlink",
-      "order": 10,
+      "order": 9,
       "maxInputEdge": 2048
     },
     {
@@ -160,8 +168,101 @@
       "label": "Image 10 — optional reference (<image10>)",
       "required": false,
       "whenEmpty": "unlink",
-      "order": 11,
+      "order": 10,
       "maxInputEdge": 2048
+    },
+    {
+      "key": "loadimage_image_484",
+      "nodeId": "484",
+      "field": "image",
+      "type": "image",
+      "required": false,
+      "whenEmpty": "unlink",
+      "label": "Image 11 — optional reference (<image11>)",
+      "order": 11
+    },
+    {
+      "key": "loadimage_image_485",
+      "nodeId": "485",
+      "field": "image",
+      "type": "image",
+      "required": false,
+      "whenEmpty": "unlink",
+      "label": "Image 12 — optional reference (<image12>)",
+      "order": 12
+    },
+    {
+      "key": "loadimage_image_486",
+      "nodeId": "486",
+      "field": "image",
+      "type": "image",
+      "required": false,
+      "whenEmpty": "unlink",
+      "label": "Image 13 — optional reference (<image13>)",
+      "order": 13
+    },
+    {
+      "key": "loadimage_image_487",
+      "nodeId": "487",
+      "field": "image",
+      "type": "image",
+      "required": false,
+      "whenEmpty": "unlink",
+      "label": "Image 14 — optional reference (<image14>)",
+      "order": 14
+    },
+    {
+      "key": "loadimage_image_488",
+      "nodeId": "488",
+      "field": "image",
+      "type": "image",
+      "required": false,
+      "whenEmpty": "unlink",
+      "label": "Image 15 — optional reference (<image15>)",
+      "order": 15
+    },
+    {
+      "key": "loadimage_image_489",
+      "nodeId": "489",
+      "field": "image",
+      "type": "image",
+      "required": false,
+      "whenEmpty": "unlink",
+      "label": "Image 16 — optional reference (<image16>)",
+      "order": 16
+    },
+    {
+      "key": "resolutionselector_aspect_ratio_13",
+      "nodeId": "13",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio — only used when you upload NO picture (with Image 1, the result follows it)",
+      "default": "1:1 (Square)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "required": true,
+      "order": 17
+    },
+    {
+      "key": "resolutionselector_megapixels_13",
+      "nodeId": "13",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K) — only used when you upload NO picture (with Image 1, the result follows it)",
+      "default": 1,
+      "min": 0.25,
+      "max": 4,
+      "step": 0.25,
+      "required": true,
+      "order": 18
     },
     {
       "key": "ksampler_steps_459_458",
@@ -174,7 +275,7 @@
       "max": 60,
       "step": 1,
       "required": true,
-      "order": 12
+      "order": 19
     },
     {
       "key": "ksampler_seed_459_458",
@@ -187,12 +288,13 @@
       "max": 999999999999999,
       "step": 1,
       "required": true,
-      "order": 13
+      "order": 20
     }
   ],
   "warmupParams": {
     "textencodeqwenimage21_prompt_459_474": "make the background a plain studio grey",
     "ksampler_steps_459_458": 25,
+    "loadimage_image_470": "asset:Woman.png",
     "loadimage_image_475": null,
     "loadimage_image_476": null,
     "loadimage_image_477": null,
@@ -202,7 +304,12 @@
     "loadimage_image_481": null,
     "loadimage_image_482": null,
     "loadimage_image_483": null,
-    "loadimage_image_470": "asset:Woman.png"
+    "loadimage_image_484": null,
+    "loadimage_image_485": null,
+    "loadimage_image_486": null,
+    "loadimage_image_487": null,
+    "loadimage_image_488": null,
+    "loadimage_image_489": null
   },
   "presets": {}
 }

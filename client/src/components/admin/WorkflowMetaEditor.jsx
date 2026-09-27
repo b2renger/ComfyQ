@@ -186,6 +186,11 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                     disabledWhen: p.disabledWhen,
                     // Preserved like disabledWhen (no UI to edit it).
                     linkedValues: p.linkedValues,
+                    // Likewise — and load-bearing: dropping `whenEmpty: unlink`
+                    // does not break the job, it feeds the model a black
+                    // placeholder as a reference picture and changes the result.
+                    whenEmpty: p.whenEmpty,
+                    whenEmptySet: p.whenEmptySet,
                     format: p.format,
                     required: p.required ?? false,
                     order: i

@@ -70,6 +70,19 @@ const ExposedParameter = z.object({
     // reference slot (Qwen 2.1's images.image_N) needs — a placeholder there
     // would be used as a reference picture and change the result.
     whenEmpty: z.enum(['placeholder', 'unlink']).optional(),
+    // Node fields to set when this param is left EMPTY, so the graph can take
+    // its other branch by itself instead of making the student flip a toggle
+    // whose effect they cannot see. Measured case: the Qwen 2.1 edit with no
+    // reference pictures must switch its latent from "follow image 1" to an
+    // empty latent at the chosen size — otherwise TextEncodeQwenImage21 returns
+    // a fixed 1024x1024 (`latent_w = latent_h = resolution or 1024`) and the
+    // aspect-ratio field silently does nothing. Applied after `unlink` and
+    // before the exposed params, so an exposed param on the same field wins.
+    whenEmptySet: z.array(z.object({
+        nodeId: z.string().min(1),
+        field: z.string().min(1),
+        value: z.any()
+    })).optional(),
     required: z.boolean().default(false),
     order: z.number().int().default(0)
 });

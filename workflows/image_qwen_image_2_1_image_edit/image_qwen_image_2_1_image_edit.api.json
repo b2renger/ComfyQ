@@ -32,7 +32,7 @@
     },
     "class_type": "LoadImage",
     "_meta": {
-      "title": "Reference image 1"
+      "title": "Image 1 — the picture to edit"
     }
   },
   "475": {
@@ -114,6 +114,60 @@
     },
     "_meta": {
       "title": "Reference image 10"
+    }
+  },
+  "484": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    },
+    "_meta": {
+      "title": "Reference image 11"
+    }
+  },
+  "485": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    },
+    "_meta": {
+      "title": "Reference image 12"
+    }
+  },
+  "486": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    },
+    "_meta": {
+      "title": "Reference image 13"
+    }
+  },
+  "487": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    },
+    "_meta": {
+      "title": "Reference image 14"
+    }
+  },
+  "488": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    },
+    "_meta": {
+      "title": "Reference image 15"
+    }
+  },
+  "489": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    },
+    "_meta": {
+      "title": "Reference image 16"
     }
   },
   "459:451": {
@@ -291,6 +345,30 @@
       ],
       "images.image_10": [
         "483",
+        0
+      ],
+      "images.image_11": [
+        "484",
+        0
+      ],
+      "images.image_12": [
+        "485",
+        0
+      ],
+      "images.image_13": [
+        "486",
+        0
+      ],
+      "images.image_14": [
+        "487",
+        0
+      ],
+      "images.image_15": [
+        "488",
+        0
+      ],
+      "images.image_16": [
+        "489",
         0
       ]
     },
