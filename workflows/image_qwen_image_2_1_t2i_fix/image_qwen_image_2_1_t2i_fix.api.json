@@ -12,7 +12,7 @@
   },
   "461": {
     "inputs": {
-      "filename_prefix": "Qwen_image_2.1",
+      "filename_prefix": "Qwen_image_2.1_fix",
       "format": "png",
       "format.bit_depth": "8-bit",
       "format.input_color_space": "sRGB",
@@ -24,6 +24,50 @@
     "class_type": "SaveImageAdvanced",
     "_meta": {
       "title": "Save Image (Advanced)"
+    }
+  },
+  "900": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": [
+        "459:451",
+        0
+      ],
+      "lora_name": "qwen-image-2.1-fix-1.0-comfy.safetensors",
+      "strength_model": 1
+    },
+    "_meta": {
+      "title": "Qwen Image 2.1 Fix (DoRA)"
+    }
+  },
+  "901": {
+    "class_type": "APG",
+    "inputs": {
+      "model": [
+        "900",
+        0
+      ],
+      "eta": 1,
+      "norm_threshold": 10,
+      "momentum": 0.3
+    },
+    "_meta": {
+      "title": "APG - keeps cfg 3 from burning"
+    }
+  },
+  "902": {
+    "class_type": "FreSca",
+    "inputs": {
+      "model": [
+        "901",
+        0
+      ],
+      "scale_low": 1,
+      "scale_high": 2,
+      "freq_cutoff": 8
+    },
+    "_meta": {
+      "title": "FreSca - high-frequency detail"
     }
   },
   "459:451": {
@@ -39,7 +83,7 @@
   "459:452": {
     "inputs": {
       "prompt": "A weathered enamel shop sign above a rainy Parisian street, the sign reads \"CAFÉ DES ARTS\" in cream lettering on deep green, warm window light spilling onto wet cobbles, shallow depth of field, photographic",
-      "negative_prompt": "",
+      "negative_prompt": "artifacts, gpt-image, washed-out colors, low quality, low resolution, AI slop, deviantart, sloppy lines, rough sketch, blurry, indistinct, missing fingers, badly drawn hands, wrong number of fingers",
       "resolution": 1024,
       "clip": [
         "459:453",
@@ -107,13 +151,13 @@
   "459:458": {
     "inputs": {
       "seed": 593103825222985,
-      "steps": 25,
-      "cfg": 1,
-      "sampler_name": "euler",
-      "scheduler": "simple",
+      "steps": 20,
+      "cfg": 3,
+      "sampler_name": "seeds_2",
+      "scheduler": "sgm_uniform",
       "denoise": 1,
       "model": [
-        "459:451",
+        "902",
         0
       ],
       "positive": [

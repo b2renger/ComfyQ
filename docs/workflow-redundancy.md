@@ -178,6 +178,33 @@ pictures ▸"), this pair becomes a clear merge.
 
 ---
 
+## 6c. Qwen 2.1 plain vs the "Fix" bundle — a deliberate A/B pair
+
+**Added 2026-09-30.** `image_qwen_image_2_1_t2i_fix` is the same model and graph as
+`image_qwen_image_2_1_t2i` plus a community DoRA and its author's sampling settings.
+
+| bundle | steps | guidance | sampler | warm |
+|---|---|---|---|---|
+| `image_qwen_image_2_1_t2i` | 25 | 1 | euler / simple | **14 s** |
+| `image_qwen_image_2_1_t2i_fix` | 20 | 3 | seeds_2 / sgm_uniform | **46 s** |
+
+**This pair is not redundant and should not be collapsed** — it exists *to* be a
+comparison, which is what the owner asked for. The 3.3× cost gap alone makes them
+different tools: the plain bundle is the one to hand a class, this one is for when a
+picture is worth 46 s.
+
+- **Do not merge them into one bundle with a toggle.** The settings differ in four
+  places at once (steps, guidance, sampler, scheduler) plus two model patches, and the
+  plain bundle's lack of a negative prompt is a *consequence* of its guidance being 1.
+  A single card would have to explain all of that.
+- **The in-bundle A/B already exists:** "Fix strength 0" runs the author's settings with
+  the adapter off, at an identical seed. That is the comparison most people actually
+  want, and it is one field.
+- **If one has to go later**, decide by looking: on the two prompts tested, the settings
+  contributed more of the visible gain than the adapter did.
+
+---
+
 ## 6b. Qwen 2.1 base vs Viggle Turbo — a speed/quality pair, not a duplicate
 
 `image_qwen_image_2_1_t2i` (25 steps, 14 s) and `image_qwen_image_2_1_viggle_turbo`
