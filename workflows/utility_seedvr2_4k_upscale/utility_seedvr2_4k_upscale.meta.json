@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "utility_seedvr2_4k_upscale",
   "name": "SeedVR2 — image upscale to 4K",
-  "description": "Upscale and restore a single image up to 4K with SeedVR2, a diffusion-based super-resolution model that adds realistic detail (skin, hair, textures) rather than just sharpening. Upload an image and it's rebuilt at the target resolution.\n\nHeavy model — expect a slow run, especially at 4096. If the added detail looks off, change the seed to re-roll.",
+  "description": "Upscale and restore a picture with SeedVR2, a diffusion super-resolution model that rebuilds real detail - skin, hair, fabric, grain - rather than just sharpening what is already there. It is the closest thing on this machine to a \"creative\" upscaler.\n\nHow the output size is worked out, because it surprises people. The first setting is the target for the SHORTEST edge, and the aspect ratio is always preserved exactly. The second is a hard cap on the LONGEST edge, and it wins: if the two disagree, the picture comes out smaller than you asked.\n\nWorked example on a wide 1234x567 photograph. Ask for 2048 with the cap at 4096 and the long edge would be 4457, over the cap, so you get 4096x1882 - and asking for 4096 instead gives the very same picture, because the cap decides. Raise the cap to 8192 and you get the 4456x2048 you actually asked for. So on anything far from square, set the cap first.\n\nOdd sizes are fine. Any width and height work, including numbers that are not round or divisible by 8, and the aspect ratio is kept to within a pixel of rounding.\n\nIt is a heavy model and a slow run, more so at high settings. If the invented detail looks wrong, change the seed and run it again - the model makes up plausible texture, so a different seed makes up different texture.",
   "category": "i2i",
   "tags": [
     "seedvr2",
@@ -47,13 +47,26 @@
       "nodeId": "10",
       "field": "resolution",
       "type": "number",
-      "label": "Target resolution (px, longest edge)",
+      "label": "Detail level - target size of the SHORTEST edge in pixels",
       "default": 4096,
-      "min": 1024,
+      "min": 512,
       "max": 4096,
       "step": 64,
       "required": false,
       "order": 1
+    },
+    {
+      "key": "max_resolution_10",
+      "nodeId": "10",
+      "field": "max_resolution",
+      "type": "number",
+      "label": "Cap on the LONGEST edge - raise it for wide or tall pictures, or the setting above is ignored",
+      "default": 4096,
+      "min": 1024,
+      "max": 8192,
+      "step": 256,
+      "required": true,
+      "order": 2
     },
     {
       "key": "seed_10",
@@ -66,7 +79,7 @@
       "max": 4294967295,
       "step": 1,
       "required": false,
-      "order": 2
+      "order": 3
     }
   ],
   "warmupParams": {},
