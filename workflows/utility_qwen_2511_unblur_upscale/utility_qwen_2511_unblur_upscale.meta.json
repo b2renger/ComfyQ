@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "id": "utility_qwen_2511_unblur_upscale",
+  "name": "Unblur & upscale a photo (Qwen Image Edit 2511)",
+  "category": "i2i",
+  "tags": [
+    "qwen",
+    "upscale",
+    "unblur",
+    "restore",
+    "lora",
+    "experimental"
+  ],
+  "thumbnail": null,
+  "author": "ComfyQ",
+  "version": "1.0.0",
+  "experimental": true,
+  "workflowFile": "utility_qwen_2511_unblur_upscale.api.json",
+  "apiFormat": true,
+  "description": "Sharpen a blurry or low-resolution photograph. Upload a picture and the model re-renders it, recovering detail — it was trained above all to bring back FACES in partly blurred pictures.\n\nRead this before judging it. The adapter's own author says plainly: \"This adapter was experimental and trained to recover facial patterns from partially blurred images. The base model produces better overall quality, but it does not preserve those patterns.\" So it is a trade, not a straight improvement — the adapter holds on to a face's identity, while the model without it may give you a cleaner picture of someone slightly different. Set \"Adapter strength\" to 0 to see the base model on the same picture and judge for yourself.\n\nThis is a RE-RENDER, not an enlarger. The picture comes back at roughly 1 megapixel whatever you put in, so it genuinely enlarges a small or soft picture but will not turn a photo into a poster. For pure enlargement use the PiD upscaler (exactly 4x) or the SeedVR2 upscalers instead.\n\nBecause it re-renders, it can also invent: a face can come back subtly changed, and small print or logos can turn to nonsense. Check the result against your original before using it for anything that matters.\n\nFour training checkpoints are installed. The author recommends 20 or 15; 5 and 10 are there so you can see how the effect builds up.\n\nLicence: Apache 2.0 for the adapter — unusually permissive for this family. The Qwen Image Edit base model it runs on is still Qwen Research License (research and evaluation only).",
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "qwen_image_edit_2511_bf16.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen_2.5_vl_7b_fp8_scaled.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_vae.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "Qwen-Image-Edit-Unblur-Upscale_20.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors"
+      }
+    ],
+    "disabledPerfFlags": [
+      "use_sage_attention"
+    ]
+  },
+  "estimatedDurationSec": 50,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_25",
+      "nodeId": "25",
+      "field": "image",
+      "type": "image",
+      "label": "The blurry or low-resolution picture",
+      "required": true,
+      "maxInputEdge": 2048,
+      "order": 0
+    },
+    {
+      "key": "textencodeqwenimageeditplus_prompt_427_221_151",
+      "nodeId": "427:221:151",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "What to do (the adapter is trained on the words \"unblur and upscale\")",
+      "default": "unblur and upscale",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "loraloadermodelonly_lora_name_427_221_220",
+      "nodeId": "427:221:220",
+      "field": "lora_name",
+      "type": "lora",
+      "optionsDir": "loras",
+      "optionsFilter": "Qwen-Image-Edit-Unblur-Upscale",
+      "label": "Training checkpoint (20 and 15 are the author's picks)",
+      "default": "Qwen-Image-Edit-Unblur-Upscale_20.safetensors",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "loraloadermodelonly_strength_model_427_221_220",
+      "nodeId": "427:221:220",
+      "field": "strength_model",
+      "type": "number",
+      "label": "Adapter strength - set to 0 to see the base model on the same picture",
+      "default": 1,
+      "min": 0,
+      "max": 1.5,
+      "step": 0.05,
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "primitiveboolean_value_427_221_168",
+      "nodeId": "427:221:168",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Fast mode (4 steps instead of 40 - leave on unless the result looks thin)",
+      "default": true,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "ksampler_seed_427_221_169",
+      "nodeId": "427:221:169",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 345666571704709,
+      "required": true,
+      "order": 5
+    }
+  ],
+  "warmupParams": {
+    "textencodeqwenimageeditplus_prompt_427_221_151": "unblur and upscale"
+  },
+  "presets": {},
+  "promptGuides": [
+    {
+      "label": "Qwen-Image-Edit-2511-Unblur-Upscale - the adapter",
+      "url": "https://huggingface.co/prithivMLmods/Qwen-Image-Edit-2511-Unblur-Upscale",
+      "tip": "Trigger phrase is literally \"unblur and upscale\". The author recommends checkpoint 20 or 15, and warns the base model alone gives better overall quality but loses facial identity."
+    }
+  ]
+}
