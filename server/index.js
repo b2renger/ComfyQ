@@ -46,6 +46,7 @@ const mediaStore = require('./media/mediaStore');
 const federationRoutes = require('./routes/federation');
 const { detectSystemInfo } = require('./federation/systemInfo');
 const { StatusBeacon } = require('./federation/beacon');
+const { ModelDownloader } = require('./models/modelDownloader');
 
 // Prints the URLs students should use from another machine on the LAN.
 // They open Vite (5173) in their browser; Vite serves plain HTTP and
@@ -204,6 +205,15 @@ async function main() {
     // snapshot polling and the socket.io transport are excluded so passive
     // monitoring / idle connections don't masquerade as activity.
     runtime.activity = { lastTs: Date.now(), clients: new Map() };
+
+    // Model downloads, available in BOTH modes: a rig that is missing a weight
+    // needs to fetch it whether or not it is currently serving, and the admin
+    // panel stays reachable while serving. Config is read fresh on every use
+    // (the same reason AdminCalibrator does), so a path edited in the panel is
+    // honoured without a restart.
+    runtime.downloader = new ModelDownloader({
+        config: () => configManager.load().config,
+    });
     app.use((req, res, next) => {
         const p = req.path || '';
         if (!p.startsWith('/federation') && !p.startsWith('/socket.io')) {

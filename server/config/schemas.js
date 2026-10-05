@@ -196,7 +196,13 @@ const AppConfig = z.object({
         //     --fast family "untested and potentially quality deteriorating",
         //     so we pass ONLY this one feature, never bare --fast)
         use_sage_attention: z.boolean().default(false),
-        fp16_accumulation: z.boolean().default(false)
+        fp16_accumulation: z.boolean().default(false),
+        // ★ A HuggingFace access token, for the gated repos. Eight of this
+        // library's download links answer 401 without one (FLUX.2, LTX-2.5),
+        // and a token is per-account, so it belongs in the machine's config
+        // rather than in a committed meta. Treated as a secret: GET
+        // /admin/config strips it the way it strips the password hashes.
+        hf_token: z.string().default('')
     }),
     // Two independent passwords, both optional:
     //   adminPasswordHash  — gates destructive/admin actions (see auth/authGate.js).

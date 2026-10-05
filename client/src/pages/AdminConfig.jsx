@@ -5,6 +5,7 @@ import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import StoryboardUpload from '../components/admin/StoryboardUpload';
 import RunningWorkflows from '../components/admin/RunningWorkflows';
 import ModelPrune from '../components/admin/ModelPrune';
+import ModelDownloads from '../components/admin/ModelDownloads';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -59,6 +60,7 @@ const AdminConfig = ({ currentMode }) => {
     const [pwSaving, setPwSaving] = useState(false);
     // Student access password — gates who may USE this machine (see below).
     const [hasAccessPassword, setHasAccessPassword] = useState(false);
+    const [hasHfToken, setHasHfToken] = useState(false);
     const [newAccessPassword, setNewAccessPassword] = useState('');
     const [accessSaving, setAccessSaving] = useState(false);
     const [toast, setToast] = useState(null);
@@ -129,6 +131,7 @@ const AdminConfig = ({ currentMode }) => {
             setConfig(data.config);
             setHasAdminPassword(data.hasAdminPassword);
             setHasAccessPassword(!!data.hasAccessPassword);
+            setHasHfToken(!!data.hasHfToken);
             setPathDraft({
                 root_path: data.config.comfy_ui.root_path,
                 python_executable: data.config.comfy_ui.python_executable,
@@ -1296,6 +1299,8 @@ const AdminConfig = ({ currentMode }) => {
 
             {tab === 'maintenance' && (
                 <>
+                    <ModelDownloads headers={adminHeaders()} onToast={showToast} hasHfToken={hasHfToken} />
+
                     <ModelPrune headers={adminHeaders()} onToast={showToast}
                         scanDirs={scanDirs} onScanDirsChange={setScanDirs}
                         onSaveScanDirs={saveScanDirs} savingScanDirs={savingScanDirs} />

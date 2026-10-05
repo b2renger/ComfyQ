@@ -12,6 +12,7 @@ const { parseWorkflow } = require('../workflows/workflowParser');
 const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
 const { buildModelUsage } = require('../workflows/modelUsage');
 const { scoreDeletable } = require('../workflows/modelConfidence');
+const { KNOWN_DIRS: KNOWN_MODEL_DIRS } = require('../models/modelDestination');
 const { resolveOutputPath } = require('../executor/outputCollector');
 const sm = require('../queue/jobStateMachine');
 const { ComfyRestClient } = require('../workers/comfyRestClient');
@@ -63,9 +64,13 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         // Never leak the password hash.
         const safe = JSON.parse(JSON.stringify(config));
         if (safe.auth) { delete safe.auth.adminPasswordHash; delete safe.auth.accessPasswordHash; }
+        // A secret, like the hashes above: the UI only ever needs to know
+        // whether one is set.
+        const hasHfToken = !!safe.comfy_ui?.hf_token;
+        if (safe.comfy_ui) delete safe.comfy_ui.hf_token;
         const hasAdminPassword = !!config.auth.adminPasswordHash;
         const hasAccessPassword = !!config.auth.accessPasswordHash;
-        res.json({ config: safe, hasAdminPassword, hasAccessPassword });
+        res.json({ config: safe, hasHfToken, hasAdminPassword, hasAccessPassword });
     });
 
     // First-run / admin: set ComfyUI paths and server settings.
@@ -230,6 +235,55 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         } catch (e) {
             res.status(400).json({ error: e.message });
         }
+    });
+
+    // ---- Maintenance: fetch a model onto THIS machine --------------------
+    // Server-side on purpose: the admin panel is routinely open on another
+    // computer (there is a Copy-admin-link button for it), so a browser
+    // download would land on the wrong machine — and showDirectoryPicker, the
+    // only web API that could choose a folder, needs a secure context, which
+    // plain HTTP on the LAN is not.
+    router.get('/models/downloads', (req, res) => {
+        res.json({ downloads: runtime?.downloader ? runtime.downloader.list() : [], available: !!runtime?.downloader });
+    });
+
+    router.post('/models/download', adminGate, express.json(), (req, res) => {
+        const dl = runtime?.downloader;
+        if (!dl) return res.status(503).json({ error: 'the downloader is not available' });
+        const { name, url, type, dir } = req.body || {};
+        if (!url) return res.status(400).json({ error: 'a url is required' });
+        const out = dl.enqueue({ name, url, type, dir });
+        if (!out.ok) return res.status(out.needsDir ? 409 : 400).json(out);
+        res.json(out);
+    });
+
+    router.post('/models/download/cancel', adminGate, express.json(), (req, res) => {
+        const dl = runtime?.downloader;
+        if (!dl) return res.status(503).json({ error: 'the downloader is not available' });
+        const out = dl.cancel(req.body?.key);
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
+    router.post('/models/download/forget', adminGate, express.json(), (req, res) => {
+        const dl = runtime?.downloader;
+        if (!dl) return res.status(503).json({ error: 'the downloader is not available' });
+        const out = dl.forget(req.body?.key);
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
+    // The folders a download may be placed in, for the one case the link and
+    // the declared type cannot decide between them.
+    router.get('/models/folders', (req, res) => {
+        const { config } = configManager.load();
+        const root = config.comfy_ui?.root_path || '';
+        let present = [];
+        try {
+            present = fs.readdirSync(path.join(root, 'models'), { withFileTypes: true })
+                .filter(e => e.isDirectory() && KNOWN_MODEL_DIRS.has(e.name.toLowerCase()))
+                .map(e => e.name)
+                .sort();
+        } catch { /* no install configured */ }
+        res.json({ folders: present });
     });
 
     router.get('/models/usage', (req, res) => {

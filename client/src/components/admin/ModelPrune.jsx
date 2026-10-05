@@ -57,12 +57,6 @@ const ModelPrune = ({
 
     useEffect(() => { load(); }, [load]);
 
-    // Drop the acknowledgement the moment it stops applying, so it can never be
-    // carried into a later, unrelated selection while its checkbox is hidden.
-    useEffect(() => {
-        if (allowLow && pickedLow.length === 0) setAllowLow(false);
-    }, [allowLow, pickedLow.length]);
-
     const unused = report?.models?.filter(m => m.unused) || [];
     const review = report?.models?.filter(m => !m.unused && m.textOnly) || [];
 
@@ -77,6 +71,15 @@ const ModelPrune = ({
     const pickedLow = pickedRows.filter(m => m.confidence === 'low');
     // Only ever true while a suspicious row is actually selected.
     const allowLowEffective = allowLow && pickedLow.length > 0;
+
+    // Drop the acknowledgement the moment it stops applying, so it can never be
+    // carried into a later, unrelated selection while its checkbox is hidden.
+    // ★ Declared HERE, after pickedLow: placed above it the effect read a const
+    // in its temporal dead zone, which the bundler compiled happily and the
+    // page then threw on every render.
+    useEffect(() => {
+        if (allowLow && pickedLow.length === 0) setAllowLow(false);
+    }, [allowLow, pickedLow.length]);
 
     const LEVELS = [
         { key: 'high', label: 'Confident', n: report?.totals?.confident, gb: report?.totals?.confidentGb, tone: 'text-success' },
