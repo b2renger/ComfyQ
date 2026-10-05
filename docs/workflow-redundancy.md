@@ -255,8 +255,11 @@ Worth stating so they don't get cut by accident:
   until 2026-10-05 — see 6d.)*
 - **The two Gemma captioners** take different inputs (image vs video) — one graph can't do
   both, the video one feeds every decoded frame to the VLM.
-- **The five 3D bundles** produce genuinely different artefacts (Gaussian splat vs mesh vs
-  textured mesh vs multi-view sheet).
+- **The three 3D bundles** produce genuinely different artefacts (Gaussian splat vs mesh vs
+  multi-view sheet). *(There were five until 2026-10-05: `3d_pixal3d_image_to_mesh` and
+  `3d_trellis2_image_to_textured_mesh` were built on the owner-installed Pixal3D-ComfyUI and
+  ComfyUI-Trellis2 packs BEFORE ComfyUI shipped its own support, and were removed once the
+  core `comfy_extras/nodes_trellis2.py` path covered the same ground.)*
 - **The three LTX 2.3 leftovers** (`ia2v_iclora`, `ic_lora_ingredients`, `3dreal_vid2vid`)
   have no LTX 2.5 equivalent — they are not the retired 2.3 generation bundles.
 

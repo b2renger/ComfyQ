@@ -48,6 +48,12 @@ put('loras', 'from_properties.safetensors', 1);
 put('vae', 'inside_extra_prompt.safetensors', 1);
 put('vae', 'mixed_case.safetensors', 1);          // referenced as MiXeD_CaSe.SafeTensors
 put('vae', 'lane_saved.safetensors', 1);
+// A staged HuggingFace repo lands as a FOLDER of weights, so it is written
+// here with the other fixtures: buildModelIndex caches for 30 s.
+const repoDir = path.join(comfy, 'models', 'vendor', 'Some-Model-4B', 'ckpts');
+fs.mkdirSync(repoDir, { recursive: true });
+fs.writeFileSync(path.join(repoDir, 'stage_one.safetensors'), Buffer.alloc(1024));
+fs.writeFileSync(path.join(repoDir, 'stage_two.safetensors'), Buffer.alloc(1024));
 
 bundle('runs_it', {
     api: {
@@ -291,13 +297,39 @@ check('an absolute entry is left alone',
     buildModelUsage({ comfyRoot: comfy, workflowsDir: wf, extraDirs: [demo] })
         .scanned.configured[0].resolved === demo);
 
-// 15. A scan that cannot see the outside folder must not call its models unused —
+
+// 15. ★★ A bundle can declare a HuggingFace REPO it stages through rather
+//     than a filename — `microsoft/TRELLIS.2-4B`. The repo lands on disk as a
+//     folder of weights that NO graph names file by file, so every file inside
+//     read as unused AND as high confidence: 12 files / 16.65 GB were being
+//     offered for deletion while the bundles that need them were installed.
+bundle('stages_a_repo', {
+    api: { '1': { class_type: 'VendorImageTo3D', inputs: { image: 'x.png' } } },
+    meta: {
+        id: 'stages_a_repo',
+        requirements: {
+            models: [
+                { type: 'other', file: 'vendor/Some-Model-4B', auto: true, note: 'staged by the pack' },
+            ],
+        },
+    },
+});
+const staged = run();
+check('every file inside a staged repo folder is claimed by the bundle',
+    ['stage_one.safetensors', 'stage_two.safetensors'].every(n => {
+        const m = staged.models.find(x => x.name === n);
+        return m && m.unused === false && m.usedBy.includes('stages_a_repo');
+    }));
+check('...and a file outside that folder is NOT claimed by it',
+    !staged.models.find(m => m.name === 'nobody.safetensors').usedBy.includes('stages_a_repo'));
+
+// 16. A scan that cannot see the outside folder must not call its models unused —
 //    this is why the UI names the folders it checked.
 const blind = buildModelUsage({ comfyRoot: comfy, workflowsDir: wf, extraDirs: [] });
 check('without the outside folder, its model looks prunable (hence the warning)',
     blind.models.find(m => m.name === 'demo_only.safetensors').unused === true);
 
-// 16. With every fixture bundle in place, exactly one file is reclaimable and
+// 17. With every fixture bundle in place, exactly one file is reclaimable and
 //     the total is its size alone. Asserted last because the sections above add
 //     models whose bundles are written as they go.
 const settled = run();

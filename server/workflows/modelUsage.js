@@ -25,6 +25,16 @@ const { buildModelIndex, WEIGHT_RX } = require('./vramEstimate');
 // Only a file in none of those classes is reported unused, and even then the
 // caller is expected to let a human look at the list.
 
+// Basenames that identify nothing: several repos ship a file by each of these
+// names, and usage here is matched by basename alone.
+const GENERIC_BASENAMES = new Set([
+    "model.safetensors", "model.bin", "model.pt", "model.pth", "model.ckpt",
+    "diffusion_pytorch_model.safetensors", "diffusion_pytorch_model.bin",
+    "pytorch_model.bin", "pytorch_model.safetensors",
+    "weights.safetensors", "weights.pth", "checkpoint.safetensors",
+    "adapter_model.safetensors", "open_clip_pytorch_model.safetensors",
+]);
+
 const SUFFIXES = ['.api.json', '_template.json'];
 
 // ComfyUI reports subfolder-qualified names on Windows (marigold_v2\x.safetensors).
@@ -315,6 +325,9 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
     // ★ A lora dropdown exposes every file matching its prefix, so these are
     // reachable with no graph mentioning them at all.
     const filters = [];
+    // HuggingFace repos a pipeline stages through: a folder of weights on disk
+    // that no graph names file by file. See where this is filled, below.
+    const repoClaims = [];
     for (const id of bundleIds) {
         const meta = readJson(path.join(workflowsDir, id, `${id}.meta.json`));
         for (const p of (meta?.exposedParameters || [])) {
@@ -325,7 +338,15 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
         // A declared model is in use even if the graph resolves it internally.
         for (const m of (meta?.requirements?.models || [])) {
             const b = basename(m.file);
-            if (WEIGHT_RX.test(b)) add(usedBy, b, id);
+            if (WEIGHT_RX.test(b)) { add(usedBy, b, id); continue; }
+            // ★ Not a filename but a HuggingFace REPO the pipeline stages
+            // through — `microsoft/TRELLIS.2-4B`, `Pixal3D/briaai_RMBG-2.0`.
+            // Those repos land on disk as a folder of weights that NO graph
+            // names, so every file inside read as unused and, worse, as HIGH
+            // confidence: 12 files / 16.65 GB offered for deletion while the
+            // bundles that need them were installed. Claim the folder.
+            const asPath = String(m.file || '').split('\\').join('/').replace(/^\/+|\/+$/g, '');
+            if (asPath.includes('/')) repoClaims.push({ prefix: asPath.toLowerCase(), bundle: id });
         }
     }
 
@@ -334,12 +355,20 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
         // `key` is the folded name every map is keyed by; `hit.name` is how the
         // file is actually spelled on disk, which is what a person should see.
         const name = key;
-        const used = [...(usedBy.get(name) || [])].sort();
+        const used = [...(usedBy.get(name) || [])];
         const tpl = [...(templateOnly.get(name) || [])].sort();
         const ext = [...(external.get(name) || [])].sort();
         const drops = filters
             .filter(f => name.toLowerCase().startsWith(f.prefix))
             .map(f => f.bundle);
+        // Inside a staged repo's folder? Then the bundle that stages it needs
+        // this file, whatever its name.
+        const relLower = String(hit.rel || '').split('\\').join('/').toLowerCase();
+        for (const claim of repoClaims) {
+            if (relLower.includes(`/${claim.prefix}/`) || relLower.startsWith(`${claim.prefix}/`)) {
+                used.push(claim.bundle);
+            }
+        }
         const nodeTypes = [...(sites.get(name) || new Map())]
             .sort((a, b) => b[1] - a[1])
             .map(([type, n]) => ({ type, count: n, loader: isLoader(type) }));
@@ -350,12 +379,20 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
         // UUIDs abstain rather than vote.
         const known = nodeTypes.filter(t => t.loader !== null);
         const textOnly = known.length > 0 && known.every(t => t.loader === false);
+        used.sort();
         models.push({
             name: hit.name,
             rel: hit.rel,
             gb: +(hit.size / 1024 ** 3).toFixed(2),
             kind: hit.kind,
             mtimeMs: hit.mtimeMs || 0,
+            // ★ A filename too generic to identify a file. Reported for rows
+            // that are PROTECTED as well as unused, because the hazard runs
+            // both ways: models/facebook/dinov3-.../model.safetensors reads as
+            // used by three LTX templates, when all they really name is a
+            // gemma path ending in the same "model.safetensors". Over-
+            // protection costs disk, not data, but it should be visible.
+            genericName: GENERIC_BASENAMES.has(name),
             usedBy: used,
             templateOnly: tpl,
             dropdowns: [...new Set(drops)].sort(),
