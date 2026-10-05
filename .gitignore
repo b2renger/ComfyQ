@@ -236,3 +236,16 @@ config.json
 
 # Converter run reports (tools/ui-to-api, tools/api-to-ui)
 tools/*/_report.json
+
+# tools/maintenance — the SOURCE is versioned, the SCANS are not.
+# These are regenerated per machine by rescan.py / rescan_nodes.py / scan_links.py
+# and describe one particular disk: committing them would commit a lie about
+# every other rig. The curated snapshots (model-audit.csv, decisions.json,
+# custom-nodes-audit.csv, prune-log.csv) ARE versioned on purpose.
+tools/maintenance/**/__pycache__/
+tools/maintenance/model-audit/object_info.json
+tools/maintenance/model-audit/inventory.json
+tools/maintenance/model-audit/links.json
+tools/maintenance/model-audit/nodes.json
+tools/maintenance/model-audit/*.bak
+tools/maintenance/model-audit/*.decisions-*.csv

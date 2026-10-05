@@ -83,6 +83,8 @@ const AdminConfig = ({ currentMode }) => {
     const [comfyStatus, setComfyStatus] = useState(null);
     // This machine's label on the LAN (fleet monitor). Draft + saving flag.
     const [machineName, setMachineName] = useState('');
+    const [scanDirs, setScanDirs] = useState([]);
+    const [savingScanDirs, setSavingScanDirs] = useState(false);
     const [savingName, setSavingName] = useState(false);
     const [comfyBusy, setComfyBusy] = useState(false);
     const [showTakeoverConfirm, setShowTakeoverConfirm] = useState(false);
@@ -138,6 +140,10 @@ const AdminConfig = ({ currentMode }) => {
                 assets_dir: data.config.assets?.dir || ''
             });
             setMachineName(data.config.instance?.name || '');
+            // Extra workflow folders for the prune scan. Held here, not in
+            // ModelPrune, so the Drive letter swap can reach them: an absolute
+            // entry is exactly the kind of path a cloned drive invalidates.
+            setScanDirs(data.config.maintenance?.workflowScanDirs || []);
         } catch (e) {
             console.error(e);
         } finally {
@@ -158,6 +164,26 @@ const AdminConfig = ({ currentMode }) => {
         const h = { 'Content-Type': 'application/json' };
         if (adminPassword) h['X-Admin-Password'] = adminPassword;
         return h;
+    };
+
+    const saveScanDirs = async (dirs) => {
+        setSavingScanDirs(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/maintenance/scan-dirs`, {
+                method: 'PUT', headers: adminHeaders(),
+                body: JSON.stringify({ workflowScanDirs: dirs })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            setScanDirs(data.workflowScanDirs);
+            showToast('Saved the extra workflow folders — rescan to apply them');
+            return true;
+        } catch (e) {
+            showToast(`Could not save: ${e.message}`, 'err');
+            return false;
+        } finally {
+            setSavingScanDirs(false);
+        }
     };
 
     const savePaths = async () => {
@@ -265,6 +291,10 @@ const AdminConfig = ({ currentMode }) => {
             output_dir: swap(prev.output_dir),
             assets_dir: swap(prev.assets_dir),
         }));
+        // ★ The scan folders live outside this form but are absolute Windows
+        // paths too, and a folder missed by the swap makes its models look
+        // unused — which is what the prune list offers for deletion.
+        setScanDirs(prev => prev.map(swap));
         setPathChecks(null);
         showToast(`Switched all absolute paths to ${letter}:\\ — click Save settings to apply`);
     };
@@ -1266,7 +1296,9 @@ const AdminConfig = ({ currentMode }) => {
 
             {tab === 'maintenance' && (
                 <>
-                    <ModelPrune headers={adminHeaders()} onToast={showToast} />
+                    <ModelPrune headers={adminHeaders()} onToast={showToast}
+                        scanDirs={scanDirs} onScanDirsChange={setScanDirs}
+                        onSaveScanDirs={saveScanDirs} savingScanDirs={savingScanDirs} />
 
                     <Card>
                         <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><Wrench size={18} /> Other maintenance</h2>

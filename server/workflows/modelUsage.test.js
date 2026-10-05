@@ -35,6 +35,19 @@ put('loras', 'style_blue.safetensors');                // ...and its sibling
 put('diffusion_models', 'demo_only.safetensors', 4);
 put('diffusion_models', 'nobody.safetensors', 16);     // the only prunable one
 put('checkpoints', 'cloud_name.safetensors', 32);      // named, never loaded
+// Fixtures for the subgraph and note-only checks further down. Declared up
+// here for the same reason as the rest: buildModelIndex caches for 30 s, so a
+// model file written after the first scan is invisible to it.
+put('vae', 'inside_subgraph.safetensors', 2);
+put('vae', 'nested_deeper.safetensors', 2);
+put('loras', 'only_in_a_note.safetensors', 3);
+// Fixtures for the UI-shape, case and lane checks below.
+put('loras', 'positional.safetensors', 1);
+put('loras', 'named_wins.safetensors', 1);
+put('loras', 'from_properties.safetensors', 1);
+put('vae', 'inside_extra_prompt.safetensors', 1);
+put('vae', 'mixed_case.safetensors', 1);          // referenced as MiXeD_CaSe.SafeTensors
+put('vae', 'lane_saved.safetensors', 1);
 
 bundle('runs_it', {
     api: {
@@ -100,11 +113,14 @@ check('...with the node class that mentions it',
     get('cloud_name.safetensors').nodeTypes.some(t => t.type === 'GemmaAPITextEncode'));
 check('a real loader is never flagged for review', get('served.safetensors').textOnly === false);
 
-// 6. Only the genuinely unreferenced is offered.
+// 6. Only the genuinely unreferenced is offered. (The global count is asserted
+//    at the very end, once every fixture bundle below exists — the later
+//    sections add models whose bundles are not written yet at this point.)
 check('a model nothing refers to is prunable', get('nobody.safetensors').unused === true);
-check('exactly one file is prunable', r.totals.unused === 1);
-check('and the reclaimable total is its size alone',
-    Math.abs(r.totals.unusedGb - 16 / 1024) < 0.01);
+check('none of the protected ones is offered',
+    ['served.safetensors', 'template_only.safetensors', 'style_red.safetensors',
+        'style_blue.safetensors', 'demo_only.safetensors', 'cloud_name.safetensors']
+        .every(n => get(n).unused === false));
 
 // 7. Removing a bundle releases what only it used — the exclusivity question.
 const without = run({ ignoreBundles: ['runs_it'] });
@@ -114,11 +130,180 @@ check('...and the one only its template loaded', freed.includes('template_only.s
 check('...and the LoRAs its dropdown offered', freed.includes('style_red.safetensors'));
 check('but NOT a model an outside workflow still uses', !freed.includes('demo_only.safetensors'));
 
-// 8. A scan that cannot see the outside folder must not call its models unused —
+// 8. ★★ A loader INSIDE A SUBGRAPH counts. This is the check that was missing:
+//    `full_encoder_small_decoder.safetensors` was deleted as exclusive to the
+//    Flux.2 Dev bundles when it is in fact loaded by a VAELoader inside a
+//    subgraph of three live Klein TEMPLATES. The scanner in use at the time
+//    walked `nodes` but not `definitions.subgraphs`, so it saw nothing.
+bundle('subgraphy', {
+    api: { '1': { class_type: 'SaveImage', inputs: {} } },
+    template: {
+        nodes: [{ type: '2f1a8c3e-0000-4000-8000-000000000001', widgets_values: [] }],
+        definitions: {
+            subgraphs: [{
+                name: 'Text to Image',
+                nodes: [
+                    { type: 'VAELoader', widgets_values: ['inside_subgraph.safetensors'] },
+                    { type: 'Group', nodes: [{ type: 'VAELoader', widgets_values: ['nested_deeper.safetensors'] }] },
+                ],
+            }],
+        },
+    },
+    meta: { id: 'subgraphy' },
+});
+const sub = run();
+check('a loader inside definitions.subgraphs counts as used',
+    sub.models.find(m => m.name === 'inside_subgraph.safetensors').unused === false);
+check('...attributed to the bundle whose template holds it',
+    sub.models.find(m => m.name === 'inside_subgraph.safetensors').templateOnly.includes('subgraphy'));
+check('a loader nested deeper still counts',
+    sub.models.find(m => m.name === 'nested_deeper.safetensors').unused === false);
+
+// 9. ★ A reference has to BE a filename, not contain one. A note saying
+//    "download x.safetensors from <link>" is one long markdown string, and the
+//    whole widget value must look like a filename to count — so prose mentioning
+//    a model is not a use, and such a file stays prunable. Pinned because the
+//    opposite (substring matching) would protect a model for ever on the
+//    strength of a sentence in a note, and every ComfyUI template has notes.
+bundle('notes_only', {
+    api: { '1': { class_type: 'SaveImage', inputs: {} } },
+    template: {
+        nodes: [
+            { type: 'MarkdownNote', widgets_values: ['get only_in_a_note.safetensors from somewhere'] },
+            // A widget whose ENTIRE value is the filename, on a node that names
+            // rather than loads: that does register, and reads as text-only.
+            { type: 'GemmaAPITextEncode', widgets_values: ['only_in_a_note.safetensors'] },
+        ],
+    },
+    meta: { id: 'notes_only' },
+});
+const noted = run();
+const note = noted.models.find(m => m.name === 'only_in_a_note.safetensors');
+check('prose that merely mentions a filename is not a load', !note.usedBy.length);
+check('a naming node is recorded, and reads as text rather than a load',
+    note.textOnly === true && note.nodeTypes.some(t => t.type === 'GemmaAPITextEncode'));
+check('...and a MarkdownNote sentence contributed nothing',
+    !note.nodeTypes.some(t => t.type === 'MarkdownNote'));
+
+// 10. ★ Referenced by a loader but NOT on disk — the other half of the question.
+//     Nothing reported this when a real model went missing.
+const gone = run({ ignoreBundles: [] });
+bundle('wants_missing', {
+    api: { '1': { class_type: 'VAELoader', inputs: { vae_name: 'not_here_at_all.safetensors' } } },
+    meta: { id: 'wants_missing' },
+});
+const broken = run();
+check('a model a loader wants but the disk lacks is reported missing',
+    broken.missing.some(m => m.name === 'not_here_at_all.safetensors'));
+check('...naming the bundle that wants it',
+    broken.missing.find(m => m.name === 'not_here_at_all.safetensors').usedBy.includes('wants_missing'));
+check('a file that IS on disk is never reported missing',
+    !broken.missing.some(m => m.name === 'served.safetensors') && gone.models.length > 0);
+
+// 11. ★★ A UI graph hides the answer in four places. Reading only the positional
+//     `widgets_values` put a model on the delete list that a template really
+//     loads: video_minimax_h3_i2v_4step's LoraLoaderModelOnly has `inputs` as a
+//     socket ARRAY (so Object.values finds no filename), its positional array
+//     naming the 4-step file and `widgets_values_named.lora_name` naming the
+//     8-step one — they DISAGREE, and the named object is what a current ComfyUI
+//     frontend honours. Measured over the real library: 42 of 194 scanned files
+//     carry widgets_values_named and 85 carry properties.models.
+bundle('ui_shapes', {
+    api: { '1': { class_type: 'SaveImage', inputs: {} } },
+    template: {
+        nodes: [{
+            type: 'LoraLoaderModelOnly',
+            inputs: [{ name: 'model', type: 'MODEL', link: 3 }],   // a socket array, not an object
+            widgets_values: ['positional.safetensors', 1],
+            widgets_values_named: { lora_name: 'named_wins.safetensors', strength_model: 1 },
+            properties: { models: [{ name: 'from_properties.safetensors', url: 'https://example.invalid/x' }] },
+        }],
+        // An exported UI template can carry a whole API graph here.
+        extra: {
+            prompt: {
+                '9': { class_type: 'VAELoader', inputs: { vae_name: 'inside_extra_prompt.safetensors' } },
+            },
+        },
+    },
+    meta: { id: 'ui_shapes' },
+});
+const shapes = run();
+const shaped = (n) => shapes.models.find(m => m.name === n);
+check('a positional widget value counts', shaped('positional.safetensors').unused === false);
+check('widgets_values_named counts — the field the frontend honours',
+    shaped('named_wins.safetensors').unused === false);
+check('properties.models[].name counts', shaped('from_properties.safetensors').unused === false);
+check('a graph embedded in extra.prompt counts',
+    shaped('inside_extra_prompt.safetensors').unused === false);
+check('all four are attributed to the bundle whose template holds them',
+    ['positional.safetensors', 'named_wins.safetensors', 'from_properties.safetensors',
+        'inside_extra_prompt.safetensors'].every(n => shaped(n).templateOnly.includes('ui_shapes')));
+
+// 12. ★ Case. Windows filenames are case-insensitive, so a graph naming
+//     "…-24K.safetensors" against a file called "…-24k.safetensors" must match.
+//     Keyed case-sensitively it read as a missing model AND left the real file
+//     looking unused — offering a model that is in use for deletion.
+bundle('shouty', {
+    api: { '1': { class_type: 'VAELoader', inputs: { vae_name: 'MiXeD_CaSe.SafeTensors' } } },
+    meta: { id: 'shouty' },
+});
+const cased = run();
+const mixed = cased.models.find(m => m.name.toLowerCase() === 'mixed_case.safetensors');
+check('a reference matches a file that differs only in case', !!mixed && mixed.unused === false);
+check('...reported with the spelling found on disk', mixed.name === 'mixed_case.safetensors');
+check('...so it is not also reported missing',
+    !cased.missing.some(m => m.name.toLowerCase() === 'mixed_case.safetensors'));
+
+// 13. ★ A parallel lane keeps its own ComfyUI user directory, so "Open in
+//     ComfyUI" on a lane saves graphs under
+//     .comfyq-lanes/<id>/user/<profile>/workflows. One such file already exists
+//     on the owner's machine. ⚠ And the lane's user/__manager/cache holds a
+//     model-list.json naming 527 weight filenames — walking that would mark
+//     nearly the whole disk as used and turn the prune tool into a no-op.
+const laneWf = path.join(root, '.comfyq-lanes', 'some_lane', 'user', 'default', 'workflows');
+fs.mkdirSync(laneWf, { recursive: true });
+fs.writeFileSync(path.join(laneWf, 'saved.json'), JSON.stringify({
+    nodes: [{ type: 'VAELoader', widgets_values: ['lane_saved.safetensors'] }],
+}));
+const mgrCache = path.join(root, '.comfyq-lanes', 'some_lane', 'user', '__manager', 'cache');
+fs.mkdirSync(mgrCache, { recursive: true });
+fs.writeFileSync(path.join(mgrCache, 'model-list.json'), JSON.stringify({
+    models: [{ filename: 'nobody.safetensors' }],
+}));
+const laned = run();
+check('a graph saved in a lane user dir protects its model',
+    laned.models.find(m => m.name === 'lane_saved.safetensors').unused === false);
+check("but the lane's ComfyUI-Manager cache is NOT read",
+    laned.models.find(m => m.name === 'nobody.safetensors').unused === true);
+
+// 14. ★ Relative scan dirs resolve against the COMFYUI ROOT, matching what
+//     comfy_ui.python_executable and output_dir already do, so a config
+//     survives the drive mounting under another letter. Resolved inside
+//     buildModelUsage because neither caller passes through resolvePaths.
+const relEntry = path.relative(comfy, demo).split(path.sep).join('/');
+const rel = buildModelUsage({ comfyRoot: comfy, workflowsDir: wf, extraDirs: [relEntry] });
+check('a relative scan dir resolves against the ComfyUI root',
+    rel.models.find(m => m.name === 'demo_only.safetensors').unused === false);
+check('...and the report says which absolute path it looked in',
+    rel.scanned.configured.some(c => c.entry === relEntry
+        && path.normalize(c.resolved) === path.normalize(demo) && c.found === true));
+check('an absolute entry is left alone',
+    buildModelUsage({ comfyRoot: comfy, workflowsDir: wf, extraDirs: [demo] })
+        .scanned.configured[0].resolved === demo);
+
+// 15. A scan that cannot see the outside folder must not call its models unused —
 //    this is why the UI names the folders it checked.
 const blind = buildModelUsage({ comfyRoot: comfy, workflowsDir: wf, extraDirs: [] });
 check('without the outside folder, its model looks prunable (hence the warning)',
     blind.models.find(m => m.name === 'demo_only.safetensors').unused === true);
+
+// 16. With every fixture bundle in place, exactly one file is reclaimable and
+//     the total is its size alone. Asserted last because the sections above add
+//     models whose bundles are written as they go.
+const settled = run();
+check('with every bundle present, exactly one file is prunable', settled.totals.unused === 1);
+check('and the reclaimable total is that one file',
+    Math.abs(settled.totals.unusedGb - 16 / 1024) < 0.01);
 
 fs.rmSync(root, { recursive: true, force: true });
 console.log(`modelUsage: all ${ok.length} checks passed`);

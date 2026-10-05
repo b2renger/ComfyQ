@@ -175,7 +175,8 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     function usageReport() {
         const { config } = configManager.load();
         const comfyRoot = config.comfy_ui?.root_path || '';
-        const extra = [...(config.maintenance?.workflowScanDirs || [])];
+        const configured = [...(config.maintenance?.workflowScanDirs || [])];
+        const extra = [...configured];
         if (comfyRoot) extra.push(path.join(comfyRoot, 'user', 'default', 'workflows'));
         const report = buildModelUsage({
             comfyRoot,
@@ -184,11 +185,43 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         });
         // Say what the verdict rests on: a folder of workflows nobody told us
         // about makes its models look unused.
-        report.scanned.missingDirs = (config.maintenance?.workflowScanDirs || [])
-            .filter(d => !fs.existsSync(d));
+        //
+        // ★ The resolution and the existence check both live in
+        // buildModelUsage, which is the only place both this route and the CLI
+        // share. Checking here with fs.existsSync on the raw entry was wrong
+        // for a relative one: it resolved against the server's cwd, so a
+        // relative folder scanned nothing while reporting itself present.
+        report.scanned.missingDirs = report.scanned.configured
+            .filter(c => configured.includes(c.entry) && !c.found)
+            .map(c => (c.entry === c.resolved ? c.entry : `${c.entry} (looked in ${c.resolved})`));
         report.comfyRoot = comfyRoot;
+        report.scanDirs = configured;
         return report;
     }
+
+    // The extra workflow folders to count as USING a model.
+    //
+    // ★ adminGate, unlike the sibling config PUTs, because emptying this list
+    // is precisely how a model that is in use becomes "unused": the prune route
+    // re-derives usage from this same config, so an ungated write would let a
+    // caller widen what the destructive route is willing to delete.
+    router.put('/maintenance/scan-dirs', adminGate, express.json(), (req, res) => {
+        try {
+            const raw = req.body?.workflowScanDirs;
+            if (!Array.isArray(raw) || raw.some(d => typeof d !== 'string')) {
+                return res.status(400).json({ error: 'workflowScanDirs must be an array of strings' });
+            }
+            const dirs = raw.map(d => d.trim()).filter(Boolean);
+            configManager.update(c => {
+                c.maintenance = c.maintenance || {};
+                c.maintenance.workflowScanDirs = dirs;
+                return c;
+            });
+            res.json({ ok: true, workflowScanDirs: dirs });
+        } catch (e) {
+            res.status(400).json({ error: e.message });
+        }
+    });
 
     router.get('/models/usage', (req, res) => {
         try {

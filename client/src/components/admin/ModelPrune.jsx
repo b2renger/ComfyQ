@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { HardDrive, RefreshCw, Trash2, AlertTriangle, Eye, ChevronDown, ChevronUp, FolderSearch } from 'lucide-react';
+import { HardDrive, RefreshCw, Trash2, AlertTriangle, Eye, ChevronDown, ChevronUp, FolderSearch, X, Save, FileWarning } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
@@ -20,7 +20,11 @@ import { SERVER_URL } from '../../utils/api';
  * not independently judge unused, so a page left open while a workflow was
  * added cannot talk it into removing something that is now needed.
  */
-const ModelPrune = ({ headers, onToast }) => {
+const ModelPrune = ({
+    headers, onToast,
+    scanDirs = [], onScanDirsChange = () => {}, onSaveScanDirs = async () => false,
+    savingScanDirs = false,
+}) => {
     const [report, setReport] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -29,6 +33,8 @@ const ModelPrune = ({ headers, onToast }) => {
     const [deleting, setDeleting] = useState(false);
     const [showReview, setShowReview] = useState(false);
     const [showAll, setShowAll] = useState(false);
+    const [showDirs, setShowDirs] = useState(false);
+    const [showMissing, setShowMissing] = useState(false);
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -118,20 +124,138 @@ const ModelPrune = ({ headers, onToast }) => {
                         A file counts as used when any bundle, any bundle's editable template, any
                         LoRA dropdown or any workflow in the folders below refers to it.
                     </p>
-                    <p className="text-xs text-muted mb-3 flex items-start gap-1">
+                    <p className="text-xs text-muted mb-2 flex items-start gap-1">
                         <FolderSearch size={12} className="mt-0.5 flex-shrink-0" />
                         <span>
                             Checked {report.scanned.bundles} bundles, {report.scanned.files} workflow
-                            files{report.scanned.dirs?.length ? `, and ${report.scanned.dirs.length} extra folder(s)` : ''}.
+                            files{report.scanned.dirs?.length ? `, and ${report.scanned.dirs.length} other folder(s)` : ''}.
                             {report.scanned.missingDirs?.length > 0 && (
                                 <span className="text-warning">
                                     {' '}⚠ {report.scanned.missingDirs.length} configured folder(s) could not be
-                                    read ({report.scanned.missingDirs.join(', ')}) — models used only there would
+                                    read ({report.scanned.missingDirs.join('; ')}) — models used only there would
                                     look unused, so fix that before deleting anything.
                                 </span>
                             )}
                         </span>
                     </p>
+
+                    {/* What the verdict rests on. Always-scanned folders are listed
+                        as fixed context so nobody adds them as a row, and the
+                        editable ones show where a relative entry resolved to. */}
+                    <button type="button" onClick={() => setShowDirs(d => !d)}
+                        className="flex items-center gap-1 text-xs text-primary hover:underline mb-3">
+                        <FolderSearch size={12} />
+                        Folders scanned ({report.scanned.dirs?.length || 0} extra)
+                        {showDirs ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                    </button>
+
+                    {showDirs && (
+                        <div className="mb-4 rounded-lg border border-border bg-background/60 p-2 space-y-2 text-xs">
+                            <p className="text-muted">
+                                Always scanned, and <span className="text-foreground">recursively</span> — one parent
+                                folder covers every graph nested inside it:
+                            </p>
+                            <ul className="text-muted/80 space-y-0.5 pl-1">
+                                <li>· every bundle in <code>workflows/</code>, including its editable template</li>
+                                <li>· <code>workflows/_candidate_workflows</code></li>
+                                <li>· each parallel lane's own ComfyUI user folder</li>
+                                <li>· <code>{report.comfyRoot ? `${report.comfyRoot}\\user\\default\\workflows` : 'ComfyUI\\user\\default\\workflows'}</code></li>
+                            </ul>
+
+                            <p className="text-muted pt-1">
+                                Extra folders of workflow JSON on this machine. A path relative to the
+                                ComfyUI root set in <span className="text-foreground">Manage ComfyUI</span> travels
+                                between rigs that mount the drive under another letter; an absolute one is also
+                                fine and the Drive-letter control rewrites it.
+                            </p>
+
+                            {(scanDirs || []).map((dir, i) => {
+                                const resolved = report.scanned.configured?.find(c => c.entry === dir);
+                                return (
+                                    <div key={i} className="p-2 rounded-lg border border-border bg-background space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <input
+                                                type="text"
+                                                value={dir}
+                                                onChange={(e) => onScanDirsChange(
+                                                    scanDirs.map((d, di) => (di === i ? e.target.value : d)))}
+                                                placeholder="..\..\_demo_workflows   or   D:\my_workflows"
+                                                className="flex-1 bg-background border border-border rounded-md p-1.5 text-xs text-foreground font-mono"
+                                            />
+                                            <button type="button" title="Remove this folder"
+                                                onClick={() => onScanDirsChange(scanDirs.filter((_, di) => di !== i))}
+                                                className="text-muted hover:text-danger">
+                                                <X size={14} />
+                                            </button>
+                                        </div>
+                                        {resolved && resolved.resolved !== dir && (
+                                            <p className={resolved.found ? 'text-muted' : 'text-warning'}>
+                                                → {resolved.resolved}{resolved.found ? '' : ' — not found'}
+                                            </p>
+                                        )}
+                                        {resolved && resolved.resolved === dir && !resolved.found && (
+                                            <p className="text-warning">not found</p>
+                                        )}
+                                    </div>
+                                );
+                            })}
+
+                            <div className="flex items-center gap-3 pt-1">
+                                <button type="button"
+                                    onClick={() => onScanDirsChange([...(scanDirs || []), ''])}
+                                    className="text-xs font-semibold text-primary hover:underline">
+                                    + Add a folder
+                                </button>
+                                <Button variant="secondary" icon={Save} isLoading={savingScanDirs}
+                                    onClick={async () => {
+                                        const ok = await onSaveScanDirs(
+                                            (scanDirs || []).map(d => d.trim()).filter(Boolean));
+                                        if (ok) load();
+                                    }}>
+                                    Save folders
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* ★ The other half of the question, and the half nothing
+                        reported before: a loader asks for a model that is not on
+                        this disk. The readiness chip on a workflow card walks the
+                        api.json only, so a weight missing from a TEMPLATE was
+                        invisible — which is how a file deleted as "unused" went
+                        unnoticed after three bundles' templates still loaded it. */}
+                    {report.missing?.length > 0 && (
+                        <div className="mb-4">
+                            <button type="button" onClick={() => setShowMissing(m => !m)}
+                                className="flex items-center gap-1 text-xs text-warning hover:underline">
+                                <FileWarning size={12} />
+                                {report.missing.length} model(s) a workflow loads are not on this disk
+                                {showMissing ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
+                            </button>
+                            {showMissing && (
+                                <div className="mt-2 rounded-lg border border-warning/30 bg-warning/5 p-2 space-y-1 text-xs">
+                                    {report.missing.map(m => (
+                                        <div key={m.name}>
+                                            <span className="font-mono break-all text-warning">{m.name}</span>
+                                            <span className="text-muted">
+                                                {' '}— {m.nodeTypes.filter(t => t.loader).map(t => t.type).join(', ')}
+                                                {m.usedBy.length > 0 && <> · runs in {m.usedBy.join(', ')}</>}
+                                                {m.templateOnly.length > 0 && <> · editable graph of {m.templateOnly.join(', ')}</>}
+                                                {!m.usedBy.length && !m.templateOnly.length && m.external.length > 0
+                                                    && <> · a workflow outside the bundles</>}
+                                            </span>
+                                        </div>
+                                    ))}
+                                    <p className="text-muted/80 pt-1">
+                                        A missing model named by a bundle's <em>api.json</em> stops that workflow
+                                        running. One named only by its editable template still runs, but
+                                        "Open in ComfyUI" hands over a graph with a gap. Each bundle's card lists
+                                        where its models come from.
+                                    </p>
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {unused.length === 0 ? (
                         <p className="text-sm text-muted">
