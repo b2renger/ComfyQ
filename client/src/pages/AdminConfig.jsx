@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen, Gauge, Clapperboard, ListChecks, Radio } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen, Gauge, Clapperboard, ListChecks, Sparkles, Wrench } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import StoryboardUpload from '../components/admin/StoryboardUpload';
+import RunningWorkflows from '../components/admin/RunningWorkflows';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -11,6 +12,15 @@ import ThemeToggle from '../components/ui/ThemeToggle';
 import { SERVER_URL } from '../utils/api';
 import { useComfyOpener } from '../hooks/useComfyOpener';
 
+// The admin panel's four jobs, in the order an admin needs them: what this
+// machine runs, then the server itself, then the ComfyUI behind it, then upkeep.
+const ADMIN_TABS = [
+    { key: 'workflows', label: 'Workflows', icon: Sparkles },
+    { key: 'server', label: 'Manage server', icon: ShieldCheck },
+    { key: 'comfyui', label: 'Manage ComfyUI', icon: Server },
+    { key: 'maintenance', label: 'Maintenance', icon: Wrench },
+];
+
 const PRESET_PYTHON_HINTS = [
     { label: 'Portable (Windows)', value: '../python_embeded/python.exe' },
     { label: 'System Python (POSIX)', value: 'python3' },
@@ -18,6 +28,16 @@ const PRESET_PYTHON_HINTS = [
 ];
 
 const AdminConfig = ({ currentMode }) => {
+    // Which tab is open. Remembered because activating a workflow restarts the
+    // server, and an admin thrown back to the first tab every time would curse us.
+    const [tab, setTab] = useState(() => {
+        try { return localStorage.getItem('comfyq.adminTab') || 'workflows'; }
+        catch { return 'workflows'; }
+    });
+    const selectTab = (key) => {
+        setTab(key);
+        try { localStorage.setItem('comfyq.adminTab', key); } catch { /* private window */ }
+    };
     const [config, setConfig] = useState(null);
     const [hasAdminPassword, setHasAdminPassword] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -676,6 +696,23 @@ const AdminConfig = ({ currentMode }) => {
                 </div>
             </header>
 
+            {/* One tab at a time. The page had grown to ten stacked cards, which
+                buried the workflow library under server administration. */}
+            <nav className="flex items-center gap-1 flex-wrap border-b border-border">
+                {ADMIN_TABS.map(t => {
+                    const Icon = t.icon;
+                    const on = tab === t.key;
+                    return (
+                        <button key={t.key} type="button" onClick={() => selectTab(t.key)}
+                            className={`inline-flex items-center gap-2 px-3 py-2 text-sm font-medium border-b-2 transition-colors
+                                ${on ? 'border-primary text-primary' : 'border-transparent text-muted hover:text-foreground'}`}>
+                            <Icon size={15} />{t.label}
+                        </button>
+                    );
+                })}
+            </nav>
+
+
             {toast && (
                 <div className={`fixed top-4 right-4 z-50 px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 ${toast.kind === 'err' ? 'bg-danger/20 text-danger border border-danger/30' : 'bg-primary/20 text-primary border border-primary/30'}`}>
                     {toast.kind === 'err' ? <AlertTriangle size={16} /> : <CheckCircle2 size={16} />}
@@ -706,416 +743,542 @@ const AdminConfig = ({ currentMode }) => {
                 </Card>
             )}
 
-            <Card>
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold flex items-center gap-2"><Settings size={18} /> ComfyUI Settings</h2>
-                    {pathsConfigured && <Badge variant="success">Configured</Badge>}
-                </div>
-                {driveOptions.length > 0 && (
-                    <div className="mb-4 flex items-center gap-2 flex-wrap rounded-lg border border-border bg-surface/40 p-3">
-                        <HardDrive size={16} className="text-primary shrink-0" />
-                        <span className="text-sm font-medium">Drive letter</span>
-                        <select
-                            value={currentDrive}
-                            onChange={(e) => applyDriveLetter(e.target.value)}
-                            className="bg-background border border-border rounded-md px-2 py-1.5 text-sm text-white"
-                        >
-                            {driveOptions.map(d => <option key={d} value={d}>{d}:\</option>)}
-                        </select>
-                        <span className="text-xs text-muted">Swaps the drive on every absolute path below at once — handy when this machine cloned the drive to a different letter.</span>
-                    </div>
-                )}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Field label="ComfyUI root path" value={pathDraft.root_path || ''}
-                        onChange={v => setPathDraft({ ...pathDraft, root_path: v })}
-                        placeholder="C:\\Apps\\AI\\ComfyUI_portable\\ComfyUI" />
-                    <Field label="Python executable" value={pathDraft.python_executable || ''}
-                        onChange={v => setPathDraft({ ...pathDraft, python_executable: v })}
-                        placeholder="../python_embeded/python.exe">
-                        <div className="flex gap-1 mt-1">
-                            {PRESET_PYTHON_HINTS.map(p => (
-                                <button key={p.value} type="button"
-                                    onClick={() => setPathDraft({ ...pathDraft, python_executable: p.value })}
-                                    className="text-[10px] px-2 py-0.5 bg-surface border border-border rounded hover:border-primary/50 text-muted">
-                                    {p.label}
-                                </button>
-                            ))}
-                        </div>
-                    </Field>
-                    <Field label="Output directory" value={pathDraft.output_dir || ''}
-                        onChange={v => setPathDraft({ ...pathDraft, output_dir: v })}
-                        placeholder="output" />
-                    <Field label="VRAM budget (GB)" type="number" value={pathDraft.vramBudgetGb || 24}
-                        onChange={v => setPathDraft({ ...pathDraft, vramBudgetGb: parseFloat(v) })} />
-                    <Field label="ComfyUI API host" value={pathDraft.api_host || '127.0.0.1'}
-                        onChange={v => setPathDraft({ ...pathDraft, api_host: v })} />
-                    <Field label="ComfyUI API port" type="number" value={pathDraft.api_port || 8188}
-                        onChange={v => setPathDraft({ ...pathDraft, api_port: parseInt(v, 10) })} />
-                    <div className="space-y-1.5 sm:col-span-2">
-                        <label className="text-xs uppercase tracking-wider text-muted font-semibold">Assets directory (calibration media)</label>
-                        <input
-                            type="text"
-                            value={pathDraft.assets_dir || ''}
-                            onChange={(e) => setPathDraft({ ...pathDraft, assets_dir: e.target.value })}
-                            placeholder="G:\\_assets"
-                            className="w-full bg-background border border-border rounded-lg p-2.5 text-white font-mono text-sm"
-                        />
-                        <p className="text-[11px] text-muted">
-                            Folder of sample images / videos / audio used to auto-calibrate workflow timing. Update this if the drive letter changes (e.g. <code>D:\_assets</code> → <code>G:\_assets</code>). Leave blank to fall back to a built-in image — video/audio workflows then can't auto-calibrate. Use <strong>Check paths</strong> to confirm the folder exists and has media.
-                        </p>
-                    </div>
-                </div>
-                {pathChecks && (
-                    <div className="mt-4 rounded-lg border border-border bg-surface/50 p-3 text-sm">
-                        <div className={`mb-2 font-medium ${pathChecks.ok ? 'text-success' : 'text-danger'}`}>
-                            {pathChecks.ok ? 'All checks passed' : 'Some checks failed'}
-                        </div>
-                        <ul className="space-y-1">
-                            {pathChecks.checks.map((c, i) => (
-                                <li key={i} className="flex items-start gap-2">
-                                    {c.ok
-                                        ? <CheckCircle2 size={16} className="text-success mt-0.5 shrink-0" />
-                                        : <XCircle size={16} className="text-danger mt-0.5 shrink-0" />}
-                                    <div className="min-w-0">
-                                        <div className="text-white">{c.label}</div>
-                                        <div className="text-xs text-muted break-all">{c.detail}</div>
-                                    </div>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
-                {optionChecks && (
-                    <div className="mt-4 rounded-lg border border-border bg-surface/50 p-3 text-sm">
-                        <div className={`mb-2 font-medium ${optionChecks.stale.length === 0 ? 'text-success' : 'text-danger'}`}>
-                            {optionChecks.stale.length === 0
-                                ? `${optionChecks.checked} dropdown(s) match this ComfyUI`
-                                : `${optionChecks.stale.length} dropdown(s) don't match this ComfyUI`}
-                        </div>
-                        {optionChecks.stale.map((s, i) => (
-                            <div key={i} className="mb-2 flex items-start gap-2">
-                                <XCircle size={16} className="text-danger mt-0.5 shrink-0" />
-                                <div className="min-w-0">
-                                    <div className="text-white break-all">{s.workflowId} · {s.field}</div>
-                                    {s.bogusOptions.length > 0 && (
-                                        <div className="text-xs text-danger/90 break-words">
-                                            not offered by {s.classType}: {s.bogusOptions.join(', ')}
-                                        </div>
-                                    )}
-                                    {!s.defaultValid && (
-                                        <div className="text-xs text-danger/90 break-words">
-                                            its default {JSON.stringify(s.declaredDefault)} is not selectable
-                                        </div>
-                                    )}
-                                    <div className="text-xs text-muted break-words">
-                                        this node offers: {s.liveOptions.join(', ')}
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                        {optionChecks.skipped.length > 0 && (
-                            <p className="text-xs text-muted mt-1">
-                                {optionChecks.skipped.length} dropdown(s) could not be checked — their node
-                                doesn't publish a fixed list (a workflow-defined combo), so this is not a
-                                clean bill of health for them.
-                            </p>
+
+
+
+
+
+            {tab === 'workflows' && (
+                <>
+                    <RunningWorkflows
+                        lanes={lanes}
+                        card={laneCard}
+                        serving={config.mode === 'student'}
+                        onCloseLane={closeLane}
+                        closingLaneId={closingLaneId}
+                        onDeactivate={resetToAdmin}
+                        deactivating={deactivating}
+                    />
+                <Card>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold">Workflow library</h2>
+                        {config.workflows.activeWorkflowId && (
+                            <Badge variant="primary">Active: {config.workflows.activeWorkflowId}</Badge>
                         )}
                     </div>
-                )}
-                <div className="mt-4 flex flex-wrap justify-end gap-2">
-                    <Button variant="ghost" icon={ScanSearch} disabled={detecting} onClick={autodetectPaths}>
-                        {detecting ? 'Detecting…' : 'Auto-detect'}
-                    </Button>
-                    <Button variant="ghost" icon={ListChecks} disabled={checkingOptions}
-                        onClick={checkWorkflowOptions}>
-                        {checkingOptions ? 'Checking…' : 'Check workflow options'}
-                    </Button>
-                    <Button variant="ghost" icon={RotateCcw} onClick={resetPathsToDefaults}>
-                        Reset to defaults
-                    </Button>
-                    <Button variant="secondary" icon={ShieldCheck}
-                        disabled={checkingPaths}
-                        onClick={checkPaths}>
-                        {checkingPaths ? 'Checking…' : 'Check paths'}
-                    </Button>
-                    <Button variant="primary" icon={Save} onClick={savePaths}>Save settings</Button>
-                </div>
-            </Card>
-
-            <Card>
-                <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-semibold flex items-center gap-2"><Globe size={18} /> Network presence</h2>
-                    {(config?.federation?.enabled !== false)
-                        ? <Badge variant="success">Visible</Badge>
-                        : <Badge variant="warning">Hidden</Badge>}
-                </div>
-                <p className="text-sm text-muted mb-3">
-                    When on, this machine broadcasts a small status update on the LAN every ~15&nbsp;s so the
-                    <strong className="text-white"> ComfyQ Discovery</strong> app can list it (name, GPU/RAM, IP, status,
-                    active workflow, planned jobs) alongside the other rigs. Turn off to hide this machine from the network.
-                </p>
-
-                {/* Machine name — what identifies this rig in Discovery, so an
-                    admin can tell at a glance which machine runs which workflow. */}
-                <div className="mb-4 p-3 rounded-xl bg-surface border border-border space-y-2">
-                    <label className="text-[10px] uppercase tracking-wider text-muted font-semibold flex items-center gap-1.5">
-                        <HardDrive size={12} /> This machine is called
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                        <input
-                            type="text"
-                            value={machineName}
-                            onChange={(e) => setMachineName(e.target.value)}
-                            onKeyDown={(e) => { if (e.key === 'Enter') saveMachineName(machineName); }}
-                            placeholder={config?.instance?.hostname || 'Computer name'}
-                            maxLength={64}
-                            className="flex-1 min-w-[12rem] px-3 py-2 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:border-primary"
-                        />
-                        <Button variant="primary" icon={Save} onClick={() => saveMachineName(machineName)} disabled={savingName}>
-                            {savingName ? 'Saving…' : 'Save name'}
+                    <WorkflowSelector
+                        key={refreshKey}
+                        selectedWorkflowId={config.workflows.activeWorkflowId}
+                        activeWorkflowId={config.workflows.activeWorkflowId}
+                        onSelect={(w) => setPickedWorkflow(w)}
+                        onEdit={(id) => setEditingWorkflowId(id)}
+                        onDelete={(id) => setDeletingWorkflowId(id)}
+                        onCalibrate={(id) => calibrateWorkflow(id)}
+                        calibratingIds={calibratingIds}
+                        onOpenInComfy={openInComfy}
+                        openingComfyId={openingComfyId}
+                        onActivate={(id) => activate(id)}
+                        activatingId={activatingId}
+                        canActivate={pathsConfigured}
+                        onDeactivate={resetToAdmin}
+                        deactivating={deactivating}
+                        serving={config.mode === 'student'}
+                        onValidate={(id) => setConfirmValidateId(id)}
+                        validatingId={validatingId}
+                        lanes={lanes}
+                        laneFit={laneFit}
+                        onServeAlongside={serveAlongside}
+                        serveAlongsideId={serveAlongsideId}
+                        onCloseLane={closeLane}
+                        closingLaneId={closingLaneId}
+                    />
+                    <div className="mt-6 flex items-center justify-end gap-2 flex-wrap">
+                        {pickedWorkflow && <span className="text-xs text-muted mr-auto">Selected: <code>{pickedWorkflow.id}</code></span>}
+                        <Button variant="secondary" icon={Pencil}
+                            disabled={!pickedWorkflow}
+                            onClick={() => pickedWorkflow && setEditingWorkflowId(pickedWorkflow.id)}>
+                            Edit metadata
                         </Button>
-                        {config?.instance?.nameCustom && (
-                            <Button variant="secondary" icon={RotateCcw} onClick={() => saveMachineName('')} disabled={savingName}
-                                title="Go back to following this computer's name">
-                                Use computer name
+                        <Button variant="primary" icon={Power}
+                            disabled={!pickedWorkflow || activatingId !== null || !pathsConfigured}
+                            onClick={() => activate(pickedWorkflow?.id)}>
+                            {activatingId !== null ? 'Activating…' : 'Activate & start student mode'}
+                        </Button>
+                    </div>
+                </Card>
+                <Card>
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                            <Clapperboard size={18} /> Storyboard batch
+                        </h2>
+                        <Badge variant={config?.mode === 'student' ? 'success' : 'default'}>
+                            {config?.mode === 'student' ? 'Serving' : 'Idle'}
+                        </Badge>
+                    </div>
+                    <p className="text-xs text-muted mb-3">
+                        Upload one markdown storyboard and queue every generation it describes, in the
+                        order that makes them possible: all the images first, then the videos that use
+                        those images as their frames, then the audio. The document names its own
+                        workflows — within each of those three groups the shots are ordered so each
+                        model is loaded once, and queueing starts the machine if it is idle.
+                    </p>
+                    <StoryboardUpload
+                        adminPassword={adminPassword}
+                        serving={config?.mode === 'student'}
+                        notify={showToast}
+                    />
+                </Card>
+                <Card>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold flex items-center gap-2"><Upload size={18} /> Add Workflow</h2>
+                    </div>
+                    <p className="text-sm text-muted mb-3">
+                        Upload a ComfyUI workflow saved in <strong className="text-white">API Format</strong>
+                        (Settings → Dev mode → "Save (API Format)"). v2 does not auto-convert standard saves.
+                    </p>
+                    <label className="block">
+                        <input type="file" accept=".json,application/json" onChange={uploadWorkflow}
+                            disabled={uploading}
+                            className="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
+                    </label>
+                </Card>
+                </>
+            )}
+
+            {tab === 'server' && (
+                <>
+                <Card>
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                            {hasAccessPassword ? <Lock size={18} /> : <LockOpen size={18} />} Student access
+                        </h2>
+                        <Badge variant={hasAccessPassword ? 'success' : 'default'}>
+                            {hasAccessPassword ? 'Password required' : 'Open to everyone'}
+                        </Badge>
+                    </div>
+                    <p className="text-xs text-muted mb-3">
+                        {hasAccessPassword
+                            ? 'Students must enter this password before they can connect to this machine and book jobs. Type a new one to change it, or clear it to reopen the machine.'
+                            : 'Anyone on the network can use this machine. Set a password to reserve it for one group — they will be asked for it when they open the student page.'}
+                    </p>
+                    <div className="flex items-center gap-2">
+                        <input type="password" value={newAccessPassword}
+                            onChange={(e) => setNewAccessPassword(e.target.value)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' && newAccessPassword) saveAccessPassword(); }}
+                            placeholder={hasAccessPassword ? 'New access password' : 'Access password for students'}
+                            className="flex-1 bg-background border border-border rounded-lg p-2.5 text-white" />
+                        <Button variant="primary" onClick={() => saveAccessPassword()}
+                            disabled={accessSaving || !newAccessPassword}>
+                            {accessSaving ? 'Saving…' : hasAccessPassword ? 'Change' : 'Lock machine'}
+                        </Button>
+                        {hasAccessPassword && (
+                            <Button variant="secondary" icon={LockOpen} onClick={() => saveAccessPassword('')}
+                                disabled={accessSaving}>
+                                Remove
                             </Button>
                         )}
                     </div>
-                    <p className="text-xs text-muted">
-                        {config?.instance?.nameCustom
-                            ? <>Custom name — it stays put. This computer is <code className="text-foreground">{config?.instance?.hostname}</code>.</>
-                            : <>Following this computer's name (<code className="text-foreground">{config?.instance?.hostname}</code>). Give it a room label like <em>Poste&nbsp;3</em> to make it obvious in Discovery.</>}
+                    {hasAccessPassword && (
+                        <p className="text-[11px] text-muted mt-2">
+                            Changing or removing the password disconnects anyone already connected with the old one.
+                        </p>
+                    )}
+                </Card>
+                <Card>
+                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><KeyRound size={18} /> Admin password</h2>
+                    <p className="text-xs text-muted mb-3">
+                        {hasAdminPassword
+                            ? 'A password is set. Enter the current password above, then enter a new one (or leave blank to disable).'
+                            : 'No password set yet. Anyone with access to /admin can change settings. Set one to gate destructive actions.'}
                     </p>
-                </div>
-                <label className="flex items-start gap-2.5 cursor-pointer">
-                    <input
-                        type="checkbox"
-                        checked={config?.federation?.enabled !== false}
-                        onChange={(e) => toggleFederation(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-                    />
-                    <span className="text-sm text-white">
-                        Show this machine on the network
-                        <span className="block text-xs text-muted">
-                            Takes effect immediately — no restart. Read-only broadcast (status only); it never lets
-                            another machine control this one.
-                        </span>
-                    </span>
-                </label>
-            </Card>
-
-            <Card>
-                <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-semibold flex items-center gap-2"><Server size={18} /> ComfyUI backend</h2>
-                    {comfyStatus?.running
-                        ? <Badge variant="success">
-                            {comfyStatus.studentMode ? 'Running · active workflow'
-                                : comfyStatus.external ? 'Running · external'
-                                : comfyStatus.networkBound ? 'Running · network'
-                                : 'Running · localhost'}
-                          </Badge>
-                        : <Badge variant="warning">Stopped</Badge>}
-                </div>
-                <p className="text-sm text-muted mb-3">
-                    Launch ComfyUI bound to the network (<code>0.0.0.0:{comfyStatus?.port || config?.comfy_ui?.api_port || 8188}</code>) so anyone on the LAN can open its native web UI and run classic workflows on this GPU — no ComfyQ needed. It stays up across calibrations and a later workflow activation attaches to it.
-                </p>
-
-                <label className="flex items-start gap-2.5 cursor-pointer mb-4">
-                    <input
-                        type="checkbox"
-                        checked={config?.comfy_ui?.lan_access ?? false}
-                        onChange={(e) => toggleLanAccess(e.target.checked)}
-                        className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-                    />
-                    <span className="text-sm text-white">
-                        Expose ComfyUI to the LAN
-                        <span className="block text-xs text-muted">
-                            Binds ComfyUI to <code>0.0.0.0</code> so people on the network can open its native web UI
-                            (<code>http://&lt;this-machine&gt;:{config?.comfy_ui?.api_port || 8188}</code>) and run classic
-                            workflows on this GPU. ComfyQ still connects over localhost. Saved immediately; the bind changes
-                            when ComfyUI is started or restarted.
-                        </span>
-                    </span>
-                </label>
-
-                <div className="mb-4 rounded-lg border border-border bg-surface/40 p-3">
-                    <div className="text-[10px] uppercase tracking-wider text-muted font-semibold mb-2 flex items-center gap-1.5">
-                        <Gauge size={12} /> Performance (applies on restart)
+                    <div className="flex items-center gap-2">
+                        <input type="password" value={newAdminPassword}
+                            onChange={(e) => setNewAdminPassword(e.target.value)}
+                            placeholder="New admin password (blank to clear)"
+                            className="flex-1 bg-background border border-border rounded-lg p-2.5 text-white" />
+                        <Button variant="primary" onClick={setPassword} disabled={pwSaving}>
+                            {pwSaving ? 'Saving…' : 'Save'}
+                        </Button>
                     </div>
-                    <label className="flex items-start gap-2.5 cursor-pointer mb-2.5">
-                        <input
-                            type="checkbox"
-                            checked={config?.comfy_ui?.use_sage_attention ?? false}
-                            onChange={(e) => togglePerfFlag('use_sage_attention', e.target.checked, 'SageAttention')}
-                            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
-                        />
-                        <span className="text-sm text-white">
-                            SageAttention
-                            <span className="block text-xs text-muted">
-                                Adds <code>--use-sage-attention</code>. Replaces the attention kernel for every
-                                workflow — the biggest wins are on video models. Needs the <code>sageattention</code>
-                                package installed in ComfyUI's Python; if it isn't, ComfyUI just falls back to its
-                                default kernel.
-                            </span>
-                        </span>
-                    </label>
+                </Card>
+                <Card>
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg font-semibold flex items-center gap-2"><Globe size={18} /> Network presence</h2>
+                        {(config?.federation?.enabled !== false)
+                            ? <Badge variant="success">Visible</Badge>
+                            : <Badge variant="warning">Hidden</Badge>}
+                    </div>
+                    <p className="text-sm text-muted mb-3">
+                        When on, this machine broadcasts a small status update on the LAN every ~15&nbsp;s so the
+                        <strong className="text-white"> ComfyQ Discovery</strong> app can list it (name, GPU/RAM, IP, status,
+                        active workflow, planned jobs) alongside the other rigs. Turn off to hide this machine from the network.
+                    </p>
+
+                    {/* Machine name — what identifies this rig in Discovery, so an
+                        admin can tell at a glance which machine runs which workflow. */}
+                    <div className="mb-4 p-3 rounded-xl bg-surface border border-border space-y-2">
+                        <label className="text-[10px] uppercase tracking-wider text-muted font-semibold flex items-center gap-1.5">
+                            <HardDrive size={12} /> This machine is called
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            <input
+                                type="text"
+                                value={machineName}
+                                onChange={(e) => setMachineName(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') saveMachineName(machineName); }}
+                                placeholder={config?.instance?.hostname || 'Computer name'}
+                                maxLength={64}
+                                className="flex-1 min-w-[12rem] px-3 py-2 rounded-lg bg-background border border-border text-sm text-foreground focus:outline-none focus:border-primary"
+                            />
+                            <Button variant="primary" icon={Save} onClick={() => saveMachineName(machineName)} disabled={savingName}>
+                                {savingName ? 'Saving…' : 'Save name'}
+                            </Button>
+                            {config?.instance?.nameCustom && (
+                                <Button variant="secondary" icon={RotateCcw} onClick={() => saveMachineName('')} disabled={savingName}
+                                    title="Go back to following this computer's name">
+                                    Use computer name
+                                </Button>
+                            )}
+                        </div>
+                        <p className="text-xs text-muted">
+                            {config?.instance?.nameCustom
+                                ? <>Custom name — it stays put. This computer is <code className="text-foreground">{config?.instance?.hostname}</code>.</>
+                                : <>Following this computer's name (<code className="text-foreground">{config?.instance?.hostname}</code>). Give it a room label like <em>Poste&nbsp;3</em> to make it obvious in Discovery.</>}
+                        </p>
+                    </div>
                     <label className="flex items-start gap-2.5 cursor-pointer">
                         <input
                             type="checkbox"
-                            checked={config?.comfy_ui?.fp16_accumulation ?? false}
-                            onChange={(e) => togglePerfFlag('fp16_accumulation', e.target.checked, 'fp16 accumulation')}
+                            checked={config?.federation?.enabled !== false}
+                            onChange={(e) => toggleFederation(e.target.checked)}
                             className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
                         />
                         <span className="text-sm text-white">
-                            fp16 accumulation
+                            Show this machine on the network
                             <span className="block text-xs text-muted">
-                                Adds <code>--fast fp16_accumulation</code>. Notable on RTX 40/50-series cards. Only this
-                                one optimisation is passed — never bare <code>--fast</code>, which turns on everything in
-                                ComfyUI's "untested, potentially quality-deteriorating" set.
+                                Takes effect immediately — no restart. Read-only broadcast (status only); it never lets
+                                another machine control this one.
                             </span>
                         </span>
                     </label>
-                    <p className="text-[11px] text-muted mt-2.5">
-                        Both are global and off by default. If output quality or stability changes, turn them off and
-                        restart to rule them out.
+                </Card>
+                <Card>
+                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><Eraser size={18} /> Cleanup</h2>
+                    <p className="text-xs text-muted mb-3">
+                        Delete every output file referenced by completed jobs and clear the outputs from each job record.
+                        Job history (prompts, timestamps, users) is preserved — only the rendered images / videos are removed from disk.
                     </p>
-                </div>
-
-                {comfyStatus?.studentMode ? (
-                    <p className="text-xs text-muted">
-                        ComfyUI is currently managed by the active workflow (student mode). <strong className="text-white">Reset to admin</strong> to launch / stop it here.
-                    </p>
-                ) : (
-                    <>
-                        {comfyStatus?.running && (comfyStatus.networkBound || comfyStatus.external) && comfyStatus.urls?.length > 0 && (
-                            <div className="mb-3 rounded-lg border border-border bg-surface/50 p-3">
-                                <label className="text-[10px] uppercase tracking-wider text-muted font-semibold flex items-center gap-1.5"><Globe size={12} /> Open ComfyUI at</label>
-                                <ul className="mt-1.5 space-y-1">
-                                    {comfyStatus.urls.map(u => (
-                                        <li key={u}>
-                                            <a href={u} target="_blank" rel="noreferrer" className="text-sm font-mono text-primary hover:underline break-all">{u}</a>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                        {comfyStatus?.running && !comfyStatus.networkBound && !comfyStatus.external && (
-                            <p className="text-[11px] text-warning mb-3">Bound to localhost only (started for calibration). Click <strong>Bind to network</strong> to expose it on the LAN.</p>
-                        )}
-                        {comfyStatus?.external ? (
-                            <>
-                                <p className="text-[11px] text-muted mb-3">
-                                    Attached to a ComfyUI started outside ComfyQ. <strong className="text-white">Restart</strong> takes it over — it force-stops that instance and relaunches ComfyUI under ComfyQ, so Restart, Stop and the LAN toggle work here afterward.
-                                </p>
-                                <div className="flex justify-end">
-                                    <Button variant="secondary" icon={RefreshCw} onClick={() => setShowTakeoverConfirm(true)} disabled={comfyBusy || !pathsConfigured}>
-                                        {comfyBusy ? 'Restarting… (30–90s)' : 'Restart & take over'}
-                                    </Button>
-                                </div>
-                            </>
-                        ) : (
-                            <div className="flex justify-end gap-2">
-                                {comfyStatus?.running && (
-                                    <Button variant="secondary" icon={RefreshCw} onClick={restartComfy} disabled={comfyBusy}>
-                                        {comfyBusy ? 'Working…' : 'Restart ComfyUI'}
-                                    </Button>
-                                )}
-                                {comfyStatus?.running && (
-                                    <Button variant="secondary" icon={Square} onClick={stopComfy} disabled={comfyBusy}>
-                                        {comfyBusy ? 'Working…' : 'Stop ComfyUI'}
-                                    </Button>
-                                )}
-                                {!(comfyStatus?.running && comfyStatus?.networkBound) && (
-                                    <Button variant="primary" icon={Globe} onClick={launchComfy} disabled={comfyBusy || !pathsConfigured}>
-                                        {comfyBusy ? 'Launching… (30–90s)' : comfyStatus?.running ? 'Bind to network' : 'Launch ComfyUI on network'}
-                                    </Button>
-                                )}
-                            </div>
-                        )}
-                        {!pathsConfigured && (
-                            <p className="text-[11px] text-warning mt-2 text-right">Set the ComfyUI paths above first.</p>
-                        )}
-                    </>
-                )}
-            </Card>
-
-            <Card>
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold flex items-center gap-2"><Upload size={18} /> Add Workflow</h2>
-                </div>
-                <p className="text-sm text-muted mb-3">
-                    Upload a ComfyUI workflow saved in <strong className="text-white">API Format</strong>
-                    (Settings → Dev mode → "Save (API Format)"). v2 does not auto-convert standard saves.
-                </p>
-                <label className="block">
-                    <input type="file" accept=".json,application/json" onChange={uploadWorkflow}
-                        disabled={uploading}
-                        className="block w-full text-sm text-muted file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-primary/10 file:text-primary hover:file:bg-primary/20" />
-                </label>
-            </Card>
-
-            <Card>
-                <div className="flex items-center justify-between mb-4">
-                    <h2 className="text-lg font-semibold">Workflow library</h2>
-                    {config.workflows.activeWorkflowId && (
-                        <Badge variant="primary">Active: {config.workflows.activeWorkflowId}</Badge>
-                    )}
-                </div>
-                {lanes.length > 0 && laneCard?.vramGb && (
-                    <div className="mb-4 flex items-center gap-3 flex-wrap px-3 py-2 rounded-lg bg-surface border border-border text-xs">
-                        <span className="font-medium text-foreground">
-                            Serving {lanes.length} workflow{lanes.length > 1 ? 's' : ''} in parallel
-                        </span>
-                        <span className="text-muted">
-                            {laneCard.usedGb} of {laneCard.vramGb} GB of models · {Math.max(0, +(laneCard.vramGb - laneCard.usedGb - 2).toFixed(2))} GB free for another
-                        </span>
-                        {lanes.map(l => (
-                            <span key={l.workflowId} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-success/10 text-success border border-success/30">
-                                <Radio size={11} />:{l.port} {l.name}{l.busy ? ' · generating' : ''}
-                            </span>
-                        ))}
+                    <div className="flex justify-end">
+                        <Button variant="danger" icon={Eraser} onClick={() => setShowCleanupConfirm(true)}>
+                            Clean all outputs
+                        </Button>
                     </div>
-                )}
-                <WorkflowSelector
-                    key={refreshKey}
-                    selectedWorkflowId={config.workflows.activeWorkflowId}
-                    activeWorkflowId={config.workflows.activeWorkflowId}
-                    onSelect={(w) => setPickedWorkflow(w)}
-                    onEdit={(id) => setEditingWorkflowId(id)}
-                    onDelete={(id) => setDeletingWorkflowId(id)}
-                    onCalibrate={(id) => calibrateWorkflow(id)}
-                    calibratingIds={calibratingIds}
-                    onOpenInComfy={openInComfy}
-                    openingComfyId={openingComfyId}
-                    onActivate={(id) => activate(id)}
-                    activatingId={activatingId}
-                    canActivate={pathsConfigured}
-                    onDeactivate={resetToAdmin}
-                    deactivating={deactivating}
-                    serving={config.mode === 'student'}
-                    onValidate={(id) => setConfirmValidateId(id)}
-                    validatingId={validatingId}
-                    lanes={lanes}
-                    laneFit={laneFit}
-                    onServeAlongside={serveAlongside}
-                    serveAlongsideId={serveAlongsideId}
-                    onCloseLane={closeLane}
-                    closingLaneId={closingLaneId}
-                />
-                <div className="mt-6 flex items-center justify-end gap-2 flex-wrap">
-                    {pickedWorkflow && <span className="text-xs text-muted mr-auto">Selected: <code>{pickedWorkflow.id}</code></span>}
-                    <Button variant="secondary" icon={Pencil}
-                        disabled={!pickedWorkflow}
-                        onClick={() => pickedWorkflow && setEditingWorkflowId(pickedWorkflow.id)}>
-                        Edit metadata
-                    </Button>
-                    <Button variant="primary" icon={Power}
-                        disabled={!pickedWorkflow || activatingId !== null || !pathsConfigured}
-                        onClick={() => activate(pickedWorkflow?.id)}>
-                        {activatingId !== null ? 'Activating…' : 'Activate & start student mode'}
-                    </Button>
-                </div>
-            </Card>
+                </Card>
+                <Card>
+                    <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><History size={18} /> Clear job history</h2>
+                    <p className="text-xs text-muted mb-3">
+                        Permanently delete all finished job records (completed, failed, cancelled) and their event logs, plus any output files they reference.
+                        Scheduled and in-flight jobs are kept so a running queue isn't interrupted.
+                    </p>
+                    <div className="flex justify-end">
+                        <Button variant="danger" icon={Trash2} onClick={() => setShowClearHistoryConfirm(true)}>
+                            Clear all history
+                        </Button>
+                    </div>
+                </Card>
+                </>
+            )}
+
+            {tab === 'comfyui' && (
+                <>
+                <Card>
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold flex items-center gap-2"><Settings size={18} /> ComfyUI Settings</h2>
+                        {pathsConfigured && <Badge variant="success">Configured</Badge>}
+                    </div>
+                    {driveOptions.length > 0 && (
+                        <div className="mb-4 flex items-center gap-2 flex-wrap rounded-lg border border-border bg-surface/40 p-3">
+                            <HardDrive size={16} className="text-primary shrink-0" />
+                            <span className="text-sm font-medium">Drive letter</span>
+                            <select
+                                value={currentDrive}
+                                onChange={(e) => applyDriveLetter(e.target.value)}
+                                className="bg-background border border-border rounded-md px-2 py-1.5 text-sm text-white"
+                            >
+                                {driveOptions.map(d => <option key={d} value={d}>{d}:\</option>)}
+                            </select>
+                            <span className="text-xs text-muted">Swaps the drive on every absolute path below at once — handy when this machine cloned the drive to a different letter.</span>
+                        </div>
+                    )}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <Field label="ComfyUI root path" value={pathDraft.root_path || ''}
+                            onChange={v => setPathDraft({ ...pathDraft, root_path: v })}
+                            placeholder="C:\\Apps\\AI\\ComfyUI_portable\\ComfyUI" />
+                        <Field label="Python executable" value={pathDraft.python_executable || ''}
+                            onChange={v => setPathDraft({ ...pathDraft, python_executable: v })}
+                            placeholder="../python_embeded/python.exe">
+                            <div className="flex gap-1 mt-1">
+                                {PRESET_PYTHON_HINTS.map(p => (
+                                    <button key={p.value} type="button"
+                                        onClick={() => setPathDraft({ ...pathDraft, python_executable: p.value })}
+                                        className="text-[10px] px-2 py-0.5 bg-surface border border-border rounded hover:border-primary/50 text-muted">
+                                        {p.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </Field>
+                        <Field label="Output directory" value={pathDraft.output_dir || ''}
+                            onChange={v => setPathDraft({ ...pathDraft, output_dir: v })}
+                            placeholder="output" />
+                        <Field label="VRAM budget (GB)" type="number" value={pathDraft.vramBudgetGb || 24}
+                            onChange={v => setPathDraft({ ...pathDraft, vramBudgetGb: parseFloat(v) })} />
+                        <Field label="ComfyUI API host" value={pathDraft.api_host || '127.0.0.1'}
+                            onChange={v => setPathDraft({ ...pathDraft, api_host: v })} />
+                        <Field label="ComfyUI API port" type="number" value={pathDraft.api_port || 8188}
+                            onChange={v => setPathDraft({ ...pathDraft, api_port: parseInt(v, 10) })} />
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <label className="text-xs uppercase tracking-wider text-muted font-semibold">Assets directory (calibration media)</label>
+                            <input
+                                type="text"
+                                value={pathDraft.assets_dir || ''}
+                                onChange={(e) => setPathDraft({ ...pathDraft, assets_dir: e.target.value })}
+                                placeholder="G:\\_assets"
+                                className="w-full bg-background border border-border rounded-lg p-2.5 text-white font-mono text-sm"
+                            />
+                            <p className="text-[11px] text-muted">
+                                Folder of sample images / videos / audio used to auto-calibrate workflow timing. Update this if the drive letter changes (e.g. <code>D:\_assets</code> → <code>G:\_assets</code>). Leave blank to fall back to a built-in image — video/audio workflows then can't auto-calibrate. Use <strong>Check paths</strong> to confirm the folder exists and has media.
+                            </p>
+                        </div>
+                    </div>
+                    {pathChecks && (
+                        <div className="mt-4 rounded-lg border border-border bg-surface/50 p-3 text-sm">
+                            <div className={`mb-2 font-medium ${pathChecks.ok ? 'text-success' : 'text-danger'}`}>
+                                {pathChecks.ok ? 'All checks passed' : 'Some checks failed'}
+                            </div>
+                            <ul className="space-y-1">
+                                {pathChecks.checks.map((c, i) => (
+                                    <li key={i} className="flex items-start gap-2">
+                                        {c.ok
+                                            ? <CheckCircle2 size={16} className="text-success mt-0.5 shrink-0" />
+                                            : <XCircle size={16} className="text-danger mt-0.5 shrink-0" />}
+                                        <div className="min-w-0">
+                                            <div className="text-white">{c.label}</div>
+                                            <div className="text-xs text-muted break-all">{c.detail}</div>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                    )}
+                    {optionChecks && (
+                        <div className="mt-4 rounded-lg border border-border bg-surface/50 p-3 text-sm">
+                            <div className={`mb-2 font-medium ${optionChecks.stale.length === 0 ? 'text-success' : 'text-danger'}`}>
+                                {optionChecks.stale.length === 0
+                                    ? `${optionChecks.checked} dropdown(s) match this ComfyUI`
+                                    : `${optionChecks.stale.length} dropdown(s) don't match this ComfyUI`}
+                            </div>
+                            {optionChecks.stale.map((s, i) => (
+                                <div key={i} className="mb-2 flex items-start gap-2">
+                                    <XCircle size={16} className="text-danger mt-0.5 shrink-0" />
+                                    <div className="min-w-0">
+                                        <div className="text-white break-all">{s.workflowId} · {s.field}</div>
+                                        {s.bogusOptions.length > 0 && (
+                                            <div className="text-xs text-danger/90 break-words">
+                                                not offered by {s.classType}: {s.bogusOptions.join(', ')}
+                                            </div>
+                                        )}
+                                        {!s.defaultValid && (
+                                            <div className="text-xs text-danger/90 break-words">
+                                                its default {JSON.stringify(s.declaredDefault)} is not selectable
+                                            </div>
+                                        )}
+                                        <div className="text-xs text-muted break-words">
+                                            this node offers: {s.liveOptions.join(', ')}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                            {optionChecks.skipped.length > 0 && (
+                                <p className="text-xs text-muted mt-1">
+                                    {optionChecks.skipped.length} dropdown(s) could not be checked — their node
+                                    doesn't publish a fixed list (a workflow-defined combo), so this is not a
+                                    clean bill of health for them.
+                                </p>
+                            )}
+                        </div>
+                    )}
+                    <div className="mt-4 flex flex-wrap justify-end gap-2">
+                        <Button variant="ghost" icon={ScanSearch} disabled={detecting} onClick={autodetectPaths}>
+                            {detecting ? 'Detecting…' : 'Auto-detect'}
+                        </Button>
+                        <Button variant="ghost" icon={ListChecks} disabled={checkingOptions}
+                            onClick={checkWorkflowOptions}>
+                            {checkingOptions ? 'Checking…' : 'Check workflow options'}
+                        </Button>
+                        <Button variant="ghost" icon={RotateCcw} onClick={resetPathsToDefaults}>
+                            Reset to defaults
+                        </Button>
+                        <Button variant="secondary" icon={ShieldCheck}
+                            disabled={checkingPaths}
+                            onClick={checkPaths}>
+                            {checkingPaths ? 'Checking…' : 'Check paths'}
+                        </Button>
+                        <Button variant="primary" icon={Save} onClick={savePaths}>Save settings</Button>
+                    </div>
+                </Card>
+                <Card>
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg font-semibold flex items-center gap-2"><Server size={18} /> ComfyUI backend</h2>
+                        {comfyStatus?.running
+                            ? <Badge variant="success">
+                                {comfyStatus.studentMode ? 'Running · active workflow'
+                                    : comfyStatus.external ? 'Running · external'
+                                    : comfyStatus.networkBound ? 'Running · network'
+                                    : 'Running · localhost'}
+                              </Badge>
+                            : <Badge variant="warning">Stopped</Badge>}
+                    </div>
+                    <p className="text-sm text-muted mb-3">
+                        Launch ComfyUI bound to the network (<code>0.0.0.0:{comfyStatus?.port || config?.comfy_ui?.api_port || 8188}</code>) so anyone on the LAN can open its native web UI and run classic workflows on this GPU — no ComfyQ needed. It stays up across calibrations and a later workflow activation attaches to it.
+                    </p>
+
+                    <label className="flex items-start gap-2.5 cursor-pointer mb-4">
+                        <input
+                            type="checkbox"
+                            checked={config?.comfy_ui?.lan_access ?? false}
+                            onChange={(e) => toggleLanAccess(e.target.checked)}
+                            className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                        />
+                        <span className="text-sm text-white">
+                            Expose ComfyUI to the LAN
+                            <span className="block text-xs text-muted">
+                                Binds ComfyUI to <code>0.0.0.0</code> so people on the network can open its native web UI
+                                (<code>http://&lt;this-machine&gt;:{config?.comfy_ui?.api_port || 8188}</code>) and run classic
+                                workflows on this GPU. ComfyQ still connects over localhost. Saved immediately; the bind changes
+                                when ComfyUI is started or restarted.
+                            </span>
+                        </span>
+                    </label>
+
+                    <div className="mb-4 rounded-lg border border-border bg-surface/40 p-3">
+                        <div className="text-[10px] uppercase tracking-wider text-muted font-semibold mb-2 flex items-center gap-1.5">
+                            <Gauge size={12} /> Performance (applies on restart)
+                        </div>
+                        <label className="flex items-start gap-2.5 cursor-pointer mb-2.5">
+                            <input
+                                type="checkbox"
+                                checked={config?.comfy_ui?.use_sage_attention ?? false}
+                                onChange={(e) => togglePerfFlag('use_sage_attention', e.target.checked, 'SageAttention')}
+                                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                            />
+                            <span className="text-sm text-white">
+                                SageAttention
+                                <span className="block text-xs text-muted">
+                                    Adds <code>--use-sage-attention</code>. Replaces the attention kernel for every
+                                    workflow — the biggest wins are on video models. Needs the <code>sageattention</code>
+                                    package installed in ComfyUI's Python; if it isn't, ComfyUI just falls back to its
+                                    default kernel.
+                                </span>
+                            </span>
+                        </label>
+                        <label className="flex items-start gap-2.5 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={config?.comfy_ui?.fp16_accumulation ?? false}
+                                onChange={(e) => togglePerfFlag('fp16_accumulation', e.target.checked, 'fp16 accumulation')}
+                                className="mt-0.5 h-4 w-4 shrink-0 accent-primary"
+                            />
+                            <span className="text-sm text-white">
+                                fp16 accumulation
+                                <span className="block text-xs text-muted">
+                                    Adds <code>--fast fp16_accumulation</code>. Notable on RTX 40/50-series cards. Only this
+                                    one optimisation is passed — never bare <code>--fast</code>, which turns on everything in
+                                    ComfyUI's "untested, potentially quality-deteriorating" set.
+                                </span>
+                            </span>
+                        </label>
+                        <p className="text-[11px] text-muted mt-2.5">
+                            Both are global and off by default. If output quality or stability changes, turn them off and
+                            restart to rule them out.
+                        </p>
+                    </div>
+
+                    {comfyStatus?.studentMode ? (
+                        <p className="text-xs text-muted">
+                            ComfyUI is currently managed by the active workflow (student mode). <strong className="text-white">Reset to admin</strong> to launch / stop it here.
+                        </p>
+                    ) : (
+                        <>
+                            {comfyStatus?.running && (comfyStatus.networkBound || comfyStatus.external) && comfyStatus.urls?.length > 0 && (
+                                <div className="mb-3 rounded-lg border border-border bg-surface/50 p-3">
+                                    <label className="text-[10px] uppercase tracking-wider text-muted font-semibold flex items-center gap-1.5"><Globe size={12} /> Open ComfyUI at</label>
+                                    <ul className="mt-1.5 space-y-1">
+                                        {comfyStatus.urls.map(u => (
+                                            <li key={u}>
+                                                <a href={u} target="_blank" rel="noreferrer" className="text-sm font-mono text-primary hover:underline break-all">{u}</a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                </div>
+                            )}
+                            {comfyStatus?.running && !comfyStatus.networkBound && !comfyStatus.external && (
+                                <p className="text-[11px] text-warning mb-3">Bound to localhost only (started for calibration). Click <strong>Bind to network</strong> to expose it on the LAN.</p>
+                            )}
+                            {comfyStatus?.external ? (
+                                <>
+                                    <p className="text-[11px] text-muted mb-3">
+                                        Attached to a ComfyUI started outside ComfyQ. <strong className="text-white">Restart</strong> takes it over — it force-stops that instance and relaunches ComfyUI under ComfyQ, so Restart, Stop and the LAN toggle work here afterward.
+                                    </p>
+                                    <div className="flex justify-end">
+                                        <Button variant="secondary" icon={RefreshCw} onClick={() => setShowTakeoverConfirm(true)} disabled={comfyBusy || !pathsConfigured}>
+                                            {comfyBusy ? 'Restarting… (30–90s)' : 'Restart & take over'}
+                                        </Button>
+                                    </div>
+                                </>
+                            ) : (
+                                <div className="flex justify-end gap-2">
+                                    {comfyStatus?.running && (
+                                        <Button variant="secondary" icon={RefreshCw} onClick={restartComfy} disabled={comfyBusy}>
+                                            {comfyBusy ? 'Working…' : 'Restart ComfyUI'}
+                                        </Button>
+                                    )}
+                                    {comfyStatus?.running && (
+                                        <Button variant="secondary" icon={Square} onClick={stopComfy} disabled={comfyBusy}>
+                                            {comfyBusy ? 'Working…' : 'Stop ComfyUI'}
+                                        </Button>
+                                    )}
+                                    {!(comfyStatus?.running && comfyStatus?.networkBound) && (
+                                        <Button variant="primary" icon={Globe} onClick={launchComfy} disabled={comfyBusy || !pathsConfigured}>
+                                            {comfyBusy ? 'Launching… (30–90s)' : comfyStatus?.running ? 'Bind to network' : 'Launch ComfyUI on network'}
+                                        </Button>
+                                    )}
+                                </div>
+                            )}
+                            {!pathsConfigured && (
+                                <p className="text-[11px] text-warning mt-2 text-right">Set the ComfyUI paths above first.</p>
+                            )}
+                        </>
+                    )}
+                </Card>
+                </>
+            )}
+
+            {tab === 'maintenance' && (
+                <>
+                    <Card>
+                        <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><Wrench size={18} /> Maintenance</h2>
+                        <p className="text-sm text-muted mb-2">
+                            Routine upkeep of this machine: updating ComfyUI, auditing what is on disk,
+                            repairing a broken install. Nothing here runs yet.
+                        </p>
+                        <p className="text-xs text-muted">
+                            The tools exist as scripts outside the app today (model audit, repair, prune).
+                            They are being moved into the repo so they travel with ComfyQ instead of only
+                            with a cloned drive — see <code>docs/</code> and the project notes.
+                        </p>
+                    </Card>
+                </>
+            )}
 
             <WorkflowMetaEditor
                 workflowId={editingWorkflowId}
@@ -1218,18 +1381,6 @@ const AdminConfig = ({ currentMode }) => {
                 </div>
             </Modal>
 
-            <Card>
-                <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><Eraser size={18} /> Cleanup</h2>
-                <p className="text-xs text-muted mb-3">
-                    Delete every output file referenced by completed jobs and clear the outputs from each job record.
-                    Job history (prompts, timestamps, users) is preserved — only the rendered images / videos are removed from disk.
-                </p>
-                <div className="flex justify-end">
-                    <Button variant="danger" icon={Eraser} onClick={() => setShowCleanupConfirm(true)}>
-                        Clean all outputs
-                    </Button>
-                </div>
-            </Card>
 
             <Modal isOpen={showCleanupConfirm} onClose={() => !cleaningOutputs && setShowCleanupConfirm(false)}
                 title="Delete all output files?" maxWidth="max-w-md">
@@ -1254,18 +1405,6 @@ const AdminConfig = ({ currentMode }) => {
                 </div>
             </Modal>
 
-            <Card>
-                <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><History size={18} /> Clear job history</h2>
-                <p className="text-xs text-muted mb-3">
-                    Permanently delete all finished job records (completed, failed, cancelled) and their event logs, plus any output files they reference.
-                    Scheduled and in-flight jobs are kept so a running queue isn't interrupted.
-                </p>
-                <div className="flex justify-end">
-                    <Button variant="danger" icon={Trash2} onClick={() => setShowClearHistoryConfirm(true)}>
-                        Clear all history
-                    </Button>
-                </div>
-            </Card>
 
             <Modal isOpen={showClearHistoryConfirm} onClose={() => !clearingHistory && setShowClearHistoryConfirm(false)}
                 title="Delete all job history?" maxWidth="max-w-md">
@@ -1293,84 +1432,8 @@ const AdminConfig = ({ currentMode }) => {
             {/* Storyboard batches — one markdown document becomes a whole queue of
                 generations (images, then the videos that consume them, then audio).
                 See docs/storyboard-format.md. */}
-            <Card>
-                <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                        <Clapperboard size={18} /> Storyboard batch
-                    </h2>
-                    <Badge variant={config?.mode === 'student' ? 'success' : 'default'}>
-                        {config?.mode === 'student' ? 'Serving' : 'Idle'}
-                    </Badge>
-                </div>
-                <p className="text-xs text-muted mb-3">
-                    Upload one markdown storyboard and queue every generation it describes, in the
-                    order that makes them possible: all the images first, then the videos that use
-                    those images as their frames, then the audio. The document names its own
-                    workflows — within each of those three groups the shots are ordered so each
-                    model is loaded once, and queueing starts the machine if it is idle.
-                </p>
-                <StoryboardUpload
-                    adminPassword={adminPassword}
-                    serving={config?.mode === 'student'}
-                    notify={showToast}
-                />
-            </Card>
 
-            <Card>
-                <div className="flex items-center justify-between mb-3">
-                    <h2 className="text-lg font-semibold flex items-center gap-2">
-                        {hasAccessPassword ? <Lock size={18} /> : <LockOpen size={18} />} Student access
-                    </h2>
-                    <Badge variant={hasAccessPassword ? 'success' : 'default'}>
-                        {hasAccessPassword ? 'Password required' : 'Open to everyone'}
-                    </Badge>
-                </div>
-                <p className="text-xs text-muted mb-3">
-                    {hasAccessPassword
-                        ? 'Students must enter this password before they can connect to this machine and book jobs. Type a new one to change it, or clear it to reopen the machine.'
-                        : 'Anyone on the network can use this machine. Set a password to reserve it for one group — they will be asked for it when they open the student page.'}
-                </p>
-                <div className="flex items-center gap-2">
-                    <input type="password" value={newAccessPassword}
-                        onChange={(e) => setNewAccessPassword(e.target.value)}
-                        onKeyDown={(e) => { if (e.key === 'Enter' && newAccessPassword) saveAccessPassword(); }}
-                        placeholder={hasAccessPassword ? 'New access password' : 'Access password for students'}
-                        className="flex-1 bg-background border border-border rounded-lg p-2.5 text-white" />
-                    <Button variant="primary" onClick={() => saveAccessPassword()}
-                        disabled={accessSaving || !newAccessPassword}>
-                        {accessSaving ? 'Saving…' : hasAccessPassword ? 'Change' : 'Lock machine'}
-                    </Button>
-                    {hasAccessPassword && (
-                        <Button variant="secondary" icon={LockOpen} onClick={() => saveAccessPassword('')}
-                            disabled={accessSaving}>
-                            Remove
-                        </Button>
-                    )}
-                </div>
-                {hasAccessPassword && (
-                    <p className="text-[11px] text-muted mt-2">
-                        Changing or removing the password disconnects anyone already connected with the old one.
-                    </p>
-                )}
-            </Card>
 
-            <Card>
-                <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><KeyRound size={18} /> Admin password</h2>
-                <p className="text-xs text-muted mb-3">
-                    {hasAdminPassword
-                        ? 'A password is set. Enter the current password above, then enter a new one (or leave blank to disable).'
-                        : 'No password set yet. Anyone with access to /admin can change settings. Set one to gate destructive actions.'}
-                </p>
-                <div className="flex items-center gap-2">
-                    <input type="password" value={newAdminPassword}
-                        onChange={(e) => setNewAdminPassword(e.target.value)}
-                        placeholder="New admin password (blank to clear)"
-                        className="flex-1 bg-background border border-border rounded-lg p-2.5 text-white" />
-                    <Button variant="primary" onClick={setPassword} disabled={pwSaving}>
-                        {pwSaving ? 'Saving…' : 'Save'}
-                    </Button>
-                </div>
-            </Card>
         </div>
     );
 };
