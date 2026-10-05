@@ -230,6 +230,17 @@ const AppConfig = z.object({
     assets: z.object({
         dir: z.string().default('')
     }).default({ dir: '' }),
+    // Routine upkeep of this machine (the admin panel's Maintenance tab).
+    maintenance: z.object({
+        // ★ Extra folders of workflow JSON to count as USING a model when
+        // deciding what is unused. ComfyQ always scans its own bundles, their
+        // templates, workflows/_candidate_workflows and ComfyUI's own
+        // user/default/workflows — this is for anything else on the machine,
+        // such as a folder of demo graphs. A folder left out here makes its
+        // models look unused, so the prune list names every folder it scanned
+        // and the admin can see what the verdict rests on.
+        workflowScanDirs: z.array(z.string()).default([])
+    }).default({ workflowScanDirs: [] }),
     // Federation (Phase F) — persistent identity for this machine, captured at
     // boot (see server/federation/systemInfo.js) and broadcast on the LAN status
     // beacon. All optional/defaulted so an existing config.json validates

@@ -4,6 +4,7 @@ import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import StoryboardUpload from '../components/admin/StoryboardUpload';
 import RunningWorkflows from '../components/admin/RunningWorkflows';
+import ModelPrune from '../components/admin/ModelPrune';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -1265,11 +1266,13 @@ const AdminConfig = ({ currentMode }) => {
 
             {tab === 'maintenance' && (
                 <>
+                    <ModelPrune headers={adminHeaders()} onToast={showToast} />
+
                     <Card>
-                        <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><Wrench size={18} /> Maintenance</h2>
+                        <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><Wrench size={18} /> Other maintenance</h2>
                         <p className="text-sm text-muted mb-2">
-                            Routine upkeep of this machine: updating ComfyUI, auditing what is on disk,
-                            repairing a broken install. Nothing here runs yet.
+                            Updating ComfyUI, repairing a broken install, and the rest of the upkeep
+                            scripts. Nothing else here runs yet.
                         </p>
                         <p className="text-xs text-muted">
                             The tools exist as scripts outside the app today (model audit, repair, prune).

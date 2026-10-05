@@ -10,6 +10,7 @@ const { WorkflowMeta } = require('../config/schemas');
 const { validateApiWorkflow } = require('../workflows/workflowValidator');
 const { parseWorkflow } = require('../workflows/workflowParser');
 const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
+const { buildModelUsage } = require('../workflows/modelUsage');
 const { resolveOutputPath } = require('../executor/outputCollector');
 const sm = require('../queue/jobStateMachine');
 const { ComfyRestClient } = require('../workers/comfyRestClient');
@@ -166,6 +167,104 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         }
         res.json({ drives });
     });
+
+    // ---- Maintenance: which models on disk are actually used -------------
+    // Shares its engine with tools/model-provenance/exclusive.cjs on purpose:
+    // if the panel and the command line disagreed about what is unused, one of
+    // them would be inviting someone to delete a model that is needed.
+    function usageReport() {
+        const { config } = configManager.load();
+        const comfyRoot = config.comfy_ui?.root_path || '';
+        const extra = [...(config.maintenance?.workflowScanDirs || [])];
+        if (comfyRoot) extra.push(path.join(comfyRoot, 'user', 'default', 'workflows'));
+        const report = buildModelUsage({
+            comfyRoot,
+            workflowsDir: registry.dir || path.resolve(__dirname, '../../workflows'),
+            extraDirs: extra,
+        });
+        // Say what the verdict rests on: a folder of workflows nobody told us
+        // about makes its models look unused.
+        report.scanned.missingDirs = (config.maintenance?.workflowScanDirs || [])
+            .filter(d => !fs.existsSync(d));
+        report.comfyRoot = comfyRoot;
+        return report;
+    }
+
+    router.get('/models/usage', (req, res) => {
+        try {
+            res.json(usageReport());
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    // Delete model files. Behind the admin password, and it re-derives usage
+    // rather than trusting the list the browser sends: the page may have been
+    // open while a workflow was added, and a stale "unused" is how you lose a
+    // model that something now needs.
+    router.post('/models/prune', adminGate, express.json(), (req, res) => {
+        const wanted = Array.isArray(req.body?.files) ? req.body.files : [];
+        if (!wanted.length) return res.status(400).json({ error: 'no files given' });
+
+        let report;
+        try { report = usageReport(); }
+        catch (e) { return res.status(500).json({ error: e.message }); }
+
+        const root = report.comfyRoot;
+        if (!root) return res.status(409).json({ error: 'ComfyUI root path is not configured' });
+        const modelsRoot = path.resolve(root, 'models');
+        const byRel = new Map(report.models.map(m => [m.rel, m]));
+
+        const deleted = [], refused = [];
+        let freed = 0;
+        for (const rel of wanted) {
+            const m = byRel.get(rel);
+            if (!m) { refused.push({ rel, why: 'not on this disk' }); continue; }
+            if (!m.unused) {
+                const who = m.usedBy.length ? `used by ${m.usedBy.join(', ')}`
+                    : m.templateOnly.length ? `loaded by the editable template of ${m.templateOnly.join(', ')}`
+                        : m.dropdowns.length ? `offered by a dropdown in ${m.dropdowns.join(', ')}`
+                            : 'referenced by a workflow outside the bundles';
+                refused.push({ rel, why: who });
+                continue;
+            }
+            // Never step outside models/, whatever the client sent.
+            const abs = path.resolve(root, rel);
+            if (!abs.startsWith(modelsRoot + path.sep)) {
+                refused.push({ rel, why: 'outside the models folder' });
+                continue;
+            }
+            try {
+                const size = fs.statSync(abs).size;
+                fs.rmSync(abs);
+                freed += size;
+                deleted.push({ rel, name: m.name, gb: m.gb, kind: m.kind });
+            } catch (e) {
+                refused.push({ rel, why: e.message });
+            }
+        }
+
+        // A log, because these are multi-GB downloads and some are gated: a
+        // record of what went is the difference between "deleted" and "lost".
+        if (deleted.length) {
+            try {
+                const dataDir = path.resolve(__dirname, '..', 'data');
+                fs.mkdirSync(dataDir, { recursive: true });
+                const logPath = path.join(dataDir, 'pruned-models.json');
+                let log = [];
+                try { log = JSON.parse(fs.readFileSync(logPath, 'utf8')); } catch { /* first prune */ }
+                if (!Array.isArray(log)) log = [];
+                log.push({ at: new Date().toISOString(), freedGb: +(freed / 1024 ** 3).toFixed(2), files: deleted });
+                fs.writeFileSync(logPath, JSON.stringify(log, null, 2) + '\n');
+            } catch (e) {
+                console.warn(`[Prune] could not write the prune log: ${e.message}`);
+            }
+            console.log(`[Prune] deleted ${deleted.length} model file(s), ${(freed / 1024 ** 3).toFixed(2)} GB`);
+        }
+
+        res.json({ deleted, refused, freedGb: +(freed / 1024 ** 3).toFixed(2) });
+    });
+
 
     // Auto-detect a local ComfyUI install and return the paths for the admin
     // UI's "Auto-detect" button to drop into the form. Read-only (doesn't save).

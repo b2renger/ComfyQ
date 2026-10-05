@@ -78,3 +78,48 @@ Hand-curated gap-filling, read after the notes and the audit. `_`-prefixed keys
 are documentation. Files whose origin genuinely is not recorded are **left out
 on purpose** so the harvest keeps reporting them, and they are named in
 `bundleCompleteness.test.js` so the gap is visible rather than forgotten.
+
+## exclusive.cjs — what can be deleted
+
+Two questions, one engine (`server/workflows/modelUsage.js`, shared with the
+admin panel's **Maintenance → Prune unused models** card, so the command line and
+the UI can never disagree about what is unused):
+
+```bash
+# what would deleting these bundles release, and what is shared with ones that stay?
+node tools/model-provenance/exclusive.cjs <bundle-id> [<bundle-id>…]
+
+# what does nothing on this disk reference at all?
+node tools/model-provenance/exclusive.cjs --unused
+```
+
+★ **Never read a bundle's `requirements.models` as "its own" models.** Marigold
+declared the 19 GB Qwen-Image-Edit UNET because it is *built on* it, and that file
+serves a production bundle. Taken literally, "remove the models for Marigold and
+Viggle" would have deleted 35 GB that four live bundles need.
+
+A file counts as **used** when any of these holds, and each class has caught a
+real near-miss:
+
+| class | why it protects |
+|---|---|
+| a bundle's `api.json` | the obvious case |
+| a bundle's `_template.json` | "Open in ComfyUI" hands the **template** to an admin, so a weight only it loads is still in use — this is what protects a 42.98 GB checkpoint here |
+| a `lora` dropdown's `optionsFilter` | the dropdown offers **every** file matching the prefix, so those appear in no graph at all (14 `krea2_*` LoRAs) |
+| a candidate / demo / ComfyUI-user workflow | not something ComfyQ serves, but somebody's work |
+
+★ **A filename-shaped string is not a load.** The LTX 2.5 templates mention
+`ltx-2.3-22b-dev.safetensors` eighteen times, every one of them a cloud-API model
+name typed into a `GemmaAPITextEncode` widget. Such a file is **kept** — the safe
+direction — but reported separately as *worth a look*. The classifier uses a
+**named list** of such node classes, not a heuristic: guessing "a loader has
+Loader in its name" wrongly flagged `DWPreprocessor`, `RIFE VFI` and
+`ASASRApplyConditioning`, all of which really do take a model through a dropdown.
+
+**Scanning less makes models look deletable.** Folders outside the bundles come
+from `maintenance.workflowScanDirs` in `config.json`; the prune card names every
+folder it checked and warns about any it could not read. Deleting runs through
+`POST /admin/models/prune`, which re-derives usage server-side and refuses
+anything it does not independently judge unused — a page left open while a
+workflow was added cannot talk it into removing something now needed. What goes
+is logged to `server/data/pruned-models.json`.
