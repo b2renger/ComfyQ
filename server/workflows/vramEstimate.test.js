@@ -14,10 +14,25 @@ const put = (kind, name, mib) => {
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, name), Buffer.alloc(mib * 1024 * 1024));
 };
+
+// A node pack that ships or downloads its own weights, which is where
+// comfyui_controlnet_aux keeps the DWPose detectors.
+const putPack = (pack, sub, name, mib) => {
+    const dir = path.join(root, 'custom_nodes', pack, sub);
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, name), Buffer.alloc(mib * 1024 * 1024));
+};
 put('diffusion_models', 'base.safetensors', 900);      // the model when Fast mode is off
 put('diffusion_models', 'turbo.safetensors', 300);     // ...and when it is on
 put('text_encoders', 'te.safetensors', 400);
 put('vae', 'vae.safetensors', 100);
+// Weights a node pack keeps in its own folder, a git object that must never
+// be indexed, and a name that also exists under models/. These are written
+// here and not beside their checks because buildModelIndex caches for 30 s:
+// a file created after the first estimate would be invisible to it.
+putPack('comfyui_controlnet_aux', 'ckpts/hr16/yolox-onnx', 'yolox_l.torchscript.pt', 200);
+putPack('comfyui_controlnet_aux', '.git/objects', 'decoy.safetensors', 1);
+putPack('some_pack', 'ckpts', 'vae.safetensors', 999);
 
 // base ──┐
 //        ├─ ComfySwitchNode(switch=false) ── sampler ── SaveImage
@@ -99,6 +114,38 @@ check('an inert leftover loader is not counted',
 
 // 8. activeNodes is reachability, not the whole graph.
 check('activeNodes prunes the unselected loader', !activeNodes(switched(false)).has('2'));
+
+
+// 9. ★ Weights inside a node pack must count as INSTALLED. Scanning models/
+//    alone reported the DWPose detectors missing on a rig that had them, which
+//    is a false alarm on a bundle that runs perfectly — the failure this
+//    guards against.
+const detector = {
+    '1': { class_type: 'UNETLoader', inputs: { unet_name: 'base.safetensors' } },
+    '2': { class_type: 'DWPreprocessor', inputs: { image: ['1', 0], bbox_detector: 'yolox_l.torchscript.pt' } },
+    '3': { class_type: 'SaveImage', inputs: { images: ['2', 0] } },
+};
+const det = estimateWorkflowVram(detector, root);
+check('a detector bundled with a node pack is not reported missing',
+    det.unresolved.length === 0);
+check('...and is counted, with its own kind',
+    det.components.find(c => c.name === 'yolox_l.torchscript.pt')?.kind === 'node pack');
+check('a node pack git object is never indexed',
+    !det.components.some(c => c.name === 'decoy.safetensors'));
+
+// 10. Every component carries where it sits, so the admin panel can show the
+//     path rather than just a filename.
+const rels = off.components.map(c => c.rel);
+check('components carry an install-relative path',
+    rels.includes('models/diffusion_models/base.safetensors')
+    && rels.every(r => typeof r === "string" && r.indexOf(String.fromCharCode(92)) === -1));
+check('a node-pack path says which pack it belongs to',
+    det.components.find(c => c.name === 'yolox_l.torchscript.pt').rel
+        === 'custom_nodes/comfyui_controlnet_aux/ckpts/hr16/yolox-onnx/yolox_l.torchscript.pt');
+
+// 11. models/ wins a name clash — it is what ComfyUI's folder_paths resolves.
+check('models/ wins over a node pack holding the same filename',
+    near(estimateWorkflowVram(switched(false), root).weightsGb, (900 + 400 + 100) / 1024));
 
 fs.rmSync(root, { recursive: true, force: true });
 console.log(`vramEstimate: all ${ok.length} checks passed`);

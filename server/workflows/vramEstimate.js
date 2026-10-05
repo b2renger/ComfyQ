@@ -33,30 +33,56 @@ const KIND_BY_DIR = {
     style_models: 'style model', embeddings: 'embedding',
 };
 
+// ★ Weights do NOT all live under models/. A node pack that fetches its own
+// detectors keeps them inside its own folder — comfyui_controlnet_aux puts the
+// DWPose pair in custom_nodes/comfyui_controlnet_aux/ckpts/ — so scanning
+// models/ alone reported them MISSING on a rig where they are installed and
+// working, which is exactly what `video_edit_ltx2_5_iclora_pose_control` did.
+// A false "missing" is worse than no flag at all: it teaches an admin to
+// ignore the one signal that says a workflow cannot run here.
+const EXTRA_WEIGHT_DIRS = ['custom_nodes'];
+// Walking a node-pack tree otherwise means walking its git objects and python
+// caches: most of the entries, none of the weights.
+const SKIP_DIRS = new Set(['.git', 'node_modules', '__pycache__', '.cache', '.venv', 'venv']);
+
 let _index = { root: null, at: 0, byName: null };
 
-// basename -> { size, kind, rel } for every weight file under <root>/models.
-// First match wins, mirroring ComfyUI's own folder_paths lookup order closely
-// enough for a size estimate.
+// basename -> { size, kind, rel } for every weight file in the install.
+// models/ is walked first and FIRST MATCH WINS, which mirrors ComfyUI's own
+// folder_paths lookup order closely enough for a size estimate: a name present
+// in both places resolves to the copy under models/.
 function buildModelIndex(comfyRoot) {
-    const root = comfyRoot ? path.resolve(comfyRoot, 'models') : null;
+    const root = comfyRoot ? path.resolve(comfyRoot) : null;
     const fresh = _index.byName && _index.root === root && (Date.now() - _index.at) < INDEX_TTL_MS;
     if (fresh) return _index.byName;
 
     const byName = new Map();
-    const walk = (dir, top) => {
+    const walk = (dir, top, kind) => {
         let entries = [];
         try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
         for (const e of entries) {
             const p = path.join(dir, e.name);
-            if (e.isDirectory()) { walk(p, top || e.name); continue; }
+            if (e.isDirectory()) {
+                if (SKIP_DIRS.has(e.name.toLowerCase())) continue;
+                walk(p, top || e.name, kind);
+                continue;
+            }
             if (!WEIGHT_RX.test(e.name) || byName.has(e.name)) continue;
             let size = 0;
             try { size = fs.statSync(p).size; } catch { continue; }
-            byName.set(e.name, { size, kind: KIND_BY_DIR[top] || 'model', rel: path.relative(root, p) });
+            byName.set(e.name, {
+                size,
+                kind: kind || KIND_BY_DIR[top] || 'model',
+                // Relative to the install root, so it reads the way an admin
+                // would navigate to it: models/unet/x.safetensors.
+                rel: path.relative(root, p).split(path.sep).join('/'),
+            });
         }
     };
-    if (root) walk(root, null);
+    if (root) {
+        walk(path.join(root, 'models'), null, null);
+        for (const extra of EXTRA_WEIGHT_DIRS) walk(path.join(root, extra), null, 'node pack');
+    }
     _index = { root, at: Date.now(), byName };
     return byName;
 }
@@ -131,8 +157,10 @@ function activeNodes(graph) {
  *   known: boolean,          false when the graph names no model file at all
  *   weightsGb: number,       sum over the active path
  *   largestGb: number,       biggest single model — the floor ComfyUI cannot avoid
- *   components: Array<{name, gb, kind}>,
- *   unresolved: string[],    named but not found under models/
+ *   components: Array<{name, gb, kind, rel}>,   rel is relative to the install root
+ *   unresolved: string[],    on the active path, named but not installed
+ *   unresolvedInactive: string[],  not installed and only reachable via an
+ *                           unselected switch branch — runs now, breaks on a toggle
  *   prunedGb: number         what branch-awareness removed (diagnostic)
  * }}
  */
@@ -161,15 +189,20 @@ function estimateWorkflowVram(graph, comfyRoot) {
         const hit = index.get(name);
         if (!hit) { unresolved.push(name); continue; }
         weights += gb(hit.size);
-        components.push({ name, gb: +gb(hit.size).toFixed(2), kind: hit.kind });
+        components.push({ name, gb: +gb(hit.size).toFixed(2), kind: hit.kind, rel: hit.rel });
     }
     components.sort((a, b) => b.gb - a.gb);
 
     let pruned = 0;
+    const unresolvedInactive = [];
     for (const name of every) {
         if (active.has(name)) continue;
         const hit = index.get(name);
         if (hit) pruned += gb(hit.size);
+        // Missing, but only reachable through a switch the defaults leave the
+        // other way: the workflow runs today and breaks the moment a student
+        // flips that toggle. Reported apart so it cannot read as "ready".
+        else unresolvedInactive.push(name);
     }
 
     return {
@@ -178,6 +211,7 @@ function estimateWorkflowVram(graph, comfyRoot) {
         largestGb: components.length ? components[0].gb : 0,
         components,
         unresolved,
+        unresolvedInactive,
         prunedGb: +pruned.toFixed(2),
     };
 }

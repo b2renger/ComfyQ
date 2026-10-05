@@ -10,6 +10,7 @@ import Badge from './ui/Badge';
 import { SERVER_URL } from '../utils/api';
 import { accessHeaders } from '../utils/access';
 import PromptGuideLinks from './PromptGuideLinks';
+import ModelReadiness from './admin/ModelReadiness';
 
 // "Type of workflow" buckets shown as filter chips in the admin library. Each
 // fine-grained meta category maps to exactly one group; this is the user-facing
@@ -432,6 +433,7 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                         <Clock size={12} />~{w.estimatedDurationSec}s {w.hasCalibration ? '' : '(uncalibrated)'}
                                     </span>
                                     <VramChip vram={w.vram} gpu={gpu} fit={anyLaneRunning ? fit : null} servedHere={!!lane} measured={w.calibration?.vramPeakGb || null} />
+                                    <ModelReadiness vram={w.vram} />
                                     {w.hasCalibration && w.calibration?.gpu && (
                                         <span className="flex items-center gap-1 text-success/80"
                                             title={`Time measured on this GPU. Move to a different GPU and re-calibrate for an accurate estimate.`}>
