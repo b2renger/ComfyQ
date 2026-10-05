@@ -222,14 +222,37 @@ no fast mode, because the failure looks like bad luck rather than a setting.
 ★ The base model's weights were **kept**: `qwen_image_2.1_int8_convrot`, `qwen3vl_8b_int8_convrot`
 and `qwen_image_2.1_vae_bf16` are shared with the production t2i bundle. Only the adapter went.
 
+## 6d. Flux2 Dev vs Flux2 Klein — RESOLVED: Dev was removed (2026-10-05)
+
+Owner's call: *"they take a lot of room and are not that usefull"*. Both Dev bundles went,
+`image_flux2_dev_t2i` and `image_edit_flux2_dev_image_edit`, with **85.76 GB of weights**.
+
+It was the most expensive pair in the library by a wide margin and the only one that could
+never share a card: **a 33.02 GB UNET plus a 33.14 GB bf16 text encoder**, which on the
+32 GB 5090 meant ComfyUI streamed the weights from RAM — hence a ≈203 s cold run, ≈158 s of
+it model load, for a picture its 17.5 GB Klein sibling produces while leaving room for a
+second workflow beside it. The two Mistral encoders alone (bf16 + fp8, 49.94 GB) outweighed
+the entire rest of the FLUX.2 family on disk.
+
+★ **Nothing was shared.** The exclusivity check reported **0 GB** overlap with the 64
+remaining bundles — Dev and Klein have no file in common (Klein runs
+`flux-2-klein-9b-fp8` + `qwen_3_8b_fp8mixed` + `flux2-vae`), so the removal could not
+touch the four Klein bundles that stay.
+
+**What is lost:** Dev is the full-size model, so it had the edge on prompt adherence and
+fine detail over the distilled 9B Klein. Nothing else in the library reads a prompt the way
+it did. If that matters again it is a 66 GB download, and it will still not fit on a 32 GB
+card beside anything else.
+
 ## 7. Not redundant, despite looking it
 
 Worth stating so they don't get cut by accident:
 
-- **The six `t2i` generators** (Flux2 Dev, Flux2 Klein, Ideogram 4, Krea 2 + LoRA, Krea 2
-  style reference, Qwen 2.1) are different *looks*, not different implementations of one
-  look. Ideogram 4 is the only one that does reliable text-in-image; Krea 2 carries the
-  style-LoRA library; Qwen 2.1 is the cheapest at 14.44 GB.
+- **The five `t2i` generators** (Flux2 Klein, Ideogram 4, Krea 2 + LoRA, Krea 2 style
+  reference, Qwen 2.1) are different *looks*, not different implementations of one look.
+  Ideogram 4 is the only one that does reliable text-in-image; Krea 2 carries the
+  style-LoRA library; Qwen 2.1 is the cheapest at 14.44 GB. *(Flux2 **Dev** was the sixth
+  until 2026-10-05 — see 6d.)*
 - **The two Gemma captioners** take different inputs (image vs video) — one graph can't do
   both, the video one feeds every decoded frame to the VLM.
 - **The five 3D bundles** produce genuinely different artefacts (Gaussian splat vs mesh vs

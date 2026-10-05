@@ -157,7 +157,7 @@ console.log(`hand:  ${Object.keys(HAND).length} curated entries\n`);
 
 const bundles = fs.readdirSync(WF)
     .filter(d => !d.startsWith('_') && fs.statSync(path.join(WF, d)).isDirectory());
-const stat = { total: 0, note: 0, auditD: 0, repo: 0, hand: 0, auto: 0, none: 0 };
+const stat = { total: 0, note: 0, auditD: 0, repo: 0, hand: 0, auto: 0, kept: 0, none: 0 };
 const unsourced = [];
 let changed = 0;
 
@@ -222,6 +222,12 @@ for (const id of bundles) {
             else if (from === 'audit') stat.auditD++;
             else if (from === 'hand') stat.hand++;
             else if (src) stat.repo++;
+            // ★ "Found nothing" is not the same as "has nothing". The audit CSV
+            // is an optional input (MODEL_AUDIT_CSV), so a run without it finds
+            // no source for entries a previous run already wrote one into —
+            // reporting those as unsourced sends you hunting for a link that is
+            // sitting in the file.
+            else if (next.url || next.source) stat.kept++;
             else { stat.none++; unsourced.push(`${id}: ${b}`); continue; }
         }
 
@@ -248,6 +254,7 @@ console.log(`  direct URL from the audit CSV  : ${pct(stat.auditD)}`);
 console.log(`  direct URL, hand-curated       : ${pct(stat.hand)}`);
 console.log(`  repo page only                 : ${pct(stat.repo)}`);
 console.log(`  declared auto-downloaded       : ${pct(stat.auto)}`);
+console.log(`  already in the meta            : ${pct(stat.kept)}`);
 console.log(`  STILL UNSOURCED                : ${pct(stat.none)}`);
 
 if (unsourced.length) {

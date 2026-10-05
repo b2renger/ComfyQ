@@ -37,11 +37,6 @@
     "source": "https://huggingface.co/alibaba-pai/Qwen-Image-2.1-Fun-Controlnet-Union",
     "note": "ComfyUI core cannot load this file -- it needs the ComfyUI-QwenImage21-FunControlNet pack, which is why that pack exists."
   },
-  "mistral_3_small_flux2_fp8.safetensors": {
-    "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/text_encoders/mistral_3_small_flux2_fp8.safetensors",
-    "source": "https://huggingface.co/Comfy-Org/flux2-dev",
-    "note": "Same repo and folder as the bf16 sibling, which the FLUX.2 notes document."
-  },
   "flux2_klein_9b_refcontrol_depth.safetensors": {
     "source": "https://huggingface.co/Comfy-Org/flux2-klein-9B",
     "note": "Comfy-Org's Klein repack. The exact path inside the repo is not recorded; the constructed split_files/loras/ guess 404s."
