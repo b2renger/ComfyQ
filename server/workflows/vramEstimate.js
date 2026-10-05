@@ -67,7 +67,19 @@ function buildModelIndex(comfyRoot) {
                 walk(p, top || e.name, kind);
                 continue;
             }
-            if (!WEIGHT_RX.test(e.name) || byName.has(e.name)) continue;
+            if (!WEIGHT_RX.test(e.name)) continue;
+            // ★ First match wins, which mirrors folder_paths — but the copies
+            // that lose must not vanish. Two copies of one basename (the
+            // liveportrait animal/ and human/ sets, three Pixal3D ckpts trees)
+            // meant the report described one copy while the OTHER was the one
+            // in use, and the losing path was absent from the report entirely
+            // while its filename was advertised as safe to delete.
+            if (byName.has(e.name)) {
+                const first = byName.get(e.name);
+                (first.others = first.others || []).push(
+                    path.relative(root, p).split(path.sep).join('/'));
+                continue;
+            }
             let size = 0, mtimeMs = 0;
             // mtime comes free with the stat we already do, and it answers
             // "did someone add this last week?" — which is the difference

@@ -54,6 +54,19 @@ const repoDir = path.join(comfy, 'models', 'vendor', 'Some-Model-4B', 'ckpts');
 fs.mkdirSync(repoDir, { recursive: true });
 fs.writeFileSync(path.join(repoDir, 'stage_one.safetensors'), Buffer.alloc(1024));
 fs.writeFileSync(path.join(repoDir, 'stage_two.safetensors'), Buffer.alloc(1024));
+// A node pack that opens weights by a path it BUILDS IN CODE, which is how
+// comfyui-liveportraitkj loads five files with no widget anywhere.
+const packDir = path.join(comfy, 'custom_nodes', 'somepack');
+fs.mkdirSync(packDir, { recursive: true });
+fs.writeFileSync(path.join(packDir, 'nodes.py'), [
+    'import os, folder_paths',
+    'base = os.path.join(folder_paths.models_dir, "somepack")',
+    'p = os.path.join(base, "hardcoded_weight.safetensors")',
+    'q = os.path.join(folder_paths.models_dir, "loras", "shared_lora.safetensors")',
+].join(String.fromCharCode(10)));
+put('somepack', 'anything_in_the_pack_folder.safetensors', 2);
+put('loras', 'shared_lora.safetensors', 2);
+put('diffusion_models', 'hardcoded_weight.safetensors', 2);
 
 bundle('runs_it', {
     api: {
@@ -323,13 +336,36 @@ check('every file inside a staged repo folder is claimed by the bundle',
 check('...and a file outside that folder is NOT claimed by it',
     !staged.models.find(m => m.name === 'nobody.safetensors').usedBy.includes('stages_a_repo'));
 
-// 16. A scan that cannot see the outside folder must not call its models unused —
+
+// 16. ★★★ A pack can open a weight by a path it BUILDS IN CODE — no widget,
+//     no graph string. comfyui-liveportraitkj joins models_dir with
+//     "liveportrait" and then each filename, and its loader node's only input
+//     is "precision". stitching_retargeting_module.safetensors therefore
+//     scored HIGH CONFIDENCE DELETABLE while the rig-verified LivePortrait
+//     bundle loads it on every job, and six siblings were saved only by a
+//     hand-written decisions.json entry that had a hole exactly there.
+const coded = run();
+check('a weight named in the pack own python is protected',
+    coded.models.find(m => m.name === 'hardcoded_weight.safetensors').unused === false);
+check('...attributed to the pack that loads it',
+    coded.models.find(m => m.name === 'hardcoded_weight.safetensors').packCode.includes('somepack'));
+check('every weight inside the pack OWN model folder is protected too',
+    coded.models.find(m => m.name === 'anything_in_the_pack_folder.safetensors').unused === false);
+// ★ But a pack naming one of ComfyUI SHARED folders is not claiming it:
+//   treating models_dir/"diffusion_models" as a claim protected 285 GB and
+//   left the prune tool with nothing to offer.
+check('a pack referencing a shared model folder does not claim the folder',
+    coded.models.find(m => m.name === 'nobody.safetensors').packCode.length === 0);
+check('...though a file it names BY NAME inside one is still protected',
+    coded.models.find(m => m.name === 'shared_lora.safetensors').unused === false);
+
+// 17. A scan that cannot see the outside folder must not call its models unused —
 //    this is why the UI names the folders it checked.
 const blind = buildModelUsage({ comfyRoot: comfy, workflowsDir: wf, extraDirs: [] });
 check('without the outside folder, its model looks prunable (hence the warning)',
     blind.models.find(m => m.name === 'demo_only.safetensors').unused === true);
 
-// 17. With every fixture bundle in place, exactly one file is reclaimable and
+// 18. With every fixture bundle in place, exactly one file is reclaimable and
 //     the total is its size alone. Asserted last because the sections above add
 //     models whose bundles are written as they go.
 const settled = run();

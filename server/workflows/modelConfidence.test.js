@@ -169,6 +169,22 @@ fs.writeFileSync(path.join(root, 'tools', 'maintenance', 'model-audit', 'decisio
         find(r2, 'audit_delete_but_lookalike.safetensors').confidence === 'low');
 }
 
+// 9b. ★★ Two copies of one basename on disk. Usage is matched by basename, so
+//     a reference could have meant either, and the report only describes one.
+//     Deleting the described copy leaves the SAME high-confidence row pointing
+//     at the copy that IS in use — a two-step path to breaking a workflow, and
+//     exactly the shape of the liveportrait animal/ vs human/ sets.
+{
+    const r = score(makeReport([
+        row('twice.safetensors', { otherCopies: ['models/elsewhere/twice.safetensors'] }),
+    ]));
+    const m = find(r, 'twice.safetensors');
+    check('a duplicated basename is low confidence', m.confidence === 'low');
+    check('...and names the other copy',
+        m.confidenceReasons.some(x => x.code === 'duplicate-basename'
+            && x.detail.includes('models/elsewhere/twice.safetensors')));
+}
+
 // 10. The tallies the card's chips are drawn from.
 {
     const r = score(makeReport([

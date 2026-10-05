@@ -199,6 +199,18 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
                     + ' — this file may be that model under a different name',
             });
         }
+        // ★ Several copies of this basename on disk. Usage is matched by
+        // basename, so a reference could have meant any of them — and the
+        // report only describes one. Deleting the described copy can leave the
+        // SAME high-confidence row pointing at the copy that is in use, which
+        // is a two-step path to breaking a workflow.
+        if ((m.otherCopies || []).length) {
+            reasons.push({
+                code: 'duplicate-basename', effect: 'lowers',
+                detail: `this filename also exists at ${m.otherCopies.slice(0, 2).join(', ')}`
+                    + ' — usage is matched by filename, so we cannot tell the copies apart',
+            });
+        }
         if (GENERIC_NAMES.has(folded)) {
             reasons.push({
                 code: 'generic-name', effect: 'lowers',
@@ -244,7 +256,8 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
 
         const codes = new Set(reasons.filter(r => r.effect === 'lowers').map(r => r.code));
         // Doubt about WHICH file this is cannot be argued away by anything else.
-        const strong = ['variant-sibling', 'near-missing', 'generic-name', 'audit-keep'];
+        const strong = ['variant-sibling', 'near-missing', 'generic-name', 'audit-keep',
+            'duplicate-basename'];
         const soft = ['reference-template', 'recently-added', 'scan-incomplete'];
 
         if (strong.some(c => codes.has(c))) m.confidence = 'low';

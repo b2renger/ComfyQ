@@ -187,6 +187,78 @@ function walkJson(dir, out = []) {
     return out;
 }
 
+// ★★ A node pack can open a weight by a path it BUILDS IN CODE, with no widget
+// and no graph string anywhere — so the scan above cannot see it at all.
+// comfyui-liveportraitkj does exactly that: nodes.py joins
+// folder_paths.models_dir with "liveportrait" and then with each filename, and
+// its DownloadAndLoadLivePortraitModels node (whose only input is "precision")
+// loads all five unconditionally. The result was that
+// stitching_retargeting_module.safetensors scored HIGH CONFIDENCE DELETABLE
+// while the rig-verified video_liveportrait_image2video bundle loads it on
+// every job — and six of its siblings were saved only by a hand-written entry
+// in the model audit's decisions.json, which had a hole exactly there.
+//
+// This is the model audit's own method (rescan.py: "scanning custom-node
+// source"), and it is cheap: 2110 .py files, 21 MB, ~112 ms.
+//
+// ★ Two kinds of hit, and the second needs a guard. A FILENAME in pack code is
+// a precise claim. A FOLDER — `os.path.join(folder_paths.models_dir, "x")` —
+// is a claim only when "x" is the pack's own folder: treating ComfyUI's shared
+// folders (diffusion_models, loras, vae…) as claims protected 285 GB and left
+// the prune tool with nothing to offer.
+const SHARED_MODEL_DIRS = new Set([
+    'checkpoints', 'diffusion_models', 'unet', 'loras', 'vae', 'vae_approx',
+    'text_encoders', 'clip', 'clip_vision', 'controlnet', 'upscale_models',
+    'embeddings', 'style_models', 'gligen', 'hypernetworks', 'photomaker',
+    'configs', 'diffusers', 'audio_encoders', 'model_patches', 'classifiers',
+    'sams', 'ultralytics',
+]);
+const CODE_WEIGHT_RX = /["']([A-Za-z0-9_.-]+\.(?:safetensors|sft|ckpt|pt|pth|gguf|onnx|bin))["']/g;
+const CODE_FOLDER_RX = /models_dir\s*,\s*["']([A-Za-z0-9_-]+)["']/g;
+const SKIP_CODE_DIRS = new Set(['.git', 'node_modules', '__pycache__', '.cache', 'test', 'tests', 'docs']);
+
+let _codeCache = { root: null, at: 0, value: null };
+const CODE_TTL_MS = 10 * 60 * 1000;
+
+function packCodeClaims(comfyRoot) {
+    const root = comfyRoot ? path.resolve(comfyRoot) : null;
+    if (_codeCache.value && _codeCache.root === root && (Date.now() - _codeCache.at) < CODE_TTL_MS) {
+        return _codeCache.value;
+    }
+    const names = new Map();    // folded filename -> pack
+    const folders = new Map();  // folded folder name -> pack
+    const base = root ? path.join(root, 'custom_nodes') : null;
+    if (base && fs.existsSync(base)) {
+        const files = [];
+        const walk = (dir) => {
+            let entries = [];
+            try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+            for (const e of entries) {
+                const p = path.join(dir, e.name);
+                if (e.isDirectory()) { if (!SKIP_CODE_DIRS.has(e.name.toLowerCase())) walk(p); }
+                else if (e.name.endsWith('.py')) files.push(p);
+            }
+        };
+        walk(base);
+        for (const f of files) {
+            let src;
+            try { src = fs.readFileSync(f, 'utf8'); } catch { continue; }
+            const pack = path.relative(base, f).split(path.sep)[0];
+            for (const m of src.matchAll(CODE_WEIGHT_RX)) {
+                const n = m[1].toLowerCase();
+                if (!names.has(n)) names.set(n, pack);
+            }
+            for (const m of src.matchAll(CODE_FOLDER_RX)) {
+                const n = m[1].toLowerCase();
+                if (SHARED_MODEL_DIRS.has(n) || folders.has(n)) continue;
+                folders.set(n, pack);
+            }
+        }
+    }
+    _codeCache = { root, at: Date.now(), value: { names, folders } };
+    return _codeCache.value;
+}
+
 /**
  * Classify every weight file under the install.
  *
@@ -324,6 +396,8 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
 
     // ★ A lora dropdown exposes every file matching its prefix, so these are
     // reachable with no graph mentioning them at all.
+    // What the installed node packs can load from their own code.
+    const code = packCodeClaims(comfyRoot);
     const filters = [];
     // HuggingFace repos a pipeline stages through: a folder of weights on disk
     // that no graph names file by file. See where this is filled, below.
@@ -361,9 +435,29 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
         const drops = filters
             .filter(f => name.toLowerCase().startsWith(f.prefix))
             .map(f => f.bundle);
+        const relLower = String(hit.rel || '').split('\\').join('/').toLowerCase();
+
+        // Opened by a node pack's own code — by filename, or because it sits in
+        // the pack's own model folder. A real load with no graph string to find.
+        const packedBy = [];
+        // ★ A weight that lives INSIDE custom_nodes belongs to that pack by
+        // definition: kjnodes' intrinsic_loras, WanVideoWrapper's
+        // text_embed_cache. Deleting one breaks the pack and a reinstall brings
+        // it straight back, and the prune route pins deletions to models/ and
+        // would refuse it anyway — so offering it was a promise the tool could
+        // not keep.
+        if (relLower.startsWith('custom_nodes/')) {
+            packedBy.push(relLower.split('/')[1] || 'a node pack');
+        }
+        const codeHit = code.names.get(name);
+        if (codeHit) packedBy.push(codeHit);
+        for (const seg of relLower.split('/')) {
+            const owner = code.folders.get(seg);
+            if (owner && !packedBy.includes(owner)) packedBy.push(owner);
+        }
+
         // Inside a staged repo's folder? Then the bundle that stages it needs
         // this file, whatever its name.
-        const relLower = String(hit.rel || '').split('\\').join('/').toLowerCase();
         for (const claim of repoClaims) {
             if (relLower.includes(`/${claim.prefix}/`) || relLower.startsWith(`${claim.prefix}/`)) {
                 used.push(claim.bundle);
@@ -393,13 +487,19 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
             // gemma path ending in the same "model.safetensors". Over-
             // protection costs disk, not data, but it should be visible.
             genericName: GENERIC_BASENAMES.has(name),
+            // Other paths on disk with this same basename. Usage is matched by
+            // basename, so when there are several we cannot say which copy any
+            // reference meant.
+            otherCopies: hit.others || [],
             usedBy: used,
             templateOnly: tpl,
             dropdowns: [...new Set(drops)].sort(),
+            packCode: packedBy.sort(),
             external: ext,
             nodeTypes,
             textOnly,
-            unused: !used.length && !tpl.length && !ext.length && !drops.length,
+            unused: !used.length && !tpl.length && !ext.length && !drops.length
+                && !packedBy.length,
         });
     }
     models.sort((a, b) => b.gb - a.gb);

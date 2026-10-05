@@ -57,6 +57,12 @@ const ModelPrune = ({
 
     useEffect(() => { load(); }, [load]);
 
+    // Drop the acknowledgement the moment it stops applying, so it can never be
+    // carried into a later, unrelated selection while its checkbox is hidden.
+    useEffect(() => {
+        if (allowLow && pickedLow.length === 0) setAllowLow(false);
+    }, [allowLow, pickedLow.length]);
+
     const unused = report?.models?.filter(m => m.unused) || [];
     const review = report?.models?.filter(m => !m.unused && m.textOnly) || [];
 
@@ -69,6 +75,8 @@ const ModelPrune = ({
     const pickedRows = unused.filter(m => picked.has(m.rel));
     const pickedGb = pickedRows.reduce((t, m) => t + m.gb, 0);
     const pickedLow = pickedRows.filter(m => m.confidence === 'low');
+    // Only ever true while a suspicious row is actually selected.
+    const allowLowEffective = allowLow && pickedLow.length > 0;
 
     const LEVELS = [
         { key: 'high', label: 'Confident', n: report?.totals?.confident, gb: report?.totals?.confidentGb, tone: 'text-success' },
@@ -90,7 +98,7 @@ const ModelPrune = ({
             const res = await fetch(`${SERVER_URL}/admin/models/prune`, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ files: [...picked], allowLow }),
+                body: JSON.stringify({ files: [...picked], allowLow: allowLowEffective }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
