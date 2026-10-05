@@ -205,22 +205,22 @@ picture is worth 46 s.
 
 ---
 
-## 6b. Qwen 2.1 base vs Viggle Turbo — a speed/quality pair, not a duplicate
+## 6b. Qwen 2.1 base vs Viggle Turbo — RESOLVED: the turbo bundle was removed (2026-10-05)
 
-`image_qwen_image_2_1_t2i` (25 steps, 14 s) and `image_qwen_image_2_1_viggle_turbo`
-(12 steps, 7 s) run the **same model and the same graph**; the turbo one adds a distilled
-LoRA. Identical VRAM (14.44 GB).
+Owner's call. `image_qwen_image_2_1_viggle_turbo` ran the same model and the same graph as
+`image_qwen_image_2_1_t2i` with a distilled LoRA on top — 12 steps / 7 s against 25 / 14 s,
+identical 14.44 GB. The merge-behind-a-Fast-toggle suggestion this section used to make was
+never taken up, and the bundle was deleted instead along with its 1.27 GB adapter.
 
-- **Pro of keeping both:** the turbo is about 2x faster at a comparable result, and excellent
-  on single subjects at 4-6 steps — but it GHOSTS (overlapping transparent copies) below
-  ~12 steps on prompts with several objects, and Viggle's own notes call it a preview that falls short on multi-reference
-  composition, face swaps and long rendered text. Iterate on the turbo, finish on the base.
-- **Con:** two cards for one model is exactly the kind of choice a student shouldn't have
-  to make. A single bundle with a "Fast / Quality" checkbox driving a `ComfySwitchNode`
-  (model base↔LoRA, steps 25↔12) is the pattern the Flux.2 and MiniMax bundles already use.
+Why it was the right cut rather than a merge: the speed only held while the prompt was
+simple. Below ~12 steps the distillation GHOSTS — several overlapping transparent copies of
+each object — on any prompt with more than one subject, and Viggle's own notes call v0.2 a
+preview that falls short on multi-reference composition, face swaps and long rendered text.
+A "Fast mode" that quietly degrades on busy prompts is a worse thing to hand a student than
+no fast mode, because the failure looks like bad luck rather than a setting.
 
-**Suggestion:** merge them behind a Fast-mode toggle once the turbo has been eyeballed on
-real classroom prompts. Until then keeping both is the honest arrangement.
+★ The base model's weights were **kept**: `qwen_image_2.1_int8_convrot`, `qwen3vl_8b_int8_convrot`
+and `qwen_image_2.1_vae_bf16` are shared with the production t2i bundle. Only the adapter went.
 
 ## 7. Not redundant, despite looking it
 
@@ -256,11 +256,12 @@ call about how many cards a student should be choosing between.
 
 ## Before cutting anything
 
-- **7 bundles have never produced a checked result** (the `experimental` flag):
-  `video_fastvideo_fasth3_i2v`, `video_fastvideo_fasth3_t2v`, `image_qwen_image_2_1_t2i`,
-  `image_qwen_image_2_1_image_edit`, `image_krea2_turbo_style_reference`,
-  `utility_marigold_v2_depth`, `utility_marigold_v2_normals`. A bundle that has never been
-  run is not evidence of anything — validate before comparing it with something.
-- **41 have no measured VRAM.** If the reason for cutting is fitting two models on one
+- **4 bundles have never produced a checked result** (the `experimental` flag, as of
+  2026-10-05): `image_qwen_image_2_1_control_canny`, `image_qwen_image_2_1_control_depth`,
+  `video_fastvideo_fasth3_i2v`, `video_fastvideo_fasth3_t2v`. A bundle that has never been
+  run is not evidence of anything — validate before comparing it with something. (The two
+  Marigold bundles that used to be on this list were removed; the Qwen t2i, Qwen image-edit
+  and Krea 2 style-reference ones have since been validated.)
+- **39 have no measured VRAM.** If the reason for cutting is fitting two models on one
   card, measure first: the static estimate was wrong by more than 1 GB on half the
   bundles measured so far, usually in the optimistic direction.
