@@ -13,7 +13,6 @@
     "transparent",
     "2k"
   ],
-  "experimental": true,
   "promptGuides": [
     {
       "label": "Qwen-Image-2.1 — official model card",
@@ -33,9 +32,18 @@
   "requirements": {
     "minVRAM": 18,
     "models": [
-      { "type": "unet", "file": "qwen_image_2.1_int8_convrot.safetensors" },
-      { "type": "clip", "file": "qwen3vl_8b_int8_convrot.safetensors" },
-      { "type": "vae", "file": "qwen_image_2.1_vae_bf16.safetensors" }
+      {
+        "type": "unet",
+        "file": "qwen_image_2.1_int8_convrot.safetensors"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_8b_int8_convrot.safetensors"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_2.1_vae_bf16.safetensors"
+      }
     ]
   },
   "estimatedDurationSec": 30,
