@@ -22,23 +22,31 @@
     "models": [
       {
         "type": "unet",
-        "file": "qwen_image_edit_2511_bf16.safetensors"
+        "file": "qwen_image_edit_2511_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI"
       },
       {
         "type": "clip",
-        "file": "qwen_2.5_vl_7b_fp8_scaled.safetensors"
+        "file": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI"
       },
       {
         "type": "vae",
-        "file": "qwen_image_vae.safetensors"
+        "file": "qwen_image_vae.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI"
       },
       {
         "type": "lora",
-        "file": "Qwen-Image-Edit-Unblur-Upscale_20.safetensors"
+        "file": "Qwen-Image-Edit-Unblur-Upscale_20.safetensors",
+        "source": "https://huggingface.co/prithivMLmods/Qwen-Image-Edit-2511-Unblur-Upscale",
+        "note": "Four training checkpoints (_5/_10/_15/_20) live in this repo; the bundle exposes them through a dropdown."
       },
       {
         "type": "lora",
-        "file": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors"
+        "file": "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors",
+        "source": "https://huggingface.co/lightx2v/Qwen-Image-Lightning"
       }
     ],
     "disabledPerfFlags": [

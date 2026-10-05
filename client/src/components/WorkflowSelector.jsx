@@ -433,7 +433,7 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                         <Clock size={12} />~{w.estimatedDurationSec}s {w.hasCalibration ? '' : '(uncalibrated)'}
                                     </span>
                                     <VramChip vram={w.vram} gpu={gpu} fit={anyLaneRunning ? fit : null} servedHere={!!lane} measured={w.calibration?.vramPeakGb || null} />
-                                    <ModelReadiness vram={w.vram} />
+                                    <ModelReadiness vram={w.vram} models={w.models} />
                                     {w.hasCalibration && w.calibration?.gpu && (
                                         <span className="flex items-center gap-1 text-success/80"
                                             title={`Time measured on this GPU. Move to a different GPU and re-calibrate for an accurate estimate.`}>

@@ -23,19 +23,26 @@
     "models": [
       {
         "type": "unet",
-        "file": "wan_animate_2_distill_int8_convrot.safetensors"
+        "file": "wan_animate_2_distill_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Wan-Animate-2"
       },
       {
         "type": "vae",
-        "file": "Wan2_1_VAE_bf16.safetensors"
+        "file": "Wan2_1_VAE_bf16.safetensors",
+        "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan2_1_VAE_bf16.safetensors",
+        "source": "https://huggingface.co/Kijai/WanVideo_comfy"
       },
       {
         "type": "other",
-        "file": "clip_vision_h.safetensors"
+        "file": "clip_vision_h.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/clip_vision/clip_vision_h.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged"
       },
       {
         "type": "clip",
-        "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+        "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged"
       }
     ]
   },

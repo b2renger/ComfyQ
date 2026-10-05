@@ -22,23 +22,33 @@
     "models": [
       {
         "type": "unet",
-        "file": "wan2.2_bernini_r_high_noise_fp8_scaled.safetensors"
+        "file": "wan2.2_bernini_r_high_noise_fp8_scaled.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Bernini-R/resolve/main/diffusion_models/wan2.2_bernini_r_high_noise_fp8_scaled.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Bernini-R"
       },
       {
         "type": "unet",
-        "file": "wan2.2_bernini_r_low_noise_fp8_scaled.safetensors"
+        "file": "wan2.2_bernini_r_low_noise_fp8_scaled.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Bernini-R/resolve/main/diffusion_models/wan2.2_bernini_r_low_noise_fp8_scaled.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Bernini-R"
       },
       {
         "type": "vae",
-        "file": "Wan2_1_VAE_bf16.safetensors"
+        "file": "Wan2_1_VAE_bf16.safetensors",
+        "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Wan2_1_VAE_bf16.safetensors",
+        "source": "https://huggingface.co/Kijai/WanVideo_comfy"
       },
       {
         "type": "clip",
-        "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors"
+        "file": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged"
       },
       {
         "type": "lora",
-        "file": "lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors"
+        "file": "lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors",
+        "url": "https://huggingface.co/Kijai/WanVideo_comfy/resolve/main/Lightx2v/lightx2v_T2V_14B_cfg_step_distill_v2_lora_rank64_bf16.safetensors",
+        "source": "https://huggingface.co/Kijai/WanVideo_comfy"
       }
     ]
   },

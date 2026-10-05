@@ -22,11 +22,17 @@
     "models": [
       {
         "type": "other",
-        "file": "seedvr2_ema_3b_fp16.safetensors"
+        "file": "seedvr2_ema_3b_fp16.safetensors",
+        "auto": true,
+        "note": "Downloaded by the seedvr2_videoupscaler pack into models/SEEDVR2/.",
+        "source": "https://huggingface.co/numz/SeedVR2_comfyUI"
       },
       {
         "type": "vae",
-        "file": "ema_vae_fp16.safetensors"
+        "file": "ema_vae_fp16.safetensors",
+        "auto": true,
+        "note": "SeedVR2's VAE, downloaded by the pack into models/SEEDVR2/.",
+        "source": "https://huggingface.co/numz/SeedVR2_comfyUI"
       }
     ]
   },

@@ -22,7 +22,9 @@
     "models": [
       {
         "type": "checkpoint",
-        "file": "sam3.1_multiplex_fp16.safetensors"
+        "file": "sam3.1_multiplex_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/sam3.1/resolve/main/checkpoints/sam3.1_multiplex_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/sam3.1"
       }
     ]
   },

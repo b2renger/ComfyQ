@@ -121,7 +121,20 @@ const WorkflowMeta = z.object({
             // Adding an enum value is backwards compatible; every existing meta
             // still validates.
             type: z.enum(['unet', 'vae', 'clip', 'lora', 'checkpoint', 'controlnet', 'other']),
-            file: z.string()
+            file: z.string(),
+            // Where this weight comes from, harvested by tools/model-provenance
+            // from the download links the workflows' own notes already carry.
+            // `url` is a DIRECT, fetchable file (so a download can be offered);
+            // `source` is a page for a human, for when only the repo is known.
+            // The distinction is the whole point: a wrong direct link downloads
+            // the wrong weights silently.
+            url: z.string().url().optional(),
+            source: z.string().url().optional(),
+            // true when a node pack or pipeline fetches this itself. Such an
+            // entry is not a file to look for under models/, so it must never
+            // be reported missing and nothing should offer to download it.
+            auto: z.boolean().optional(),
+            note: z.string().optional()
         })).default([]),
         // Global ComfyUI performance flags this workflow cannot run with (it
         // doesn't crash — it saves black images). The ComfyUI that serves or

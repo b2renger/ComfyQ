@@ -1,0 +1,6 @@
+{
+  "_README": "Links proved dead (404) by verify.cjs. harvest.cjs will not re-add these, however they appear in a workflow note. Delete an entry to let it be tried again.",
+  "dead": [
+    "https://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/loras/flux2_klein_9b_refcontrol_depth.safetensors"
+  ]
+}

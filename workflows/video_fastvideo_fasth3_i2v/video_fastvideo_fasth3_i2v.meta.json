@@ -37,19 +37,27 @@
     "models": [
       {
         "type": "unet",
-        "file": "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors"
+        "file": "fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/FastVideo/FastVideo-FastH3-Comfy/resolve/main/diffusion_models/fastvideo_fasth3_8step_v2_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/FastVideo/FastVideo-FastH3-Comfy"
       },
       {
         "type": "clip",
-        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
       },
       {
         "type": "vae",
-        "file": "minimax_h3_video_vae_fp16.safetensors"
+        "file": "minimax_h3_video_vae_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
       },
       {
         "type": "vae",
-        "file": "minimax_h3_audio_vae_fp32.safetensors"
+        "file": "minimax_h3_audio_vae_fp32.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
       }
     ]
   },

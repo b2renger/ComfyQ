@@ -23,7 +23,9 @@
     "models": [
       {
         "type": "clip",
-        "file": "gemma4_e4b_it_fp8_scaled.safetensors"
+        "file": "gemma4_e4b_it_fp8_scaled.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e4b_it_fp8_scaled.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/gemma-4"
       }
     ]
   },

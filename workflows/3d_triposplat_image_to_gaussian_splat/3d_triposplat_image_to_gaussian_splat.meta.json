@@ -18,11 +18,36 @@
   "requirements": {
     "minVRAM": 16,
     "models": [
-      { "type": "unet", "file": "triposplat_fp16.safetensors" },
-      { "type": "clip", "file": "dino_v3_vit_h.safetensors" },
-      { "type": "vae", "file": "triposplat_vae_decoder_fp16.safetensors" },
-      { "type": "vae", "file": "flux2-vae.safetensors" },
-      { "type": "other", "file": "birefnet.safetensors" }
+      {
+        "type": "unet",
+        "file": "triposplat_fp16.safetensors",
+        "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/diffusion_models/triposplat_fp16.safetensors",
+        "source": "https://huggingface.co/VAST-AI/TripoSplat"
+      },
+      {
+        "type": "clip",
+        "file": "dino_v3_vit_h.safetensors",
+        "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/clip_vision/dino_v3_vit_h.safetensors",
+        "source": "https://huggingface.co/VAST-AI/TripoSplat"
+      },
+      {
+        "type": "vae",
+        "file": "triposplat_vae_decoder_fp16.safetensors",
+        "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/triposplat_vae_decoder_fp16.safetensors",
+        "source": "https://huggingface.co/VAST-AI/TripoSplat"
+      },
+      {
+        "type": "vae",
+        "file": "flux2-vae.safetensors",
+        "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/flux2-vae.safetensors",
+        "source": "https://huggingface.co/VAST-AI/TripoSplat"
+      },
+      {
+        "type": "other",
+        "file": "birefnet.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/BiRefNet/resolve/main/background_removal/birefnet.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/BiRefNet"
+      }
     ]
   },
   "estimatedDurationSec": 120,

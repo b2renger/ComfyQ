@@ -26,23 +26,33 @@
     "models": [
       {
         "type": "unet",
-        "file": "pixal3d_multiview_int8_convrot.safetensors"
+        "file": "pixal3d_multiview_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Pixal3D/resolve/main/diffusion_models/pixal3d_multiview_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Pixal3D"
       },
       {
         "type": "vae",
-        "file": "trellis_2_shape_vae_bf16.safetensors"
+        "file": "trellis_2_shape_vae_bf16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Pixal3D/resolve/main/vae/trellis_2_shape_vae_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Pixal3D"
       },
       {
         "type": "vae",
-        "file": "trellis_2_texture_vae_bf16.safetensors"
+        "file": "trellis_2_texture_vae_bf16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Pixal3D/resolve/main/vae/trellis_2_texture_vae_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Pixal3D"
       },
       {
         "type": "clip",
-        "file": "dino_v3_L_naf_fp32.safetensors"
+        "file": "dino_v3_L_naf_fp32.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Pixal3D/resolve/main/clip_vision/dino_v3_L_naf_fp32.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Pixal3D"
       },
       {
         "type": "other",
-        "file": "birefnet.safetensors"
+        "file": "birefnet.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/BiRefNet/resolve/main/background_removal/birefnet.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/BiRefNet"
       }
     ]
   },

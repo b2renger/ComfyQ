@@ -19,8 +19,20 @@
   "requirements": {
     "minVRAM": 24,
     "models": [
-      { "type": "other", "file": "microsoft/TRELLIS.2-4B" },
-      { "type": "other", "file": "facebook/dinov3-vitl16-pretrain-lvd1689m" }
+      {
+        "type": "other",
+        "file": "microsoft/TRELLIS.2-4B",
+        "auto": true,
+        "note": "A HuggingFace repo the pipeline stages through, not a file in models/. About 17 GB on disk.",
+        "source": "https://huggingface.co/microsoft/TRELLIS.2-4B"
+      },
+      {
+        "type": "other",
+        "file": "facebook/dinov3-vitl16-pretrain-lvd1689m",
+        "auto": true,
+        "note": "Staged by the TRELLIS.2 pipeline; gated on HuggingFace, so it needs an accepted licence and a token.",
+        "source": "https://huggingface.co/facebook/dinov3-vitl16-pretrain-lvd1689m"
+      }
     ]
   },
   "estimatedDurationSec": 300,

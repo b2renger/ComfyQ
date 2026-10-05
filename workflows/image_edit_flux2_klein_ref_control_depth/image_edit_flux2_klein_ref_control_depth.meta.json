@@ -36,23 +36,32 @@
     "models": [
       {
         "type": "unet",
-        "file": "flux-2-klein-9b-fp8.safetensors"
+        "file": "flux-2-klein-9b-fp8.safetensors",
+        "url": "https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8/resolve/main/flux-2-klein-9b-fp8.safetensors",
+        "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-9b-fp8"
       },
       {
         "type": "lora",
-        "file": "flux2_klein_9b_refcontrol_depth.safetensors"
+        "file": "flux2_klein_9b_refcontrol_depth.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/flux2-klein-9B",
+        "note": "Comfy-Org's Klein repack. The exact path inside the repo is not recorded; the constructed split_files/loras/ guess 404s."
       },
       {
         "type": "clip",
-        "file": "qwen_3_8b_fp8mixed.safetensors"
+        "file": "qwen_3_8b_fp8mixed.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/flux2-klein-9B"
       },
       {
         "type": "vae",
-        "file": "flux2-vae.safetensors"
+        "file": "flux2-vae.safetensors",
+        "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/flux2-vae.safetensors",
+        "source": "https://huggingface.co/VAST-AI/TripoSplat"
       },
       {
         "type": "other",
-        "file": "da3_large.safetensors"
+        "file": "da3_large.safetensors",
+        "source": "https://huggingface.co/depth-anything/DA3-LARGE-1.1"
       }
     ]
   },

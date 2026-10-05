@@ -19,10 +19,33 @@
   "requirements": {
     "minVRAM": 24,
     "models": [
-      { "type": "other", "file": "Pixal3D/TencentARC_Pixal3D" },
-      { "type": "other", "file": "Pixal3D/camenduru_dinov3-vitl16-pretrain-lvd1689m" },
-      { "type": "other", "file": "Pixal3D/briaai_RMBG-2.0" },
-      { "type": "other", "file": "geometry_estimation/moge_2_vitl_normal_fp16.safetensors" }
+      {
+        "type": "other",
+        "file": "Pixal3D/TencentARC_Pixal3D",
+        "auto": true,
+        "note": "A HuggingFace repo the Pixal3D pack stages through, not a file in models/. About 23 GB on disk.",
+        "source": "https://huggingface.co/TencentARC/Pixal3D"
+      },
+      {
+        "type": "other",
+        "file": "Pixal3D/camenduru_dinov3-vitl16-pretrain-lvd1689m",
+        "auto": true,
+        "note": "An ungated mirror of facebook/dinov3-vitl16-pretrain-lvd1689m, staged by the Pixal3D pack.",
+        "source": "https://huggingface.co/camenduru/dinov3-vitl16-pretrain-lvd1689m"
+      },
+      {
+        "type": "other",
+        "file": "Pixal3D/briaai_RMBG-2.0",
+        "auto": true,
+        "note": "Background removal, staged by the Pixal3D pack. Non-commercial licence.",
+        "source": "https://huggingface.co/briaai/RMBG-2.0"
+      },
+      {
+        "type": "other",
+        "file": "geometry_estimation/moge_2_vitl_normal_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MoGe/resolve/main/geometry_estimation/moge_2_vitl_normal_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MoGe"
+      }
     ]
   },
   "estimatedDurationSec": 90,

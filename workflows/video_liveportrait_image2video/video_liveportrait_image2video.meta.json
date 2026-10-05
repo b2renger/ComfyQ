@@ -23,11 +23,15 @@
     "models": [
       {
         "type": "other",
-        "file": "LivePortrait (auto-downloaded by (Down)Load LivePortraitModels)"
+        "file": "LivePortrait (auto-downloaded by (Down)Load LivePortraitModels)",
+        "auto": true,
+        "note": "The LivePortraitKJ pack downloads these on first use; no filename is named in the graph, so nothing here can be checked against the disk."
       },
       {
         "type": "other",
-        "file": "InsightFace + MediaPipe face croppers (auto-downloaded)"
+        "file": "InsightFace + MediaPipe face croppers (auto-downloaded)",
+        "auto": true,
+        "note": "Face detectors the LivePortrait cropper fetches itself. Only the MediaPipe cropper is wired in this bundle."
       }
     ]
   },

@@ -201,7 +201,11 @@ class WorkflowRegistry {
                 hidden: merged.hidden === true,
                 experimental: meta.experimental === true,
                 // ComfyUI speed-up flags this workflow is served without.
-                disabledPerfFlags: meta.requirements?.disabledPerfFlags || []
+                disabledPerfFlags: meta.requirements?.disabledPerfFlags || [],
+                // Where each weight comes from, so a card can link to it — and
+                // above all so a MISSING model can say where to get it. Filled
+                // by tools/model-provenance from the workflows own notes.
+                models: merged.requirements?.models || []
             },
             effective: merged
         };

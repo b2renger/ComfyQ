@@ -38,39 +38,59 @@
     "models": [
       {
         "type": "unet",
-        "file": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors"
+        "file": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.5"
       },
       {
         "type": "clip",
-        "file": "gemma4_e2b_it_bf16.safetensors"
+        "file": "gemma4_e2b_it_bf16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e2b_it_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/gemma-4"
       },
       {
         "type": "clip",
-        "file": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors"
+        "file": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.5"
       },
       {
         "type": "vae",
-        "file": "ltx-2.5-audio-vae-bf16.safetensors"
+        "file": "ltx-2.5-audio-vae-bf16.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/vae/ltx-2.5-audio-vae-bf16.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.5"
       },
       {
         "type": "vae",
-        "file": "ltx-2.5-video-vae-bf16.safetensors"
+        "file": "ltx-2.5-video-vae-bf16.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/vae/ltx-2.5-video-vae-bf16.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.5"
       },
       {
         "type": "lora",
-        "file": "ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors"
+        "file": "ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-Union-Control/resolve/main/ltx-2.3-22b-ic-lora-union-control-ref0.5.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-Union-Control"
       },
       {
         "type": "other",
-        "file": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors"
+        "file": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.5"
       },
       {
         "type": "other",
-        "file": "yolox_l.torchscript.pt"
+        "file": "yolox_l.torchscript.pt",
+        "auto": true,
+        "note": "Fetched by comfyui_controlnet_aux into its own ckpts/ folder, not models/. Use the TorchScript build, not the .onnx one -- this rig's onnxruntime is CPU-only, which makes DWPose 12x slower.",
+        "source": "https://huggingface.co/hr16/yolox-onnx"
       },
       {
         "type": "other",
-        "file": "dw-ll_ucoco_384_bs5.torchscript.pt"
+        "file": "dw-ll_ucoco_384_bs5.torchscript.pt",
+        "auto": true,
+        "note": "Fetched by comfyui_controlnet_aux into its own ckpts/ folder, not models/.",
+        "source": "https://huggingface.co/hr16/DWPose-TorchScript-BatchSize5"
       }
     ]
   },

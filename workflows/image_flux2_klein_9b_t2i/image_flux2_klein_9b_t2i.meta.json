@@ -27,15 +27,21 @@
     "models": [
       {
         "type": "unet",
-        "file": "flux-2-klein-base-9b-fp8.safetensors"
+        "file": "flux-2-klein-base-9b-fp8.safetensors",
+        "url": "https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9b-fp8/resolve/main/flux-2-klein-base-9b-fp8.safetensors",
+        "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9b-fp8"
       },
       {
         "type": "vae",
-        "file": "flux2-vae.safetensors"
+        "file": "flux2-vae.safetensors",
+        "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/flux2-vae.safetensors",
+        "source": "https://huggingface.co/VAST-AI/TripoSplat"
       },
       {
         "type": "clip",
-        "file": "qwen_3_8b_fp8mixed.safetensors"
+        "file": "qwen_3_8b_fp8mixed.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/flux2-klein-9B"
       }
     ]
   },

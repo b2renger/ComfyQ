@@ -34,15 +34,21 @@
     "models": [
       {
         "type": "unet",
-        "file": "qwen_image_2.1_int8_convrot.safetensors"
+        "file": "qwen_image_2.1_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1"
       },
       {
         "type": "clip",
-        "file": "qwen3vl_8b_int8_convrot.safetensors"
+        "file": "qwen3vl_8b_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1"
       },
       {
         "type": "vae",
-        "file": "qwen_image_2.1_vae_bf16.safetensors"
+        "file": "qwen_image_2.1_vae_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/vae/qwen_image_2.1_vae_bf16.safetensors"
       }
     ]
   },

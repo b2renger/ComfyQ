@@ -37,27 +37,39 @@
     "models": [
       {
         "type": "unet",
-        "file": "minimax_h3_ref2va_pruned_int8_convrot.safetensors"
+        "file": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
       },
       {
         "type": "clip",
-        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
       },
       {
         "type": "vae",
-        "file": "minimax_h3_video_vae_fp16.safetensors"
+        "file": "minimax_h3_video_vae_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
       },
       {
         "type": "vae",
-        "file": "minimax_h3_audio_vae_fp32.safetensors"
+        "file": "minimax_h3_audio_vae_fp32.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
       },
       {
         "type": "lora",
-        "file": "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors"
+        "file": "minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
       },
       {
         "type": "other",
-        "file": "minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors"
+        "file": "minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/model_patches/minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
       }
     ]
   },

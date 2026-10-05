@@ -19,9 +19,24 @@
   "requirements": {
     "minVRAM": 8,
     "models": [
-      { "type": "checkpoint", "file": "stable_audio_3_medium.safetensors" },
-      { "type": "clip", "file": "t5gemma_b_b_ul2.safetensors" },
-      { "type": "clip", "file": "qwen3.5_2b_bf16.safetensors" }
+      {
+        "type": "checkpoint",
+        "file": "stable_audio_3_medium.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/stable-audio-3/resolve/main/checkpoints/stable_audio_3_medium.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/stable-audio-3"
+      },
+      {
+        "type": "clip",
+        "file": "t5gemma_b_b_ul2.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/stable-audio-3/resolve/main/text_encoders/t5gemma_b_b_ul2.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/stable-audio-3"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3.5_2b_bf16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen3.5/resolve/main/text_encoders/qwen3.5_2b_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen3.5"
+      }
     ]
   },
   "estimatedDurationSec": 60,
@@ -43,7 +58,12 @@
       "type": "select",
       "label": "Category",
       "default": "Music",
-      "options": ["Music", "Instrument", "SFX", "One-shot"],
+      "options": [
+        "Music",
+        "Instrument",
+        "SFX",
+        "One-shot"
+      ],
       "required": false,
       "order": 1
     },

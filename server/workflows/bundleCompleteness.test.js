@@ -123,5 +123,43 @@ test('every api.json node class appears in its template', () => {
     assert.deepStrictEqual(drifted, [], drifted.join(', '));
 });
 
+// ★ Every model a bundle declares must say where it comes from, or a rig that
+// does not have it can only be told "missing" with nowhere to go. The links are
+// harvested from the workflows' own notes by tools/model-provenance, so a new
+// bundle normally gets this for free — this check is what makes sure nobody
+// ships one that quietly has no source.
+//
+// The exceptions are named, not a count: these are community files whose origin
+// genuinely is not recorded anywhere, and a guessed URL would be worse than the
+// gap (it would download the wrong weights). Shrink this list, never grow it
+// without knowing why.
+const UNSOURCED_OK = new Set([
+    '3DREAL-strong.safetensors',                            // community LTX IC-LoRA
+    'DynamicCharacterSheet_krea2_v1.safetensors',           // community Krea 2 LoRA
+    'QuadView_krea2_v1.safetensors',                        // community Krea 2 LoRA
+    'qwen-image-edit-2511-multiple-angles-lora.safetensors',
+    'wan_2.1_idv2v_int8_convrot.safetensors',               // int8_convrot line
+]);
+
+test('every declared model says where it comes from', () => {
+    const base = (v) => String(v || '').split('\\').join('/').split('/').pop();
+    const gaps = [];
+    for (const id of ids) {
+        const mp = path.join(WORKFLOWS, id, `${id}.meta.json`);
+        if (!fs.existsSync(mp)) continue;
+        const meta = JSON.parse(fs.readFileSync(mp, 'utf8'));
+        for (const m of (meta.requirements?.models || [])) {
+            // `auto` means a node pack fetches it: declared and excused.
+            if (m.auto || m.url || m.source) continue;
+            if (UNSOURCED_OK.has(base(m.file))) continue;
+            gaps.push(`${id} -> ${m.file}`);
+        }
+    }
+    assert.deepStrictEqual(gaps, [],
+        `no url/source for:\n       ${gaps.join('\n       ')}\n`
+        + '       Add it to tools/model-provenance/known-sources.json, then run\n'
+        + '       node tools/model-provenance/harvest.cjs --write');
+});
+
 console.log(`\n${passed} checks passed over ${ids.length} bundles`);
 if (process.exitCode) process.exit(process.exitCode);

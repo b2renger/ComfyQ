@@ -23,7 +23,9 @@
     "models": [
       {
         "type": "other",
-        "file": "film_net_fp16.safetensors"
+        "file": "film_net_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/frame_interpolation/resolve/main/frame_interpolation/film_net_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/frame_interpolation"
       }
     ]
   },

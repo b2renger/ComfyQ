@@ -20,27 +20,39 @@
   "apiFormat": true,
   "requirements": {
     "minVRAM": 20,
-    "disabledPerfFlags": ["use_sage_attention"],
+    "disabledPerfFlags": [
+      "use_sage_attention"
+    ],
     "models": [
       {
         "type": "unet",
-        "file": "qwen_image_edit_2509_fp8_e4m3fn.safetensors"
+        "file": "qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_edit_2509_fp8_e4m3fn.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI"
       },
       {
         "type": "clip",
-        "file": "qwen_2.5_vl_7b_fp8_scaled.safetensors"
+        "file": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI"
       },
       {
         "type": "vae",
-        "file": "qwen_image_vae.safetensors"
+        "file": "qwen_image_vae.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI"
       },
       {
         "type": "lora",
-        "file": "Qwen-Edit-2509-Multiple-angles.safetensors"
+        "file": "Qwen-Edit-2509-Multiple-angles.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI/resolve/main/split_files/loras/Qwen-Edit-2509-Multiple-angles.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit_ComfyUI"
       },
       {
         "type": "lora",
-        "file": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors"
+        "file": "Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+        "url": "https://huggingface.co/lightx2v/Qwen-Image-Lightning/resolve/main/Qwen-Image-Edit-2509/Qwen-Image-Edit-2509-Lightning-4steps-V1.0-bf16.safetensors",
+        "source": "https://huggingface.co/lightx2v/Qwen-Image-Lightning"
       }
     ]
   },

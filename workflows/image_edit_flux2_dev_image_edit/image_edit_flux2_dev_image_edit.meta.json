@@ -31,19 +31,27 @@
     "models": [
       {
         "type": "unet",
-        "file": "flux2_dev_fp8mixed.safetensors"
+        "file": "flux2_dev_fp8mixed.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/diffusion_models/flux2_dev_fp8mixed.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/flux2-dev"
       },
       {
         "type": "vae",
-        "file": "full_encoder_small_decoder.safetensors"
+        "file": "full_encoder_small_decoder.safetensors",
+        "url": "https://huggingface.co/black-forest-labs/FLUX.2-small-decoder/resolve/main/full_encoder_small_decoder.safetensors",
+        "source": "https://huggingface.co/black-forest-labs/FLUX.2-small-decoder"
       },
       {
         "type": "clip",
-        "file": "mistral_3_small_flux2_bf16.safetensors"
+        "file": "mistral_3_small_flux2_bf16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/text_encoders/mistral_3_small_flux2_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/flux2-dev"
       },
       {
         "type": "lora",
-        "file": "Flux_2-Turbo-LoRA_comfyui.safetensors"
+        "file": "Flux_2-Turbo-LoRA_comfyui.safetensors",
+        "url": "https://huggingface.co/ByteZSzn/Flux.2-Turbo-ComfyUI/resolve/main/Flux_2-Turbo-LoRA_comfyui.safetensors",
+        "source": "https://huggingface.co/ByteZSzn/Flux.2-Turbo-ComfyUI"
       }
     ]
   },
