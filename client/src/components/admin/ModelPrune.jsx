@@ -34,6 +34,9 @@ const ModelPrune = ({
     const [showReview, setShowReview] = useState(false);
     const [showAll, setShowAll] = useState(false);
     const [showDirs, setShowDirs] = useState(false);
+    // Opens on the confident group; the wider sets are a deliberate click.
+    const [level, setLevel] = useState('high');
+    const [allowLow, setAllowLow] = useState(false);
     const [showMissing, setShowMissing] = useState(false);
 
     const load = useCallback(async () => {
@@ -56,10 +59,24 @@ const ModelPrune = ({
 
     const unused = report?.models?.filter(m => m.unused) || [];
     const review = report?.models?.filter(m => !m.unused && m.textOnly) || [];
-    const shown = showAll ? unused : unused.slice(0, 25);
-    const pickedGb = unused
-        .filter(m => picked.has(m.rel))
-        .reduce((t, m) => t + m.gb, 0);
+
+    // ★ The list opens on the CONFIDENT set only. "Nothing references it" is a
+    // weaker claim than it sounds — a near-miss here already put a 1.82 GB LoRA
+    // two templates load on this list — so the wider sets are a deliberate
+    // click, not the default view.
+    const atLevel = level === 'all' ? unused : unused.filter(m => m.confidence === level);
+    const shown = showAll ? atLevel : atLevel.slice(0, 25);
+    const pickedRows = unused.filter(m => picked.has(m.rel));
+    const pickedGb = pickedRows.reduce((t, m) => t + m.gb, 0);
+    const pickedLow = pickedRows.filter(m => m.confidence === 'low');
+
+    const LEVELS = [
+        { key: 'high', label: 'Confident', n: report?.totals?.confident, gb: report?.totals?.confidentGb, tone: 'text-success' },
+        { key: 'medium', label: 'Worth a look', n: report?.totals?.unsure, gb: report?.totals?.unsureGb, tone: 'text-warning' },
+        { key: 'low', label: 'Suspicious', n: report?.totals?.suspicious, gb: report?.totals?.suspiciousGb, tone: 'text-danger' },
+        { key: 'all', label: 'Everything', n: unused.length, gb: report?.totals?.unusedGb, tone: 'text-muted' },
+    ];
+    const TONE = { high: 'text-success', medium: 'text-warning', low: 'text-danger' };
 
     const toggle = (rel) => setPicked(p => {
         const next = new Set(p);
@@ -73,7 +90,7 @@ const ModelPrune = ({
             const res = await fetch(`${SERVER_URL}/admin/models/prune`, {
                 method: 'POST',
                 headers,
-                body: JSON.stringify({ files: [...picked] }),
+                body: JSON.stringify({ files: [...picked], allowLow }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
@@ -83,6 +100,7 @@ const ModelPrune = ({
             onToast?.(`Deleted ${data.deleted.length} file(s), ${data.freedGb} GB freed.${refused}`,
                 data.refused?.length ? 'err' : 'ok');
             setConfirming(false);
+            setAllowLow(false);
             await load();
         } catch (e) {
             onToast?.(`Could not prune: ${e.message}`, 'err');
@@ -263,26 +281,68 @@ const ModelPrune = ({
                         </p>
                     ) : (
                         <>
+                            {/* How sure we are, per file — opening on the confident
+                                set, because "nothing references it" is a weaker
+                                claim than it sounds. */}
+                            <div className="flex items-center gap-1 flex-wrap mb-2">
+                                {LEVELS.map(l => (
+                                    <button key={l.key} type="button"
+                                        onClick={() => { setLevel(l.key); setShowAll(false); setPicked(new Set()); }}
+                                        className={`px-2 py-1 rounded-full text-xs border transition-colors
+                                            ${level === l.key
+                                                ? 'border-primary/50 bg-primary/10 text-primary'
+                                                : `border-border bg-surface ${l.tone} hover:border-primary/40`}`}>
+                                        {l.label} <span className="opacity-70">{l.n ?? 0} · {l.gb ?? 0} GB</span>
+                                    </button>
+                                ))}
+                            </div>
+
+                            {level === 'high' && (
+                                <p className="text-xs text-muted mb-2">
+                                    Nothing on this machine mentions these and nothing on disk resembles them.
+                                    The other groups are reachable above — each row says why it is not here.
+                                </p>
+                            )}
+                            {level === 'low' && (
+                                <p className="text-xs text-danger mb-2">
+                                    Something about each of these is doubtful — usually that it looks like
+                                    another build of a model that IS in use. Read the reason before selecting
+                                    one, and do not bulk-select this group.
+                                </p>
+                            )}
+
                             <div className="max-h-80 overflow-y-auto rounded-lg border border-border divide-y divide-border">
                                 {shown.map(m => (
                                     <label key={m.rel}
-                                        className="flex items-center gap-2 px-2 py-1.5 text-xs cursor-pointer hover:bg-surface">
+                                        className="flex items-start gap-2 px-2 py-1.5 text-xs cursor-pointer hover:bg-surface">
                                         <input
                                             type="checkbox"
                                             checked={picked.has(m.rel)}
                                             onChange={() => toggle(m.rel)}
-                                            className="flex-shrink-0"
+                                            className="flex-shrink-0 mt-0.5"
                                         />
                                         <span className="w-20 text-right text-muted flex-shrink-0">{m.gb} GB</span>
-                                        <span className="w-24 text-muted flex-shrink-0 truncate">{m.kind}</span>
-                                        <span className="font-mono break-all">{m.rel}</span>
+                                        <span className={`w-16 flex-shrink-0 ${TONE[m.confidence] || 'text-muted'}`}>
+                                            {m.confidence}
+                                        </span>
+                                        <span className="min-w-0">
+                                            <span className="font-mono break-all">{m.rel}</span>
+                                            {(m.confidenceReasons || [])
+                                                .filter(r => r.effect === 'lowers')
+                                                .slice(0, 2)
+                                                .map(r => (
+                                                    <span key={r.code} className="block text-muted/80">
+                                                        {r.detail}
+                                                    </span>
+                                                ))}
+                                        </span>
                                     </label>
                                 ))}
                             </div>
-                            {unused.length > shown.length && (
+                            {atLevel.length > shown.length && (
                                 <button type="button" onClick={() => setShowAll(true)}
                                     className="mt-2 text-xs text-primary hover:underline">
-                                    Show all {unused.length} — {report.totals.unusedGb} GB
+                                    Show all {atLevel.length} in this group
                                 </button>
                             )}
 
@@ -309,6 +369,21 @@ const ModelPrune = ({
                                     Delete selected
                                 </Button>
                             </div>
+
+                            {/* The server refuses a low-confidence file unless this is
+                                set, so the box is the only way past it — deliberately. */}
+                            {pickedLow.length > 0 && (
+                                <label className="mt-2 flex items-start gap-2 text-xs text-danger cursor-pointer">
+                                    <input type="checkbox" checked={allowLow}
+                                        onChange={(e) => setAllowLow(e.target.checked)}
+                                        className="mt-0.5 flex-shrink-0" />
+                                    <span>
+                                        {pickedLow.length} of the selected file(s) are marked suspicious and the
+                                        server will refuse them. Tick this only if you have read each reason and
+                                        are sure — that is the point of the mark.
+                                    </span>
+                                </label>
+                            )}
                         </>
                     )}
 
@@ -359,9 +434,11 @@ const ModelPrune = ({
                     <code className="mx-1">server/data/pruned-models.json</code> so there is a record.
                 </p>
                 <div className="max-h-56 overflow-y-auto rounded-lg border border-border p-2 mb-3">
-                    {unused.filter(m => picked.has(m.rel)).map(m => (
-                        <div key={m.rel} className="text-xs font-mono break-all">
-                            {m.gb} GB · {m.rel}
+                    {pickedRows.map(m => (
+                        <div key={m.rel} className="text-xs break-all">
+                            <span className={TONE[m.confidence] || 'text-muted'}>{m.confidence}</span>
+                            <span className="text-muted"> · {m.gb} GB · </span>
+                            <span className="font-mono">{m.rel}</span>
                         </div>
                     ))}
                 </div>

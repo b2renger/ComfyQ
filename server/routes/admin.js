@@ -11,6 +11,7 @@ const { validateApiWorkflow } = require('../workflows/workflowValidator');
 const { parseWorkflow } = require('../workflows/workflowParser');
 const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
 const { buildModelUsage } = require('../workflows/modelUsage');
+const { scoreDeletable } = require('../workflows/modelConfidence');
 const { resolveOutputPath } = require('../executor/outputCollector');
 const sm = require('../queue/jobStateMachine');
 const { ComfyRestClient } = require('../workers/comfyRestClient');
@@ -196,6 +197,14 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             .map(c => (c.entry === c.resolved ? c.entry : `${c.entry} (looked in ${c.resolved})`));
         report.comfyRoot = comfyRoot;
         report.scanDirs = configured;
+        // How sure we are about each "unused" verdict, with the reasons behind
+        // it. Scored after the scan because it needs the whole picture: what
+        // else is on disk, what a loader wants and cannot find, and which
+        // folders the scan was unable to read.
+        scoreDeletable(report, {
+            comfyRoot,
+            repoRoot: path.resolve(__dirname, '../..'),
+        });
         return report;
     }
 
@@ -238,6 +247,12 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     router.post('/models/prune', adminGate, express.json(), (req, res) => {
         const wanted = Array.isArray(req.body?.files) ? req.body.files : [];
         if (!wanted.length) return res.status(400).json({ error: 'no files given' });
+        // ★ A low-confidence row is one where we doubt WHICH file this is — a
+        // lookalike of something in use, a generic filename, or a model a
+        // loader is asking for under another spelling. Those need the admin to
+        // say so deliberately, not a bulk select. Medium is allowed: it means
+        // "we know why this is on the disk", not "we are unsure what it is".
+        const allowLow = req.body?.allowLow === true;
 
         let report;
         try { report = usageReport(); }
@@ -253,6 +268,14 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         for (const rel of wanted) {
             const m = byRel.get(rel);
             if (!m) { refused.push({ rel, why: 'not on this disk' }); continue; }
+            if (m.unused && m.confidence === 'low' && !allowLow) {
+                const first = (m.confidenceReasons || []).find(r => r.effect === 'lowers');
+                refused.push({
+                    rel,
+                    why: `low confidence — ${first ? first.detail : 'needs a closer look'}`,
+                });
+                continue;
+            }
             if (!m.unused) {
                 const who = m.usedBy.length ? `used by ${m.usedBy.join(', ')}`
                     : m.templateOnly.length ? `loaded by the editable template of ${m.templateOnly.join(', ')}`

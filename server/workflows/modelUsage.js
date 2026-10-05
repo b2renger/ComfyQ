@@ -355,6 +355,7 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
             rel: hit.rel,
             gb: +(hit.size / 1024 ** 3).toFixed(2),
             kind: hit.kind,
+            mtimeMs: hit.mtimeMs || 0,
             usedBy: used,
             templateOnly: tpl,
             dropdowns: [...new Set(drops)].sort(),

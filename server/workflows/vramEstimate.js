@@ -68,10 +68,14 @@ function buildModelIndex(comfyRoot) {
                 continue;
             }
             if (!WEIGHT_RX.test(e.name) || byName.has(e.name)) continue;
-            let size = 0;
-            try { size = fs.statSync(p).size; } catch { continue; }
+            let size = 0, mtimeMs = 0;
+            // mtime comes free with the stat we already do, and it answers
+            // "did someone add this last week?" — which is the difference
+            // between an abandoned model and one being worked with.
+            try { const st = fs.statSync(p); size = st.size; mtimeMs = st.mtimeMs; } catch { continue; }
             byName.set(e.name, {
                 size,
+                mtimeMs,
                 kind: kind || KIND_BY_DIR[top] || 'model',
                 // Relative to the install root, so it reads the way an admin
                 // would navigate to it: models/unet/x.safetensors.
