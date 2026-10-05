@@ -46,7 +46,7 @@
       "use_sage_attention"
     ]
   },
-  "estimatedDurationSec": 50,
+  "estimatedDurationSec": 4,
   "exposedParameters": [
     {
       "key": "loadimage_image_25",
