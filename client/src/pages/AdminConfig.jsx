@@ -7,6 +7,7 @@ import RunningWorkflows from '../components/admin/RunningWorkflows';
 import ModelPrune from '../components/admin/ModelPrune';
 import ModelDownloads from '../components/admin/ModelDownloads';
 import MaintenanceScripts from '../components/admin/MaintenanceScripts';
+import NodePacks from '../components/admin/NodePacks';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -84,6 +85,9 @@ const AdminConfig = ({ currentMode }) => {
     const [drives, setDrives] = useState([]); // mounted Windows drive letters
     const [detecting, setDetecting] = useState(false);
     const [comfyStatus, setComfyStatus] = useState(null);
+    // Which bundles want a node pack this machine does not have. Fetched once:
+    // a missing pack is a property of the install, not of the page.
+    const [nodePackGaps, setNodePackGaps] = useState(null);
     // This machine's label on the LAN (fleet monitor). Draft + saving flag.
     const [machineName, setMachineName] = useState('');
     const [scanDirs, setScanDirs] = useState([]);
@@ -96,6 +100,19 @@ const AdminConfig = ({ currentMode }) => {
     const [showClearHistoryConfirm, setShowClearHistoryConfirm] = useState(false);
     const [clearingHistory, setClearingHistory] = useState(false);
 
+
+    // Node-pack gaps, so a card can say a bundle cannot run here.
+    useEffect(() => {
+        let gone = false;
+        (async () => {
+            try {
+                const res = await fetch(`${SERVER_URL}/admin/nodepacks`);
+                const d = await res.json();
+                if (!gone) setNodePackGaps(d);
+            } catch { /* the Node packs card says so in detail */ }
+        })();
+        return () => { gone = true; };
+    }, [refreshKey]);
     useEffect(() => { reloadConfig(); reloadComfyStatus(); reloadDrives(); }, []);
 
     // Debounced password verification — hits the no-op /admin/verify-password
@@ -803,6 +820,7 @@ const AdminConfig = ({ currentMode }) => {
                     </div>
                     <WorkflowSelector
                         key={refreshKey}
+                        nodePackGaps={nodePackGaps}
                         selectedWorkflowId={config.workflows.activeWorkflowId}
                         activeWorkflowId={config.workflows.activeWorkflowId}
                         onSelect={(w) => setPickedWorkflow(w)}
@@ -1295,6 +1313,8 @@ const AdminConfig = ({ currentMode }) => {
                         </>
                     )}
                 </Card>
+
+                <NodePacks headers={adminHeaders()} onToast={showToast} />
                 </>
             )}
 

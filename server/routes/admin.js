@@ -11,6 +11,7 @@ const { validateApiWorkflow } = require('../workflows/workflowValidator');
 const { parseWorkflow } = require('../workflows/workflowParser');
 const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
 const { buildModelUsage } = require('../workflows/modelUsage');
+const { listInstalledPacks, missingNodePacks, readRequirements } = require('../workflows/nodePacks');
 const {
     scoreDeletable, auditRedownload, invalidateReferenceNames,
 } = require('../workflows/modelConfidence');
@@ -314,6 +315,81 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 .sort();
         } catch { /* no install configured */ }
         res.json({ folders: present });
+    });
+
+    // ---- Node packs -------------------------------------------------------
+    // A missing pack is the quietest way a bundle can be unrunnable: the
+    // class_type simply does not exist, so ComfyUI rejects the whole prompt
+    // and nothing says which pack was wanted. On THIS rig nothing is missing
+    // (0 across 61 bundles) -- the case this serves is a fresh machine, or a
+    // rig imaged before a pack was added.
+    async function packsReport() {
+        const { config } = configManager.load();
+        const comfyRoot = config.comfy_ui?.root_path || '';
+        // Live /object_info is the authority on what classes exist; the audit's
+        // cached copy answers when ComfyUI is down, and the report says which
+        // one it used so a stale answer is visible rather than assumed.
+        let objectInfo = null;
+        try {
+            const host = config.comfy_ui?.api_host || '127.0.0.1';
+            const port = config.comfy_ui?.api_port || 8188;
+            const r = await fetch(`http://${host}:${port}/object_info`, { signal: AbortSignal.timeout(8000) });
+            if (r.ok) objectInfo = await r.json();
+        } catch { /* down, or busy loading a model; the cache covers it */ }
+
+        const bundles = registry.list({ includeUnavailable: false, includeHidden: true })
+            .filter(e => e.apiWorkflow)
+            .map(e => ({ id: e.id, graph: e.apiWorkflow }));
+        const missing = missingNodePacks(bundles, comfyRoot, { objectInfo });
+        return {
+            installed: listInstalledPacks(comfyRoot).map(p => ({
+                ...p,
+                requirements: p.hasRequirements
+                    ? readRequirements(path.join(comfyRoot, 'custom_nodes', p.name)).risky
+                    : [],
+            })),
+            bundlesChecked: bundles.length,
+            ...missing,
+        };
+    }
+
+    router.get('/nodepacks', async (req, res) => {
+        try {
+            res.json({ available: true, ...(await packsReport()), jobs: runtime?.packs?.list() || [] });
+        } catch (e) {
+            res.status(500).json({ error: e.message });
+        }
+    });
+
+    router.get('/nodepacks/plan', (req, res) => {
+        const p = runtime?.packs;
+        if (!p) return res.status(503).json({ error: 'the installer is not available' });
+        res.json(p.plan(req.query.url));
+    });
+
+    // ★ git clone into custom_nodes -- ComfyUI's own code is never touched,
+    // and this is the pack authors' published instruction. pip is a separate
+    // call on purpose: one python_embeded is shared by every lane and every
+    // rig imaged from this drive.
+    router.post('/nodepacks/install', adminGate, express.json(), async (req, res) => {
+        const p = runtime?.packs;
+        if (!p) return res.status(503).json({ error: 'the installer is not available' });
+        const out = await p.install(req.body?.url);
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
+    router.post('/nodepacks/pip', adminGate, express.json(), async (req, res) => {
+        const p = runtime?.packs;
+        if (!p) return res.status(503).json({ error: 'the installer is not available' });
+        const out = await p.pipInstall(req.body?.folder, req.body?.acceptRisky === true);
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
+    router.post('/nodepacks/forget', adminGate, express.json(), (req, res) => {
+        const p = runtime?.packs;
+        if (!p) return res.status(503).json({ error: 'the installer is not available' });
+        const out = p.forget(req.body?.folder);
+        res.status(out.ok ? 200 : 400).json(out);
     });
 
     // ---- Maintenance: the scripts, runnable from here ---------------------

@@ -48,6 +48,7 @@ const { detectSystemInfo } = require('./federation/systemInfo');
 const { StatusBeacon } = require('./federation/beacon');
 const { ModelDownloader } = require('./models/modelDownloader');
 const { ScriptRunner } = require('./maintenance/scriptRunner');
+const { NodePackInstaller } = require('./models/nodePackInstaller');
 
 // Prints the URLs students should use from another machine on the LAN.
 // They open Vite (5173) in their browser; Vite serves plain HTTP and
@@ -219,6 +220,12 @@ async function main() {
     // The maintenance scripts (tools/maintenance), runnable from the panel
     // instead of a console.
     runtime.scripts = new ScriptRunner({
+        config: () => configManager.load().config,
+    });
+
+    // Node packs, installed from here by git clone rather than through
+    // ComfyUI-Manager's own interface.
+    runtime.packs = new NodePackInstaller({
         config: () => configManager.load().config,
     });
     app.use((req, res, next) => {

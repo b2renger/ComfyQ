@@ -4,7 +4,7 @@ import {
     RefreshCw, ChevronRight, Sparkles, Clock, Tag,
     Pencil, Trash2, Gauge, Cpu, FileText, Wrench, Search, X,
     ExternalLink, Power, Radio, Square, Brush, Film, FlaskConical, ShieldCheck, MemoryStick
-} from 'lucide-react';
+, PackageX } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import { SERVER_URL } from '../utils/api';
@@ -115,7 +115,27 @@ const VramChip = ({ vram, gpu, fit, servedHere, measured }) => {
  * Calls onSelect(workflowDetails) when a workflow is chosen.
  * Calls onPresetSelect(name, values) when a preset chip is clicked.
  */
-const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false, onValidate, validatingId = null,
+// A node pack this machine does not have. Louder than a missing model on
+// purpose: ComfyUI rejects the whole prompt for an unknown class_type, so the
+// student gets a failure that names nothing, and no amount of retrying helps.
+const MissingPackChip = ({ classes, packs }) => {
+    if (!classes?.length) return null;
+    const named = (packs || []).filter(p => p.classes.some(c => classes.includes(c)));
+    const where = named.length
+        ? named.map(p => p.title).join(', ')
+        : 'no pack database knows it';
+    return (
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]
+            font-medium border bg-danger/10 text-danger border-danger/20"
+            title={`This machine has no node for ${classes.join(', ')}.\nFrom: ${where}.\n\n`
+                + 'ComfyUI refuses the whole graph for an unknown class, so this bundle cannot run '
+                + 'here. Install it under Manage ComfyUI → Node packs, then restart ComfyUI.'}>
+            <PackageX size={12} />node pack missing
+        </span>
+    );
+};
+
+const WorkflowSelector = ({ nodePackGaps = null, selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false, onValidate, validatingId = null,
     lanes = [], laneFit = {}, onServeAlongside = null, serveAlongsideId = null, onCloseLane = null, closingLaneId = null }) => {
     const [workflows, setWorkflows] = useState([]);
     // This machine's card, so "17.3 GB" can be judged against what it has —
@@ -433,6 +453,9 @@ const WorkflowSelector = ({ selectedWorkflowId, activeWorkflowId, onSelect, onPr
                                         <Clock size={12} />~{w.estimatedDurationSec}s {w.hasCalibration ? '' : '(uncalibrated)'}
                                     </span>
                                     <VramChip vram={w.vram} gpu={gpu} fit={anyLaneRunning ? fit : null} servedHere={!!lane} measured={w.calibration?.vramPeakGb || null} />
+                                    <MissingPackChip
+                                        classes={nodePackGaps?.missingByBundle?.[w.id]}
+                                        packs={nodePackGaps?.packs} />
                                     <ModelReadiness vram={w.vram} models={w.models} />
                                     {w.hasCalibration && w.calibration?.gpu && (
                                         <span className="flex items-center gap-1 text-success/80"
