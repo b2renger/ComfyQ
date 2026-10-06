@@ -32,6 +32,9 @@ const VARIANT_TOKENS = [
     'distilled', 'turbo', 'lightning', 'lightx2v', 'comfyui', 'comfy', 'kj',
     'sharp', 'ema', 'dev', 'base', 'full', 'small', 'medium', 'large', 'xl',
     'step', 'steps', 'rank', 'alpha', 'lora', 'v', 'ver', 'version',
+    // `landmark_model.pth` and `landmark.onnx` are one model in two formats;
+    // without this they key apart and neither warns about the other.
+    'model', 'weights', 'ckpt', 'checkpoint',
     'q2k', 'q3km', 'q4km', 'q4_0', 'q5km', 'q6k', 'q8_0', 'gguf',
     '480p', '576p', '720p', '768p', '1024', '1080p', '2k', '4k',
 ];
@@ -56,7 +59,21 @@ function familyKey(name) {
     const kept = parts.filter(p => !VARIANT_RX.test(p) && !/^\d+$/.test(p)
         // "4step", "8steps", "v1", "rank256", "x2"
         && !/^\d+(step|steps|px|k|b)$/i.test(p)
-        && !/^v\d/i.test(p) && !/^x\d+$/i.test(p));
+        && !/^v\d/i.test(p) && !/^x\d+$/i.test(p))
+        // ★ Only NOW strip a version digit glued to a word: `wan2` -> `wan`.
+        // Doing it before the filter would turn `bf16` into `bf` + `16`, and `bf`
+        // is not in the variant list, so the precision token would survive and
+        // split families that used to group — measured against the audit's own
+        // BUILD clustering, that dropped agreement from 24 of 27 pairs to 7.
+        //
+        // The case this fixes is `wan_2.1_vae` against `Wan2.1_VAE`: one model
+        // written two ways, keyed `wan-vae` against `wan2-vae`, so neither
+        // carried a variant-sibling warning. It deliberately OVER-groups — flux1
+        // and flux2 key alike, and they are different models. That is the safe
+        // direction: the warning forces confidence DOWN, so a false sibling
+        // costs a sentence of noise, while a missed one can let the wrong half
+        // of a pair be deleted.
+        .map(p => p.replace(/\d+$/, '') || p);
     return kept.join('-');
 }
 
@@ -220,7 +237,14 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
                     + ' — usage is matched by filename, so we cannot tell the copies apart',
             });
         }
-        if (GENERIC_NAMES.has(folded)) {
+        // ★ Read the row's own flag, not a second copy of the list. There WERE
+        // two: modelUsage decided `genericName` and this read a set of its own,
+        // so widening one left the other behind — `model.fp16.safetensors` was
+        // flagged generic by the scan and still scored CONFIDENT here, which
+        // made the force-low guard decorative for exactly the names it exists
+        // for. The local set stays only as a fallback for a caller that hands us
+        // rows from somewhere else.
+        if (m.genericName || GENERIC_NAMES.has(folded)) {
             reasons.push({
                 code: 'generic-name', effect: 'lowers',
                 detail: 'the filename is too generic to match reliably: several repos ship a file'

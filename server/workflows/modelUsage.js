@@ -36,6 +36,27 @@ const GENERIC_BASENAMES = new Set([
     "adapter_model.safetensors", "open_clip_pytorch_model.safetensors",
 ]);
 
+// ★ The same stems with a precision tag in the middle. An exact-name set missed
+// `model.fp16.safetensors`, which reached the CONFIDENT tier on this rig — and a
+// name like that is the precise thing the generic-name doubt exists for, since
+// matching it by filename proves nothing about which copy anything meant. The
+// audit's own note on that file says as much: its apparent uses were an
+// easy-use download URL and a catalog entry for a DIFFERENT generic name.
+const GENERIC_STEMS = new Set([
+    'model', 'diffusion_pytorch_model', 'pytorch_model', 'weights',
+    'checkpoint', 'adapter_model', 'open_clip_pytorch_model',
+]);
+const PRECISION_TAG = /\.(fp16|fp32|bf16|fp8|int8|f16|f32|q[0-9]\w*)$/i;
+
+/** A basename too generic for a by-filename match to mean anything. */
+function isGenericBasename(name) {
+    const lower = String(name || '').toLowerCase();
+    if (GENERIC_BASENAMES.has(lower)) return true;
+    // strip the extension, then one precision tag: model.fp16.safetensors
+    const stem = lower.replace(/\.[^.]+$/, '').replace(PRECISION_TAG, '');
+    return GENERIC_STEMS.has(stem);
+}
+
 const SUFFIXES = ['.api.json', '_template.json'];
 
 // ComfyUI reports subfolder-qualified names on Windows (marigold_v2\x.safetensors).
@@ -532,7 +553,7 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
             // used by three LTX templates, when all they really name is a
             // gemma path ending in the same "model.safetensors". Over-
             // protection costs disk, not data, but it should be visible.
-            genericName: GENERIC_BASENAMES.has(name),
+            genericName: isGenericBasename(name),
             // Other paths on disk with this same basename. Usage is matched by
             // basename, so when there are several we cannot say which copy any
             // reference meant.
@@ -613,6 +634,6 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
 function invalidatePackCode() { _codeCache = { root: null, at: 0, value: null }; }
 
 module.exports = {
-    buildModelUsage, refsInGraph, namesInGraph, basename, isLoader,
+    buildModelUsage, refsInGraph, namesInGraph, basename, isLoader, isGenericBasename,
     packCodeClaims, invalidatePackCode,
 };

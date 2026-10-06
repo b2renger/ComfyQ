@@ -53,6 +53,18 @@ check('genuinely different models do NOT share one',
     !== familyKey('flux2_dev_fp8mixed.safetensors'));
 check('precision and quantisation tokens are what get stripped',
     familyKey('a_model_fp8_scaled.safetensors') === familyKey('a_model_bf16.safetensors'));
+// Checked against the audit's own BUILD clustering, which reads safetensors
+// metadata rather than names: it found 27 same-model pairs on this rig and this
+// was one of the 3 the name-based key used to miss — the SAME model written two
+// ways, so neither copy warned about the other.
+check('a version digit glued to a word does not split a family',
+    familyKey('wan_2.1_vae.safetensors') === familyKey('Wan2.1_VAE.safetensors'));
+check('and one model in two formats stays one family',
+    familyKey('landmark_model.pth') === familyKey('landmark.onnx'));
+// ⚠ The strip must not run before the variant filter: `bf16` would become `bf`,
+// which is not a variant token, and would then split families that do group.
+check('stripping a glued digit does not resurrect a precision token',
+    familyKey('thing_bf16.safetensors') === familyKey('thing_fp8.safetensors'));
 
 // 2. A lookalike of something IN USE is the strongest doubt there is.
 {
@@ -75,6 +87,18 @@ check('precision and quantisation tokens are what get stripped',
     check('a generic filename is low confidence', find(r, 'model.safetensors').confidence === 'low');
     check('...for the stated reason',
         find(r, 'model.safetensors').confidenceReasons.some(x => x.code === 'generic-name'));
+
+    // ★ The scan decides what is generic (modelUsage.isGenericBasename); this
+    // must READ that rather than keep a list of its own. It did keep one, and
+    // the two drifted: `model.fp16.safetensors` was flagged generic by the scan
+    // and still scored CONFIDENT here, so the force-low guard did nothing for
+    // the very names it exists for.
+    const flagged = score(makeReport([{ ...row('something_odd.safetensors'), genericName: true }]));
+    check('a row the scan flagged as generic is low here too',
+        find(flagged, 'something_odd.safetensors').confidence === 'low');
+    check('...even though this module has never heard of that name',
+        find(flagged, 'something_odd.safetensors').confidenceReasons
+            .some(x => x.code === 'generic-name'));
 }
 
 // 4. ★ A loader asking for a near-identical name suggests this IS that file

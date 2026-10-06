@@ -447,5 +447,21 @@ check('with every bundle present, exactly one file is prunable', settled.totals.
 check('and the reclaimable total is that one file',
     Math.abs(settled.totals.unusedGb - 16 / 1024) < 0.01);
 
+// ★ A name too generic to identify a file. The set used to be exact names, and
+// `model.fp16.safetensors` slipped past it into the CONFIDENT tier on this rig —
+// a precision tag in the middle of a generic stem is still a generic stem, and
+// matching it by filename proves nothing about which copy a reference meant.
+{
+    const { isGenericBasename } = require('./modelUsage');
+    for (const n of ['model.safetensors', 'model.fp16.safetensors', 'MODEL.BF16.safetensors',
+        'diffusion_pytorch_model.fp16.safetensors', 'pytorch_model.bin', 'weights.fp32.pth']) {
+        check(`generic: ${n}`, isGenericBasename(n) === true);
+    }
+    for (const n of ['qwen_image_2.1_int8_convrot.safetensors', 'seedvr2_ema_7b_sharp_fp16.safetensors',
+        'my_model.safetensors', 'modelscope_thing.safetensors']) {
+        check(`not generic: ${n}`, isGenericBasename(n) === false);
+    }
+}
+
 fs.rmSync(root, { recursive: true, force: true });
 console.log(`modelUsage: all ${ok.length} checks passed`);
