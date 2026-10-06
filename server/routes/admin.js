@@ -11,8 +11,15 @@ const { validateApiWorkflow } = require('../workflows/workflowValidator');
 const { parseWorkflow } = require('../workflows/workflowParser');
 const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
 const { buildModelUsage } = require('../workflows/modelUsage');
-const { scoreDeletable } = require('../workflows/modelConfidence');
+const {
+    scoreDeletable, auditRedownload, invalidateReferenceNames,
+} = require('../workflows/modelConfidence');
+const { invalidatePackCode } = require('../workflows/modelUsage');
+const { invalidateModelIndex } = require('../workflows/vramEstimate');
 const { KNOWN_DIRS: KNOWN_MODEL_DIRS } = require('../models/modelDestination');
+const {
+    quarantineRoot, quarantineFile, listQuarantine, restoreFile, emptyBatch,
+} = require('../models/modelQuarantine');
 const { resolveOutputPath } = require('../executor/outputCollector');
 const sm = require('../queue/jobStateMachine');
 const { ComfyRestClient } = require('../workers/comfyRestClient');
@@ -174,6 +181,29 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         res.json({ drives });
     });
 
+    // Every cached view the prune decision rests on, dropped together.
+    function invalidateUsageCaches() {
+        invalidateModelIndex();
+        invalidatePackCode();
+        invalidateReferenceNames();
+    }
+
+    // ★ Append-only JSON Lines, one record per file, written BEFORE the next
+    // file is touched. The previous version rewrote a single JSON array once
+    // after the whole loop, so an interruption lost the record of everything
+    // already moved — and a truncated file read as "no log yet", which the next
+    // prune then overwrote. With JSONL a damaged tail costs one line.
+    function appendPruneLog(entry) {
+        try {
+            const dataDir = path.resolve(__dirname, '..', 'data');
+            fs.mkdirSync(dataDir, { recursive: true });
+            fs.appendFileSync(path.join(dataDir, 'pruned-models.jsonl'),
+                JSON.stringify(entry) + String.fromCharCode(10));
+        } catch (e) {
+            console.warn('[Prune] could not write the prune log: ' + e.message);
+        }
+    }
+
     // ---- Maintenance: which models on disk are actually used -------------
     // Shares its engine with tools/model-provenance/exclusive.cjs on purpose:
     // if the panel and the command line disagreed about what is unused, one of
@@ -286,6 +316,40 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         res.json({ folders: present });
     });
 
+    // What is in quarantine, and the two things you can do with it.
+    function qRootNow() {
+        const { config } = configManager.load();
+        return quarantineRoot({
+            comfyRoot: config.comfy_ui?.root_path || '',
+            configured: config.maintenance?.quarantineDir,
+        });
+    }
+
+    router.get('/models/quarantine', (req, res) => {
+        res.json(listQuarantine({ root: qRootNow() }));
+    });
+
+    router.post('/models/quarantine/restore', adminGate, express.json(), (req, res) => {
+        const { config } = configManager.load();
+        const out = restoreFile({
+            root: qRootNow(),
+            batch: req.body?.batch,
+            rel: req.body?.rel,
+            comfyRoot: config.comfy_ui?.root_path || '',
+        });
+        // The file is back under models/, so every cached view is now wrong.
+        if (out.ok) invalidateUsageCaches();
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
+    // ★ The only irreversible step in the whole mechanism, and the only one
+    // that needs no re-derivation — by this point the admin has had every
+    // chance to look at what is held.
+    router.post('/models/quarantine/empty', adminGate, express.json(), (req, res) => {
+        const out = emptyBatch({ root: qRootNow(), batch: req.body?.batch });
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
     router.get('/models/usage', (req, res) => {
         try {
             res.json(usageReport());
@@ -308,6 +372,14 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         // "we know why this is on the disk", not "we are unsure what it is".
         const allowLow = req.body?.allowLow === true;
 
+        // ★ The route's promise is that it re-derives usage rather than
+        // trusting the browser. That was only half true: the pack-code scan and
+        // the reference-template scan are cached for ten minutes and the file
+        // index for thirty seconds, so a node pack installed minutes ago was
+        // invisible to the very check meant to catch exactly that. 126 GB here
+        // is protected by pack code alone, so the caches go for this request.
+        invalidateUsageCaches();
+
         let report;
         try { report = usageReport(); }
         catch (e) { return res.status(500).json({ error: e.message }); }
@@ -316,6 +388,39 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         if (!root) return res.status(409).json({ error: 'ComfyUI root path is not configured' });
         const modelsRoot = path.resolve(root, 'models');
         const byRel = new Map(report.models.map(m => [m.rel, m]));
+
+        // ★ A blind scan is not a confident one. When a configured folder could
+        // not be read the report is wrong about EVERY row, so nothing may go
+        // without the same deliberate acknowledgement a suspicious row needs.
+        // The scoring capped such a report at "medium", which was ungated.
+        const blind = report.scanned?.blind || [];
+        if (blind.length && !allowLow) {
+            return res.status(409).json({
+                error: 'the scan could not see everything it was told about ('
+                    + blind.join('; ') + ') — fix that first, or acknowledge the risk deliberately',
+                blind,
+            });
+        }
+
+        const { config: liveCfg } = configManager.load();
+        const qRoot = quarantineRoot({
+            comfyRoot: root,
+            configured: liveCfg.maintenance?.quarantineDir,
+        });
+        if (!qRoot) return res.status(409).json({ error: 'no quarantine folder could be determined' });
+        const stamp = new Date().toISOString();
+        const batch = stamp.replace(/[:.]/g, '-');
+
+        // Provenance, so the log records how to get each file back — gathered
+        // now, not hoped for later.
+        const prov = new Map();
+        for (const sum of registry.list()) {
+            for (const mm of (sum.models || [])) {
+                const key = String(mm.file || '').split(/[\\/]/).pop().toLowerCase();
+                if (key && !prov.has(key)) prov.set(key, { url: mm.url || null, source: mm.source || null });
+            }
+        }
+        const audit = auditRedownload(path.resolve(__dirname, '../..'));
 
         const deleted = [], refused = [];
         let freed = 0;
@@ -344,35 +449,42 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 refused.push({ rel, why: 'outside the models folder' });
                 continue;
             }
-            try {
-                const size = fs.statSync(abs).size;
-                fs.rmSync(abs);
-                freed += size;
-                deleted.push({ rel, name: m.name, gb: m.gb, kind: m.kind });
-            } catch (e) {
-                refused.push({ rel, why: e.message });
-            }
+            // ★ MOVED, not deleted. Every other safeguard reduces the chance of
+            // a wrong verdict; only this makes a wrong verdict recoverable, and
+            // a rename on the same volume is instant and free.
+            const moved = quarantineFile({ abs, rel, root: qRoot, batch });
+            if (!moved.ok) { refused.push({ rel, why: moved.error }); continue; }
+            freed += moved.bytes;
+            deleted.push({
+                rel, name: m.name, gb: m.gb, kind: m.kind,
+                bytes: moved.bytes,
+                quarantinedTo: path.relative(qRoot, moved.to).split(path.sep).join('/'),
+                // ★ Everything needed to fetch it again, recorded at the moment
+                // it is moved rather than hoped for later. The provenance is
+                // already loaded in this very request.
+                url: prov.get(m.name.toLowerCase())?.url || null,
+                source: prov.get(m.name.toLowerCase())?.source || null,
+                redownload: audit.get(m.name.toLowerCase()) || null,
+                confidence: m.confidence,
+                reasons: (m.confidenceReasons || []).map(r => r.code),
+            });
+            // ★ Appended per file, before the next one is touched. The old code
+            // rewrote one JSON array once after the whole loop, so an
+            // interruption lost the record of everything already moved — and a
+            // truncated file was indistinguishable from "no log yet", which the
+            // next prune would silently overwrite.
+            appendPruneLog({ at: stamp, batch, ...deleted[deleted.length - 1] });
         }
 
-        // A log, because these are multi-GB downloads and some are gated: a
-        // record of what went is the difference between "deleted" and "lost".
         if (deleted.length) {
-            try {
-                const dataDir = path.resolve(__dirname, '..', 'data');
-                fs.mkdirSync(dataDir, { recursive: true });
-                const logPath = path.join(dataDir, 'pruned-models.json');
-                let log = [];
-                try { log = JSON.parse(fs.readFileSync(logPath, 'utf8')); } catch { /* first prune */ }
-                if (!Array.isArray(log)) log = [];
-                log.push({ at: new Date().toISOString(), freedGb: +(freed / 1024 ** 3).toFixed(2), files: deleted });
-                fs.writeFileSync(logPath, JSON.stringify(log, null, 2) + '\n');
-            } catch (e) {
-                console.warn(`[Prune] could not write the prune log: ${e.message}`);
-            }
-            console.log(`[Prune] deleted ${deleted.length} model file(s), ${(freed / 1024 ** 3).toFixed(2)} GB`);
+            console.log(`[Prune] quarantined ${deleted.length} file(s), ${(freed / 1024 ** 3).toFixed(2)} GB -> ${qRoot}`);
         }
 
-        res.json({ deleted, refused, freedGb: +(freed / 1024 ** 3).toFixed(2) });
+        res.json({
+            deleted, refused,
+            freedGb: +(freed / 1024 ** 3).toFixed(2),
+            quarantine: { root: qRoot, batch },
+        });
     });
 
 

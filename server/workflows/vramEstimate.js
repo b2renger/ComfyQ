@@ -232,4 +232,8 @@ function estimateWorkflowVram(graph, comfyRoot) {
     };
 }
 
-module.exports = { estimateWorkflowVram, buildModelIndex, activeNodes, WEIGHT_RX };
+// Drop the TTL cache. The prune route calls this so its "re-derive before
+// deleting" promise is not answered from a thirty-second-old snapshot.
+function invalidateModelIndex() { _index = { root: null, at: 0, byName: null }; }
+
+module.exports = { estimateWorkflowVram, buildModelIndex, invalidateModelIndex, activeNodes, WEIGHT_RX };

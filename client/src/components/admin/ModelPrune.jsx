@@ -314,6 +314,14 @@ const ModelPrune = ({
                                     The other groups are reachable above — each row says why it is not here.
                                 </p>
                             )}
+                            {level === 'medium' && (
+                                <p className="text-xs text-warning mb-2">
+                                    Nothing on this machine loads these, but something explains why each
+                                    one is on the disk — a ComfyUI built-in template, a node pack's example
+                                    workflow, or a recent arrival somebody may still be working with.
+                                    Read the reason on each row.
+                                </p>
+                            )}
                             {level === 'low' && (
                                 <p className="text-xs text-danger mb-2">
                                     Something about each of these is doubtful — usually that it looks like
@@ -358,11 +366,24 @@ const ModelPrune = ({
                             )}
 
                             <div className="mt-3 flex items-center gap-2 flex-wrap">
-                                <button type="button"
-                                    onClick={() => setPicked(new Set(shown.map(m => m.rel)))}
-                                    className="text-xs text-primary hover:underline">
-                                    Select the {shown.length} shown
-                                </button>
+                                {/* ★ Bulk-select ONLY on the confident tier. The
+                                    "Everything" view opens on the 25 LARGEST files,
+                                    which is where the suspicious ones are, and one
+                                    click used to take all of them. Outside this tier
+                                    a row has to be ticked after reading its reason,
+                                    which is the whole point of having reasons. */}
+                                {level === 'high' ? (
+                                    <button type="button"
+                                        onClick={() => setPicked(new Set(shown.map(m => m.rel)))}
+                                        className="text-xs text-primary hover:underline">
+                                        Select the {shown.length} shown
+                                    </button>
+                                ) : (
+                                    <span className="text-xs text-muted">
+                                        Tick rows individually here — bulk select is only offered for
+                                        the confident group.
+                                    </span>
+                                )}
                                 {picked.size > 0 && (
                                     <button type="button" onClick={() => setPicked(new Set())}
                                         className="text-xs text-muted hover:text-foreground hover:underline">

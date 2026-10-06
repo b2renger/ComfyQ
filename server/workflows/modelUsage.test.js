@@ -67,6 +67,20 @@ fs.writeFileSync(path.join(packDir, 'nodes.py'), [
 put('somepack', 'anything_in_the_pack_folder.safetensors', 2);
 put('loras', 'shared_lora.safetensors', 2);
 put('diffusion_models', 'hardcoded_weight.safetensors', 2);
+// A pack that offers its model sets as a DROPDOWN of HuggingFace repo ids and
+// then joins models_dir with the CHOSEN VALUE — so the folder never appears as
+// a literal second argument. ComfyUI-Trellis2 does this, and 7.54 GB of its
+// fp8 set was offered for deletion as a result.
+const dropPack = path.join(comfy, 'custom_nodes', 'droppack');
+fs.mkdirSync(dropPack, { recursive: true });
+fs.writeFileSync(path.join(dropPack, 'nodes.py'), [
+    'OPTIONS = ["vendorA/Set-BF16", "vendorB/Set-FP8"]',
+    'model_path = os.path.join(folder_paths.models_dir, modelname)',
+    'other = os.path.join(folder_paths.models_dir, "notondisk/Nope")',
+].join(String.fromCharCode(10)));
+const fp8Dir = path.join(comfy, 'models', 'vendorB', 'Set-FP8', 'ckpts_fp8');
+fs.mkdirSync(fp8Dir, { recursive: true });
+fs.writeFileSync(path.join(fp8Dir, 'stem_fp8.safetensors'), Buffer.alloc(2048));
 
 bundle('runs_it', {
     api: {
@@ -359,13 +373,30 @@ check('a pack referencing a shared model folder does not claim the folder',
 check('...though a file it names BY NAME inside one is still protected',
     coded.models.find(m => m.name === 'shared_lora.safetensors').unused === false);
 
-// 17. A scan that cannot see the outside folder must not call its models unused —
+
+// 17. ★★★ A pack whose model folder arrives in a VARIABLE from a dropdown of
+//     HuggingFace repo ids. Neither the filename matcher (the stems live
+//     extensionless and slash-qualified inside the staged repo's own JSON
+//     manifest) nor the literal-folder matcher can see it, and the bf16 twins
+//     being in use meant the only thing holding the fp8 set back was
+//     variant-sibling — whose text told the admin to keep the build in use and
+//     delete the lookalike. An owner/name literal now claims that folder, but
+//     only when models/<owner>/<name> really exists.
+const dropped = run();
+check('an owner/name literal claims that model folder',
+    dropped.models.find(m => m.name === 'stem_fp8.safetensors').unused === false);
+check('...attributed to the pack that offers it',
+    dropped.models.find(m => m.name === 'stem_fp8.safetensors').packCode.includes('droppack'));
+check('a repo id whose folder is NOT on disk claims nothing',
+    dropped.models.find(m => m.name === 'nobody.safetensors').packCode.length === 0);
+
+// 18. A scan that cannot see the outside folder must not call its models unused —
 //    this is why the UI names the folders it checked.
 const blind = buildModelUsage({ comfyRoot: comfy, workflowsDir: wf, extraDirs: [] });
 check('without the outside folder, its model looks prunable (hence the warning)',
     blind.models.find(m => m.name === 'demo_only.safetensors').unused === true);
 
-// 18. With every fixture bundle in place, exactly one file is reclaimable and
+// 19. With every fixture bundle in place, exactly one file is reclaimable and
 //     the total is its size alone. Asserted last because the sections above add
 //     models whose bundles are written as they go.
 const settled = run();

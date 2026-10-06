@@ -245,7 +245,12 @@ const AppConfig = z.object({
         // such as a folder of demo graphs. A folder left out here makes its
         // models look unused, so the prune list names every folder it scanned
         // and the admin can see what the verdict rests on.
-        workflowScanDirs: z.array(z.string()).default([])
+        workflowScanDirs: z.array(z.string()).default([]),
+        // Where a pruned model is MOVED to. Empty means <drive>\_model_quarantine
+        // beside the install, which is also where _maintenance/prune-models.ps1
+        // puts its own — so the two agree. Must be on the same volume as the
+        // models, or a 40 GB prune becomes a 40 GB copy.
+        quarantineDir: z.string().default('')
     }).default({ workflowScanDirs: [] }),
     // Federation (Phase F) — persistent identity for this machine, captured at
     // boot (see server/federation/systemInfo.js) and broadcast on the LAN status

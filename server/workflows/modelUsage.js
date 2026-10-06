@@ -215,6 +215,27 @@ const SHARED_MODEL_DIRS = new Set([
 ]);
 const CODE_WEIGHT_RX = /["']([A-Za-z0-9_.-]+\.(?:safetensors|sft|ckpt|pt|pth|gguf|onnx|bin))["']/g;
 const CODE_FOLDER_RX = /models_dir\s*,\s*["']([A-Za-z0-9_-]+)["']/g;
+// ★★ A third matcher, because the two above both missed 7.54 GB that a pack
+// really loads. ComfyUI-Trellis2 offers its model set as a DROPDOWN of
+// HuggingFace repo ids — ["microsoft/TRELLIS.2-4B", "visualbruno/TRELLIS.2-4B-FP8",
+// "TencentARC/Pixal3D-T"] — and then does
+//     model_path = os.path.join(folder_paths.models_dir, modelname)
+// with the chosen value in a VARIABLE. So CODE_FOLDER_RX, which needs a literal
+// second argument, sees nothing; and the FP8 weight names are not literals
+// either — they live as extensionless, slash-qualified stems inside the staged
+// repo's own pipeline_fp8.json, so CODE_WEIGHT_RX misses them too.
+//
+// The result was the worst shape a prune tool can take: the same pack's bf16
+// set protected (because one other line spells "microsoft" out as a literal)
+// while its fp8 set was offered — and the only reason holding those 9 rows back
+// was `variant-sibling`, whose text told the admin to check which build a
+// workflow wants. Checking leads to "keep the bf16, delete the fp8 lookalike".
+// The brake was the argument for pulling the trigger.
+//
+// So: an `owner/name` literal anywhere in a pack's code claims that folder —
+// but ONLY when models/<owner>/<name> actually exists, which keeps it a
+// disk-verified fact rather than a guess about every slash-bearing string.
+const CODE_REPO_RX = /["']([A-Za-z0-9][A-Za-z0-9_.-]*\/[A-Za-z0-9][A-Za-z0-9_.-]*)["']/g;
 const SKIP_CODE_DIRS = new Set(['.git', 'node_modules', '__pycache__', '.cache', 'test', 'tests', 'docs']);
 
 let _codeCache = { root: null, at: 0, value: null };
@@ -225,8 +246,10 @@ function packCodeClaims(comfyRoot) {
     if (_codeCache.value && _codeCache.root === root && (Date.now() - _codeCache.at) < CODE_TTL_MS) {
         return _codeCache.value;
     }
-    const names = new Map();    // folded filename -> pack
-    const folders = new Map();  // folded folder name -> pack
+    const names = new Map();        // folded filename -> pack
+    const folders = new Map();      // folded folder name -> pack
+    const repoFolders = new Map();  // folded "owner/name" -> pack
+    const modelsDir = root ? path.join(root, 'models') : null;
     const base = root ? path.join(root, 'custom_nodes') : null;
     if (base && fs.existsSync(base)) {
         const files = [];
@@ -253,9 +276,20 @@ function packCodeClaims(comfyRoot) {
                 if (SHARED_MODEL_DIRS.has(n) || folders.has(n)) continue;
                 folders.set(n, pack);
             }
+            // An `owner/name` literal, kept only if that folder is really there.
+            for (const m of src.matchAll(CODE_REPO_RX)) {
+                const repo = m[1];
+                const key = repo.toLowerCase();
+                if (repoFolders.has(key)) continue;
+                const [owner, nameSeg] = repo.split('/');
+                if (!owner || !nameSeg) continue;
+                if (!modelsDir) continue;
+                if (!fs.existsSync(path.join(modelsDir, owner, nameSeg))) continue;
+                repoFolders.set(key, pack);
+            }
         }
     }
-    _codeCache = { root, at: Date.now(), value: { names, folders } };
+    _codeCache = { root, at: Date.now(), value: { names, folders, repoFolders } };
     return _codeCache.value;
 }
 
@@ -455,6 +489,12 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
             const owner = code.folders.get(seg);
             if (owner && !packedBy.includes(owner)) packedBy.push(owner);
         }
+        // …and when it sits under an owner/name folder a pack offers.
+        for (const [repo, owner] of code.repoFolders) {
+            if (relLower.includes(`/${repo}/`) || relLower.startsWith(`models/${repo}/`)) {
+                if (!packedBy.includes(owner)) packedBy.push(owner);
+            }
+        }
 
         // Inside a staged repo's folder? Then the bundle that stages it needs
         // this file, whatever its name.
@@ -555,4 +595,12 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
     };
 }
 
-module.exports = { buildModelUsage, refsInGraph, namesInGraph, basename, isLoader };
+// The pack-source scan is cached for ten minutes, which is wrong for the one
+// caller that must not be stale: a pack installed minutes ago would be
+// invisible to the check that runs just before files are moved.
+function invalidatePackCode() { _codeCache = { root: null, at: 0, value: null }; }
+
+module.exports = {
+    buildModelUsage, refsInGraph, namesInGraph, basename, isLoader,
+    packCodeClaims, invalidatePackCode,
+};

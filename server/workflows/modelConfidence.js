@@ -185,10 +185,19 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
 
         const sibling = (usedFamilies.get(key) || []).filter(n => n.toLowerCase() !== folded);
         if (sibling.length) {
+            // ★ The wording matters as much as the signal. This used to read
+            // "check you are not deleting the one a workflow actually wants",
+            // which an admin resolves by keeping the build that IS in use and
+            // deleting the lookalike — so the brake became the argument for
+            // pulling the trigger. It did exactly that to ComfyUI-Trellis2's
+            // 7.54 GB fp8 set, whose bf16 twins are in use and which the same
+            // pack loads when you pick the other dropdown option. State the
+            // fact and the risk; point at no conclusion.
             reasons.push({
                 code: 'variant-sibling', effect: 'lowers',
-                detail: `looks like another build of ${sibling.slice(0, 2).join(', ')}, which is in use`
-                    + ' — check you are not deleting the one a workflow actually wants',
+                detail: `a different build of the same model is in use (${sibling.slice(0, 2).join(', ')}).`
+                    + ' A node pack or a workflow setting can switch between builds, so this one may be'
+                    + ' needed as well — find what loads it before deleting either.',
             });
         }
         const nearMissing = (missingFamilies.get(key) || []);
@@ -256,9 +265,13 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
 
         const codes = new Set(reasons.filter(r => r.effect === 'lowers').map(r => r.code));
         // Doubt about WHICH file this is cannot be argued away by anything else.
+        // ★ scan-incomplete is STRONG. It used to be soft, which resolved to
+        // "medium" — and medium was ungated, so a scan that could not read a
+        // folder it was told about still deleted. The comment above it always
+        // claimed it capped the whole report; now it does.
         const strong = ['variant-sibling', 'near-missing', 'generic-name', 'audit-keep',
-            'duplicate-basename'];
-        const soft = ['reference-template', 'recently-added', 'scan-incomplete'];
+            'duplicate-basename', 'scan-incomplete'];
+        const soft = ['reference-template', 'recently-added'];
 
         if (strong.some(c => codes.has(c))) m.confidence = 'low';
         else if (soft.some(c => codes.has(c))) m.confidence = 'medium';
@@ -289,4 +302,24 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
     return report;
 }
 
-module.exports = { scoreDeletable, familyKey, referenceNames, auditVerdicts, GENERIC_NAMES };
+function invalidateReferenceNames() { _refCache = { root: null, at: 0, names: null }; }
+
+// name -> the audit's hand-written note on where the file came from. This is
+// the field that makes a removal reversible, and it was being read for its
+// verdict and then thrown away.
+function auditRedownload(repoRoot) {
+    const out = new Map();
+    const p = path.join(repoRoot || '', 'tools', 'maintenance', 'model-audit', 'decisions.json');
+    let doc;
+    try { doc = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return out; }
+    for (const m of doc.models || []) {
+        const re = String(m?.redownload || '').trim();
+        if (m?.name && re && !/^unknown/i.test(re)) out.set(String(m.name).toLowerCase(), re);
+    }
+    return out;
+}
+
+module.exports = {
+    scoreDeletable, familyKey, referenceNames, auditVerdicts, auditRedownload,
+    invalidateReferenceNames, GENERIC_NAMES,
+};

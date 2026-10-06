@@ -113,18 +113,20 @@ check('precision and quantisation tokens are what get stripped',
 }
 
 // 7. ★★ A scan that could not read a folder it was told about is wrong about
-//    EVERY row, so nothing may be called confident.
+//    EVERY row, so nothing in that report may go without the same deliberate
+//    acknowledgement a suspicious row needs. This used to resolve to
+//    "medium" — which was UNGATED, so a blind scan still deleted.
 {
     const r = score(makeReport([row('lonely.safetensors')], { missingDirs: ['D:\\gone'] }));
-    check('an unreadable scan folder caps every verdict at medium',
-        find(r, 'lonely.safetensors').confidence === 'medium');
+    check('an unreadable scan folder forces every verdict to low, which is gated',
+        find(r, 'lonely.safetensors').confidence === 'low');
     check('...for the stated reason',
         find(r, 'lonely.safetensors').confidenceReasons.some(x => x.code === 'scan-incomplete'));
 }
 {
     const r = score(makeReport([row('lonely2.safetensors')], { configured: [] }));
-    check('no configured folders at all also caps it',
-        find(r, 'lonely2.safetensors').confidence === 'medium');
+    check('no configured folders at all does the same',
+        find(r, 'lonely2.safetensors').confidence === 'low');
 }
 
 // 8. Nothing at all against it: confident, and it says so rather than going
