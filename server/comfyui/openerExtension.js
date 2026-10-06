@@ -8,7 +8,11 @@ const path = require('path');
 //
 // Bump OPENER_VERSION whenever ./opener changes so installs refresh (and callers
 // know to restart a running ComfyUI to pick up the new web asset).
-const OPENER_VERSION = '3';
+// 4: __init__.py gained the model-access recorder — see opener/__init__.py.
+//    ⚠ A bump needs a ComfyUI restart to take effect (the admin's own
+//    "Activate & serve" performs one), and for the JS half a browser
+//    hard-refresh, because the module is HTTP-cached.
+const OPENER_VERSION = '4';
 const SRC = path.join(__dirname, 'opener');
 const DEST_NAME = 'comfyq_opener';
 

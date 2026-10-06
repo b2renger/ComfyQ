@@ -35,6 +35,9 @@ put('loras', 'style_blue.safetensors');                // ...and its sibling
 put('diffusion_models', 'demo_only.safetensors', 4);
 put('diffusion_models', 'nobody.safetensors', 16);     // the only prunable one
 put('checkpoints', 'cloud_name.safetensors', 32);      // named, never loaded
+// A model nothing on disk or in any graph mentions, but which ComfyUI has
+// been SEEN loading. Written with the other fixtures for the index cache.
+put('diffusion_models', 'only_observed.safetensors', 5);
 // Fixtures for the subgraph and note-only checks further down. Declared up
 // here for the same reason as the rest: buildModelIndex caches for 30 s, so a
 // model file written after the first scan is invisible to it.
@@ -389,6 +392,46 @@ check('...attributed to the pack that offers it',
     dropped.models.find(m => m.name === 'stem_fp8.safetensors').packCode.includes('droppack'));
 check('a repo id whose folder is NOT on disk claims nothing',
     dropped.models.find(m => m.name === 'nobody.safetensors').packCode.length === 0);
+
+
+// 19. ★★★ The one signal that is an OBSERVATION rather than an inference.
+//     ComfyQ's custom node wraps folder_paths.get_full_path and
+//     comfy.utils.load_torch_file and appends every weight ComfyUI resolves
+//     or loads. Every other signal here has been wrong at least once; this
+//     one cannot be, because the file was opened.
+//     ⚠ It may only ever PROTECT. Absence of a record is not evidence of
+//     disuse — the log starts when the recorder is installed, and a bundle
+//     nobody has run leaves no trace.
+const { invalidateAccessLog } = require('./modelAccessLog');
+const accessLog = path.join(comfy, 'comfyq_model_access.jsonl');
+fs.writeFileSync(accessLog, [
+    JSON.stringify({ at: 1760000000, path: path.join(comfy, 'models', 'diffusion_models', 'only_observed.safetensors'), how: 'folder_paths' }),
+    JSON.stringify({ at: 1760000001, path: path.join(comfy, 'models', 'loras', 'ghost_never_on_disk.safetensors'), how: 'load_torch_file' }),
+    '{ this line is torn',   // an append-only log's normal damage
+].join(String.fromCharCode(10)) + String.fromCharCode(10));
+invalidateAccessLog();
+const watched = run();
+check('a model ComfyUI was seen loading is protected',
+    watched.models.find(m => m.name === 'only_observed.safetensors').unused === false);
+check('...recording when, and through which hook',
+    watched.models.find(m => m.name === 'only_observed.safetensors').observedHow === 'folder_paths'
+    && watched.models.find(m => m.name === 'only_observed.safetensors').observedAt === 1760000000);
+check('a torn final line does not discard the records before it',
+    watched.scanned.observed.available === true && watched.scanned.observed.files === 2);
+check('an unrecorded model is judged exactly as before — the log only protects',
+    watched.models.find(m => m.name === 'nobody.safetensors').unused === true);
+fs.rmSync(accessLog);
+invalidateAccessLog();
+check('with no log at all, the report says the observation is unavailable',
+    run().scanned.observed.available === false);
+// Put it back, so the end-state count further down is the one the fixtures
+// describe rather than one this section quietly changed.
+fs.writeFileSync(accessLog, JSON.stringify({
+    at: 1760000000,
+    path: path.join(comfy, 'models', 'diffusion_models', 'only_observed.safetensors'),
+    how: 'folder_paths',
+}) + String.fromCharCode(10));
+invalidateAccessLog();
 
 // 18. A scan that cannot see the outside folder must not call its models unused —
 //    this is why the UI names the folders it checked.

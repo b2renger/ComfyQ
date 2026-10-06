@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { buildModelIndex, WEIGHT_RX } = require('./vramEstimate');
+const { readAccessLog } = require('./modelAccessLog');
 
 // Which model files on this disk are actually used, and by what.
 //
@@ -432,6 +433,10 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
     // reachable with no graph mentioning them at all.
     // What the installed node packs can load from their own code.
     const code = packCodeClaims(comfyRoot);
+    // ★ And what ComfyUI has actually OPENED — the one signal that is an
+    // observation rather than an inference. It can only protect: an
+    // unrecorded file is judged exactly as before.
+    const access = readAccessLog(comfyRoot);
     const filters = [];
     // HuggingFace repos a pipeline stages through: a folder of weights on disk
     // that no graph names file by file. See where this is filled, below.
@@ -513,6 +518,7 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
         // UUIDs abstain rather than vote.
         const known = nodeTypes.filter(t => t.loader !== null);
         const textOnly = known.length > 0 && known.every(t => t.loader === false);
+        const observed = access.byName.get(name) || null;
         used.sort();
         models.push({
             name: hit.name,
@@ -535,11 +541,14 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
             templateOnly: tpl,
             dropdowns: [...new Set(drops)].sort(),
             packCode: packedBy.sort(),
+            // Seen being loaded by ComfyUI itself, with when and through which hook.
+            observedAt: observed ? observed.at : null,
+            observedHow: observed ? observed.how : null,
             external: ext,
             nodeTypes,
             textOnly,
             unused: !used.length && !tpl.length && !ext.length && !drops.length
-                && !packedBy.length,
+                && !packedBy.length && !observed,
         });
     }
     models.sort((a, b) => b.gb - a.gb);
@@ -582,6 +591,9 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
             // absolute path it actually looked for rather than echoing a
             // relative string the admin cannot act on.
             configured: extraDirs.map(d => ({ entry: d, resolved: resolveDir(d), found: fs.existsSync(resolveDir(d)) })),
+            // Whether ComfyUI's own model-access log exists yet. Until it does,
+            // every verdict here rests on inference alone.
+            observed: { available: access.available, files: access.byName.size, since: access.since },
         },
         totals: {
             all: models.length,
