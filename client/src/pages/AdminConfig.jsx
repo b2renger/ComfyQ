@@ -6,6 +6,7 @@ import StoryboardUpload from '../components/admin/StoryboardUpload';
 import RunningWorkflows from '../components/admin/RunningWorkflows';
 import ModelPrune from '../components/admin/ModelPrune';
 import ModelDownloads from '../components/admin/ModelDownloads';
+import MaintenanceScripts from '../components/admin/MaintenanceScripts';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -1305,18 +1306,7 @@ const AdminConfig = ({ currentMode }) => {
                         scanDirs={scanDirs} onScanDirsChange={setScanDirs}
                         onSaveScanDirs={saveScanDirs} savingScanDirs={savingScanDirs} />
 
-                    <Card>
-                        <h2 className="text-lg font-semibold flex items-center gap-2 mb-3"><Wrench size={18} /> Other maintenance</h2>
-                        <p className="text-sm text-muted mb-2">
-                            Updating ComfyUI, repairing a broken install, and the rest of the upkeep
-                            scripts. Nothing else here runs yet.
-                        </p>
-                        <p className="text-xs text-muted">
-                            The tools exist as scripts outside the app today (model audit, repair, prune).
-                            They are being moved into the repo so they travel with ComfyQ instead of only
-                            with a cloned drive — see <code>docs/</code> and the project notes.
-                        </p>
-                    </Card>
+                    <MaintenanceScripts headers={adminHeaders()} onToast={showToast} />
                 </>
             )}
 

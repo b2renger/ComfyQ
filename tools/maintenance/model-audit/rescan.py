@@ -264,6 +264,23 @@ def collect_workflow_refs():
     return loads, anywhere, counted, bad
 
 
+def custom_node_weights():
+    """Weight basenames that live INSIDE custom_nodes.
+
+    Not inventory units -- a pack owns these and the sheet should not offer
+    them for pruning -- but they are present, which is all the missing-
+    dependency check needs to know.
+    """
+    names = set()
+    exts = {'.safetensors','.ckpt','.pt','.pth','.bin','.gguf','.onnx','.sft'}
+    for root, dirs, files in os.walk(CUSTOM):
+        dirs[:] = [d for d in dirs if d not in ("__pycache__", ".git", "node_modules")]
+        for f in files:
+            if os.path.splitext(f)[1].lower() in exts:
+                names.add(f.lower())
+    return names
+
+
 def collect_code_refs():
     """Model names hardcoded in custom-node source = auto-downloaded at runtime.
     These never appear in a workflow but are absolutely in use."""
@@ -341,6 +358,15 @@ def main():
     # that IS here under a different name (build_csv.py resolves those from
     # the safetensors metadata, which survives a rename).
     on_disk = {u["name"].lower() for u in units}
+    # A weight under custom_nodes counts as on disk. Node packs download their
+    # own detectors into their folder rather than into models/ -- controlnet_aux
+    # puts yolox_l.torchscript.pt and dw-ll_ucoco_384_bs5.torchscript.pt in
+    # ckpts/hr16/ -- and reading only models/ reported three files as absent
+    # dependencies that have been sitting on this drive for weeks, which would
+    # send someone re-downloading what they already have. ComfyQ's own index
+    # (server/workflows/vramEstimate.js) was widened for the same reason; this
+    # keeps the two scanners agreeing about what "present" means.
+    on_disk |= custom_node_weights()
     missing = {}
     for name, wfs in wloads.items():
         if name.startswith("@") or name in on_disk:

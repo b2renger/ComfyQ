@@ -316,6 +316,32 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         res.json({ folders: present });
     });
 
+    // ---- Maintenance: the scripts, runnable from here ---------------------
+    // They are still ordinary Python in tools/maintenance; this exposes a
+    // WHITELIST of named tasks rather than a script path, because taking a path
+    // from a browser would turn a convenience button into an arbitrary-code
+    // endpoint running ComfyUI's own interpreter against the live install.
+    router.get('/maintenance/tasks', (req, res) => {
+        const r = runtime?.scripts;
+        res.json({ available: !!r, tasks: r ? r.tasks() : [], run: r ? r.status() : null });
+    });
+
+    // ★ adminGate on all of them, not only the mutating ones: a rebuild
+    // rewrites the audit sheet the prune reasons are read from.
+    router.post('/maintenance/run', adminGate, express.json(), async (req, res) => {
+        const r = runtime?.scripts;
+        if (!r) return res.status(503).json({ error: 'maintenance scripts are not available' });
+        const out = await r.start(req.body?.task);
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
+    router.post('/maintenance/stop', adminGate, express.json(), (req, res) => {
+        const r = runtime?.scripts;
+        if (!r) return res.status(503).json({ error: 'maintenance scripts are not available' });
+        const out = r.stop();
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
     // What is in quarantine, and the two things you can do with it.
     function qRootNow() {
         const { config } = configManager.load();

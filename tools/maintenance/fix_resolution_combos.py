@@ -22,9 +22,9 @@ those) and it does NOT touch any model.
 Then RESTART ComfyUI and hard-refresh the browser (INPUT_TYPES is read at startup and
 the browser caches /object_info).
 
-PORTABLE: the target path is derived from this script's own location, so it works no
-matter which drive letter the NVMe mounts under. Keep this script in
-<nvme>\_maintenance\ (a sibling of ComfyUI_windows_portable\).
+PORTABLE: the install is read from ComfyQ's own config (comfyq_paths.py), not from
+this file's position on the disk, so it works under any drive letter and from
+anywhere in the repo. It lives in ComfyQ\tools\maintenance\.
 """
 import os
 import re
@@ -38,7 +38,7 @@ NODES = os.path.join(comfy_root(), "custom_nodes", "ComfyUI-Trellis2", "nodes.py
 
 if not os.path.isfile(NODES):
     sys.exit(f"ERROR: nodes.py not found at:\n  {NODES}\n"
-             f"Keep this script in <nvme>\\_maintenance\\ next to ComfyUI_windows_portable\\.")
+             f"Check the ComfyUI path under Manage ComfyUI, or set COMFY_ROOT.")
 
 data = open(NODES, "rb").read()
 had_crlf = b"\r\n" in data

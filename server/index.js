@@ -47,6 +47,7 @@ const federationRoutes = require('./routes/federation');
 const { detectSystemInfo } = require('./federation/systemInfo');
 const { StatusBeacon } = require('./federation/beacon');
 const { ModelDownloader } = require('./models/modelDownloader');
+const { ScriptRunner } = require('./maintenance/scriptRunner');
 
 // Prints the URLs students should use from another machine on the LAN.
 // They open Vite (5173) in their browser; Vite serves plain HTTP and
@@ -212,6 +213,12 @@ async function main() {
     // (the same reason AdminCalibrator does), so a path edited in the panel is
     // honoured without a restart.
     runtime.downloader = new ModelDownloader({
+        config: () => configManager.load().config,
+    });
+
+    // The maintenance scripts (tools/maintenance), runnable from the panel
+    // instead of a console.
+    runtime.scripts = new ScriptRunner({
         config: () => configManager.load().config,
     });
     app.use((req, res, next) => {
