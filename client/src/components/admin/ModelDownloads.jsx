@@ -34,14 +34,21 @@ const ModelDownloads = ({ headers, onToast, hasHfToken = false, pollMs = 1500 })
         } catch { /* a poll failure is not worth a toast */ }
     }, []);
 
+    // Poll only while something is in flight, so an idle panel is free.
+    //
+    // ★ The dependency is this BOOLEAN, never `rows`. load() calls setRows with a
+    // fresh array every time, so depending on `rows` meant a new identity re-ran
+    // the effect, which called load() again — an unbounded fetch loop, measured
+    // at 5,624 requests in 10 idle seconds, roughly 560/s aimed at a rig that is
+    // serving a class, for as long as an admin leaves this tab open from their
+    // laptop. A primitive only changes when the answer changes.
+    const polling = rows.some(r => ['queued', 'downloading'].includes(r.status));
+    useEffect(() => { load(); }, [load]);
     useEffect(() => {
-        load();
-        // Poll only while something is in flight, so an idle panel is free.
-        const active = rows.some(r => ['queued', 'downloading'].includes(r.status));
-        if (!active) return undefined;
+        if (!polling) return undefined;
         const t = setInterval(load, pollMs);
         return () => clearInterval(t);
-    }, [load, rows, pollMs]);
+    }, [load, polling, pollMs]);
 
     const act = async (what, key) => {
         setBusy(key);

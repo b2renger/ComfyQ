@@ -580,6 +580,13 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
 
         if (deleted.length) {
             console.log(`[Prune] quarantined ${deleted.length} file(s), ${(freed / 1024 ** 3).toFixed(2)} GB -> ${qRoot}`);
+            // ★ And again AFTER the move. The caches were dropped before the
+            // re-derive so a just-installed pack could protect a file; dropping
+            // them again is what makes the panel show the result. Without it the
+            // 30 s model index still holds the moved files and the card redraws
+            // byte-identical — same rows, same reclaimable total — which reads
+            // as "the prune did nothing" and invites a second click.
+            invalidateUsageCaches();
         }
 
         res.json({

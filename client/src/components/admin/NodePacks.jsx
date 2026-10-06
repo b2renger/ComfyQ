@@ -27,6 +27,11 @@ const NodePacks = ({ headers, onToast, pollMs = 2000 }) => {
     const [busy, setBusy] = useState(null);
     const [showInstalled, setShowInstalled] = useState(false);
     const [manual, setManual] = useState('');
+    // Per-pack acknowledgement of a risky requirements.txt. Deliberately NOT
+    // derived from the requirements themselves — deriving it is what made the
+    // server's guard decorative, since it was then true in exactly the case the
+    // guard exists for.
+    const [accepted, setAccepted] = useState({});
 
     const load = useCallback(async () => {
         try {
@@ -181,10 +186,20 @@ const NodePacks = ({ headers, onToast, pollMs = 2000 }) => {
                                 </div>
                                 <div className="flex gap-1 shrink-0">
                                     {j.status === 'cloned' && j.requirements?.exists && !j.pipRan && (
-                                        <Button variant="secondary" disabled={busy === j.folder}
+                                        // ★ The flag is sent only when someone ticked the box below.
+                                        // It used to be `risky.length > 0` — true in exactly the case
+                                        // the server's guard exists for, so "say so explicitly" was
+                                        // satisfied by the client on the user's behalf and the
+                                        // interlock could never fire. Same shape as the allowLow bug.
+                                        <Button variant="secondary"
+                                            disabled={busy === j.folder
+                                                || (j.requirements.risky.length > 0 && !accepted[j.folder])}
+                                            title={j.requirements.risky.length > 0 && !accepted[j.folder]
+                                                ? 'Tick the box below first — these requirements replace packages the whole install shares.'
+                                                : undefined}
                                             onClick={() => post('pip', {
                                                 folder: j.folder,
-                                                acceptRisky: j.requirements.risky.length > 0,
+                                                acceptRisky: !!accepted[j.folder],
                                             }, j.folder)}>
                                             <Terminal size={13} /> Run pip
                                         </Button>
@@ -199,12 +214,24 @@ const NodePacks = ({ headers, onToast, pollMs = 2000 }) => {
                             </div>
                             {j.error && <p className="text-xs text-danger">{j.error}</p>}
                             {j.requirements?.risky?.length > 0 && !j.pipRan && (
-                                <p className="text-xs text-warning mt-1">
-                                    ⚠ Its requirements replace packages the whole install shares:{' '}
-                                    {j.requirements.risky.join(', ')}. A pack that pulled the CPU
-                                    onnxruntime wheel once cost this rig 12× on pose detection, with no
-                                    error anywhere. Many packs run fine without pip — try the pack first.
-                                </p>
+                                <>
+                                    <p className="text-xs text-warning mt-1">
+                                        ⚠ Its requirements replace packages the whole install shares:{' '}
+                                        {j.requirements.risky.join(', ')}. A pack that pulled the CPU
+                                        onnxruntime wheel once cost this rig 12× on pose detection, with no
+                                        error anywhere. Many packs run fine without pip — try the pack first.
+                                    </p>
+                                    <label className="mt-1 flex items-start gap-2 text-xs text-warning">
+                                        <input type="checkbox" className="mt-0.5"
+                                            checked={!!accepted[j.folder]}
+                                            onChange={e => setAccepted(a => ({ ...a, [j.folder]: e.target.checked }))} />
+                                        <span>
+                                            I accept that this replaces {j.requirements.risky.join(', ')} for
+                                            every workflow on this machine, and that this drive is cloned to
+                                            other rigs.
+                                        </span>
+                                    </label>
+                                </>
                             )}
                             {j.needsRestart && (
                                 <p className="text-xs text-muted mt-1">

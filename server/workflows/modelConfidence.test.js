@@ -170,6 +170,11 @@ fs.writeFileSync(path.join(root, 'tools', 'maintenance', 'model-audit', 'decisio
             { name: 'audit_keep.safetensors', classify: 'REVIEW', reason: 'needs a human' },
             { name: 'audit_delete.safetensors', classify: 'DELETE', reason: 'a false positive' },
             { name: 'audit_delete_but_lookalike.safetensors', classify: 'DELETE', reason: 'probably fine' },
+            // The audit challenges its own first pass and records the settled
+            // verdict in `final`. On this disk 62 rows disagree with their
+            // `classify`, and every one of the 17 that are currently unused was
+            // overturned from DELETE toward KEEP or REVIEW.
+            { name: 'audit_overturned.safetensors', classify: 'DELETE', final: 'KEEP', reason: 'challenged: a pack loads it' },
         ],
     }));
 {
@@ -193,6 +198,18 @@ fs.writeFileSync(path.join(root, 'tools', 'maintenance', 'model-audit', 'decisio
     ]));
     check('an audit DELETE does not rescue a row that resembles a used file',
         find(r2, 'audit_delete_but_lookalike.safetensors').confidence === 'low');
+
+    // ★ The audit's SETTLED verdict beats its first pass. Reading `classify`
+    // alone quoted an opinion the audit had already withdrawn, and did it in the
+    // RAISING direction — 12 of the 17 affected rows sat at `medium`, the tier
+    // the prune route does not gate.
+    const r3 = score(makeReport([row('audit_overturned.safetensors')]));
+    const over = find(r3, 'audit_overturned.safetensors');
+    check('a verdict the audit overturned to KEEP is low, not confident',
+        over.confidence === 'low');
+    check('...and it reads as audit-keep rather than audit-delete',
+        over.confidenceReasons.some(x => x.code === 'audit-keep')
+        && !over.confidenceReasons.some(x => x.code === 'audit-delete'));
 }
 
 // 9b. ★★ Two copies of one basename on disk. Usage is matched by basename, so

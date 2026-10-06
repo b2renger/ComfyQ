@@ -144,8 +144,17 @@ function auditVerdicts(repoRoot) {
     try { doc = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return out; }
     for (const m of doc.models || []) {
         if (!m?.name) continue;
+        // ★ `final` BEFORE `classify`. The audit records its first-pass verdict in
+        // `classify` and the verdict it reached AFTER challenging that pass in
+        // `final` — build_csv.py:255 reads `final or classify` for exactly this
+        // reason. Reading only `classify` meant we quoted the overturned opinion:
+        // measured on this disk, 62 rows disagree, and 17 of them are unused
+        // right now — 93.10 GB whose first pass said DELETE and whose settled
+        // verdict says KEEP or REVIEW. Twelve sat at `medium`, which the prune
+        // route does NOT gate, so the audit's own correction was being used as
+        // an argument for deleting the files it had decided to save.
         out.set(String(m.name).toLowerCase(), {
-            classify: String(m.classify || '').toUpperCase(),
+            classify: String(m.final || m.classify || '').toUpperCase(),
             reason: m.reason || '',
         });
     }
@@ -190,7 +199,16 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
     if (report.scanned?.missingDirs?.length) {
         blind.push(`${report.scanned.missingDirs.length} configured folder(s) could not be read`);
     }
-    if (!(report.scanned?.configured || []).length) {
+    // ★ Count what the ADMIN configured, not the array the route scans. The route
+    // appends <comfyRoot>/user/default/workflows to `extraDirs` before handing it
+    // over, and `scanned.configured` is built from that — so this clause could
+    // never fire on any path that can move a file, which is the one path it was
+    // written for. Measured: with the list empty, 5 more files (69.32 GB) read as
+    // unused and not one of them carried a scan-incomplete reason. An empty list
+    // is the NORMAL state of a freshly cloned rig, because config.json is
+    // gitignored and per-machine.
+    const configuredByAdmin = report.scanDirs || report.scanned?.configured || [];
+    if (!configuredByAdmin.length) {
         blind.push('no extra workflow folders are configured, so only ComfyQ\'s own are covered');
     }
 
