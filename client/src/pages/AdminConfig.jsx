@@ -239,7 +239,16 @@ const AdminConfig = ({ currentMode }) => {
                 method: 'PUT', headers: adminHeaders(), body: JSON.stringify(pathDraft)
             });
             if (!res.ok) throw new Error((await res.json()).error || 'Failed to save paths');
-            showToast('ComfyUI paths saved');
+            // ★ The scan folders too, or the Drive-letter swap is a lie. That control
+            // rewrites them in the form (its own comment says so, because a folder it
+            // missed makes that folder's models read as unused) — but they live on
+            // another route, so Save settings persisted the four ComfyUI paths and
+            // then reloadConfig() pulled the OLD scan dirs straight back over the
+            // swapped ones. On a cloned rig that is exactly how you end up pruning
+            // against a folder that no longer resolves.
+            const stale = JSON.stringify(scanDirs) !== JSON.stringify(config.maintenance?.workflowScanDirs || []);
+            if (stale) await saveScanDirs(scanDirs);
+            showToast(stale ? 'ComfyUI paths and scan folders saved' : 'ComfyUI paths saved');
             await reloadConfig();
         } catch (e) { showToast(e.message, 'err'); }
     };

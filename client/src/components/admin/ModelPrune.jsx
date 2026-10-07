@@ -357,14 +357,28 @@ const ModelPrune = ({
                                         </span>
                                         <span className="min-w-0">
                                             <span className="font-mono break-all">{m.rel}</span>
-                                            {(m.confidenceReasons || [])
-                                                .filter(r => r.effect === 'lowers')
-                                                .slice(0, 2)
+                                            {/* ★ Every reason, not only the doubts. Filtering to
+                                                `lowers` meant the CONFIDENT tier — the one tier with
+                                                a bulk-select button — rendered with no explanation at
+                                                all, while its actual justification ("the model audit
+                                                already judged this deletable: …") sat in JSON nobody
+                                                can see. Doubts are sorted first so one can never be
+                                                pushed out of sight by a reason to go ahead. */}
+                                            {[...(m.confidenceReasons || [])]
+                                                .sort((a, b) => (a.effect === 'lowers' ? 0 : 1) - (b.effect === 'lowers' ? 0 : 1))
+                                                .slice(0, 3)
                                                 .map(r => (
-                                                    <span key={r.code} className="block text-muted/80">
-                                                        {r.detail}
+                                                    <span key={r.code}
+                                                        className={`block ${r.effect === 'lowers' ? 'text-warning/80' : 'text-muted/70'}`}>
+                                                        {r.effect === 'lowers' ? '⚠ ' : '→ '}{r.detail}
                                                     </span>
                                                 ))}
+                                            {!(m.confidenceReasons || []).length && (
+                                                <span className="block text-muted/60">
+                                                    nothing on this machine refers to it — no workflow, template,
+                                                    dropdown, node-pack source or observed load
+                                                </span>
+                                            )}
                                         </span>
                                     </label>
                                 ))}
