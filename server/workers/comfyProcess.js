@@ -124,6 +124,21 @@ class ComfyProcess extends EventEmitter {
                 throw new Error(`Port ${this.port} is held by a process that never answered the ComfyUI API (waited ${PORT_SETTLE_MS / 1000}s). Close it, then retry.`);
             }
         }
+        // ★ Install ComfyQ's own node before EVERY spawn, not only the admin
+        // calibrator's. It carries two things: the "Open in ComfyUI" opener, and
+        // the model-access recorder that logs every weight ComfyUI resolves or
+        // loads. The recorder is the only signal in the prune mechanism that is
+        // an observation rather than an inference — and it was installed from
+        // adminCalibrator alone, so a rig in student mode (which is how a rig
+        // spends its day) recorded nothing at all and the log stayed empty. This
+        // is the single choke point every spawn goes through, lanes included.
+        try {
+            require('../comfyui/openerExtension').ensureInstalled(this.rootPath);
+        } catch (e) {
+            // Never block a spawn for this: a rig that cannot serve is worse
+            // than a rig whose prune tool has one signal fewer.
+            console.warn(`[ComfyUI] could not install the ComfyQ node (continuing): ${e.message}`);
+        }
         const mainPy = path.join(this.rootPath, 'main.py');
         // Portable installs match the run_nvidia_gpu.bat launcher:
         //   python.exe -s main.py --windows-standalone-build --disable-auto-launch ...

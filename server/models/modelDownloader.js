@@ -28,6 +28,20 @@ const { resolveDestination } = require('./modelDestination');
 const PART_SUFFIX = '.part';
 const HEADROOM_BYTES = 2 * 1024 ** 3;   // never fill the disk to the last byte
 
+/**
+ * Is this URL really HuggingFace?
+ *
+ * ★ Parsed, never grepped. The access token is a credential for someone's HF
+ * account, and a substring test on the whole URL would hand it to any host whose
+ * path happened to contain "huggingface.co" — a mirror, a caching proxy, or a
+ * link an admin pasted from a third party.
+ */
+function isHuggingFace(url) {
+    let h;
+    try { h = new URL(String(url)).hostname.toLowerCase(); } catch { return false; }
+    return h === 'huggingface.co' || h.endsWith('.huggingface.co');
+}
+
 class ModelDownloader {
     /**
      * @param {object} opts
@@ -148,7 +162,12 @@ class ModelDownloader {
 
         const headers = {};
         const token = this._config()?.comfy_ui?.hf_token;
-        if (token && /huggingface\.co/i.test(job.url)) headers.Authorization = `Bearer ${token}`;
+        // ★ Match the HOST, not the URL string. A substring test sent the token to
+        // anything whose URL merely contained "huggingface.co" — a mirror or a
+        // caching proxy at hf-cache.example.net/huggingface.co/… would have been
+        // handed someone's HF credential. Parsed, so only huggingface.co and its
+        // subdomains get it.
+        if (token && isHuggingFace(job.url)) headers.Authorization = `Bearer ${token}`;
         if (from > 0) headers.Range = `bytes=${from}-`;
 
         const ctl = new AbortController();
@@ -255,4 +274,5 @@ function freeBytes(dir) {
     catch { return null; }
 }
 
-module.exports = { ModelDownloader, freeBytes };
+module.exports = {
+    isHuggingFace, ModelDownloader, freeBytes };

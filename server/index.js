@@ -49,6 +49,7 @@ const { StatusBeacon } = require('./federation/beacon');
 const { ModelDownloader } = require('./models/modelDownloader');
 const { ScriptRunner } = require('./maintenance/scriptRunner');
 const { NodePackInstaller } = require('./models/nodePackInstaller');
+const { LibrarySweep } = require('./benchmark/librarySweep');
 
 // Prints the URLs students should use from another machine on the LAN.
 // They open Vite (5173) in their browser; Vite serves plain HTTP and
@@ -227,6 +228,17 @@ async function main() {
     // ComfyUI-Manager's own interface.
     runtime.packs = new NodePackInstaller({
         config: () => configManager.load().config,
+    });
+
+    // Run every workflow once and record what each produced, plus which
+    // weights ComfyUI actually opened. Reads the calibrator and the mode
+    // lazily: the backend is created later in admin boot, and the mode can
+    // change under it, and the sweep must refuse while the rig is serving.
+    runtime.sweep = new LibrarySweep({
+        registry,
+        calibrator: () => runtime.comfyBackend || null,
+        config: () => configManager.load().config,
+        mode: () => configManager.load().config.mode,
     });
     app.use((req, res, next) => {
         const p = req.path || '';

@@ -7,6 +7,7 @@ import RunningWorkflows from '../components/admin/RunningWorkflows';
 import ModelPrune from '../components/admin/ModelPrune';
 import ModelDownloads from '../components/admin/ModelDownloads';
 import MaintenanceScripts from '../components/admin/MaintenanceScripts';
+import LibrarySweep from '../components/admin/LibrarySweep';
 import NodePacks from '../components/admin/NodePacks';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
@@ -92,6 +93,10 @@ const AdminConfig = ({ currentMode }) => {
     const [machineName, setMachineName] = useState('');
     const [scanDirs, setScanDirs] = useState([]);
     const [savingScanDirs, setSavingScanDirs] = useState(false);
+    // The HF token is write-only: the server reports whether one is set, never
+    // what it is, so the draft starts empty even when a token is stored.
+    const [hfTokenDraft, setHfTokenDraft] = useState('');
+    const [savingHfToken, setSavingHfToken] = useState(false);
     const [savingName, setSavingName] = useState(false);
     const [comfyBusy, setComfyBusy] = useState(false);
     const [showTakeoverConfirm, setShowTakeoverConfirm] = useState(false);
@@ -185,6 +190,26 @@ const AdminConfig = ({ currentMode }) => {
         const h = { 'Content-Type': 'application/json' };
         if (adminPassword) h['X-Admin-Password'] = adminPassword;
         return h;
+    };
+
+    // Its own route, because a token is a credential rather than a setting —
+    // adminGate'd, write-only, and an empty string clears it.
+    const saveHfToken = async (token) => {
+        setSavingHfToken(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/hf-token`, {
+                method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ token }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            setHasHfToken(!!data.hasHfToken);
+            setHfTokenDraft('');
+            showToast(token ? 'HuggingFace token saved' : 'HuggingFace token cleared');
+        } catch (e) {
+            showToast(`Could not save the token: ${e.message}`, 'err');
+        } finally {
+            setSavingHfToken(false);
+        }
     };
 
     const saveScanDirs = async (dirs) => {
@@ -1102,6 +1127,47 @@ const AdminConfig = ({ currentMode }) => {
                                 Folder of sample images / videos / audio used to auto-calibrate workflow timing. Update this if the drive letter changes (e.g. <code>D:\_assets</code> → <code>G:\_assets</code>). Leave blank to fall back to a built-in image — video/audio workflows then can't auto-calibrate. Use <strong>Check paths</strong> to confirm the folder exists and has media.
                             </p>
                         </div>
+
+                        {/* ★ Saved on its own, not by "Save settings": a token is a
+                            credential, so it goes through its own adminGate'd route and
+                            is never read back — the server reports only whether one is
+                            set. Eight of this library's model links answer 401 without
+                            one (FLUX.2, LTX-2.5). */}
+                        <div className="space-y-1.5 sm:col-span-2">
+                            <label className="text-xs uppercase tracking-wider text-muted font-semibold flex items-center gap-2">
+                                <KeyRound size={13} /> HuggingFace access token
+                                {hasHfToken
+                                    ? <Badge variant="success">set</Badge>
+                                    : <Badge variant="default">not set</Badge>}
+                            </label>
+                            <div className="flex gap-2">
+                                <input
+                                    type="password"
+                                    value={hfTokenDraft}
+                                    onChange={(e) => setHfTokenDraft(e.target.value)}
+                                    placeholder={hasHfToken ? '•••••••• (a token is stored — type a new one to replace it)' : 'hf_…'}
+                                    autoComplete="off"
+                                    className="flex-1 bg-background border border-border rounded-lg p-2.5 text-white font-mono text-sm"
+                                />
+                                <Button variant="secondary" disabled={savingHfToken || !hfTokenDraft.trim()}
+                                    onClick={() => saveHfToken(hfTokenDraft.trim())}>
+                                    {savingHfToken ? 'Saving…' : 'Save token'}
+                                </Button>
+                                {hasHfToken && (
+                                    <Button variant="ghost" disabled={savingHfToken}
+                                        onClick={() => saveHfToken('')}>Clear</Button>
+                                )}
+                            </div>
+                            <p className="text-[11px] text-muted">
+                                Needed only for <strong>gated</strong> repositories, and only for downloading
+                                a model — nothing else uses it. Accept the licence on the model's
+                                HuggingFace page first, then create a <strong>read</strong> token at{' '}
+                                <a className="text-primary hover:underline" target="_blank" rel="noreferrer"
+                                    href="https://huggingface.co/settings/tokens">huggingface.co/settings/tokens</a>.
+                                It is stored in this machine's <code>config.json</code>, is never sent back to
+                                the browser, and is only ever sent to huggingface.co itself.
+                            </p>
+                        </div>
                     </div>
                     {pathChecks && (
                         <div className="mt-4 rounded-lg border border-border bg-surface/50 p-3 text-sm">
@@ -1325,6 +1391,8 @@ const AdminConfig = ({ currentMode }) => {
                     <ModelPrune headers={adminHeaders()} onToast={showToast}
                         scanDirs={scanDirs} onScanDirsChange={setScanDirs}
                         onSaveScanDirs={saveScanDirs} savingScanDirs={savingScanDirs} />
+
+                    <LibrarySweep headers={adminHeaders()} onToast={showToast} mode={config.mode} />
 
                     <MaintenanceScripts headers={adminHeaders()} onToast={showToast} />
                 </>

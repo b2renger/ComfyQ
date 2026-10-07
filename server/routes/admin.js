@@ -392,6 +392,29 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         res.status(out.ok ? 200 : 400).json(out);
     });
 
+    // ---- Run the whole library once, and write down what happened ---------
+    // The one button that answers "does every workflow still work, and which
+    // models does the library actually open". ~2 h for 61 bundles here.
+    router.get('/library-sweep', (req, res) => {
+        const sw = runtime?.sweep;
+        if (!sw) return res.json({ available: false });
+        res.json({ available: true, run: sw.status(), last: sw.lastReport() });
+    });
+
+    router.post('/library-sweep/run', adminGate, express.json(), async (req, res) => {
+        const sw = runtime?.sweep;
+        if (!sw) return res.status(503).json({ error: 'the sweep is not available' });
+        const out = await sw.start({ ids: Array.isArray(req.body?.ids) ? req.body.ids : undefined });
+        res.status(out.ok ? 200 : 409).json(out);
+    });
+
+    router.post('/library-sweep/stop', adminGate, express.json(), (req, res) => {
+        const sw = runtime?.sweep;
+        if (!sw) return res.status(503).json({ error: 'the sweep is not available' });
+        const out = sw.stop();
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
     // ---- Maintenance: the scripts, runnable from here ---------------------
     // They are still ordinary Python in tools/maintenance; this exposes a
     // WHITELIST of named tasks rather than a script path, because taking a path
@@ -818,6 +841,27 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             setAccessPassword(password || '', configManager);
             try { runtime?.bus?.enforceAccess?.(); } catch (e) { /* non-fatal */ }
             res.json({ ok: true, locked: !!(password || '') });
+        } catch (e) { res.status(400).json({ error: e.message }); }
+    });
+
+    // A HuggingFace access token, so a gated repository can be downloaded.
+    //
+    // ★ Its own route rather than a field on PUT /admin/comfy, and adminGate'd
+    // like the two passwords: it is a credential for someone's HF account, it is
+    // write-only (GET /admin/config reports only `hasHfToken`), and an empty
+    // string clears it. Eight of this library's model links answer 401 without
+    // one — FLUX.2 and LTX-2.5 — and until this existed the downloader's own
+    // advice ("set an access token under Manage ComfyUI") pointed at a field
+    // that was not there.
+    router.put('/hf-token', adminGate, express.json(), (req, res) => {
+        try {
+            const token = String(req.body?.token ?? '').trim();
+            configManager.update(c => {
+                c.comfy_ui = c.comfy_ui || {};
+                c.comfy_ui.hf_token = token;
+                return c;
+            });
+            res.json({ ok: true, hasHfToken: !!token });
         } catch (e) { res.status(400).json({ error: e.message }); }
     });
 

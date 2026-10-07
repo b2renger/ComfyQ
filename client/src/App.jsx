@@ -4,7 +4,7 @@ import { SocketProvider, useSocket } from './context/SocketContext';
 import SchedulerPage from './pages/Scheduler';
 import DashboardPage from './pages/Dashboard';
 import AdminConfig from './pages/AdminConfig';
-import { LayoutDashboard, Calendar, Settings, WifiOff, Wand2, X, RotateCw, Moon, Play } from 'lucide-react';
+import { LayoutDashboard, Calendar, WifiOff, Wand2, X, RotateCw, Moon, Play } from 'lucide-react';
 import UsernameModal from './components/UsernameModal';
 import AccessGate from './components/AccessGate';
 import ThemeToggle from './components/ui/ThemeToggle';
@@ -151,14 +151,13 @@ const StudentLayout = () => {
             <NavLink to="/user" icon={Calendar} label="Timeline" end />
             <NavLink to="/user/dashboard" icon={LayoutDashboard} label="Session Dashboard" />
           </div>
-          <Link
-            to="/admin"
-            title="Admin"
-            aria-label="Admin"
-            className="p-2 rounded-lg border border-border bg-surface hover:bg-surface/70 text-muted hover:text-foreground transition-colors"
-          >
-            <Settings size={16} />
-          </Link>
+          {/* ★ No admin link in the student header, deliberately (owner, 2026-10-07).
+              A cog beside the Timeline tab is an invitation, and on a machine with no
+              admin password set — the default — one tap reaches a panel that can
+              prune models, run maintenance scripts and stop the rig serving. /admin
+              still works for anyone who types it, so this is not a security boundary;
+              it is about not putting the door in front of a class. The password is
+              what actually closes it (Manage server -> Admin password). */}
           <ThemeToggle />
         </div>
       </nav>
