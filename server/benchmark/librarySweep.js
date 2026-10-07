@@ -2,7 +2,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
-const { readAccessLog, invalidateAccessLog } = require('../workflows/modelAccessLog');
+const { readAccessLog, invalidateAccessLog, namesOpenedBetween } = require('../workflows/modelAccessLog');
 const { flagsFromArgv } = require('../workers/perfFlags');
 
 // Run every workflow in the library once, and write down what happened.
@@ -193,10 +193,9 @@ class LibrarySweep {
             if (this._cancelled) break;
             this._run.current = { id: entry.id, name: entry.summary?.name || entry.id, startedAt: new Date().toISOString() };
 
-            // What the recorder had seen before this bundle ran, so the delta is
-            // this bundle's own.
-            invalidateAccessLog();
-            const before = new Set(readAccessLog(root).byName.keys());
+            // The window this bundle's loads will fall inside. Attribution is by
+            // time, not by a before/after name diff — see the note where the models
+            // are collected.
             const startedMs = Date.now();
 
             // ★ Preserve a hand-measured runtime. PiD's progress bar counts tiles,
@@ -255,11 +254,18 @@ class LibrarySweep {
             }
 
             // Which weights ComfyUI actually opened while this bundle ran.
+            //
+            // ★ By TIME WINDOW, not by diffing the log's name set. The log is
+            // append-only and `byName` keeps each name's earliest sighting, so a set
+            // difference reports only weights never loaded on this machine before —
+            // which on a second sweep is almost nothing. The first re-run showed 0
+            // models for a bundle the previous sweep credited with 5, which is how
+            // this surfaced. A few seconds of slack each side covers the gap between
+            // the run finishing and the log being flushed.
             try {
                 invalidateAccessLog();
-                const after = readAccessLog(root);
-                rec.observedModels = [...after.byName.keys()].filter(n => !before.has(n)).sort();
-                rec.recorderAvailable = after.available;
+                rec.observedModels = namesOpenedBetween(root, startedMs - 2000, Date.now() + 2000);
+                rec.recorderAvailable = readAccessLog(root).available;
             } catch { /* the sweep is still useful without it */ }
 
             // ★ The flags ComfyUI was ACTUALLY running with for this bundle, read

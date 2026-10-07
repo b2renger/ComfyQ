@@ -68,4 +68,41 @@ function readAccessLog(comfyRoot) {
 
 function invalidateAccessLog() { _cache = { path: null, at: 0, value: null }; }
 
-module.exports = { readAccessLog, invalidateAccessLog, LOG_NAME };
+/**
+ * Weight basenames opened between two instants.
+ *
+ * ★ Why this exists rather than diffing `byName` before and after a run: the log
+ * is append-only and keeps growing, and `byName` records the EARLIEST sighting of
+ * each name. So "the names present after, minus the names present before" reports
+ * only weights never loaded on this machine before — which is almost nothing on a
+ * second sweep. The first re-run showed 0 models opened for a bundle the previous
+ * sweep had credited with 5. Time is the honest key: the log stamps every entry,
+ * so a run's window selects exactly what it loaded, however often that file has
+ * been loaded before.
+ *
+ * Both bounds are epoch milliseconds. Reads the file directly rather than through
+ * the TTL cache, because a caller asking about a window that just closed needs
+ * what is on disk now.
+ *
+ * @returns {string[]} folded basenames, sorted, deduplicated
+ */
+function namesOpenedBetween(comfyRoot, fromMs, toMs) {
+    const logPath = comfyRoot ? path.join(comfyRoot, LOG_NAME) : null;
+    if (!logPath || !fs.existsSync(logPath)) return [];
+    let text = '';
+    try { text = fs.readFileSync(logPath, 'utf8'); } catch { return []; }
+    const names = new Set();
+    for (const line of text.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        let row;
+        try { row = JSON.parse(line); } catch { continue; }   // a torn tail costs one entry
+        if (!row || !row.path || !row.at) continue;
+        const ms = row.at * 1000;
+        if (ms < fromMs || ms > toMs) continue;
+        const name = String(row.path).split(/[\\/]/).pop().toLowerCase();
+        if (name) names.add(name);
+    }
+    return [...names].sort();
+}
+
+module.exports = { readAccessLog, invalidateAccessLog, namesOpenedBetween, LOG_NAME };

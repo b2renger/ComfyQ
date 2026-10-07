@@ -197,7 +197,45 @@ function make({ mode = 'admin', calibrator = {}, entries = [entry('a'), entry('b
             st.summary.noOutput === 1);
     }
 
-    console.log('\nthe recorder\'s absence must be visible, not read as "nothing was opened"');
+    console.log('\nattributing opened weights to the bundle that opened them');
+{
+    // ★★ The bug the first re-run exposed within one bundle. The access log is
+    // append-only and its name index keeps each weight's EARLIEST sighting, so
+    // "names after minus names before" reports only weights never loaded on this
+    // machine before — nearly nothing on a second sweep. A bundle the previous
+    // sweep credited with 5 models reported 0. Worse, that reads downstream as
+    // "the sweep found no reason to keep this", which is the dangerous direction.
+    const { namesOpenedBetween, invalidateAccessLog, readAccessLog } = require('../workflows/modelAccessLog');
+    const logRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'comfyq-acc-'));
+    const now = Math.floor(Date.now() / 1000);
+    fs.writeFileSync(path.join(logRoot, 'comfyq_model_access.jsonl'), [
+        { path: 'C:/m/untouched.safetensors', at: now - 10000, how: 'load' },
+        { path: 'C:/m/shared_vae.safetensors', at: now - 10000, how: 'load' },  // seen long ago
+        { path: 'C:/m/shared_vae.safetensors', at: now - 30, how: 'load' },     // AND in this run
+        { path: 'C:/m/fresh_unet.safetensors', at: now - 20, how: 'load' },
+        'not json at all',                                                      // a torn tail
+    ].map(o => (typeof o === 'string' ? o : JSON.stringify(o))).join('\n') + '\n');
+    invalidateAccessLog();
+
+    const win = namesOpenedBetween(logRoot, (now - 60) * 1000, (now + 5) * 1000);
+    ok('a weight loaded again in this window IS credited to it',
+        win.includes('shared_vae.safetensors'));
+    ok('a weight loaded for the first time is credited too',
+        win.includes('fresh_unet.safetensors'));
+    ok('a weight nobody touched in the window is NOT credited',
+        !win.includes('untouched.safetensors'));
+    // the approach this replaced, kept as the contrast that justifies it
+    const diff = [...readAccessLog(logRoot).byName.keys()]
+        .filter(n => !new Set(['untouched.safetensors', 'shared_vae.safetensors']).has(n));
+    ok('...where a set difference would have missed the re-loaded one entirely',
+        !diff.includes('shared_vae.safetensors'));
+    ok('a torn line costs one entry, not the whole log', win.length === 2);
+    ok('no log at all gives an empty list rather than a throw',
+        namesOpenedBetween(path.join(tmp, 'nowhere'), 0, Date.now()).length === 0);
+    fs.rmSync(logRoot, { recursive: true, force: true });
+}
+
+console.log('\nthe recorder\'s absence must be visible, not read as "nothing was opened"');
     {
         // ★ With no log on disk, "0 models opened" and "we were not recording" look
         // identical in the numbers — and only one of them is a reason to doubt the
