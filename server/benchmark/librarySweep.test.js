@@ -18,6 +18,10 @@ const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'comfyq-sweep-'));
 const root = path.join(tmp, 'ComfyUI');
 const outDir = path.join(root, 'output');
 fs.mkdirSync(path.join(outDir, 'audio'), { recursive: true });
+// ★ Never server/data. A sweep writes a `…-latest.json` that the report route
+// serves, so a test writing there publishes a fixture as this machine's last
+// real sweep — which is exactly what happened before dataDir was injectable.
+const dataDir = path.join(tmp, 'data');
 
 const entry = (id, extra = {}) => ({
     id, apiWorkflow: { 1: { class_type: 'KSampler' } },
@@ -37,6 +41,7 @@ function make({ mode = 'admin', calibrator = {}, entries = [entry('a'), entry('b
         calibrator: () => calibrator,
         config: () => ({ comfy_ui: { root_path: root, output_dir: outDir } }),
         mode: () => mode,
+        dataDir,
     });
     return { sweep, written, registry };
 }
@@ -133,8 +138,18 @@ function make({ mode = 'admin', calibrator = {}, entries = [entry('a'), entry('b
         ok('a benchmark runtime is left as the sweep measured it',
             !written.some(w => w.id === 'normal'));
         ok('the summary counts what ran', st.summary.ran === 2 && st.summary.succeeded === 2);
-        ok('a report file was written per bundle',
-            fs.existsSync(path.resolve(__dirname, '..', 'data', path.basename(st.reportPath))));
+        // Written as the sweep goes, not once at the end: a two-hour run that is
+        // interrupted must still leave behind what it learned.
+        const written2 = fs.readdirSync(dataDir).filter(n => n.startsWith('library-sweep-'));
+        ok('a report file was written, and a latest pointer beside it',
+            written2.some(n => n.endsWith('.jsonl')) && written2.includes('library-sweep-latest.json'));
+        const lines = fs.readFileSync(path.join(dataDir, written2.find(n => n.endsWith('.jsonl'))), 'utf8')
+            .trim().split('\n').map(JSON.parse);
+        ok('...with one line per bundle plus a start and a summary',
+            lines[0].type === 'start' && lines.filter(l => l.type === 'bundle').length === 2
+            && lines[lines.length - 1].type === 'summary');
+        ok('and the machine context is recorded up front, not only at the end',
+            Object.prototype.hasOwnProperty.call(lines[0], 'machine'));
     }
 
     console.log('\na failing bundle does not stop the sweep');
@@ -186,17 +201,7 @@ function make({ mode = 'admin', calibrator = {}, entries = [entry('a'), entry('b
             st.summary.ran === 1 && st.summary.succeeded === 1);
     }
 
-    // tidy up the report files this test wrote
-    try {
-        const dataDir = path.resolve(__dirname, '..', 'data');
-        for (const f of fs.readdirSync(dataDir)) {
-            if (/^library-sweep-20/.test(f)) {
-                const p = path.join(dataDir, f);
-                // only the ones this test just made
-                if (Date.now() - fs.statSync(p).mtimeMs < 120000) fs.unlinkSync(p);
-            }
-        }
-    } catch { /* nothing to clean */ }
+    // Nothing to tidy in server/data: this test writes only under its own temp dir.
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(`\nlibrarySweep: all ${pass} checks passed`);
 })();

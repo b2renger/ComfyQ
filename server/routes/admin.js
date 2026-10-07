@@ -12,6 +12,7 @@ const { parseWorkflow } = require('../workflows/workflowParser');
 const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
 const { buildModelUsage } = require('../workflows/modelUsage');
 const { listInstalledPacks, missingNodePacks, readRequirements } = require('../workflows/nodePacks');
+const { renderSweepReport } = require('../benchmark/sweepReport');
 const {
     scoreDeletable, auditRedownload, invalidateReferenceNames,
 } = require('../workflows/modelConfidence');
@@ -413,6 +414,28 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         if (!sw) return res.status(503).json({ error: 'the sweep is not available' });
         const out = sw.stop();
         res.status(out.ok ? 200 : 400).json(out);
+    });
+
+    // The sweep as plain text, for pasting back into a chat. Generated here
+    // rather than in the browser so it carries the machine context and can
+    // cross-reference the prune list — the two things that make it actionable.
+    router.get('/library-sweep/report.txt', (req, res) => {
+        const sw = runtime?.sweep;
+        if (!sw) return res.status(503).type('text/plain').send('the sweep is not available');
+        const run = sw.status();
+        const report = (run && run.results?.length)
+            ? { ...run, machine: run.machine, results: run.results }
+            : sw.lastReport();
+        if (!report) return res.status(404).type('text/plain').send('No sweep has been run on this machine yet.');
+        // Cross-reference costs a usage scan; skip it rather than fail the report.
+        let unused = null;
+        try { unused = usageReport().models.filter(x => x.unused); } catch { /* optional */ }
+        const text = renderSweepReport(report, { unused });
+        res.type('text/plain; charset=utf-8');
+        if (req.query.download) {
+            res.setHeader('Content-Disposition', `attachment; filename="comfyq-library-sweep.txt"`);
+        }
+        res.send(text);
     });
 
     // ---- Maintenance: the scripts, runnable from here ---------------------

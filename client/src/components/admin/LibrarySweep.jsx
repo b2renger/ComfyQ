@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     ListChecks, Play, Square, AlertTriangle, CheckCircle2, Eye, ChevronDown, ChevronUp, Clock, Database,
+    ClipboardCopy, Download,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { SERVER_URL } from '../../utils/api';
+import { copyToClipboard } from '../../utils/clipboard';
 
 /**
  * Run every workflow once, and say what actually came out.
@@ -26,6 +28,7 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
     const [busy, setBusy] = useState(false);
     const [open, setOpen] = useState(false);
     const [confirming, setConfirming] = useState(false);
+    const [copying, setCopying] = useState(false);
 
     const load = useCallback(async () => {
         try {
@@ -59,6 +62,27 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
         } finally { setBusy(false); }
     };
 
+    // ★ Fetched from the server, not assembled here: the text carries the machine
+    // context and the cross-reference against the prune list, neither of which the
+    // browser has. copyToClipboard because navigator.clipboard is undefined on
+    // plain HTTP off localhost, which is how every rig but this one is reached.
+    const copyReport = async () => {
+        setCopying(true);
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/library-sweep/report.txt`);
+            const text = await res.text();
+            if (!res.ok) throw new Error(text || `HTTP ${res.status}`);
+            const copied = await copyToClipboard(text);
+            onToast?.(
+                copied
+                    ? `Report copied — ${text.split('\n').length} lines, paste it straight back`
+                    : 'Could not reach the clipboard — use the .txt button instead',
+                copied ? 'ok' : 'err');
+        } catch (e) {
+            onToast?.(`Could not build the report: ${e.message}`, 'err');
+        } finally { setCopying(false); }
+    };
+
     if (!data || data.available === false) return null;
 
     // A finished run in memory, else the last one off disk — so the results
@@ -85,6 +109,23 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
                     </p>
                 </div>
                 <div className="shrink-0 flex gap-2">
+                    {/* ★ The report is the deliverable, so offer it wherever a run exists —
+                        including the last one off disk, since a two-hour run is usually read
+                        after a restart. Copy rather than download is the common case: it is
+                        meant to be pasted into a chat. */}
+                    {(results.length > 0) && (
+                        <>
+                            <Button variant="ghost" onClick={copyReport} disabled={copying}>
+                                <ClipboardCopy size={14} /> {copying ? 'Copying…' : 'Copy report'}
+                            </Button>
+                            <a href={`${SERVER_URL}/admin/library-sweep/report.txt?download=1`}
+                                className="inline-flex items-center gap-1 px-3 py-1.5 text-sm rounded-lg
+                                    bg-transparent hover:bg-white/5 text-muted hover:text-foreground"
+                                title="Save the report as a .txt file">
+                                <Download size={14} /> .txt
+                            </a>
+                        </>
+                    )}
                     {running ? (
                         <Button variant="ghost" className="text-danger" onClick={() => post('stop')} disabled={busy}>
                             <Square size={14} /> Stop

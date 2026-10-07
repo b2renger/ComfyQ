@@ -1,7 +1,9 @@
 const fs = require('fs');
+const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
 const { readAccessLog, invalidateAccessLog } = require('../workflows/modelAccessLog');
+const { flagsFromArgv } = require('../workers/perfFlags');
 
 // Run every workflow in the library once, and write down what happened.
 //
@@ -45,11 +47,18 @@ class LibrarySweep {
      * @param {() => object} opts.config
      * @param {() => string} opts.mode             'admin' | 'student'
      */
-    constructor({ registry, calibrator, config, mode }) {
+    /**
+     * @param {string} [opts.dataDir]  where reports are written. Injectable ONLY so a
+     *   test can point it at a temp directory — it writes a `…-latest.json` that the
+     *   report route serves, and a test that wrote into server/data would publish a
+     *   fixture as if it were a real sweep of this machine. It did, once.
+     */
+    constructor({ registry, calibrator, config, mode, dataDir }) {
         this.registry = registry;
         this._calibrator = calibrator;
         this._config = config;
         this._mode = mode;
+        this._dataDir = dataDir || DATA_DIR;
         this._run = null;
         this._cancelled = false;
     }
@@ -101,7 +110,7 @@ class LibrarySweep {
     /** The report of the last sweep, read off disk — survives a restart. */
     lastReport() {
         try {
-            const p = path.join(DATA_DIR, 'library-sweep-latest.json');
+            const p = path.join(this._dataDir, 'library-sweep-latest.json');
             return JSON.parse(fs.readFileSync(p, 'utf8'));
         } catch { return null; }
     }
@@ -136,7 +145,7 @@ class LibrarySweep {
         if (!wanted.length) return { ok: false, error: 'no workflows to run' };
 
         const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-        fs.mkdirSync(DATA_DIR, { recursive: true });
+        fs.mkdirSync(this._dataDir, { recursive: true });
         this._cancelled = false;
         this._run = {
             state: 'running',
@@ -148,12 +157,18 @@ class LibrarySweep {
             // Written per bundle, not once at the end: a two-hour run that is
             // interrupted must still leave behind what it learned. Same lesson as
             // the prune log.
-            reportPath: path.join(DATA_DIR, `library-sweep-${stamp}.jsonl`),
+            reportPath: path.join(this._dataDir, `library-sweep-${stamp}.jsonl`),
             stamp,
             recorderAvailable: readAccessLog(this._config()?.comfy_ui?.root_path || '').available,
         };
+        // Captured once, up front: a report is read later, often on another
+        // machine, and "it failed" means nothing without knowing what it ran on.
+        this._run.machine = await this._machine();
         fs.writeFileSync(this._run.reportPath,
-            JSON.stringify({ type: 'start', at: this._run.startedAt, bundles: this._run.ids.length }) + '\n');
+            JSON.stringify({
+                type: 'start', at: this._run.startedAt,
+                bundles: this._run.ids.length, machine: this._run.machine,
+            }) + '\n');
 
         this._execute(wanted, cal).catch(e => {
             if (this._run) { this._run.state = 'failed'; this._run.error = e.message; }
@@ -236,6 +251,28 @@ class LibrarySweep {
                 rec.recorderAvailable = after.available;
             } catch { /* the sweep is still useful without it */ }
 
+            // ★ The flags ComfyUI was ACTUALLY running with for this bundle, read
+            // off its own argv, next to the flags the bundle says it cannot use.
+            // This is the most valuable line in the whole report: a black output
+            // from a bundle that declares `use_sage_attention` while sage is in
+            // the argv has a known cause and is not a broken graph. Diagnosing
+            // that by hand is what cost two silent failures already.
+            try {
+                const want = (entry.meta?.requirements?.disabledPerfFlags || []).slice();
+                const sys = await this._systemInfo();
+                const argv = sys?.argv || [];
+                rec.perf = {
+                    argv: argv.filter(a => a.startsWith('--')),
+                    bundleDisables: want,
+                    // a flag the bundle disowns that was nevertheless passed
+                    notMasked: want.filter(k => flagsFromArgv(argv).includes(k)),
+                };
+                if (rec.perf.notMasked.length) {
+                    rec.cause = `ComfyUI was running with ${rec.perf.notMasked.join(', ')}, which this `
+                        + `bundle declares it cannot use — any black or empty output here is that, not the graph.`;
+                }
+            } catch { /* the report is still useful without it */ }
+
             rec.finishedAt = new Date().toISOString();
             rec.wallSec = Math.round((Date.now() - startedMs) / 1000);
             this._run.results.push(rec);
@@ -255,12 +292,13 @@ class LibrarySweep {
             startedAt: this._run.startedAt,
             finishedAt: this._run.finishedAt,
             state: this._run.state,
+            machine: this._run.machine,
             summary: this._summary(),
             results: this._run.results,
         };
         try {
             fs.appendFileSync(this._run.reportPath, JSON.stringify(final) + '\n');
-            fs.writeFileSync(path.join(DATA_DIR, 'library-sweep-latest.json'), JSON.stringify(final, null, 1));
+            fs.writeFileSync(path.join(this._dataDir, 'library-sweep-latest.json'), JSON.stringify(final, null, 1));
         } catch (e) { console.warn(`[Sweep] could not write the report: ${e.message}`); }
         const s = final.summary;
         console.log(`[Sweep] ${this._run.state}: ${s.succeeded}/${s.ran} ran clean, ${s.failed} failed, `
@@ -302,6 +340,63 @@ class LibrarySweep {
                 path: undefined,
             };
         });
+    }
+
+    /**
+     * ComfyUI's own account of itself: version, torch, the GPU, and the argv it
+     * was started with. Recorded so a report read a week later on another machine
+     * still says what produced it.
+     */
+    /** Everything a reader needs to know what produced this report. */
+    async _machine() {
+        const cfg = this._config() || {};
+        const sys = await this._systemInfo();
+        let commit = null, branch = null;
+        try {
+            const gitDir = path.resolve(__dirname, '..', '..', '.git');
+            const head = fs.readFileSync(path.join(gitDir, 'HEAD'), 'utf8').trim();
+            const m = head.match(/^ref:\s*(.+)$/);
+            if (m) {
+                branch = m[1].replace('refs/heads/', '');
+                commit = fs.readFileSync(path.join(gitDir, m[1]), 'utf8').trim().slice(0, 7);
+            } else commit = head.slice(0, 7);
+        } catch { /* not a checkout, or a packed ref — the rest still stands */ }
+        return {
+            at: new Date().toISOString(),
+            host: os.hostname(),
+            instance: cfg.instance?.nameCustom || cfg.instance?.name || null,
+            gpu: sys?.gpu || cfg.instance?.gpu || null,
+            vramTotalGb: sys?.vramTotalGb || cfg.instance?.vramGb || null,
+            comfyui: sys?.comfyui || null,
+            pytorch: sys?.pytorch || null,
+            python: sys?.python || null,
+            argv: (sys?.argv || []).filter(a => a.startsWith('--')),
+            comfyRoot: cfg.comfy_ui?.root_path || null,
+            assetsDir: cfg.assets?.dir || null,
+            scanDirs: cfg.maintenance?.workflowScanDirs || [],
+            comfyqCommit: commit,
+            comfyqBranch: branch,
+        };
+    }
+
+    async _systemInfo() {
+        const cfg = this._config() || {};
+        const host = cfg.comfy_ui?.api_host || '127.0.0.1';
+        const port = cfg.comfy_ui?.api_port || 8188;
+        try {
+            const r = await fetch(`http://${host}:${port}/system_stats`, { signal: AbortSignal.timeout(8000) });
+            if (!r.ok) return null;
+            const j = await r.json();
+            const dev = (j.devices || []).find(d => d?.type === 'cuda') || j.devices?.[0] || {};
+            return {
+                comfyui: j.system?.comfyui_version || null,
+                python: (j.system?.python_version || '').split(' ')[0] || null,
+                pytorch: j.system?.pytorch_version || null,
+                argv: j.system?.argv || [],
+                gpu: dev.name ? String(dev.name).replace(/^cuda:\d+\s+/i, '').trim() : null,
+                vramTotalGb: dev.vram_total ? +(dev.vram_total / 1024 ** 3).toFixed(2) : null,
+            };
+        } catch { return null; }
     }
 
     _python() {
