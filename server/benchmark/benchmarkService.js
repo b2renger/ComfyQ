@@ -342,7 +342,19 @@ class BenchmarkService {
             stepsDone = d; stepsTotal = t;
         };
         const onFinished = () => resolveDone();
-        const onFailed = ({ errorReason }) => rejectDone(new Error(errorReason || 'benchmark-failed'));
+        // ★ Carry the detail onto the Error so a caller that reports failures (the
+        // library sweep) can print the traceback instead of just the one-liner.
+        const onFailed = ({ errorReason, errorDetail }) => {
+            const e = new Error(errorReason || 'benchmark-failed');
+            if (errorDetail) {
+                e.traceback = errorDetail.traceback || null;
+                e.exceptionType = errorDetail.exceptionType || null;
+                e.failedNode = errorDetail.nodeId != null
+                    ? `${errorDetail.nodeId} (${errorDetail.nodeType || 'unknown class'})`
+                    : (errorDetail.nodeType || null);
+            }
+            rejectDone(e);
+        };
         this.worker.on('progress', onProgress);
         this.worker.on('execution-finished', onFinished);
         this.worker.on('failed', onFailed);

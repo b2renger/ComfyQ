@@ -13,6 +13,7 @@ const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions'
 const { buildModelUsage } = require('../workflows/modelUsage');
 const { listInstalledPacks, missingNodePacks, readRequirements } = require('../workflows/nodePacks');
 const { renderSweepReport } = require('../benchmark/sweepReport');
+const { revealPath } = require('../maintenance/revealPath');
 const {
     scoreDeletable, auditRedownload, invalidateReferenceNames,
 } = require('../workflows/modelConfidence');
@@ -414,6 +415,24 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         if (!sw) return res.status(503).json({ error: 'the sweep is not available' });
         const out = await sw.start({ ids: Array.isArray(req.body?.ids) ? req.body.ids : undefined });
         res.status(out.ok ? 200 : 409).json(out);
+    });
+
+    // Forget every sweep result, in memory and on disk. Wanted because a partial or
+    // recovered report reads like a verdict on the library while covering half of it.
+    router.post('/library-sweep/clear', adminGate, express.json(), (req, res) => {
+        const sw = runtime?.sweep;
+        if (!sw) return res.status(503).json({ error: 'the sweep is not available' });
+        const out = sw.clear();
+        res.status(out.ok ? 200 : 409).json(out);
+    });
+
+    // ★ Open a file in the file browser ON THIS MACHINE. A browser cannot follow a
+    // file:// link from an http page, so the host has to do it — and the path is
+    // refused unless it sits inside a folder ComfyQ already works with.
+    router.post('/reveal', adminGate, express.json(), (req, res) => {
+        const { config } = configManager.load();
+        const out = revealPath(req.body?.path, config);
+        res.status(out.ok ? 200 : 400).json(out);
     });
 
     router.post('/library-sweep/stop', adminGate, express.json(), (req, res) => {

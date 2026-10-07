@@ -20,6 +20,8 @@ const RULE = '='.repeat(WIDTH);
 const THIN = '-'.repeat(WIDTH);
 // Long enough for a real ComfyUI traceback, short enough to paste a whole sweep.
 const ERROR_CHARS = 1200;
+// Enough frames to see where it broke and what called it, without pasting 120 lines.
+const TRACEBACK_LINES = 18;
 
 const pad = (s, n) => String(s ?? '').padEnd(n);
 const secs = (s) => {
@@ -98,6 +100,11 @@ function wrap(text, n) {
 }
 
 function describeOutput(o) {
+    // ★ A caption is the whole result of a describe workflow. Printed in full rather
+    // than measured: there is nothing to measure, and the text IS the thing to read.
+    if (o.kind === 'text') {
+        return `${o.file} · ${o.chars} characters of text`;
+    }
     const bits = [o.file];
     if (o.width) bits.push(`${o.width}x${o.height}`);
     if (o.frames != null) bits.push(`${o.frames} frames${o.fps ? ` @ ${o.fps}fps` : ''}`);
@@ -178,13 +185,28 @@ function renderSweepReport(report, opts = {}) {
             + `${r.steps ? ` · ${r.steps} steps` : ''} · ${(r.outputs || []).length} output file(s)`);
         if (r.error) {
             const e = String(r.error);
-            L.push('    error:');
+            L.push(`    error:${r.failedNode ? `  (at node ${r.failedNode})` : ''}`);
             for (const line of e.slice(0, ERROR_CHARS).split('\n')) L.push(`      ${line}`);
             if (e.length > ERROR_CHARS) L.push(`      … (${e.length - ERROR_CHARS} more characters; full text in the .jsonl)`);
+        }
+        // ★ The traceback, tail first. "aimdo memory compile error" named a failure
+        // the one-liner could not explain; the frames below it are what located the
+        // fault in comfy_aimdo's malloc graph. The last ones are the ones that matter.
+        if (r.traceback) {
+            const frames = String(r.traceback).split('\n').filter(l => l.trim());
+            const tail = frames.slice(-TRACEBACK_LINES);
+            L.push(`    traceback (last ${tail.length} of ${frames.length} lines):`);
+            for (const line of tail) L.push(`      ${line.replace(/\s+$/, '')}`);
         }
         for (const row of ingredientLines(r)) L.push(`    ${row}`);
         for (const o of r.outputs || []) {
             L.push(`    output: ${describeOutput(o)}`);
+            // ★ A caption is printed, not summarised. For a describe workflow it is the
+            // entire result, and a reader cannot judge "did this work" from a length.
+            if (o.kind === 'text' && o.text) {
+                for (const seg of wrap(o.text, 70).slice(0, 24)) L.push(`            ${seg}`);
+                if (wrap(o.text, 70).length > 24) L.push('            … (truncated; full text in the .jsonl)');
+            }
             if (o.path) L.push(`            ${o.path}`);
         }
         // ★ The line that most often explains a bad render.

@@ -316,7 +316,23 @@ class LocalComfyUIWorker extends Worker {
             const reason = humanizeFailure(data.exception_message || data.traceback, data.node_type);
             this._resetCurrent();
             this._setState('idle');
-            this.emit('failed', { jobId, promptId, errorReason: reason, errorPhase: 'executing' });
+            // ★ Carry the raw diagnosis alongside the friendly reason. A student sees
+            // `errorReason`; whoever has to FIX it needs the rest. The two Qwen
+            // ControlNet bundles failed with "aimdo memory compile error" and nothing
+            // more — the 120 lines that actually located the fault
+            // (comfy_aimdo/malloc_graph.py:16, reached from common_ksampler) existed
+            // only in ComfyUI's stdout, which nothing stores durably, so the sweep
+            // report named the failure without being able to explain it.
+            this.emit('failed', {
+                jobId, promptId, errorReason: reason, errorPhase: 'executing',
+                errorDetail: {
+                    exceptionType: data.exception_type || null,
+                    exceptionMessage: data.exception_message || null,
+                    traceback: Array.isArray(data.traceback) ? data.traceback.join('') : (data.traceback || null),
+                    nodeId: data.node_id ?? null,
+                    nodeType: data.node_type || null,
+                },
+            });
         } else if (type === 'execution_cached') {
             // nodes were cached, just informational
         }

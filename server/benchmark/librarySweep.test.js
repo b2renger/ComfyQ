@@ -235,6 +235,96 @@ function make({ mode = 'admin', calibrator = {}, entries = [entry('a'), entry('b
     fs.rmSync(logRoot, { recursive: true, force: true });
 }
 
+console.log('\nthe perf diagnostic has to work for the bundles that need it');
+{
+    // ★★ This branch is only REACHABLE when a bundle declares a flag, because
+    // Array.prototype.filter never invokes its callback on an empty array. The
+    // original code called `flagsFromArgv(argv).includes(k)` — flagsFromArgv returns
+    // an OBJECT — so it raised a TypeError and the whole perf record was abandoned,
+    // silently, for exactly the five bundles whose documented failure mode is a black
+    // image. 56 bundles recorded it fine, which is why it looked healthy.
+    const calibrator = { calibrate: async () => ({ estimatedDurationSec: 5 }) };
+    const declaring = [entry('masked', { meta: { requirements: { disabledPerfFlags: ['use_sage_attention'] } } })];
+
+    const unmasked = make({ entries: declaring, calibrator });
+    unmasked.sweep._systemInfo = async () => ({ argv: ['--listen', '--use-sage-attention', '--fast'] });
+    await unmasked.sweep.start();
+    for (let i = 0; i < 100 && unmasked.sweep.status().state === 'running'; i++) {
+        await new Promise(res => setTimeout(res, 20));
+    }
+    const bad = unmasked.sweep.status().results[0];
+    ok('a bundle that declares a flag still records a perf block', !!bad.perf);
+    ok('...naming what it disowns', (bad.perf.bundleDisables || []).join() === 'use_sage_attention');
+    ok('...and catching the flag that was NOT masked', (bad.perf.notMasked || []).join() === 'use_sage_attention');
+    ok('...with the cause stated in words', /use_sage_attention/.test(bad.cause || ''));
+
+    const fine = make({ entries: declaring, calibrator });
+    fine.sweep._systemInfo = async () => ({ argv: ['--listen', '--fast'] });
+    await fine.sweep.start();
+    for (let i = 0; i < 100 && fine.sweep.status().state === 'running'; i++) {
+        await new Promise(res => setTimeout(res, 20));
+    }
+    const good = fine.sweep.status().results[0];
+    ok('a correctly masked flag is not reported as unmasked', (good.perf.notMasked || []).length === 0);
+    ok('...and no cause is invented', !good.cause);
+}
+
+console.log('\na failure must still say what it was fed, and why it broke');
+{
+    // Found on the first real sweep: the two bundles that failed carried no prompt,
+    // no params and no input paths, because ingredients were captured only in the
+    // success branch — backwards, since a failure is when you need them most.
+    const err = Object.assign(new Error('aimdo memory compile error'), {
+        traceback: 'Traceback (most recent call last):\n  File "nodes.py", line 1596\n  RuntimeError: aimdo memory compile error',
+        exceptionType: 'RuntimeError',
+        failedNode: '42 (KSampler)',
+    });
+    const calibrator = {
+        calibrate: async () => { throw err; },
+        lastRunDetails: () => ({
+            workflowId: 'boom',
+            paramValues: { seed: 7 },
+            media: { image: { source: 'J:/_assets/Woman.png', staged: 'comfyq_x.png', how: 'resolved from the assets dir' } },
+        }),
+    };
+    const entries = [entry('boom', {
+        effective: { exposedParameters: [
+            { key: 'image', label: 'Source image', type: 'image', nodeId: '1', field: 'image' },
+            { key: 'seed', label: 'Seed', type: 'number', nodeId: '2', field: 'seed' },
+        ] },
+        apiWorkflow: { 1: { class_type: 'LoadImage', inputs: {} }, 2: { class_type: 'KSampler', inputs: { seed: 1 } } },
+    })];
+    const { sweep } = make({ entries, calibrator });
+    await sweep.start();
+    for (let i = 0; i < 100 && sweep.status().state === 'running'; i++) {
+        await new Promise(res => setTimeout(res, 20));
+    }
+    const r = sweep.status().results[0];
+    ok('a failed bundle records its ingredients', (r.ingredients || []).length === 2);
+    ok('...including the asset path it was actually fed',
+        r.ingredients.find(g => g.key === 'image')?.sourcePath === 'J:/_assets/Woman.png');
+    ok('the traceback is kept, not just the one-line message', /malloc|nodes\.py/.test(r.traceback || ''));
+    ok('...with the failing node and exception type', r.failedNode === '42 (KSampler)' && r.exceptionType === 'RuntimeError');
+}
+
+console.log('\nclearing the results, because a half report is worse than none');
+{
+    const calibrator = { calibrate: async () => ({ estimatedDurationSec: 5 }) };
+    const { sweep } = make({ entries: [entry('one')], calibrator });
+    await sweep.start();
+    for (let i = 0; i < 100 && sweep.status().state === 'running'; i++) {
+        await new Promise(res => setTimeout(res, 20));
+    }
+    ok('a finished sweep leaves a report on disk',
+        fs.readdirSync(dataDir).some(n => n.startsWith('library-sweep-')));
+    const out = sweep.clear();
+    ok('clear removes the report files', out.ok && out.removed >= 1);
+    ok('...and forgets the in-memory run', sweep.status() === null);
+    ok('...and leaves nothing behind in the data dir',
+        !fs.readdirSync(dataDir).some(n => n.startsWith('library-sweep-')));
+    ok('clearing again is harmless', sweep.clear().ok === true);
+}
+
 console.log('\nthe recorder\'s absence must be visible, not read as "nothing was opened"');
     {
         // ★ With no log on disk, "0 models opened" and "we were not recording" look

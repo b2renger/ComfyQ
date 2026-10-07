@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
     ListChecks, Play, Square, AlertTriangle, CheckCircle2, Eye, ChevronDown, ChevronUp, Clock, Database,
-    ClipboardCopy, Download,
+    ClipboardCopy, Download, FolderOpen, Trash2,
 } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
@@ -28,6 +28,7 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
     const [busy, setBusy] = useState(false);
     const [open, setOpen] = useState(false);
     const [confirming, setConfirming] = useState(false);
+    const [confirmClear, setConfirmClear] = useState(false);
     const [copying, setCopying] = useState(false);
     // One row open at a time: a result preview is a full-size image, and sixty of
     // them at once is how the results grid used to crawl.
@@ -59,6 +60,7 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
             const out = await res.json();
             if (!res.ok) throw new Error(out.error || `HTTP ${res.status}`);
             if (out.note) onToast?.(out.note);
+            if (what === clear) { setConfirmClear(false); setOpen(false); setInspecting(null); onToast?.(`Cleared ${out.removed ?? 0} report file(s)`); }
             await load();
         } catch (e) {
             onToast?.(e.message, 'err');
@@ -131,6 +133,23 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
                                 title="Save the report as a .txt file">
                                 <Download size={14} /> .txt
                             </a>
+                            {/* ★ A partial or recovered report reads like a verdict on the
+                                library while covering half of it, so being able to throw it
+                                away is part of trusting the next one. It never removes the
+                                bench_* outputs — those are evidence. */}
+                            {!running && (confirmClear ? (
+                                <>
+                                    <Button variant="danger" disabled={busy} onClick={() => post('clear')}>
+                                        Discard these results
+                                    </Button>
+                                    <Button variant="ghost" onClick={() => setConfirmClear(false)}>Cancel</Button>
+                                </>
+                            ) : (
+                                <Button variant="ghost" onClick={() => setConfirmClear(true)}
+                                    title="Forget these results. The output files it produced are left alone.">
+                                    <Trash2 size={14} /> Clear
+                                </Button>
+                            ))}
                         </>
                     )}
                     {running ? (
@@ -269,7 +288,20 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
                                             </div>
                                         </div>
 
-                                        {r.error && <p className="text-danger mt-1">failed: {r.error}</p>}
+                                        {r.error && (
+                                            <>
+                                                <p className="text-danger mt-1">
+                                                    failed: {r.error}
+                                                    {r.failedNode ? <span className="text-muted"> · at node {r.failedNode}</span> : null}
+                                                </p>
+                                                {r.traceback && (
+                                                    <details className="mt-1">
+                                                        <summary className="text-[11px] text-primary cursor-pointer">traceback</summary>
+                                                        <pre className="mt-1 max-h-56 overflow-auto rounded bg-background p-2 text-[10px] whitespace-pre-wrap">{r.traceback}</pre>
+                                                    </details>
+                                                )}
+                                            </>
+                                        )}
 
                                         {r.ok && !(r.outputs || []).length && (
                                             <p className="text-danger mt-1">
@@ -313,7 +345,7 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
                                             <Eye size={11} />
                                             {inspecting === r.id ? 'Hide' : 'Inspect'} ingredients and result
                                         </button>
-                                        {inspecting === r.id && <Inspect r={r} />}
+                                        {inspecting === r.id && <Inspect r={r} headers={headers} onToast={onToast} />}
                                     </div>
                                 ))}
                         </div>
@@ -343,12 +375,39 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
  * graph's own literal rather than from the calibration, so each row says where its
  * value came from. Without that, "the prompt" would silently be blank.
  */
-const Inspect = ({ r }) => {
+const Inspect = ({ r, headers, onToast }) => {
     const ing = r.ingredients || [];
     const outs = r.outputs || [];
     const isImg = (f) => /\.(png|jpe?g|webp|bmp)$/i.test(f || '');
     const isVid = (f) => /\.(mp4|webm|mov|mkv)$/i.test(f || '');
     const isAud = (f) => /\.(mp3|wav|flac|ogg|opus|m4a)$/i.test(f || '');
+
+    // ★ A path is only clickable via the host: a browser will not follow file://
+    // from an http page. This opens it on THE RIG's desktop, which is what you want
+    // sitting at the machine and useless from a laptop — so Copy sits beside it.
+    const reveal = async (p) => {
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/reveal`, {
+                method: 'POST', headers, body: JSON.stringify({ path: p }),
+            });
+            const out = await res.json();
+            if (!res.ok) throw new Error(out.error || `HTTP ${res.status}`);
+            onToast?.(`Opened on the rig — ${out.how}`);
+        } catch (e) { onToast?.(e.message, 'err'); }
+    };
+    const PathLink = ({ p }) => (
+        <span className="flex items-start gap-1.5 flex-wrap">
+            <button onClick={() => reveal(p)} title="Open this file in the file browser ON THE RIG"
+                className="text-primary hover:underline inline-flex items-center gap-1 shrink-0">
+                <FolderOpen size={11} /> show on rig
+            </button>
+            <button onClick={() => copyToClipboard(p).then(ok => onToast?.(ok ? 'Path copied' : 'Could not copy', ok ? 'ok' : 'err'))}
+                title="Copy the full path" className="text-muted hover:text-foreground shrink-0">
+                <ClipboardCopy size={11} />
+            </button>
+            <code className="text-[10px] text-muted/70 break-all">{p}</code>
+        </span>
+    );
     return (
         <div className="mt-2 grid gap-3 lg:grid-cols-2 rounded-lg border border-border bg-background/40 p-2.5">
             <div className="min-w-0">
@@ -368,7 +427,7 @@ const Inspect = ({ r }) => {
                             <dd className="text-[11px] break-words">
                                 {g.sourcePath ? (
                                     <>
-                                        <code className="break-all">{g.sourcePath}</code>
+                                        <PathLink p={g.sourcePath} />
                                         {g.staged && <div className="text-muted/60">staged as {g.staged}</div>}
                                     </>
                                 ) : (g.value === null || g.value === undefined || g.value === '')
@@ -395,6 +454,25 @@ const Inspect = ({ r }) => {
                 <div className="space-y-2">
                     {outs.map(o => (
                         <div key={o.file}>
+                            {/* ★ A caption IS the result for a describe workflow. It arrives
+                                as text through a PreviewAny node and touches no file, so
+                                showing it is the only way to read what the bundle exists to
+                                produce. */}
+                            {o.kind === 'text' && (
+                                <div className="rounded border border-border bg-background/60 p-2">
+                                    <div className="text-[10px] uppercase tracking-wider text-muted mb-1">
+                                        text result · {o.file} · {o.chars} characters
+                                    </div>
+                                    <p className="whitespace-pre-wrap text-[11px] leading-relaxed max-h-48 overflow-y-auto">
+                                        {o.text}
+                                    </p>
+                                    <button
+                                        onClick={() => copyToClipboard(o.text).then(ok => onToast?.(ok ? 'Text copied' : 'Could not copy', ok ? 'ok' : 'err'))}
+                                        className="mt-1 text-[11px] text-primary hover:underline inline-flex items-center gap-1">
+                                        <ClipboardCopy size={11} /> copy the text
+                                    </button>
+                                </div>
+                            )}
                             {isImg(o.file) && (
                                 <a href={`${SERVER_URL}/images/${encodeURIComponent(o.file)}`} target="_blank" rel="noreferrer">
                                     <img src={`${SERVER_URL}/images/${encodeURIComponent(o.file)}`} alt={o.file}
@@ -417,13 +495,13 @@ const Inspect = ({ r }) => {
                                 {o.bytes != null ? ` · ${(o.bytes / 1024 ** 2).toFixed(2)} MB` : ''}
                                 {(o.flags || []).length ? <span className="text-danger"> · {o.flags.join(', ')}</span> : null}
                             </div>
-                            {o.path && (
-                                <code className="text-[10px] text-muted/70 break-all block">{o.path}</code>
+                            {o.path && <PathLink p={o.path} />}
+                            {o.kind !== 'text' && (
+                                <a className="text-[11px] text-primary hover:underline"
+                                    href={`${SERVER_URL}/images/${encodeURIComponent(o.file)}?download=1`}>
+                                    download
+                                </a>
                             )}
-                            <a className="text-[11px] text-primary hover:underline"
-                                href={`${SERVER_URL}/images/${encodeURIComponent(o.file)}?download=1`}>
-                                download
-                            </a>
                         </div>
                     ))}
                 </div>

@@ -180,6 +180,33 @@ class LibrarySweep {
         return { ok: true, total: wanted.length };
     }
 
+    /**
+     * Forget every sweep result — in memory and on disk.
+     *
+     * ★ Wanted because a partial or RECOVERED report is worse than none: it reads
+     * like a verdict on the library while covering half of it, and a recovered one
+     * cannot show a failure at all (a bundle that failed wrote no runtime.json).
+     * Clearing is the honest reset before a fresh run.
+     *
+     * It never touches the `bench_*` output files — those are evidence, and
+     * ComfyUI's output folder is not ours to tidy.
+     */
+    clear() {
+        if (this._run && this._run.state === 'running') {
+            return { ok: false, error: 'a sweep is running — stop it first' };
+        }
+        let removed = 0;
+        try {
+            for (const name of fs.readdirSync(this._dataDir)) {
+                if (!/^library-sweep-/.test(name)) continue;
+                try { fs.unlinkSync(path.join(this._dataDir, name)); removed++; } catch { /* in use */ }
+            }
+        } catch { /* no data dir yet */ }
+        this._run = null;
+        this._cancelled = false;
+        return { ok: true, removed };
+    }
+
     stop() {
         if (!this._run || this._run.state !== 'running') return { ok: false, error: 'nothing is running' };
         this._cancelled = true;
@@ -239,6 +266,23 @@ class LibrarySweep {
                 }
             } catch (e) {
                 rec.error = e.message;
+                rec.traceback = e.traceback || null;
+                rec.exceptionType = e.exceptionType || null;
+                rec.failedNode = e.failedNode || null;
+            }
+
+            // ★ Ingredients for a FAILED run too. They used to be captured only in
+            // the success branch, so the two bundles that failed on the first real
+            // sweep carried no prompt, no params and no input paths — which is
+            // backwards, because a failure is exactly when you need to know what was
+            // fed in. The calibration service records them during
+            // _buildCalibrationParams, which runs BEFORE the submit, so they exist
+            // even when the run throws.
+            if (!rec.ingredients) {
+                try {
+                    const d = cal.lastRunDetails?.();
+                    if (d && d.workflowId === entry.id) rec.ingredients = this._ingredients(entry, d);
+                } catch { /* the row is still useful without them */ }
             }
 
             // Outputs, found by the prefix the benchmark stamps on every save
@@ -246,6 +290,12 @@ class LibrarySweep {
             // audio and 3D saves use.
             try {
                 rec.outputs = await this._describeOutputs(entry.id, startedMs);
+                // ★ A workflow whose result is TEXT saves no file — the captioners
+                // answer through a PreviewAny node — so the answer has to come from
+                // ComfyUI's history or it is simply lost. Appended as an output of
+                // kind 'text' so the card and the report show it like any other.
+                const texts = await this._collectTextOutputs();
+                if (texts.length) rec.outputs = rec.outputs.concat(texts);
                 rec.flagged = rec.outputs
                     .filter(o => (o.flags || []).length || o.error)
                     .map(o => ({ file: o.file, flags: o.flags || [], error: o.error || null }));
@@ -282,7 +332,14 @@ class LibrarySweep {
                     argv: argv.filter(a => a.startsWith('--')),
                     bundleDisables: want,
                     // a flag the bundle disowns that was nevertheless passed
-                    notMasked: want.filter(k => flagsFromArgv(argv).includes(k)),
+                    // ★ flagsFromArgv returns an OBJECT ({use_sage_attention: bool,
+                    // fp16_accumulation: bool}), not an array. `.includes` raised a
+                    // TypeError, which abandoned the whole rec.perf assignment — and
+                    // only for a bundle that DECLARES a flag, because filter never
+                    // invokes its callback on an empty array. So the report's most
+                    // useful diagnostic was absent for exactly the five bundles it
+                    // exists for, and present for the other 56.
+                    notMasked: want.filter(k => flagsFromArgv(argv)[k] === true),
                 };
                 if (rec.perf.notMasked.length) {
                     rec.cause = `ComfyUI was running with ${rec.perf.notMasked.join(', ')}, which this `
@@ -363,6 +420,47 @@ class LibrarySweep {
                 row.value = row.value.slice(0, 2000);
             }
             out.push(row);
+        }
+        return out;
+    }
+
+    /**
+     * Text the run produced, read from ComfyUI's history.
+     *
+     * ★ A `description` workflow's whole result is a caption — it comes back through
+     * a PreviewAny node as a `text` array in the prompt's outputs and touches the
+     * filesystem not at all. Without this the sweep recorded those bundles as having
+     * produced nothing, and the owner could not read the answer they exist to give.
+     *
+     * Takes the most recent history entry, which is the run that just finished:
+     * calibration is serialized, so nothing else can have queued in between.
+     */
+    async _collectTextOutputs() {
+        const cfg = this._config() || {};
+        const host = cfg.comfy_ui?.api_host || '127.0.0.1';
+        const port = cfg.comfy_ui?.api_port || 8188;
+        let hist;
+        try {
+            const r = await fetch(`http://${host}:${port}/history?max_items=1`, { signal: AbortSignal.timeout(8000) });
+            if (!r.ok) return [];
+            hist = await r.json();
+        } catch { return []; }
+        const entry = Object.values(hist || {})[0];
+        const nodes = entry?.outputs || {};
+        const out = [];
+        const seen = new Set();
+        for (const [nodeId, o] of Object.entries(nodes)) {
+            for (const key of ['text', 'string']) {
+                for (const v of (Array.isArray(o?.[key]) ? o[key] : [])) {
+                    const s = typeof v === 'string' ? v : (v == null ? '' : String(v));
+                    const t = s.trim();
+                    // A media filename also lands in some nodes' ui payloads; a caption
+                    // is never one, and a duplicate is never worth showing twice.
+                    if (!t || seen.has(t) || /\.(png|jpe?g|webp|mp4|webm|flac|mp3|wav|glb|ply|spz)$/i.test(t)) continue;
+                    seen.add(t);
+                    out.push({ kind: 'text', file: `node ${nodeId}`, text: t, chars: t.length, flags: [] });
+                }
+            }
         }
         return out;
     }
