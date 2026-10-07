@@ -271,6 +271,13 @@ async function main() {
     app.use('/storyboard', access, storyboardRoutes.makeRouter({
         configManager, registry, runtime, adminGate: gate, exitForRestart
     }));
+    // ★ Media serving in BOTH modes. It used to be mounted only in the student
+    // block, so /images 404'd in admin mode — which is precisely the mode you are
+    // in while reading a library sweep, so the sweep card could describe a result
+    // it could not show. It is read-only, scoped to the output and temp dirs by
+    // _resolveSafe, and deliberately ungated already (an <img> cannot send a
+    // header, and these URLs are only discoverable through the gated socket).
+    app.use(mediaStore.makeRouter(config.comfy_ui));
 
     if (config.mode === 'admin') {
         // Calibration from the admin panel works by lazily spawning (or
@@ -447,7 +454,7 @@ async function main() {
     // <img>/<video> tags, which can't send an auth header.
     app.use('/jobs', access, jobRoutes.makeRouter({ queue, comfyConfig: config.comfy_ui, registry }));
     app.use(access, uploadRoutes.makeRouter({ comfyConfig: config.comfy_ui }));
-    app.use(mediaStore.makeRouter(config.comfy_ui));
+    // (media serving is mounted earlier, for both modes — see the note there)
 
     // Periodic input dir sweep.
     setInterval(() => worker.uploader.sweepStale(), 60_000);

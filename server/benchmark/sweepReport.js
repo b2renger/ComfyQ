@@ -48,6 +48,55 @@ function triage(r) {
     return { rank: 9, tag: 'ok' };
 }
 
+/**
+ * The ingredients of a run, as lines.
+ *
+ * ★ Included for the problems, not for the clean rows: a failure or a black frame
+ * is unfixable without knowing the prompt and the input that produced it, and that
+ * is the whole reason the owner asked for this. A prompt is wrapped rather than
+ * truncated, because the interesting part of a prompt is often at the end.
+ */
+function ingredientLines(r) {
+    const rows = r.ingredients || [];
+    if (!rows.length) return [];
+    const out = ['ingredients:'];
+    for (const g of rows) {
+        const v = g.value;
+        if (g.sourcePath) {
+            out.push(`  ${g.label} [${g.type}] <- ${g.sourcePath}`);
+            if (g.staged) out.push(`      staged into ComfyUI/input as ${g.staged}`);
+            continue;
+        }
+        if (v === null || v === undefined || v === '') {
+            out.push(`  ${g.label} [${g.type}] = (empty, ${g.from})`);
+            continue;
+        }
+        const text = String(v);
+        if (text.length <= 64 && !text.includes('\n')) {
+            out.push(`  ${g.label} = ${text}   (${g.from})`);
+        } else {
+            out.push(`  ${g.label} (${g.from}):`);
+            for (const seg of wrap(text, 70)) out.push(`      ${seg}`);
+            if (g.truncated) out.push(`      … (${g.truncated} characters in all)`);
+        }
+    }
+    return out;
+}
+
+function wrap(text, n) {
+    const lines = [];
+    for (const para of String(text).split('\n')) {
+        if (!para.length) { lines.push(''); continue; }
+        let line = '';
+        for (const word of para.split(/\s+/)) {
+            if ((line + ' ' + word).trim().length > n) { lines.push(line.trim()); line = word; }
+            else line += ' ' + word;
+        }
+        if (line.trim()) lines.push(line.trim());
+    }
+    return lines;
+}
+
 function describeOutput(o) {
     const bits = [o.file];
     if (o.width) bits.push(`${o.width}x${o.height}`);
@@ -133,7 +182,11 @@ function renderSweepReport(report, opts = {}) {
             for (const line of e.slice(0, ERROR_CHARS).split('\n')) L.push(`      ${line}`);
             if (e.length > ERROR_CHARS) L.push(`      … (${e.length - ERROR_CHARS} more characters; full text in the .jsonl)`);
         }
-        for (const o of r.outputs || []) L.push(`    output: ${describeOutput(o)}`);
+        for (const row of ingredientLines(r)) L.push(`    ${row}`);
+        for (const o of r.outputs || []) {
+            L.push(`    output: ${describeOutput(o)}`);
+            if (o.path) L.push(`            ${o.path}`);
+        }
         // ★ The line that most often explains a bad render.
         if (r.perf) {
             L.push(`    comfyui ran with: ${(r.perf.argv || []).join(' ') || '(no flags)'}`);

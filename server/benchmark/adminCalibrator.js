@@ -204,6 +204,9 @@ class AdminCalibrator {
         return { ...this.comfyStatus(), openerLoaded: this._openerLoaded && !this._external };
     }
 
+    /** What the last calibration was actually fed — prompts, params, asset paths. */
+    lastRunDetails() { return this.bench?.lastRun || null; }
+
     async calibrate(workflowId) {
         await this._ensureWorker({ workflowId });
         this._clearIdle();

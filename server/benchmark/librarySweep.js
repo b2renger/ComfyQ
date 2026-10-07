@@ -221,6 +221,13 @@ class LibrarySweep {
             try {
                 const runtime = await cal.calibrate(entry.id);
                 rec.ok = true;
+                // ★ The ingredients, so a human can read what produced the result
+                // rather than taking the measurement on trust.
+                try {
+                    const d = cal.lastRunDetails?.();
+                    rec.ingredients = this._ingredients(entry, d);
+                    rec.seedsRandomized = d?.seedsRandomized ?? null;
+                } catch { /* the row is still useful without them */ }
                 rec.warmSec = runtime?.estimatedDurationSec ?? null;
                 rec.coldSec = runtime?.coldDurationSec ?? null;
                 rec.modelLoadSec = runtime?.modelLoadSec ?? null;
@@ -309,13 +316,64 @@ class LibrarySweep {
             + `${s.withFlaggedOutput} with suspect output, ${s.distinctModelsOpened} distinct model file(s) opened`);
     }
 
+    /**
+     * What a run was actually fed, as a human would want to read it.
+     *
+     * ★ The EFFECTIVE value, not the submitted one. Calibration sends only the
+     * media it staged and a fresh seed; every other parameter keeps whatever
+     * literal sits in the api.json — so the prompt that really ran is almost never
+     * in paramValues, and a list built from paramValues alone would omit the single
+     * most useful ingredient. Each row therefore says where its value came from.
+     */
+    _ingredients(entry, details) {
+        const sent = details?.paramValues || {};
+        const media = details?.media || {};
+        const graph = entry.apiWorkflow || {};
+        const out = [];
+        for (const p of (entry.effective?.exposedParameters || [])) {
+            const isMedia = ['image', 'video', 'audio', 'mask'].includes(p.type);
+            const literal = graph[p.nodeId]?.inputs?.[p.field];
+            const wasSent = Object.prototype.hasOwnProperty.call(sent, p.key);
+            const row = {
+                key: p.key,
+                label: p.label || p.key,
+                type: p.type,
+                node: `${p.nodeId}.${p.field}`,
+                from: wasSent ? 'calibration' : 'the graph default',
+                value: wasSent ? sent[p.key] : literal,
+            };
+            if (isMedia && media[p.key]) {
+                row.sourcePath = media[p.key].source;      // the real file on disk
+                row.staged = media[p.key].staged;          // the copy ComfyUI read
+                row.from = media[p.key].how;
+            } else if (isMedia && !wasSent) {
+                row.from = 'left empty';
+                row.value = null;
+            }
+            // A prompt can be thousands of characters; keep the report readable and
+            // say so rather than silently cutting it.
+            if (typeof row.value === 'string' && row.value.length > 2000) {
+                row.truncated = row.value.length;
+                row.value = row.value.slice(0, 2000);
+            }
+            out.push(row);
+        }
+        return out;
+    }
+
     /** Output files this run produced, with a content check on each. */
     async _describeOutputs(workflowId, sinceMs) {
         const cfg = this._config() || {};
         const outDir = cfg.comfy_ui?.output_dir
             || (cfg.comfy_ui?.root_path ? path.join(cfg.comfy_ui.root_path, 'output') : null);
         if (!outDir || !fs.existsSync(outDir)) return [];
-        const prefix = `bench_${workflowId}_`;
+        // ★ Anchored on the timestamp that follows the id, not on the bare prefix.
+        // Several bundle ids are prefixes of others — `image_edit_bernini_r_image_editing`
+        // against `…_with_reference`, `video_ltx2_5_i2v` against `…_i2v_something` —
+        // so a startsWith match credited one bundle with another's output. Caught in
+        // the first real sweep's files: the plain editing bundle was shown holding
+        // the reference bundle's picture.
+        const stamped = new RegExp(`^bench_${workflowId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_\\d+`);
         const found = [];
         const walk = (dir, depth) => {
             if (depth > 2) return;
@@ -324,7 +382,7 @@ class LibrarySweep {
             for (const it of items) {
                 const p = path.join(dir, it.name);
                 if (it.isDirectory()) { walk(p, depth + 1); continue; }
-                if (!it.name.startsWith(prefix)) continue;
+                if (!stamped.test(it.name)) continue;
                 let st;
                 try { st = fs.statSync(p); } catch { continue; }
                 // mtime guard, so a previous sweep's files are not credited to this one
@@ -339,9 +397,13 @@ class LibrarySweep {
         return found.map(p => {
             const s = byPath.get(p) || {};
             return {
-                file: path.relative(outDir, p).split(path.sep).join('/'),
                 ...s,
-                path: undefined,
+                // `file` is output-root-relative, which is exactly what ComfyQ's own
+                // /images route serves — so the card can show the actual picture.
+                // `path` is the absolute location, because the owner asked to be able
+                // to go and open it on disk.
+                file: path.relative(outDir, p).split(path.sep).join('/'),
+                path: p,
             };
         });
     }

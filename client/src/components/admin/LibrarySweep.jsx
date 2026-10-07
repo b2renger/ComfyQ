@@ -29,6 +29,9 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
     const [open, setOpen] = useState(false);
     const [confirming, setConfirming] = useState(false);
     const [copying, setCopying] = useState(false);
+    // One row open at a time: a result preview is a full-size image, and sixty of
+    // them at once is how the results grid used to crawl.
+    const [inspecting, setInspecting] = useState(null);
 
     const load = useCallback(async () => {
         try {
@@ -302,6 +305,15 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
                                             </p>
                                         )}
                                         {r.runtimeKept && <p className="text-muted/70 mt-1">{r.runtimeKept}</p>}
+
+                                        {/* ★ The point of the card over the text report: a human can
+                                            SEE the result and read what produced it. */}
+                                        <button onClick={() => setInspecting(v => v === r.id ? null : r.id)}
+                                            className="mt-1.5 text-[11px] text-primary hover:underline flex items-center gap-1">
+                                            <Eye size={11} />
+                                            {inspecting === r.id ? 'Hide' : 'Inspect'} ingredients and result
+                                        </button>
+                                        {inspecting === r.id && <Inspect r={r} />}
                                     </div>
                                 ))}
                         </div>
@@ -316,6 +328,107 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
                 </p>
             )}
         </Card>
+    );
+};
+
+/**
+ * What went in, and what came out — for a human, not for a machine.
+ *
+ * ★ The result is SHOWN, not described. A luma figure is a proxy; the owner asked
+ * to inspect the output, and ComfyQ's own /images route already serves anything in
+ * the output folder, so the actual picture or clip goes on screen. Every file also
+ * carries its absolute path, because the next thing you want is to open it.
+ *
+ * ★ Ingredients are the EFFECTIVE values: a prompt almost always comes from the
+ * graph's own literal rather than from the calibration, so each row says where its
+ * value came from. Without that, "the prompt" would silently be blank.
+ */
+const Inspect = ({ r }) => {
+    const ing = r.ingredients || [];
+    const outs = r.outputs || [];
+    const isImg = (f) => /\.(png|jpe?g|webp|bmp)$/i.test(f || '');
+    const isVid = (f) => /\.(mp4|webm|mov|mkv)$/i.test(f || '');
+    const isAud = (f) => /\.(mp3|wav|flac|ogg|opus|m4a)$/i.test(f || '');
+    return (
+        <div className="mt-2 grid gap-3 lg:grid-cols-2 rounded-lg border border-border bg-background/40 p-2.5">
+            <div className="min-w-0">
+                <div className="text-[11px] uppercase tracking-wider text-muted mb-1.5">Ingredients</div>
+                {!ing.length && (
+                    <p className="text-[11px] text-muted">
+                        Not recorded — this row predates ingredient capture, or was recovered from disk.
+                    </p>
+                )}
+                <dl className="space-y-1.5">
+                    {ing.map(g => (
+                        <div key={g.key}>
+                            <dt className="text-[11px] text-muted">
+                                {g.label}
+                                <span className="text-muted/60"> · {g.type} · {g.node} · {g.from}</span>
+                            </dt>
+                            <dd className="text-[11px] break-words">
+                                {g.sourcePath ? (
+                                    <>
+                                        <code className="break-all">{g.sourcePath}</code>
+                                        {g.staged && <div className="text-muted/60">staged as {g.staged}</div>}
+                                    </>
+                                ) : (g.value === null || g.value === undefined || g.value === '')
+                                    ? <span className="text-muted/60">(empty)</span>
+                                    : <span className="whitespace-pre-wrap">{String(g.value)}
+                                        {g.truncated ? ` … (${g.truncated} chars)` : ''}</span>}
+                            </dd>
+                        </div>
+                    ))}
+                </dl>
+            </div>
+
+            <div className="min-w-0">
+                <div className="text-[11px] uppercase tracking-wider text-muted mb-1.5">
+                    Result{outs.length > 1 ? `s (${outs.length})` : ''}
+                </div>
+                {!outs.length && (
+                    <p className="text-[11px] text-muted">
+                        No file. {r.category === 'description'
+                            ? 'This workflow answers with text, so that is expected.'
+                            : 'That is worth a look — the run reported success.'}
+                    </p>
+                )}
+                <div className="space-y-2">
+                    {outs.map(o => (
+                        <div key={o.file}>
+                            {isImg(o.file) && (
+                                <a href={`${SERVER_URL}/images/${encodeURIComponent(o.file)}`} target="_blank" rel="noreferrer">
+                                    <img src={`${SERVER_URL}/images/${encodeURIComponent(o.file)}`} alt={o.file}
+                                        loading="lazy"
+                                        className="max-h-48 rounded border border-border bg-black/20" />
+                                </a>
+                            )}
+                            {isVid(o.file) && (
+                                <video src={`${SERVER_URL}/images/${encodeURIComponent(o.file)}`} controls muted
+                                    preload="metadata" className="max-h-48 rounded border border-border" />
+                            )}
+                            {isAud(o.file) && (
+                                <audio src={`${SERVER_URL}/images/${encodeURIComponent(o.file)}`} controls className="w-full" />
+                            )}
+                            <div className="text-[11px] text-muted mt-1">
+                                {o.width ? `${o.width}×${o.height}` : o.kind || ''}
+                                {o.frames != null ? ` · ${o.frames} frames${o.fps ? ` @ ${o.fps}fps` : ''}` : ''}
+                                {o.seconds != null ? ` · ${o.seconds}s` : ''}
+                                {o.mean != null ? ` · luma ${o.mean} (spread ${o.std})` : ''}
+                                {o.bytes != null ? ` · ${(o.bytes / 1024 ** 2).toFixed(2)} MB` : ''}
+                                {(o.flags || []).length ? <span className="text-danger"> · {o.flags.join(', ')}</span> : null}
+                            </div>
+                            {o.path && (
+                                <code className="text-[10px] text-muted/70 break-all block">{o.path}</code>
+                            )}
+                            <a className="text-[11px] text-primary hover:underline"
+                                href={`${SERVER_URL}/images/${encodeURIComponent(o.file)}?download=1`}>
+                                download
+                            </a>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
     );
 };
 

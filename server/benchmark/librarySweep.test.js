@@ -106,6 +106,22 @@ function make({ mode = 'admin', calibrator = {}, entries = [entry('a'), entry('b
         const found = await sweep._describeOutputs('nothing_ran', Date.now());
         ok('a bundle that produced nothing returns an empty list, not a throw', found.length === 0);
     }
+    {
+        // ★ Found in the first real sweep's files: several bundle ids are prefixes
+        // of others, so a bare startsWith gave the shorter bundle the longer one's
+        // picture — the plain Bernini editing row was shown holding the reference
+        // row's output. The match is anchored on the timestamp that follows the id.
+        const { sweep } = make();
+        const since = Date.now();
+        fs.writeFileSync(path.join(outDir, 'bench_edit_1700000000001_00001_.png'), Buffer.alloc(40));
+        fs.writeFileSync(path.join(outDir, 'bench_edit_with_reference_1700000000002_00001_.png'), Buffer.alloc(40));
+        const shortId = (await sweep._describeOutputs('edit', since)).map(f => f.file);
+        const longId = (await sweep._describeOutputs('edit_with_reference', since)).map(f => f.file);
+        ok('a bundle whose id prefixes another does not claim its output',
+            shortId.length === 1 && shortId[0].includes('bench_edit_1700000000001'));
+        ok('...and the longer id still finds its own',
+            longId.length === 1 && longId[0].includes('with_reference'));
+    }
 
     console.log('\nwhat a sweep must not quietly overwrite');
     {

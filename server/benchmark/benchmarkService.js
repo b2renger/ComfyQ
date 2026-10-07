@@ -156,6 +156,11 @@ class BenchmarkService {
     // the worker's InputUploader so the copies are namespaced + sweepable.
     _buildCalibrationParams(entry, benchJobId) {
         const paramValues = { ...(entry.meta.warmupParams || {}) };
+        // ★ Which file on disk each media input really came from, kept so a sweep
+        // report can show a human the ingredients that produced a given result.
+        // The value in paramValues is only the namespaced copy inside ComfyUI/input,
+        // which is swept away after the run and tells nobody what was fed in.
+        this._lastMedia = {};
         for (const p of entry.effective.exposedParameters) {
             if (!['image', 'video', 'audio', 'mask'].includes(p.type)) continue;
             const named = this._namedAsset(paramValues[p.key], p.type);
@@ -165,6 +170,7 @@ class BenchmarkService {
                     originalName: path.basename(named), source: named
                 });
                 paramValues[p.key] = rec.comfyFilename;
+                this._lastMedia[p.key] = { source: named, staged: rec.comfyFilename, how: 'named in warmupParams' };
                 console.log(`[Benchmark]   ${p.type} input "${p.key}" ← ${path.basename(named)} (named in warmupParams)`);
                 continue;
             }
@@ -177,9 +183,14 @@ class BenchmarkService {
                     originalName: path.basename(asset), source: asset
                 });
                 paramValues[p.key] = rec.comfyFilename;
+                this._lastMedia[p.key] = { source: asset, staged: rec.comfyFilename, how: 'resolved from the assets dir' };
                 console.log(`[Benchmark]   ${p.type} input "${p.key}" ← ${path.basename(asset)}`);
             } else if (p.type === 'image' || p.type === 'mask') {
                 paramValues[p.key] = this._ensureCalibrationImage();
+                this._lastMedia[p.key] = {
+                    source: '(built-in reference PNG — no asset matched)',
+                    staged: paramValues[p.key], how: 'fallback',
+                };
                 console.log(`[Benchmark]   ${p.type} input "${p.key}" ← built-in reference PNG (no asset found)`);
             } else {
                 throw new Error(`Cannot calibrate: no ${p.type} asset available for input "${p.key}". Add a ${p.type} file to the assets dir (${this.assetsDir || 'not configured'}) or set meta.warmupParams.`);
@@ -417,6 +428,17 @@ class BenchmarkService {
         console.log(`[Benchmark] ${workflowId}: preparing calibration inputs…`);
         const paramValues = this._buildCalibrationParams(entry, benchJobId);
         const { wf, seedsRandomized } = this._randomizeSeeds(entry.apiWorkflow);
+        // ★ What this run was actually fed, kept on the service for a caller that
+        // wants to show it. runtime.json is the wrong home for a prompt and a set of
+        // asset paths — it is committed per bundle and read by the scheduler — so
+        // this stays in memory and the library sweep copies what it needs.
+        this.lastRun = {
+            workflowId,
+            paramValues: { ...paramValues },
+            media: { ...(this._lastMedia || {}) },
+            seedsRandomized,
+            startedAt: new Date().toISOString(),
+        };
 
         try {
             // Evict everything first so the run pays the full model-load cost,

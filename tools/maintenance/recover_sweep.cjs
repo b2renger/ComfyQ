@@ -72,7 +72,11 @@ try {
 
 // ---- the files each bundle produced ---------------------------------------
 function outputsFor(id) {
-    const prefix = `bench_${id}_`;
+    // Anchored on the timestamp that follows the id: several bundle ids are
+    // prefixes of others, so a bare startsWith credits one bundle with another's
+    // output — which is how the plain Bernini editing bundle appeared to hold the
+    // reference bundle's picture.
+    const stamped = new RegExp(`^bench_${id.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}_\\d+`);
     const found = [];
     const walk = (dir, depth) => {
         if (depth > 2) return;
@@ -81,7 +85,7 @@ function outputsFor(id) {
         for (const it of items) {
             const p = path.join(dir, it.name);
             if (it.isDirectory()) { walk(p, depth + 1); continue; }
-            if (!it.name.startsWith(prefix)) continue;
+            if (!stamped.test(it.name)) continue;
             let st; try { st = fs.statSync(p); } catch { continue; }
             if (st.mtimeMs < since) continue;
             found.push(p);
@@ -115,9 +119,9 @@ for (const b of ran) {
     const byPath = new Map(stats.map(s => [s.path, s]));
     const outputs = files.map(p => {
         const s = byPath.get(p) || {};
-        const o = { file: path.relative(outDir, p).split(path.sep).join('/'), ...s };
-        delete o.path;
-        return o;
+        // Keep the absolute path: the card and the report both show it so a human
+        // can go and open the file.
+        return { ...s, file: path.relative(outDir, p).split(path.sep).join('/'), path: p };
     });
     const durMs = b.rt.durationMs || (b.rt.coldDurationSec || 0) * 1000;
     const windowStart = b.endedMs - durMs - 5000;
