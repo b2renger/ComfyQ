@@ -399,7 +399,14 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     router.get('/library-sweep', (req, res) => {
         const sw = runtime?.sweep;
         if (!sw) return res.json({ available: false });
-        res.json({ available: true, run: sw.status(), last: sw.lastReport() });
+        // The full id list too, so the card can offer to run only what a cut-short
+        // sweep never reached — which is the normal case at two hours per run.
+        const bundles = registry.list({ includeUnavailable: false, includeHidden: true })
+            .filter(e => e.apiWorkflow).map(e => e.id);
+        res.json({
+            available: true, bundles, bundleCount: bundles.length,
+            run: sw.status(), last: sw.lastReport(),
+        });
     });
 
     router.post('/library-sweep/run', adminGate, express.json(), async (req, res) => {

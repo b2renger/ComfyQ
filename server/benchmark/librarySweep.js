@@ -101,7 +101,11 @@ class LibrarySweep {
             succeeded: ok.length,
             failed: r.results.length - ok.length,
             withFlaggedOutput: flagged.length,
-            noOutput: r.results.filter(x => x.ok && !(x.outputs || []).length).length,
+            // A text-output workflow (the Gemma captioners) saves no file, so it is
+            // not counted as having produced nothing — both were flagged on the first
+            // real sweep, and a detector that fires on correct behaviour gets ignored.
+            noOutput: r.results.filter(x => x.ok && !(x.outputs || []).length
+                && x.category !== 'description').length,
             distinctModelsOpened: observed.size,
             recorderAvailable: r.recorderAvailable,
         };

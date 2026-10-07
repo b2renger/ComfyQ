@@ -46,12 +46,12 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
     }, [running, load, pollMs]);
     useEffect(() => { if (running) setOpen(true); }, [running]);
 
-    const post = async (what) => {
+    const post = async (what, body = {}) => {
         setBusy(true);
         setConfirming(false);
         try {
             const res = await fetch(`${SERVER_URL}/admin/library-sweep/${what}`, {
-                method: 'POST', headers, body: '{}',
+                method: 'POST', headers, body: JSON.stringify(body),
             });
             const out = await res.json();
             if (!res.ok) throw new Error(out.error || `HTTP ${res.status}`);
@@ -91,6 +91,10 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
     const results = run?.results || [];
     const s = run?.summary || null;
     const serving = mode === 'student';
+    // Which bundles the last sweep never reached, so a run that was cut short can
+    // be finished rather than restarted.
+    const covered = new Set(results.map(r => r.id));
+    const remaining = (data.bundles || []).filter(id => !covered.has(id));
     const mins = (sec) => (sec == null ? '—' : sec >= 90 ? `${Math.round(sec / 60)} min` : `${sec}s`);
 
     return (
@@ -136,10 +140,24 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
                             <Button variant="ghost" onClick={() => setConfirming(false)}>Cancel</Button>
                         </>
                     ) : (
-                        <Button variant="secondary" onClick={() => setConfirming(true)} disabled={busy || serving}
-                            title={serving ? 'Stop serving first — a sweep holds the GPU for about two hours.' : undefined}>
-                            <Play size={14} /> Run every workflow
-                        </Button>
+                        <>
+                            {/* ★ A sweep is two hours long and ComfyQ restarts on any server
+                                edit under nodemon, so an interrupted run is the normal case,
+                                not the exception — the first real sweep here stopped at 32 of
+                                61 that way. Offer the remainder rather than making someone
+                                re-run what already passed. */}
+                            {remaining.length > 0 && remaining.length < (data.bundleCount || Infinity) && (
+                                <Button variant="secondary" disabled={busy || serving}
+                                    onClick={() => post('run', { ids: remaining })}
+                                    title={`Run only the ${remaining.length} bundle(s) the last sweep did not reach.`}>
+                                    <Play size={14} /> Run the remaining {remaining.length}
+                                </Button>
+                            )}
+                            <Button variant="secondary" onClick={() => setConfirming(true)} disabled={busy || serving}
+                                title={serving ? 'Stop serving first — a sweep holds the GPU for about two hours.' : undefined}>
+                                <Play size={14} /> Run every workflow
+                            </Button>
+                        </>
                     )}
                 </div>
             </div>

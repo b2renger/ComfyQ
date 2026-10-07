@@ -29,13 +29,21 @@ const secs = (s) => {
     return m < 60 ? `${m}m ${s % 60}s` : `${Math.floor(m / 60)}h ${m % 60}m`;
 };
 
+// ★ A workflow whose result is TEXT saves no file, so "no output" is not a fault
+// for it. The two Gemma captioners surface their answer through a PreviewAny node
+// and were both flagged on the first real sweep — a detector that cries wolf on
+// correct behaviour is how people learn to ignore it.
+const TEXT_OUTPUT_CATEGORIES = new Set(['description']);
+const emitsText = (r) => TEXT_OUTPUT_CATEGORIES.has(r.category)
+    || (r.outputs || []).some(o => o.kind === 'text');
+
 /** Why this row needs attention, in the order a human should look at them. */
 function triage(r) {
     if (!r.ok) return { rank: 0, tag: 'FAILED' };
     const flags = new Set((r.flagged || []).flatMap(f => f.flags || []));
     if (flags.has('black')) return { rank: 1, tag: 'BLACK OUTPUT' };
     if (flags.has('empty')) return { rank: 1, tag: 'EMPTY FILE' };
-    if (!(r.outputs || []).length) return { rank: 2, tag: 'NO OUTPUT' };
+    if (!(r.outputs || []).length && !emitsText(r)) return { rank: 2, tag: 'NO OUTPUT' };
     if (flags.size) return { rank: 3, tag: `SUSPECT OUTPUT (${[...flags].join(', ')})` };
     return { rank: 9, tag: 'ok' };
 }

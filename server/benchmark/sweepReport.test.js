@@ -133,4 +133,24 @@ ok('a clean sweep still refuses to call itself a quality judgement',
 ok('a report with no prune list simply omits that section',
     !renderSweepReport(REPORT).includes('CROSS-REFERENCE'));
 
+console.log('\na text output is not a missing output');
+{
+    // Found on the first REAL sweep: both Gemma captioners were flagged NO OUTPUT
+    // for behaving correctly — their result is a caption, not a file.
+    const caption = renderSweepReport({
+        machine: {}, summary: {},
+        results: [{
+            id: 'describe_gemma4_image_description', category: 'description',
+            ok: true, wallSec: 35, outputs: [], flagged: [], observedModels: ['gemma4.safetensors'],
+        }],
+    });
+    ok('a description bundle with no file is NOT flagged',
+        /NEEDS ATTENTION — none/.test(caption) && !/NO OUTPUT/.test(caption));
+    const img = renderSweepReport({
+        machine: {}, summary: {},
+        results: [{ id: 'image_thing', category: 't2i', ok: true, wallSec: 9, outputs: [], flagged: [] }],
+    });
+    ok('...but an image bundle with no file still is', /NO OUTPUT/.test(img));
+}
+
 console.log(`\nsweepReport: all ${pass} checks passed`);
