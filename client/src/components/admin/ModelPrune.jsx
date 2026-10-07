@@ -37,6 +37,9 @@ const ModelPrune = ({
     // Opens on the confident group; the wider sets are a deliberate click.
     const [level, setLevel] = useState('high');
     const [allowLow, setAllowLow] = useState(false);
+    // Where a prune actually puts things, so the confirm modal can name it rather
+    // than describing a deletion that does not happen.
+    const [quarantineRoot, setQuarantineRoot] = useState('');
     const [showMissing, setShowMissing] = useState(false);
 
     const load = useCallback(async () => {
@@ -56,6 +59,14 @@ const ModelPrune = ({
     }, []);
 
     useEffect(() => { load(); }, [load]);
+    useEffect(() => {
+        let gone = false;
+        fetch(`${SERVER_URL}/admin/models/quarantine`)
+            .then(r => r.json())
+            .then(d => { if (!gone) setQuarantineRoot(d.root || ''); })
+            .catch(() => { /* the modal falls back to a generic path */ });
+        return () => { gone = true; };
+    }, []);
 
     const unused = report?.models?.filter(m => m.unused) || [];
     const review = report?.models?.filter(m => !m.unused && m.textOnly) || [];
@@ -108,7 +119,7 @@ const ModelPrune = ({
             const refused = data.refused?.length
                 ? ` ${data.refused.length} refused — ${data.refused[0].why}.`
                 : '';
-            onToast?.(`Deleted ${data.deleted.length} file(s), ${data.freedGb} GB freed.${refused}`,
+            onToast?.(`Moved ${data.deleted.length} file(s) (${data.freedGb} GB) to quarantine — not freed until you empty the batch.${refused}`,
                 data.refused?.length ? 'err' : 'ok');
             setConfirming(false);
             setAllowLow(false);
@@ -398,7 +409,7 @@ const ModelPrune = ({
                                 <Button variant="danger" icon={Trash2}
                                     disabled={!picked.size}
                                     onClick={() => setConfirming(true)}>
-                                    Delete selected
+                                    Move to quarantine
                                 </Button>
                             </div>
 
@@ -458,12 +469,26 @@ const ModelPrune = ({
             )}
 
             <Modal isOpen={confirming} onClose={() => !deleting && setConfirming(false)}
-                title={`Delete ${picked.size} model file(s)?`} maxWidth="max-w-xl">
+                title={`Move ${picked.size} model file(s) to quarantine?`} maxWidth="max-w-xl">
+                {/* ★ Three sentences that were all false until now: it said "frees X GB"
+                    and "cannot be undone", when a prune is a MOVE to a folder on the same
+                    drive. Reading them, someone prunes to shrink the disk, sees no space
+                    freed, and deletes the quarantine by hand in Explorer — performing the
+                    one irreversible step outside the tool built to make it reversible. */}
                 <p className="text-sm text-muted mb-2">
-                    This frees <span className="text-foreground">{pickedGb.toFixed(2)} GB</span> and
-                    cannot be undone. Some of these are large or licence-gated downloads, so getting one
-                    back may mean an account and a long wait. What is removed is written to
-                    <code className="mx-1">server/data/pruned-models.json</code> so there is a record.
+                    This <span className="text-foreground">moves</span>{' '}
+                    <span className="text-foreground">{pickedGb.toFixed(2)} GB</span> into a dated
+                    batch under <code className="mx-1">{quarantineRoot || '<drive>\\_model_quarantine'}</code>
+                    — a rename on the same drive, so it is instant and <strong>can be undone</strong> from
+                    the Quarantined models card below.
+                </p>
+                <p className="text-sm text-warning mb-2">
+                    ⚠ It does <strong>not</strong> free any disk space yet. The space comes back only when
+                    you empty that batch, which is the irreversible step. Some of these are large or
+                    licence-gated downloads, so getting one back may mean an account and a long wait.
+                    Everything moved is recorded in
+                    <code className="mx-1">server/data/pruned-models.jsonl</code>, with the link to refetch
+                    it where one is known.
                 </p>
                 <div className="max-h-56 overflow-y-auto rounded-lg border border-border p-2 mb-3">
                     {pickedRows.map(m => (
@@ -483,7 +508,7 @@ const ModelPrune = ({
                         Cancel
                     </Button>
                     <Button variant="danger" icon={Trash2} onClick={prune} disabled={deleting}>
-                        {deleting ? 'Deleting…' : `Delete ${picked.size} file(s)`}
+                        {deleting ? 'Moving…' : `Move ${picked.size} file(s) to quarantine`}
                     </Button>
                 </div>
             </Modal>

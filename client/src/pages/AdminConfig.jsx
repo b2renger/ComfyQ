@@ -8,6 +8,7 @@ import ModelPrune from '../components/admin/ModelPrune';
 import ModelDownloads from '../components/admin/ModelDownloads';
 import MaintenanceScripts from '../components/admin/MaintenanceScripts';
 import LibrarySweep from '../components/admin/LibrarySweep';
+import ModelQuarantine from '../components/admin/ModelQuarantine';
 import NodePacks from '../components/admin/NodePacks';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
@@ -1391,6 +1392,10 @@ const AdminConfig = ({ currentMode }) => {
                     <ModelPrune headers={adminHeaders()} onToast={showToast}
                         scanDirs={scanDirs} onScanDirsChange={setScanDirs}
                         onSaveScanDirs={saveScanDirs} savingScanDirs={savingScanDirs} />
+
+                    {/* Directly under the prune card: it is the way back from it, and the
+                        only place the reclaimed space actually happens. */}
+                    <ModelQuarantine headers={adminHeaders()} onToast={showToast} />
 
                     <LibrarySweep headers={adminHeaders()} onToast={showToast} mode={config.mode} />
 
