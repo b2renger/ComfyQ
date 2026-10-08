@@ -48,6 +48,7 @@ const { detectSystemInfo } = require('./federation/systemInfo');
 const { StatusBeacon } = require('./federation/beacon');
 const { ModelDownloader } = require('./models/modelDownloader');
 const { ScriptRunner } = require('./maintenance/scriptRunner');
+const { Updater } = require('./maintenance/updater');
 const { NodePackInstaller } = require('./models/nodePackInstaller');
 const { LibrarySweep } = require('./benchmark/librarySweep');
 
@@ -228,6 +229,14 @@ async function main() {
     // ComfyUI-Manager's own interface.
     runtime.packs = new NodePackInstaller({
         config: () => configManager.load().config,
+    });
+
+    // Updating ComfyUI and each node pack. Reads the mode lazily, because an
+    // update needs a ComfyUI restart to take effect and must refuse while the
+    // rig is serving a class.
+    runtime.updater = new Updater({
+        config: () => configManager.load().config,
+        mode: () => configManager.load().config.mode,
     });
 
     // Run every workflow once and record what each produced, plus which

@@ -394,6 +394,76 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         res.status(out.ok ? 200 : 400).json(out);
     });
 
+    // ---- Updating ComfyUI, and each node pack -----------------------------
+    // ★★ Written because an update that changed nothing read exactly like one
+    // that worked. The owner ran the portable's stable updater on 2026-10-08,
+    // it behaved correctly, and the rig stayed on v0.39.1 -- because that IS
+    // the newest release and master had moved on untagged. A day was then
+    // planned on the belief that a known failure would be fixed. So every
+    // answer here carries the version before and after, and says so when
+    // nothing moved.
+    router.get('/updates', (req, res) => {
+        const u = runtime?.updater;
+        if (!u) return res.json({ available: false });
+        res.json({
+            available: true,
+            comfy: u.comfyState(),
+            comfyRequirements: u.comfyRequirements(),
+            // No network on this path: it is called on every page load, and
+            // these rigs are routinely on a LAN that cannot reach github.
+            packs: null,
+            scan: u.scan(),
+            run: u.status(),
+        });
+    });
+
+    // Reaches the remotes. adminGate'd and never automatic -- "nothing to
+    // update" must not be something the panel concluded from a failed fetch.
+    router.post('/updates/check', adminGate, express.json(), (req, res) => {
+        const u = runtime?.updater;
+        if (!u) return res.status(503).json({ error: 'the updater is not available' });
+        const out = u.checkAll();
+        res.status(out.ok ? 200 : 409).json(out);
+    });
+
+    router.post('/updates/comfyui', adminGate, express.json(), async (req, res) => {
+        const u = runtime?.updater;
+        if (!u) return res.status(503).json({ error: 'the updater is not available' });
+        const out = await u.updateComfy({ acceptStash: req.body?.acceptStash === true });
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
+    // ⚠ Its own route and its own acknowledgement, because this is the step
+    // that can take the rig out: the portable's pinned list asks for bare
+    // torch, and this install is held at 2.8.0+cu128 for Pixal3D and TRELLIS2.
+    router.post('/updates/comfyui-deps', adminGate, express.json(), async (req, res) => {
+        const u = runtime?.updater;
+        if (!u) return res.status(503).json({ error: 'the updater is not available' });
+        const out = await u.updateComfyDeps({ acceptRisky: req.body?.acceptRisky === true });
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
+    router.post('/updates/pack', adminGate, express.json(), async (req, res) => {
+        const u = runtime?.updater;
+        if (!u) return res.status(503).json({ error: 'the updater is not available' });
+        const out = await u.updatePack(String(req.body?.folder || ''));
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
+    router.post('/updates/stop', adminGate, express.json(), (req, res) => {
+        const u = runtime?.updater;
+        if (!u) return res.status(503).json({ error: 'the updater is not available' });
+        const out = u.stop();
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
+    router.post('/updates/forget', adminGate, express.json(), (req, res) => {
+        const u = runtime?.updater;
+        if (!u) return res.status(503).json({ error: 'the updater is not available' });
+        const out = u.forget();
+        res.status(out.ok ? 200 : 400).json(out);
+    });
+
     // ---- Run the whole library once, and write down what happened ---------
     // The one button that answers "does every workflow still work, and which
     // models does the library actually open". ~2 h for 61 bundles here.

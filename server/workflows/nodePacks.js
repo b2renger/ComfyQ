@@ -232,11 +232,15 @@ function missingNodePacks(bundles, comfyRoot, opts = {}) {
 }
 
 /**
- * Read a pack's requirements.txt and flag the lines that have broken this
- * install before, so an admin decides about pip rather than discovering it.
+ * Read a requirements file and flag the lines that have broken this install
+ * before, so an admin decides about pip rather than discovering it.
+ *
+ * `filename` is a parameter because the same judgement is wanted for the
+ * portable's own `current_requirements.txt` -- which asks for bare torch, on an
+ * install deliberately pinned to torch 2.8.0+cu128 for Pixal3D and TRELLIS2.
  */
-function readRequirements(absPackDir) {
-    const p = path.join(absPackDir, 'requirements.txt');
+function readRequirements(absPackDir, filename = 'requirements.txt') {
+    const p = path.join(absPackDir, filename);
     if (!fs.existsSync(p)) return { exists: false, lines: [], risky: [] };
     let text = '';
     try { text = fs.readFileSync(p, 'utf8'); } catch { return { exists: false, lines: [], risky: [] }; }
