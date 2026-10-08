@@ -141,9 +141,14 @@ the names say. Or merge into one with a model dropdown.
 
 - **Pro of cutting `compare`:** the comparison view is a development aid, not a student
   deliverable.
-- **Con:** both still need the unmerged ComfyUI PR #15139 patch (`requires-idv2v-patch`),
-  so neither is usable on a stock rig — check whether either belongs in the library at all
-  before deciding between them.
+- **Con:** the comparison is genuinely useful while tuning a keyframe, and the two differ in
+  cost (88 s against 188 s, measured by the 2026-10-07 sweep), so the cheap one is the one to
+  reach for first.
+- ★ **Correction (2026-10-07):** this entry used to say both "still need the unmerged ComfyUI
+  PR #15139 patch, so neither is usable on a stock rig". **That is no longer true** — the PR
+  merged upstream as `5c4d2568` on 2026-09-27 and ComfyUI >= 0.39.x carries it natively, so both
+  run on a stock rig. The sweep ran both clean at 81 frames / 24 fps. See
+  [docs/comfyui-idv2v.md](comfyui-idv2v.md).
 
 ---
 

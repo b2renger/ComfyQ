@@ -14,8 +14,7 @@
     "keyframe",
     "identity",
     "video",
-    "hires",
-    "requires-idv2v-patch"
+    "hires"
   ],
   "thumbnail": null,
   "author": "ID-V2V (Eyeline Labs) — Kijai reference workflow",
