@@ -19,6 +19,17 @@ Detailed, evolving plans live in [implementation_plan.md](implementation_plan.md
 - ★ **A patched pack reads as dirty to git, and that is the right outcome:** the new node-pack updater refuses to pull over uncommitted changes, so a local fix cannot be silently discarded by an update. If that pack is ever updated deliberately: commit or stash in the clone, pull, then press the button again.
 - Both bundles are still `experimental: true`. They were verified by eye on 2026-09-25 and again today, but clearing the flag is the owner's sign-off, not a side effect of a fix.
 
+### The library re-swept on 0.39.2: **61 of 61, the first fully clean pass**
+
+Updated to **v0.39.2** through the new button (`0.39.1 → 0.39.2`, backup branch written, nothing stashed) and re-swept the whole library: **61 bundles, 2 h 30 m (07:55 → 10:25), 0 failed, 0 produced nothing, 0 outputs flagged** black/flat/tiny/empty, **150 distinct weights observed**. Every previous pass had failures — the last two were 58/3 and 59/2, and the failures *were* these two ControlNet bundles.
+
+- ★ **The fix holds across the version bump rather than depending on it:** canny 17 s / 23.38 GB and depth 21 s / 24.2 GB on 0.39.2, the same figures they gave on 0.39.1.
+- **The 0.39.1 → 0.39.2 bump costs nothing measurable.** Warm times and VRAM move within the run-to-run noise already recorded here (the biggest mover, `video_wan22_4_key_frames` 79 → 51 s, and the Bernini editors at ±8%, are both inside known variance).
+- Both Gemma captioners answered (**1195 and 1175 characters**), so the regression the 2026-10-07 sweep caught stays fixed.
+- ⚠ **The 9 stray text tiles are unchanged and still a real student-facing defect** — `"150"`, `"3"`, `"8"`, `"11"`, LivePortrait's three tensor shapes — correctly tagged rather than dropped, on 7 bundles whose in-path `PreviewAny` nodes cannot simply be pruned.
+- ★ **`utility_pid_image_upscale` kept its hand-measured runtime**: its progress bar counts tiles so the automatic load/generate split under-reports it, and the sweep's `source: "manual"` guard left it alone. Verified, not assumed — it is the one bundle of 61 whose runtime.json the sweep did not rewrite.
+- ⚠ **Still open, unchanged:** LivePortrait reports `vramPeakGb` **1.00** against siblings at 10–30 GB. Implausible, and still unexamined — most likely a measurement problem rather than a bundle that genuinely runs in a gigabyte.
+
 ### ★★ "I updated ComfyUI" — and the update had correctly done nothing
 
 Checked before touching anything, and the answer reframed the whole request. `update_comfyui_stable.bat` **ran, worked, and changed nothing**, which the reflog shows exactly: at **2026-10-07 21:14** it checked out `master` (87c32827), pulled, and checked the newest tag back out — **still `v0.39.1`**. `update.py --stable` lands on the newest *tag*, master had simply moved on untagged, `comfy-aimdo` is **pinned at 0.5.5 by `current_requirements.txt`** so it cannot move without a release, and the FunControlNet pack was already at `origin/main`'s tip with no newer commit to take. So the belief that the failure would now be fixed rested on an update that could not have changed it.
