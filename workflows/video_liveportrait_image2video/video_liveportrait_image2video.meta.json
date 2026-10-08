@@ -71,6 +71,9 @@
       "order": 2
     }
   ],
-  "warmupParams": {},
+  "warmupParams": {
+    "loadimage_image_196": "asset:Woman.png",
+    "vhs_loadvideo_video_8": "asset:d6.mp4"
+  },
   "presets": {}
 }
