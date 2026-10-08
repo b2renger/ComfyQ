@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "id": "image_edit_qwen_2_1_relight_composite",
+  "name": "Qwen Image 2.1 — relight a composite (blend an object into a background)",
+  "description": "Harmonise the lighting of a composite. Qwen-Image-2.1 with a community relighting adapter (光影溶图, \"light-and-shadow blending\"): give it a picture where an object has been dropped onto a background and it re-lights the object to match the scene — key light, specular highlights, front-to-back depth, and the contact shadow that makes something look like it is standing there rather than pasted on.\n\nTWO WAYS TO USE IT, both tested on this rig:\n\n1. ONE picture — put your flat composite in Image 1 and leave the rest empty. This is what the adapter was trained for and it needs no special prompt.\n\n2. TWO pictures — put the BACKGROUND in Image 1 and the object in Image 2, and name them in the prompt: \"place the character from <image2> into the scene of <image1>, standing on the path…\". ⚠ Both halves of that matter. Put the object in Image 1 and you get the object back on its own white background, because the result always follows Image 1 — and a prompt that never says <image1>/<image2> gives the model nothing to connect.\n\n★ The prompt must start with the trigger word 'pengyu' — without it the adapter is effectively inert. The default is the author's own recommended wording, kept verbatim (including its Chinese punctuation) because that is the phrasing it was trained alongside. Add where the light comes from if it picks the wrong direction.\n\n★ Set 'Relight strength' to 0 for the base model on the same seed with everything else identical — that one field is the whole comparison. Measured here on a cartoon figure pasted onto a dark castle: with the adapter the figure is pulled down to the scene's gloomy key light and the white cut-out fringe at its feet disappears; without it the figure stays brightly lit and still reads as pasted on.\n\n⚠ Trained at about 1 megapixel, so stay near 1 MP. It re-renders rather than compositing pixel-for-pixel, so fine print, faces and logos can change — check them. Experimental: it has not been used in a class yet.\n\nLicence: the adapter is published by RunningHub on behalf of its author with no explicit licence, and the Qwen-Image-2.1 base it runs on is Qwen Research — research and evaluation, not commercial work.",
+  "category": "image-edit",
+  "tags": [
+    "qwen",
+    "qwen-image-2.1",
+    "relight",
+    "composite",
+    "product",
+    "lora",
+    "experimental"
+  ],
+  "experimental": true,
+  "promptGuides": [
+    {
+      "label": "The adapter’s own model card (trigger word + recommended prompt)",
+      "url": "https://huggingface.co/RunningHubAI/rh-qwen-image-2.1-lora-2104918997757157378",
+      "tip": "Start the prompt with 'pengyu'. With one composite the default wording is enough; with a separate object and background you must name them as <image1> and <image2>, and the background goes in Image 1."
+    },
+    {
+      "label": "Qwen-Image-2.1 — official model card",
+      "url": "https://huggingface.co/Qwen/Qwen-Image-2.1",
+      "tip": "Name your pictures in the prompt as <image1>, <image2>… and state what must stay unchanged as explicitly as what should change."
+    }
+  ],
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_edit_qwen_2_1_relight_composite.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 18,
+    "models": [
+      {
+        "type": "unet",
+        "file": "qwen_image_2.1_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_8b_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_2.1_vae_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/vae/qwen_image_2.1_vae_bf16.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "Qwenimag21_c2-st2000.safetensors",
+        "url": "https://huggingface.co/RunningHubAI/rh-qwen-image-2.1-lora-2104918997757157378/resolve/main/Qwenimag21_c2-st2000.safetensors",
+        "source": "https://huggingface.co/RunningHubAI/rh-qwen-image-2.1-lora-2104918997757157378",
+        "note": "Relighting / compositing LoRA, rank 32, trained on Qwen-Image-2.1 at ~1 MP. Trigger word 'pengyu'. 224 of 224 modules map onto this rig's fused int8-convrot build (the adapter addresses the unfused img_mlp halves, which comfy/lora.py splits for it)."
+      }
+    ]
+  },
+  "estimatedDurationSec": 20,
+  "exposedParameters": [
+    {
+      "key": "textencodeqwenimage21_prompt_474",
+      "nodeId": "474",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "What to relight — must start with the trigger word 'pengyu'",
+      "default": "pengyu Apply consistent lighting to the product or object, enhance specular highlights，front-back spatial relationship，add natural contact shadow, and blend it seamlessly into the background。",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_470",
+      "nodeId": "470",
+      "field": "image",
+      "type": "image",
+      "label": "Image 1 — your flat composite, OR the background plate (<image1>). The result follows this picture’s size",
+      "required": false,
+      "order": 1,
+      "maxInputEdge": 2048,
+      "whenEmpty": "unlink",
+      "whenEmptySet": [
+        {
+          "nodeId": "468",
+          "field": "switch",
+          "value": true
+        }
+      ]
+    },
+    {
+      "key": "loadimage_image_475",
+      "nodeId": "475",
+      "field": "image",
+      "type": "image",
+      "label": "Image 2 — the object to place in, if it is a separate picture. Name it as <image2> in the prompt",
+      "required": false,
+      "order": 2,
+      "maxInputEdge": 2048,
+      "whenEmpty": "unlink"
+    },
+    {
+      "key": "loadimage_image_476",
+      "nodeId": "476",
+      "field": "image",
+      "type": "image",
+      "label": "Image 3 — optional extra reference, e.g. the lighting to match (<image3>)",
+      "required": false,
+      "order": 3,
+      "maxInputEdge": 2048,
+      "whenEmpty": "unlink"
+    },
+    {
+      "key": "loraloadermodelonly_strength_model_900",
+      "nodeId": "900",
+      "field": "strength_model",
+      "type": "number",
+      "label": "Relight strength (0 = the base model alone, for comparison)",
+      "default": 1,
+      "min": 0,
+      "max": 1.5,
+      "step": 0.05,
+      "required": true,
+      "order": 4
+    },
+    {
+      "key": "resolutionselector_aspect_ratio_13",
+      "nodeId": "13",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio — only used when you upload NO picture (with Image 1 the result follows it)",
+      "default": "1:1 (Square)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "required": true,
+      "order": 5
+    },
+    {
+      "key": "resolutionselector_megapixels_13",
+      "nodeId": "13",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels — the adapter was trained at 1, so stay near it",
+      "default": 1,
+      "min": 0.25,
+      "max": 2,
+      "step": 0.25,
+      "required": true,
+      "order": 6
+    },
+    {
+      "key": "ksampler_steps_458",
+      "nodeId": "458",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps (25 is quick, 40–50 is Qwen’s own setting)",
+      "default": 25,
+      "min": 10,
+      "max": 60,
+      "step": 1,
+      "required": true,
+      "order": 7
+    },
+    {
+      "key": "ksampler_seed_458",
+      "nodeId": "458",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 755316244301189,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 8
+    }
+  ],
+  "warmupParams": {
+    "textencodeqwenimage21_prompt_474": "pengyu Apply consistent lighting to the product or object, enhance specular highlights，front-back spatial relationship，add natural contact shadow, and blend it seamlessly into the background。",
+    "loraloadermodelonly_strength_model_900": 1,
+    "ksampler_steps_458": 25,
+    "loadimage_image_470": "asset:Woman.png",
+    "loadimage_image_475": null,
+    "loadimage_image_476": null
+  },
+  "presets": {}
+}
