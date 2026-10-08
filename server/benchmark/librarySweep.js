@@ -74,6 +74,13 @@ class LibrarySweep {
             done: r.results.length,
             current: r.current,
             etaSec: this._eta(),
+            // ★ Without this the live report has NO machine block at all. The route
+            // prefers the running sweep over the file on disk and copied
+            // `machine: run.machine` from it — a line that reads as if it handled the
+            // field while always copying undefined, so a complete 61-bundle report
+            // went out saying nothing about the host, the GPU, the ComfyUI version or
+            // the commit, while both files on disk held all of it.
+            machine: r.machine,
             reportPath: path.relative(path.resolve(__dirname, '..', '..'), r.reportPath)
                 .split(path.sep).join('/'),
             results: r.results,
@@ -92,23 +99,54 @@ class LibrarySweep {
     _summary() {
         const r = this._run;
         if (!r) return null;
-        const ok = r.results.filter(x => x.ok);
-        const flagged = r.results.filter(x => (x.flagged || []).length);
+        return LibrarySweep.summarize(r.results, r.recorderAvailable);
+    }
+
+    /** Counts over any set of rows — the live run's, or a merged report's. */
+    static summarize(results, recorderAvailable) {
+        const ok = results.filter(x => x.ok);
+        const flagged = results.filter(x => (x.flagged || []).length);
         const observed = new Set();
-        for (const x of r.results) for (const n of (x.observedModels || [])) observed.add(n);
+        for (const x of results) for (const n of (x.observedModels || [])) observed.add(n);
         return {
-            ran: r.results.length,
+            ran: results.length,
             succeeded: ok.length,
-            failed: r.results.length - ok.length,
+            failed: results.length - ok.length,
             withFlaggedOutput: flagged.length,
-            // A text-output workflow (the Gemma captioners) saves no file, so it is
-            // not counted as having produced nothing — both were flagged on the first
-            // real sweep, and a detector that fires on correct behaviour gets ignored.
-            noOutput: r.results.filter(x => x.ok && !(x.outputs || []).length
-                && x.category !== 'description').length,
+            // ★★ A text-output workflow (the Gemma captioners) saves no file, so it was
+            // exempted BY CATEGORY so as not to cry wolf on correct behaviour. That
+            // exemption then hid the real thing: a stamp guard stopped collecting their
+            // captions, both reported zero outputs, and this counter said nothing because
+            // it had been taught never to speak about them. **The exemption that silences a
+            // false alarm silences the true one too.** The honest form is to count a
+            // caption as an output — which it now is, since text lands in `outputs` — so a
+            // captioner that produced nothing is reported like anything else.
+            noOutput: results.filter(x => x.ok && !(x.outputs || []).length).length,
             distinctModelsOpened: observed.size,
-            recorderAvailable: r.recorderAvailable,
+            recorderAvailable,
         };
+    }
+
+    /**
+     * Fold this run's rows into whatever the last report held.
+     *
+     * ★ Because a SUBSET run otherwise destroys the full report. Re-running one
+     * bundle to check a fix — or pressing "Run the remaining N" after a stop — wrote
+     * a `…-latest.json` containing only those rows, so a two-hour 61-bundle record
+     * became a one-line file and the report route then served that as the machine's
+     * verdict on its library. The whole point of the report is that it is the record.
+     *
+     * A full run replaces every row, so merging is a no-op for it. Each row already
+     * carries its own `finishedAt`, so a merged report stays honest about when each
+     * line was measured.
+     */
+    _merged() {
+        const prev = this.lastReport();
+        const fresh = this._run.results;
+        if (!prev || !Array.isArray(prev.results) || !prev.results.length) return fresh;
+        const now = new Set(fresh.map(r => r.id));
+        const kept = prev.results.filter(r => !now.has(r.id));
+        return [...kept, ...fresh].sort((a, b) => String(a.id).localeCompare(String(b.id)));
     }
 
     /** The report of the last sweep, read off disk — survives a restart. */
@@ -294,7 +332,7 @@ class LibrarySweep {
                 // answer through a PreviewAny node — so the answer has to come from
                 // ComfyUI's history or it is simply lost. Appended as an output of
                 // kind 'text' so the card and the report show it like any other.
-                const texts = await this._collectTextOutputs();
+                const texts = await this._collectTextOutputs(entry.id, rec.outputs.length > 0);
                 if (texts.length) rec.outputs = rec.outputs.concat(texts);
                 rec.flagged = rec.outputs
                     .filter(o => (o.flags || []).length || o.error)
@@ -370,9 +408,18 @@ class LibrarySweep {
             summary: this._summary(),
             results: this._run.results,
         };
+        // The per-run .jsonl stays exactly this run; the published report is the
+        // merge, so re-running one bundle corrects one line instead of erasing 60.
+        const merged = this._merged();
+        const published = merged === this._run.results ? final : {
+            ...final,
+            summary: LibrarySweep.summarize(merged, this._run.recorderAvailable),
+            results: merged,
+            mergedFrom: this._run.ids.length,
+        };
         try {
             fs.appendFileSync(this._run.reportPath, JSON.stringify(final) + '\n');
-            fs.writeFileSync(path.join(this._dataDir, 'library-sweep-latest.json'), JSON.stringify(final, null, 1));
+            fs.writeFileSync(path.join(this._dataDir, 'library-sweep-latest.json'), JSON.stringify(published, null, 1));
         } catch (e) { console.warn(`[Sweep] could not write the report: ${e.message}`); }
         const s = final.summary;
         console.log(`[Sweep] ${this._run.state}: ${s.succeeded}/${s.ran} ran clean, ${s.failed} failed, `
@@ -434,8 +481,16 @@ class LibrarySweep {
      *
      * Takes the most recent history entry, which is the run that just finished:
      * calibration is serialized, so nothing else can have queued in between.
+     *
+     * ⚠ "The most recent entry" is only this bundle's run if a run actually reached
+     * ComfyUI. A bundle that fails before queueing leaves the PREVIOUS bundle's entry
+     * newest, which would attribute its caption to the wrong row — so the caller
+     * passes the prompt stamp and the entry must carry it.
+     *
+     * @param {string} [workflowId]  whose run this must be
+     * @param {boolean} [haveFiles]  whether the run already produced output files
      */
-    async _collectTextOutputs() {
+    async _collectTextOutputs(workflowId, haveFiles) {
         const cfg = this._config() || {};
         const host = cfg.comfy_ui?.api_host || '127.0.0.1';
         const port = cfg.comfy_ui?.api_port || 8188;
@@ -446,6 +501,29 @@ class LibrarySweep {
             hist = await r.json();
         } catch { return []; }
         const entry = Object.values(hist || {})[0];
+        // Whose run is this entry? The stamp rides on a save node's filename_prefix, so
+        // when there IS one the prompt proves ownership. ★ Anchored on the digit that
+        // follows the id, like the output matcher: without it,
+        // `bench_image_edit_bernini_r_image_editing_` matches the `…_with_reference` run
+        // too, which is the collision that already mis-credited a picture.
+        //
+        // ★★ But a stamp is only present if the graph SAVES something, and the workflows
+        // this function exists for do not: a `description` bundle answers through a
+        // PreviewAny and writes no file, so its prompt carries no filename_prefix at all.
+        // Demanding a stamp therefore threw away the caption of every captioner — the one
+        // case the feature serves — and the sweep that caught it reported "0 outputs, ok"
+        // because the no-output detector exempts that category. So the rule is: reject an
+        // entry that carries SOMEBODY ELSE'S stamp, and accept one that carries none.
+        if (workflowId) {
+            // GREEDY, and the timestamp must be a real one (Date.now() is 13 digits).
+            // A lazy match would stop at the first digit run inside the id itself —
+            // `bench_video_ltx2_5_i2v_1791…` would read as the stamp `bench_video_ltx2_5`
+            // and then fail to match its own bundle.
+            const stamps = JSON.stringify(entry?.prompt || '').match(/bench_[A-Za-z0-9_]+_\d{10,}/g) || [];
+            const esc = workflowId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            const mine = new RegExp(`^bench_${esc}_\\d`);
+            if (stamps.length && !stamps.some(s => mine.test(s))) return [];
+        }
         const nodes = entry?.outputs || {};
         const out = [];
         const seen = new Set();
@@ -458,7 +536,18 @@ class LibrarySweep {
                     // is never one, and a duplicate is never worth showing twice.
                     if (!t || seen.has(t) || /\.(png|jpe?g|webp|mp4|webm|flac|mp3|wav|glb|ply|spz)$/i.test(t)) continue;
                     seen.add(t);
-                    out.push({ kind: 'text', file: `node ${nodeId}`, text: t, chars: t.length, flags: [] });
+                    // ★ The same rule the student-facing collector now applies, and for
+                    // the same reason: beside a real file, a whitespace-free string is a
+                    // node's plumbing (a combo's line index, a tensor shape, a sample
+                    // count), not the bundle's answer. Kept regardless when text is all
+                    // the run produced — then it IS the answer, however short. Tagged
+                    // rather than silently dropped, because seven bundles emitting one
+                    // is a finding, not noise.
+                    const prose = /\s/.test(t);
+                    out.push({
+                        kind: 'text', file: `node ${nodeId}`, text: t, chars: t.length, flags: [],
+                        ...(haveFiles && !prose ? { stray: true } : {}),
+                    });
                 }
             }
         }

@@ -24,6 +24,18 @@ const ERROR_CHARS = 1200;
 const TRACEBACK_LINES = 18;
 
 const pad = (s, n) => String(s ?? '').padEnd(n);
+/**
+ * A fixed-width column that cannot run into the next one.
+ *
+ * `padEnd` does nothing when the value is already wider than the column, which is
+ * how a 49-character bundle id and an 11-character luma reading each welded
+ * themselves to the following field in the first real report. Clipped, and always
+ * at least one space.
+ */
+const col = (s, n) => {
+    const v = String(s ?? '');
+    return (v.length > n - 1 ? `${v.slice(0, n - 2)}…` : v).padEnd(n);
+};
 const secs = (s) => {
     if (s == null) return '—';
     if (s < 90) return `${s}s`;
@@ -31,13 +43,30 @@ const secs = (s) => {
     return m < 60 ? `${m}m ${s % 60}s` : `${Math.floor(m / 60)}h ${m % 60}m`;
 };
 
-// ★ A workflow whose result is TEXT saves no file, so "no output" is not a fault
-// for it. The two Gemma captioners surface their answer through a PreviewAny node
-// and were both flagged on the first real sweep — a detector that cries wolf on
-// correct behaviour is how people learn to ignore it.
-const TEXT_OUTPUT_CATEGORIES = new Set(['description']);
-const emitsText = (r) => TEXT_OUTPUT_CATEGORIES.has(r.category)
-    || (r.outputs || []).some(o => o.kind === 'text');
+// A workflow whose result is TEXT saves no file, so "no output" is not a fault for
+// it — the two Gemma captioners answer through a PreviewAny node and were both
+// flagged on the first real sweep, and a detector that cries wolf on correct
+// behaviour is how people learn to ignore it.
+//
+// ★★ But the fix has to be "a caption COUNTS as output", not "this category never
+// reports". Exempting by category hid the real failure: a stamp guard stopped
+// collecting the captions, both captioners produced literally nothing, and the
+// report still called them clean because it had been told to ignore them. The only
+// honest test is whether this row actually carries text.
+
+/**
+ * Is this text output the bundle's answer, or a node's plumbing?
+ *
+ * ★ Decided here as well as at collection time, on purpose. The sweep tags a stray
+ * when it records one, but a report read back from an older run carries no tag, and
+ * a renderer that trusted the tag would print `"3"` under the heading "the result".
+ * Same rule either way: prose is an answer; beside a real file, a whitespace-free
+ * string is plumbing; and when text is all there is it is the answer regardless.
+ */
+const isStrayText = (o, row) => o.kind === 'text'
+    && ((row.outputs || []).some(x => x.kind !== 'text'))
+    && !/\s/.test(String(o.text || '').trim());
+const emitsText = (r) => (r.outputs || []).some(o => o.kind === 'text');
 
 /** Why this row needs attention, in the order a human should look at them. */
 function triage(r) {
@@ -228,20 +257,63 @@ function renderSweepReport(report, opts = {}) {
     L.push(`RAN CLEAN (${clean.length})`);
     L.push(THIN);
     for (const { r } of clean) {
-        const o = (r.outputs || [])[0];
-        L.push(`  ${pad(r.id, 44)}${pad(secs(r.wallSec), 7)}${pad(r.vramPeakGb ? `${r.vramPeakGb}GB` : '—', 8)}`
-            + `${pad(`${(r.outputs || []).length} out`, 7)}`
-            + `${o ? pad(o.width ? `${o.width}x${o.height}` : (o.kind || ''), 12) : pad('', 12)}`
-            + `${o && o.mean != null ? pad(`luma ${o.mean}`, 11) : pad('', 11)}`
-            + `${(r.observedModels || []).length} model${(r.observedModels || []).length === 1 ? '' : 's'}`);
+        // ★ The first output file, not the first output: a bundle that saves a picture
+        // AND emits a caption would otherwise be described by whichever came first.
+        const o = (r.outputs || []).find(x => x.kind !== 'text') || (r.outputs || [])[0];
+        const models = (r.observedModels || []).length;
+        L.push('  '
+            // ★ Padded columns alone collide — the longest id here is 49 characters
+            // against a 44-wide column, and `luma 171.53` fills an 11-wide one, so
+            // three rows of the first real report ran their fields together
+            // (`…_with_reference32s`, `luma 171.534 models`). Every column is now
+            // clipped to fit and carries its own trailing space.
+            // Widths are taken from the real library: the longest id is 48 characters
+            // (`video_edit_bernini_r_video_editing_ref_autoprompt`) and the longest
+            // duration `18m 21s`. The table therefore runs wider than the 78-column
+            // prose around it, which is the right trade — clipping a bundle id would
+            // break the one field a reader copies in order to re-run the row.
+            + col(r.id, 50)
+            + col(secs(r.wallSec), 8)
+            + col(r.vramPeakGb ? `${r.vramPeakGb}GB` : '—', 8)
+            // Files, not outputs: a stray tile and a caption each get their own line
+            // below, so counting them here read as `5 out` for a run that saved two.
+            + col(`${(r.outputs || []).filter(x => x.kind !== 'text').length} out`, 6)
+            + col(o ? (o.width ? `${o.width}x${o.height}` : (o.kind || '')) : '', 11)
+            + col(o && o.mean != null ? `luma ${o.mean}` : '', 12)
+            // ⚠ Not "N models used" — see the note under MODELS OPENED. A bundle that
+            // reuses a weight ComfyUI already has loaded resolves nothing and records
+            // zero, so a dash is the honest rendering of zero here.
+            + (models ? `${models} model${models === 1 ? '' : 's'}` : '—'));
+        // ★ A caption IS the result of a describe workflow, so printing only its
+        // length is printing nothing. The first report measured a working captioner's
+        // 1403-character answer as `text` and showed none of it, which is exactly the
+        // row a reader most wants to judge.
+        for (const t of (r.outputs || []).filter(x => x.kind === 'text' && x.text && !isStrayText(x, r))) {
+            L.push(`      ${t.file} — the result, ${t.chars} characters:`);
+            for (const seg of wrap(t.text, 68).slice(0, 12)) L.push(`        ${seg}`);
+            if (wrap(t.text, 68).length > 12) L.push('        … (full text in the .jsonl)');
+        }
+        // ★ And a stray one is a defect, reported rather than hidden: these reach a
+        // student's gallery as a result tile beside the picture.
+        for (const t of (r.outputs || []).filter(x => isStrayText(x, r))) {
+            L.push(`      ⚠ ${t.file} also published the bare string ${JSON.stringify(t.text)} as a result tile`);
+        }
     }
     L.push('');
 
     // ---- every weight the library was SEEN to open ------------------------
     // ★ One line per model, not per bundle: this is the evidence a keep decision
     // rests on, and it has to be in the report rather than only in the database.
-    // The single-user case is the interesting one — a weight only one bundle
-    // opens is the weight that goes when that bundle goes.
+    //
+    // ⚠⚠ But it records a FIRST SIGHTING, not exclusive use, and the first version
+    // of this section said "only <bundle>" — which invites exactly the deletion this
+    // whole tool exists to prevent. ComfyUI keeps a loaded model across prompts, so
+    // the second bundle that wants the same weight never resolves a path and its
+    // window records nothing: 20 of 61 rows in the first real sweep reported zero
+    // models, every one of them running straight after a sibling with the same
+    // weights. `flux-2-klein-base-9b-fp8` read as "only image_edit_flux2_klein_9b_
+    // image_edit" while four other live bundles need it. Remove that one bundle on
+    // the strength of that line and you take the weight four others load.
     const byModel = new Map();
     for (const r of report.results) {
         for (const n of (r.observedModels || [])) {
@@ -256,8 +328,15 @@ function renderSweepReport(report, opts = {}) {
         L.push('');
         L.push('  Observed, not inferred — ComfyUI was seen resolving or loading each of these.');
         L.push('');
+        L.push('  ⚠ Read the right-hand column as FIRST SIGHTING, never as exclusive use.');
+        L.push('    ComfyUI keeps a model loaded between prompts, so a second bundle wanting the');
+        L.push('    same weight resolves no path and leaves no trace — which is why bundles that');
+        L.push('    ran straight after a sibling show "—" in the models column above. A weight');
+        L.push('    listed against one bundle may be needed by several; to find out which,');
+        L.push('    ask the usage scan, not this list.');
+        L.push('');
         for (const [name, ids] of [...byModel.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-            L.push(`  ${pad(name, 54)}${ids.length === 1 ? `only ${ids[0]}` : `${ids.length} bundles`}`);
+            L.push(`  ${col(name, 56)}${ids.length === 1 ? `first seen in ${ids[0]}` : `seen in ${ids.length} runs`}`);
         }
         L.push('');
     }

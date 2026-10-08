@@ -345,6 +345,137 @@ console.log('\nthe recorder\'s absence must be visible, not read as "nothing was
             st.summary.ran === 1 && st.summary.succeeded === 1);
     }
 
+    console.log('\nthe report has to say which machine produced it');
+    {
+        // ★ A complete 61-bundle report went out with NO machine block — no host, no
+        // GPU, no ComfyUI version, no commit — because status() omitted the field
+        // while the route copied `machine: run.machine` from it, a line that reads as
+        // if it handled the case. Both files on disk held all of it.
+        const calibrator = { calibrate: async () => ({ estimatedDurationSec: 5 }) };
+        const { sweep } = make({ entries: [entry('solo')], calibrator });
+        await sweep.start();
+        const live = sweep.status();
+        ok('the live status carries the machine block the report prints',
+            !!live.machine && typeof live.machine.host === 'string' && live.machine.host.length > 0);
+        ok('...including where the install is, which a reader cannot guess',
+            live.machine.comfyRoot === root);
+        for (let i = 0; i < 100 && sweep.status().state === 'running'; i++) {
+            await new Promise(res => setTimeout(res, 20));
+        }
+        ok('and the finished report keeps it', !!sweep.lastReport().machine.host);
+        sweep.clear();
+    }
+
+    console.log('\nre-running one bundle must not erase the other sixty');
+    {
+        // ★ A subset run wrote a `…-latest.json` containing only its own rows, and the
+        // report route served that as the machine's verdict on its library — so
+        // checking one fix destroyed a two-hour record. Also the shape of the
+        // "Run the remaining N" button after a stop.
+        const calibrator = { calibrate: async () => ({ estimatedDurationSec: 5 }) };
+        const all = [entry('one'), entry('two'), entry('three')];
+        const { sweep } = make({ entries: all, calibrator });
+        const settle = async () => {
+            for (let i = 0; i < 200 && sweep.status()?.state === 'running'; i++) {
+                await new Promise(res => setTimeout(res, 20));
+            }
+        };
+        await sweep.start();
+        await settle();
+        ok('a full sweep records every bundle', sweep.lastReport().results.length === 3);
+        await sweep.start({ ids: ['two'] });
+        await settle();
+        const after = sweep.lastReport();
+        ok('re-running one bundle leaves all three in the published report',
+            after.results.length === 3 && after.results.map(r => r.id).join(',') === 'one,three,two');
+        ok('...the summary counts the merged set, not just the re-run',
+            after.summary.ran === 3);
+        ok('...and the per-run .jsonl still records only what that run did',
+            fs.readdirSync(dataDir).filter(n => /^library-sweep-.*\.jsonl$/.test(n)).length === 2);
+        sweep.clear();
+    }
+
+    console.log('\na caption must not be credited to the wrong bundle');
+    {
+        // ⚠ "The newest history entry" is only this bundle's run if a run reached
+        // ComfyUI at all. A bundle that fails before queueing leaves the PREVIOUS
+        // bundle's entry newest — so the prompt itself has to prove ownership.
+        const { sweep } = make();
+        const hist = (prefix) => ({
+            k: { prompt: [0, 'id', { 9: { inputs: { filename_prefix: prefix } } }],
+                outputs: { 4: { text: ['a real caption with spaces'] } } },
+        });
+        const realFetch = global.fetch;
+        // ★ A REAL stamp, 13 digits, because that is what Date.now() produces. The
+        // original fixtures used `_1759` and `_17`, and a short number is exactly what
+        // let a lazy regex look correct: with 4 digits nothing was recognised as a stamp
+        // at all, so both the "mine" and the "theirs" case passed for the wrong reason.
+        global.fetch = async () => ({ ok: true, json: async () => hist('bench_image_edit_bernini_r_image_editing_with_reference_1791399205943') });
+        try {
+            const mine = await sweep._collectTextOutputs('image_edit_bernini_r_image_editing_with_reference', false);
+            ok('a caption from this bundle\'s own run is taken', mine.length === 1);
+            // The exact collision that already mis-credited a picture: one id is a
+            // prefix of the other, so only the digit after it separates them.
+            const theirs = await sweep._collectTextOutputs('image_edit_bernini_r_image_editing', false);
+            ok('a caption from a longer-named sibling\'s run is refused', theirs.length === 0);
+            // ★★ THE REGRESSION this guard caused. A `description` bundle writes no file,
+            // so its prompt carries no filename_prefix and therefore no stamp — demanding
+            // one threw away the caption of every captioner, which is the only thing this
+            // function exists to collect. An entry with NO stamp is ours; only an entry
+            // carrying somebody else's is refused.
+            global.fetch = async () => ({ ok: true, json: async () => ({
+                k: { prompt: [0, 'id', { 4: { class_type: 'PreviewAny', inputs: { source: ['3', 0] } } }],
+                    outputs: { 4: { text: ['This is a photograph of a red sports car on asphalt.'] } } },
+            }) });
+            const stampless = await sweep._collectTextOutputs('describe_gemma4_image_description', false);
+            ok('a captioner with no save node — so no stamp at all — keeps its caption',
+                stampless.length === 1 && /red sports car/.test(stampless[0].text));
+            // And an id whose own name contains digits and underscores must not be
+            // mis-parsed: a lazy match read `bench_video_ltx2_5_i2v_…` as `bench_video_ltx2_5`.
+            global.fetch = async () => ({ ok: true, json: async () => ({
+                k: { prompt: [0, 'id', { 9: { inputs: { filename_prefix: 'bench_video_ltx2_5_i2v_1791399205943' } } }],
+                    outputs: { 4: { text: ['prose from the ltx run'] } } },
+            }) });
+            ok('an id containing digits and underscores still matches its own stamp',
+                (await sweep._collectTextOutputs('video_ltx2_5_i2v', false)).length === 1);
+            ok('...and does not match a different bundle',
+                (await sweep._collectTextOutputs('video_ltx2_5_t2v', false)).length === 0);
+
+            global.fetch = async () => ({ ok: true, json: async () => ({
+                k: { prompt: [0, 'id', { 9: { inputs: { filename_prefix: 'bench_solo_1791399205943' } } }],
+                    outputs: { 4: { text: ['the answer, in prose'] }, 7: { text: ['3'] } } },
+            }) });
+            const withFiles = await sweep._collectTextOutputs('solo', true);
+            ok('beside a real file, a bare string is tagged as a stray rather than dropped',
+                withFiles.length === 2 && withFiles.find(o => o.text === '3').stray === true
+                && !withFiles.find(o => o.text === 'the answer, in prose').stray);
+            const noFiles = await sweep._collectTextOutputs('solo', false);
+            ok('...and nothing is a stray when text is all the run produced',
+                noFiles.every(o => !o.stray));
+        } finally { global.fetch = realFetch; }
+    }
+
+    console.log('\nthe exemption that stops a false alarm must not silence the true one');
+    {
+        // ★★ A `description` bundle was exempted from the no-output counter BY CATEGORY,
+        // so that a caption would not read as "produced nothing". Then the captions
+        // stopped being collected and the counter said nothing, because it had been told
+        // never to speak about that category. The honest form is to count a caption AS an
+        // output — so a captioner that produced nothing is reported like anything else.
+        const row = (extra) => ({ id: 'describe_gemma4_image_description', category: 'description', ok: true, outputs: [], flagged: [], observedModels: [], ...extra });
+        const withCaption = LibrarySweep.summarize([row({
+            outputs: [{ kind: 'text', file: 'node 4', text: 'a real caption, in prose', chars: 24, flags: [] }],
+        })], true);
+        ok('a captioner WITH its caption is not reported as producing nothing',
+            withCaption.noOutput === 0);
+        const without = LibrarySweep.summarize([row({})], true);
+        ok('a captioner with NO caption IS reported, category notwithstanding',
+            without.noOutput === 1);
+        // The original false alarm must still not fire for an image bundle that saved a file.
+        const img = LibrarySweep.summarize([{ id: 'i', category: 't2i', ok: true, flagged: [], observedModels: [], outputs: [{ file: 'a.png', width: 8, height: 8 }] }], true);
+        ok('a bundle that saved a file is never reported as producing nothing', img.noOutput === 0);
+    }
+
     // Nothing to tidy in server/data: this test writes only under its own temp dir.
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(`\nlibrarySweep: all ${pass} checks passed`);

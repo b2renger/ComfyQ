@@ -103,8 +103,16 @@ ok('a correctly masked bundle is not accused', /correctly masked|^(?!.*NOT MASKE
 // is named.
 ok('every model the sweep was seen to open is listed by name',
     /MODELS OPENED DURING THE SWEEP/.test(txt) && /qwen_image_2\.1_vae_bf16/.test(txt));
-ok('a model only one bundle opened names that bundle',
-    /qwen_image_edit_2509_fp8_e4m3fn\.safetensors\s+only image_edit_qwen_multiple_scene_angles/.test(txt));
+// ⚠ FIRST SIGHTING, not exclusive use. ComfyUI keeps a model loaded between
+// prompts, so the second bundle wanting the same weight records nothing — the
+// earlier wording ("only <bundle>") read as a licence to delete a weight four
+// other live bundles load.
+ok('a model seen in one run is reported as a FIRST SIGHTING, not as exclusive',
+    /qwen_image_edit_2509_fp8_e4m3fn\.safetensors\s+first seen in image_edit_qwen_multiple_scene_angles/.test(txt)
+    && !/\bonly image_edit_qwen_multiple_scene_angles/.test(txt));
+ok('...and the caching reason is spelled out where it would be misread',
+    /FIRST SIGHTING, never as exclusive use/.test(txt)
+    && /keeps a model loaded between prompts/.test(txt));
 ok('and it is marked as observed rather than inferred', /Observed, not inferred/.test(txt));
 ok('experimental bundles are marked', /\(experimental\)/.test(txt));
 
@@ -135,22 +143,84 @@ ok('a report with no prune list simply omits that section',
 
 console.log('\na text output is not a missing output');
 {
-    // Found on the first REAL sweep: both Gemma captioners were flagged NO OUTPUT
-    // for behaving correctly — their result is a caption, not a file.
+    // Found on the first REAL sweep: both Gemma captioners were flagged NO OUTPUT for
+    // behaving correctly — their result is a caption, not a file. A caption therefore
+    // counts as output.
     const caption = renderSweepReport({
+        machine: {}, summary: {},
+        results: [{
+            id: 'describe_gemma4_image_description', category: 'description',
+            ok: true, wallSec: 35, flagged: [], observedModels: ['gemma4.safetensors'],
+            outputs: [{ kind: 'text', file: 'node 4', text: 'a real caption, in prose', chars: 24, flags: [] }],
+        }],
+    });
+    ok('a description bundle whose caption arrived is NOT flagged',
+        /NEEDS ATTENTION — none/.test(caption) && !/NO OUTPUT/.test(caption));
+    // ★★ This assertion used to read "a description bundle with no file is NOT flagged",
+    // exempting the category outright — and that is what hid the real failure: a stamp
+    // guard stopped collecting the captions, both captioners produced literally nothing,
+    // and the report called them clean. An exemption must say "a caption counts", never
+    // "never report this kind".
+    const silent = renderSweepReport({
         machine: {}, summary: {},
         results: [{
             id: 'describe_gemma4_image_description', category: 'description',
             ok: true, wallSec: 35, outputs: [], flagged: [], observedModels: ['gemma4.safetensors'],
         }],
     });
-    ok('a description bundle with no file is NOT flagged',
-        /NEEDS ATTENTION — none/.test(caption) && !/NO OUTPUT/.test(caption));
+    ok('...but a captioner that produced NO caption is flagged, category notwithstanding',
+        /NO OUTPUT/.test(silent));
     const img = renderSweepReport({
         machine: {}, summary: {},
         results: [{ id: 'image_thing', category: 't2i', ok: true, wallSec: 9, outputs: [], flagged: [] }],
     });
-    ok('...but an image bundle with no file still is', /NO OUTPUT/.test(img));
+    ok('...and an image bundle with no file still is', /NO OUTPUT/.test(img));
+}
+
+// ---- the clean table, which is where a working result must still be legible ----
+console.log('\nthe clean rows');
+{
+    const CAPTION = 'This is a digital rendering of a vibrant red sports car parked on an '
+        + 'asphalt road, photographed from a low three-quarter angle in bright daylight.';
+    const t = renderSweepReport({
+        machine: {}, summary: {},
+        results: [
+            {
+                id: 'describe_gemma4_image_description', category: 'description', ok: true, wallSec: 44,
+                vramPeakGb: 10.55, flagged: [], observedModels: ['gemma4.safetensors'],
+                outputs: [{ kind: 'text', file: 'node 4', text: CAPTION, chars: CAPTION.length, flags: [] }],
+            },
+            {
+                // A real id from this library, 49 characters — longer than the column.
+                id: 'video_edit_bernini_r_video_editing_ref_autoprompt', category: 'video-edit',
+                ok: true, wallSec: 1101, vramPeakGb: 19.12, flagged: [], observedModels: [],
+                outputs: [
+                    { file: 'bench_x_00001_.mp4', width: 832, height: 832, mean: 171.53, std: 40.2, flags: [] },
+                    { kind: 'text', file: 'node 117:57:1', text: '8', chars: 1, flags: [], stray: true },
+                ],
+            },
+        ],
+    });
+    // ★ A caption IS the result; measuring it is printing nothing.
+    ok('a working captioner\'s answer is printed in full, not measured',
+        t.includes('asphalt road') && /the result, \d+ characters/.test(t));
+    // ★ The stray tile is a student-facing defect, so it is reported, not hidden.
+    ok('a bare string published as a result tile is called out as a defect',
+        /also published the bare string "8" as a result tile/.test(t));
+    ok('...and a stray is not mistaken for the result',
+        !/node 117:57:1 — the result/.test(t));
+    // ⚠ Column collisions: three rows of the first real report ran their fields
+    // together (`…_with_reference32s`, `luma 171.534 models`). Checked on the widest
+    // row in the library — the longest id against the longest duration and luma.
+    const row = t.split('\n').find(l => l.includes('video_edit_bernini_r_video_editing_ref'));
+    ok('the longest id in the library is printed whole, not clipped',
+        row.includes('video_edit_bernini_r_video_editing_ref_autoprompt'));
+    ok('no two fields run together on the widest row',
+        / 18m 21s +19\.12GB +1 out +832x832 +luma 171\.53 +—/.test(row));
+    // A weight ComfyUI already had loaded resolves nothing, so zero is not "none used".
+    ok('zero observed models renders as a dash, not as 0 models', /\s—\s*$/.test(row));
+    ok('the row describes the FILE, not the caption, when a bundle has both',
+        /832x832/.test(row) && /luma 171\.53/.test(row));
 }
 
 console.log(`\nsweepReport: all ${pass} checks passed`);

@@ -448,10 +448,14 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     router.get('/library-sweep/report.txt', (req, res) => {
         const sw = runtime?.sweep;
         if (!sw) return res.status(503).type('text/plain').send('the sweep is not available');
+        // While a sweep is in flight, render what it has so far — a two-hour run
+        // should be readable at bundle 30. Once it has finished, the file on disk is
+        // the better answer: it is the MERGE of this run over the previous one, so
+        // re-running a single bundle to check a fix corrects one line of the report
+        // instead of replacing it with a one-line report.
         const run = sw.status();
-        const report = (run && run.results?.length)
-            ? { ...run, machine: run.machine, results: run.results }
-            : sw.lastReport();
+        const live = run && (run.state === 'running' || run.state === 'stopping');
+        const report = (live && run.results?.length) ? run : (sw.lastReport() || (run?.results?.length ? run : null));
         if (!report) return res.status(404).type('text/plain').send('No sweep has been run on this machine yet.');
         // Cross-reference costs a usage scan; skip it rather than fail the report.
         let unused = null;

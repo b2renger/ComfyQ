@@ -458,7 +458,24 @@ const Inspect = ({ r, headers, onToast }) => {
                                 as text through a PreviewAny node and touches no file, so
                                 showing it is the only way to read what the bundle exists to
                                 produce. */}
-                            {o.kind === 'text' && (
+                            {/* ⚠ A stray is NOT the result. Seven production bundles
+                                publish a bare string — a combo's line index, a tensor
+                                shape, a sample count — as a result tile beside the real
+                                picture. Labelled as the defect it is, so an inspector
+                                does not read "3" as what the bundle produced. */}
+                            {o.kind === 'text' && o.stray && (
+                                <div className="rounded border border-warning/40 bg-warning/5 p-2">
+                                    <div className="text-[10px] uppercase tracking-wider text-warning mb-1">
+                                        stray tile · {o.file}
+                                    </div>
+                                    <p className="text-[11px] leading-relaxed">
+                                        This node published <code className="px-1 bg-background/60 rounded">{o.text}</code> as
+                                        a result, so a student sees it beside the picture. It is the node's own
+                                        plumbing, not an answer.
+                                    </p>
+                                </div>
+                            )}
+                            {o.kind === 'text' && !o.stray && (
                                 <div className="rounded border border-border bg-background/60 p-2">
                                     <div className="text-[10px] uppercase tracking-wider text-muted mb-1">
                                         text result · {o.file} · {o.chars} characters
