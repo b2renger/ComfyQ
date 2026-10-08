@@ -126,8 +126,32 @@ function collectFromHistory(historyEntry, comfyConfig) {
     // Pass 2 — string values that are on-disk media PATHS (Pixal3D text / TRELLIS2 Preview3D result).
     for (const [nodeId, nodeOutputs] of nodes) _collectMediaPaths(nodeOutputs, nodeId, comfyConfig, out, seenAbs, mediaStrings);
     // Pass 3 — genuine text (captions), skipping any string already taken as a media path.
+    const beforeText = out.length;
     for (const [nodeId, nodeOutputs] of nodes) _collectText(nodeId, nodeOutputs, out, seenText, mediaStrings);
-    return out;
+    return _keepResultText(out, beforeText);
+}
+
+/**
+ * Drop a text output that is a node's internal plumbing rather than the answer.
+ *
+ * ★ Found by running the whole library: SEVEN production bundles were publishing a
+ * result tile to students that read `"3"`, `"8"`, `"11"`, `"150"`, `"1x512x512"` or
+ * `"128x1024x1024"`. The Bernini editors tap a combo's line index through a
+ * `PreviewAny` to coerce it to a string (an IN-PATH node — its value is consumed by
+ * the graph, so it cannot simply be deleted), LivePortrait previews two tensor
+ * shapes, Stable Audio a sample count. All reach `outputs` as a `text` array and
+ * were rendered beside the real picture. A June rig-watch note had suspected the
+ * Bernini one; the sweep proved it, on seven bundles.
+ *
+ * The rule needs no knowledge of the workflow, which is why it is safe:
+ *   - text that reads as prose (it contains whitespace) is an answer — keep it;
+ *   - text that is the ONLY thing the run produced is the answer whatever it looks
+ *     like, so a captioner replying `"yes"` is never swallowed.
+ * Everything else is plumbing beside a real file.
+ */
+function _keepResultText(out, mediaCount) {
+    if (mediaCount === 0) return out;            // text is all there is — it IS the result
+    return out.filter(o => o.kind !== 'text' || /\s/.test(String(o.text || '').trim()));
 }
 
 // Resolve a {type, subfolder, filename} record to an absolute path on disk.
