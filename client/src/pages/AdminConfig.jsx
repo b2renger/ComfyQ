@@ -10,6 +10,7 @@ import MaintenanceScripts from '../components/admin/MaintenanceScripts';
 import LibrarySweep from '../components/admin/LibrarySweep';
 import ModelQuarantine from '../components/admin/ModelQuarantine';
 import NodePacks from '../components/admin/NodePacks';
+import InstallUpdates from '../components/admin/InstallUpdates';
 import Modal from '../components/ui/Modal';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
@@ -1389,6 +1390,11 @@ const AdminConfig = ({ currentMode }) => {
                         </>
                     )}
                 </Card>
+
+                {/* Updating the install, beside the card that says what it is
+                    missing: "can these bundles run?" and "is any of it out of
+                    date?" are different questions about the same place. */}
+                <InstallUpdates headers={adminHeaders()} onToast={showToast} mode={config.mode} />
 
                 <NodePacks headers={adminHeaders()} onToast={showToast} />
                 </>
