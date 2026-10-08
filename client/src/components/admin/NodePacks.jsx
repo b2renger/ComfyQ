@@ -297,6 +297,9 @@ const NodePacks = ({ headers, onToast, pollMs = 2000 }) => {
                         A pack with no branch icon arrived as a copy (ComfyUI-Manager unpacks rather
                         than clones), so there is no remote to pull from — reinstalling it by URL is
                         what makes it updatable.
+                        {' '}★ <strong>To actually update one, use the Updates card under
+                        Maintenance</strong> — this card only answers whether your bundles have the
+                        nodes they need.
                     </p>
                 </div>
             )}

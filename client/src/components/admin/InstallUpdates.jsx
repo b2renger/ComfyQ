@@ -71,17 +71,34 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
         }
     };
 
-    if (!data?.available) return null;
+    // ★ A card that renders as NOTHING while it loads is indistinguishable from
+    // a feature that is not there -- which is how this one got reported missing.
+    // Only a server that says the updater is unavailable removes it.
+    if (!data) {
+        return (
+            <Card>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                    <RefreshCw size={18} className="animate-spin" /> Updates
+                </h2>
+                <p className="text-sm text-muted mt-2">Reading what is installed…</p>
+            </Card>
+        );
+    }
+    if (!data.available) return null;
 
     const comfy = data.comfy || {};
     const deps = data.comfyRequirements || { exists: false, risky: [] };
     const serving = mode === 'student';
     const checked = !!scan && scan.status !== 'running';
-    const packs = scan?.packs || [];
+    // ★ Before a check the list still comes from the server's network-free
+    // local read. Not being able to say whether a pack is BEHIND is no reason to
+    // hide the pack: the first cut showed nothing until Check was pressed, which
+    // made the whole feature invisible.
+    const packs = (checked ? scan.packs : data.packs) || [];
     const withUpdates = packs.filter(p => (p.behind || 0) > 0);
     const clones = packs.filter(p => p.isGit);
     const copies = packs.filter(p => !p.isGit);
-    const shown = showAll ? packs : withUpdates;
+    const shown = showAll ? packs : (checked ? withUpdates : clones);
 
     const installed = comfy.version || comfy.describe || comfy.head || 'unknown';
 
@@ -249,8 +266,10 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
 
                 {!checked && (
                     <p className="text-xs text-muted mt-1">
-                        Which packs are behind is only known after a check — it is one network
-                        request per pack, so it is never done on its own.
+                        {clones.length} of these {packs.length} packs are real git clones and can be
+                        updated from here; the rest are copies ComfyUI-Manager unpacked, with no remote
+                        to pull from. <strong>Which of them is behind is only known after a check</strong> —
+                        that is one network request per pack, so it is never done on its own.
                     </p>
                 )}
 
@@ -270,7 +289,7 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                     </p>
                 )}
 
-                {checked && (
+                {packs.length > 0 && (
                     <div className="mt-2 space-y-2">
                         {shown.map(p => {
                             const behind = p.behind || 0;
@@ -291,14 +310,18 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                                                     </Badge>
                                                 )}
                                             </div>
-                                            {p.head && (
+                                            {p.head ? (
                                                 <div className="text-xs text-muted mt-0.5 truncate"
                                                     title={p.subject || ''}>
                                                     at {p.head}
                                                     {p.date ? ` (${p.date})` : ''}
                                                     {p.subject ? ` — ${p.subject}` : ''}
                                                 </div>
-                                            )}
+                                            ) : p.isGit ? (
+                                                <div className="text-xs text-muted mt-0.5 truncate">
+                                                    git clone{p.remote ? ` — ${p.remote}` : ''}
+                                                </div>
+                                            ) : null}
                                             {/* ★ The incoming commits, so they can be read BEFORE pulling.
                                                 A node pack update changes what a student's job runs. */}
                                             {p.incoming?.length > 0 && (
@@ -320,6 +343,14 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                                                     <Download size={13} /> Update
                                                 </Button>
                                             )}
+                                            {/* Visible but inert before a check, so the capability is
+                                                discoverable without claiming to know what is available. */}
+                                            {!checked && p.isGit && !p.blocked && (
+                                                <Button variant="ghost" disabled
+                                                    title="Press Check for updates first — whether this pack is behind needs its remote.">
+                                                    <Download size={13} /> Update
+                                                </Button>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -330,8 +361,8 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                             className="text-xs text-muted hover:text-foreground flex items-center gap-1">
                             {showAll ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
                             {showAll
-                                ? 'Show only what has an update'
-                                : `Show all ${packs.length} packs, and why some cannot be updated`}
+                                ? (checked ? 'Show only what has an update' : 'Show only the updatable clones')
+                                : `Show all ${packs.length} packs, and why ${copies.length} cannot be updated`}
                         </button>
                     </div>
                 )}

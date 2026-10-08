@@ -196,7 +196,7 @@ const AdminConfig = ({ currentMode }) => {
 
     // Its own route, because a token is a credential rather than a setting —
     // adminGate'd, write-only, and an empty string clears it.
-    const saveHfToken = async (token) => {
+    const saveHfToken = async (token, { quiet = false } = {}) => {
         setSavingHfToken(true);
         try {
             const res = await fetch(`${SERVER_URL}/admin/hf-token`, {
@@ -206,9 +206,13 @@ const AdminConfig = ({ currentMode }) => {
             if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
             setHasHfToken(!!data.hasHfToken);
             setHfTokenDraft('');
-            showToast(token ? 'HuggingFace token saved' : 'HuggingFace token cleared');
+            if (!quiet) showToast(token ? 'HuggingFace token saved' : 'HuggingFace token cleared');
+            return true;
         } catch (e) {
+            // Never quiet on failure: a credential that silently did not save is
+            // the thing this whole change exists to stop.
             showToast(`Could not save the token: ${e.message}`, 'err');
+            return false;
         } finally {
             setSavingHfToken(false);
         }
@@ -249,7 +253,22 @@ const AdminConfig = ({ currentMode }) => {
             // against a folder that no longer resolves.
             const stale = JSON.stringify(scanDirs) !== JSON.stringify(config.maintenance?.workflowScanDirs || []);
             if (stale) await saveScanDirs(scanDirs);
-            showToast(stale ? 'ComfyUI paths and scan folders saved' : 'ComfyUI paths saved');
+
+            // ★★ The HuggingFace token too, for exactly the reason above it. It sits
+            // in this card among the fields this button saves, but it lives on its
+            // own adminGate'd route because a credential should not travel through
+            // the settings route. The owner typed one in, pressed Save settings,
+            // and nothing was stored -- the field LOOKED governed by this button
+            // and was not, and the only thing saying otherwise was a comment in
+            // the source. The credential still goes through its own route; only
+            // the click is shared.
+            const pendingToken = hfTokenDraft.trim();
+            const tokenSaved = pendingToken ? await saveHfToken(pendingToken, { quiet: true }) : false;
+
+            const parts = ['ComfyUI paths'];
+            if (stale) parts.push('scan folders');
+            if (tokenSaved) parts.push('HuggingFace token');
+            showToast(`${parts.join(', ')} saved`);
             await reloadConfig();
         } catch (e) { showToast(e.message, 'err'); }
     };
@@ -1139,11 +1158,15 @@ const AdminConfig = ({ currentMode }) => {
                             </p>
                         </div>
 
-                        {/* ★ Saved on its own, not by "Save settings": a token is a
-                            credential, so it goes through its own adminGate'd route and
-                            is never read back — the server reports only whether one is
-                            set. Eight of this library's model links answer 401 without
-                            one (FLUX.2, LTX-2.5). */}
+                        {/* ★ A credential, so it goes through its own adminGate'd route
+                            and is never read back — the server reports only whether one is
+                            set. Eight of this library's model links answer 401 without one
+                            (FLUX.2, LTX-2.5). ★★ It has its own Save button AND is saved by
+                            "Save settings": it used to be only the former, and a field
+                            sitting among this card's fields while not being saved by this
+                            card's button is a control whose behaviour contradicts its
+                            appearance. The token was typed, Save settings was pressed, and
+                            nothing was stored. */}
                         <div className="space-y-1.5 sm:col-span-2">
                             <label className="text-xs uppercase tracking-wider text-muted font-semibold flex items-center gap-2">
                                 <KeyRound size={13} /> HuggingFace access token
@@ -1170,6 +1193,9 @@ const AdminConfig = ({ currentMode }) => {
                                 )}
                             </div>
                             <p className="text-[11px] text-muted">
+                                Saved by <strong>Save token</strong> or by <strong>Save settings</strong> —
+                                either works. It travels on its own route because it is a credential, not a
+                                setting.{' '}
                                 Needed only for <strong>gated</strong> repositories, and only for downloading
                                 a model — nothing else uses it. Accept the licence on the model's
                                 HuggingFace page first, then create a <strong>read</strong> token at{' '}
@@ -1391,17 +1417,19 @@ const AdminConfig = ({ currentMode }) => {
                     )}
                 </Card>
 
-                {/* Updating the install, beside the card that says what it is
-                    missing: "can these bundles run?" and "is any of it out of
-                    date?" are different questions about the same place. */}
-                <InstallUpdates headers={adminHeaders()} onToast={showToast} mode={config.mode} />
-
                 <NodePacks headers={adminHeaders()} onToast={showToast} />
                 </>
             )}
 
             {tab === 'maintenance' && (
                 <>
+                    {/* First card in the tab. Updating the install was named as
+                        belonging to Maintenance before this tab had anything in
+                        it, and it is where the owner went looking for it — it
+                        spent one afternoon under Manage ComfyUI and could not be
+                        found. */}
+                    <InstallUpdates headers={adminHeaders()} onToast={showToast} mode={config.mode} />
+
                     <ModelDownloads headers={adminHeaders()} onToast={showToast} hasHfToken={hasHfToken} />
 
                     <ModelPrune headers={adminHeaders()} onToast={showToast}

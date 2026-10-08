@@ -402,16 +402,23 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     // planned on the belief that a known failure would be fixed. So every
     // answer here carries the version before and after, and says so when
     // nothing moved.
-    router.get('/updates', (req, res) => {
+    router.get('/updates', async (req, res) => {
         const u = runtime?.updater;
         if (!u) return res.json({ available: false });
+        // ★ No network AND no git on this path. It is called on every page load,
+        // and these rigs are routinely on a LAN that cannot reach github -- but
+        // the packs ARE listed, from the filesystem, so the card can show what
+        // is installed and which of it is updatable before anyone presses Check.
+        // Returning nothing here made the feature invisible by default; doing it
+        // with git reads instead made the request take 3.1 s, during which the
+        // card still rendered as nothing. Both were the same complaint.
+        let packs = null;
+        try { packs = u.installedPacks(); } catch { /* listing is best effort */ }
         res.json({
             available: true,
             comfy: u.comfyState(),
             comfyRequirements: u.comfyRequirements(),
-            // No network on this path: it is called on every page load, and
-            // these rigs are routinely on a LAN that cannot reach github.
-            packs: null,
+            packs,
             scan: u.scan(),
             run: u.status(),
         });

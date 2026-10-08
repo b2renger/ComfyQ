@@ -93,7 +93,10 @@ class Updater {
         this._run = null;       // the one update in flight, or the last finished
         this._child = null;
         this._scan = null;      // the last "what has updates?" sweep
+        this._localCache = null;
     }
+
+    _now() { return Date.now(); }
 
     _root() { return (this._config() || {}).comfy_ui?.root_path || ''; }
     _updateDir() {
@@ -481,6 +484,52 @@ class Updater {
         return { ok: true, packs: out };
     }
 
+    /**
+     * What is installed, from the filesystem alone — no git, no network.
+     *
+     * ★ This is what the page load gets. `packStates({fetch:false})` looked
+     * cheap because it makes no network call, but it is ~6 git subprocesses per
+     * pack and there are 44 here: measured at **3.1 s per request**, during
+     * which the card rendered as nothing at all. So the route answers instantly
+     * with what is installed and which of it is a real clone, and the per-pack
+     * commit, dirty state and behind-count arrive with the check that was going
+     * to touch the network anyway.
+     */
+    installedPacks() {
+        const cn = this._customNodes();
+        if (!cn || !fs.existsSync(cn)) return [];
+        return listInstalledPacks(this._root()).map(p => ({
+            name: p.name, isGit: p.isGit, remote: p.remote,
+            hasRequirements: p.hasRequirements, disabled: p.disabled,
+            head: null, subject: null, date: null, branch: null,
+            dirty: [], untracked: 0, behind: null, incoming: [], fetched: false,
+            blocked: p.isGit ? null
+                : 'not a git clone — ComfyUI-Manager unpacked it as a copy, so there is no '
+                  + 'remote to pull from. Re-installing it by URL is what makes it updatable.',
+        }));
+    }
+
+    /**
+     * The packs as they stand locally — no network, briefly cached.
+     *
+     * ★ Called on every page load, so the card can show WHAT IS INSTALLED and
+     * which of it is updatable before anyone presses Check. The first cut
+     * returned nothing here and the pack list only appeared after a check, which
+     * made the whole feature invisible by default — reported by the owner as
+     * "I don't see the feature to update node packs". Being unable to say
+     * whether a pack is BEHIND without the network is not a reason to hide the
+     * pack.
+     *
+     * Cached because it is ~6 git reads per pack and there are 44 of them here.
+     */
+    async localPackStates() {
+        const now = this._now();
+        if (this._localCache && (now - this._localCache.at) < 10000) return this._localCache.value;
+        const out = await this.packStates({ fetch: false });
+        this._localCache = { at: now, value: out };
+        return out;
+    }
+
     /** Fast-forward one pack. Never a merge, never over local work. */
     async updatePack(folder) {
         const busy = this._busy();
@@ -538,6 +587,7 @@ class Updater {
                         : '')
                 : `${folder} did not move; it was already at ${run.after.head}.`;
             invalidateNodePacks();
+            this._localCache = null;
         })().catch(e => { run.status = 'failed'; run.error = e.message; });
 
         return { ok: true };
