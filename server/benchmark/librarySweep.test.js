@@ -46,6 +46,15 @@ function make({ mode = 'admin', calibrator = {}, entries = [entry('a'), entry('b
     return { sweep, written, registry };
 }
 
+// ★★ No test may reach the real ComfyUI. The sweep asks `/history` for text outputs
+// and `/system_stats` for the machine block, and on a rig where ComfyUI is running
+// those calls SUCCEEDED — so a fixture bundle silently inherited the live
+// instance's last caption, and the no-output assertion failed with a result that
+// had nothing to do with the code under test. Every block that wants a history
+// response stubs it explicitly; everything else gets nothing.
+const _realFetch = global.fetch;
+global.fetch = async () => ({ ok: false, status: 503, json: async () => ({}) });
+
 (async () => {
     console.log('\nwhat it refuses');
     {
@@ -405,6 +414,8 @@ console.log('\nthe recorder\'s absence must be visible, not read as "nothing was
             k: { prompt: [0, 'id', { 9: { inputs: { filename_prefix: prefix } } }],
                 outputs: { 4: { text: ['a real caption with spaces'] } } },
         });
+        // NB this captures the module-level BLOCKING stub, not the real fetch, so the
+        // finally below restores the block rather than reopening the live ComfyUI.
         const realFetch = global.fetch;
         // ★ A REAL stamp, 13 digits, because that is what Date.now() produces. The
         // original fixtures used `_1759` and `_17`, and a short number is exactly what
@@ -430,6 +441,20 @@ console.log('\nthe recorder\'s absence must be visible, not read as "nothing was
             const stampless = await sweep._collectTextOutputs('describe_gemma4_image_description', false);
             ok('a captioner with no save node — so no stamp at all — keeps its caption',
                 stampless.length === 1 && /red sports car/.test(stampless[0].text));
+            // ★★ "Carries no stamp" is NOT "is mine". The two Gemma captioners are both
+            // stampless and run back to back, so if the second failed before queueing it
+            // would inherit the first one's caption. ComfyUI's own execution_start
+            // timestamp is the only guard that works when there is no stamp to check.
+            const t = 1791418408410;
+            global.fetch = async () => ({ ok: true, json: async () => ({
+                k: { prompt: [0, 'id', { 4: { class_type: 'PreviewAny', inputs: {} } }],
+                    status: { messages: [['execution_start', { timestamp: t }]] },
+                    outputs: { 4: { text: ['the PREVIOUS captioner answer'] } } },
+            }) });
+            ok('a stampless entry that predates this run is refused',
+                (await sweep._collectTextOutputs('describe_gemma4_video_description', false, t + 60000)).length === 0);
+            ok('...and the same entry is accepted by the run it belongs to',
+                (await sweep._collectTextOutputs('describe_gemma4_video_description', false, t + 500)).length === 1);
             // And an id whose own name contains digits and underscores must not be
             // mis-parsed: a lazy match read `bench_video_ltx2_5_i2v_…` as `bench_video_ltx2_5`.
             global.fetch = async () => ({ ok: true, json: async () => ({

@@ -332,7 +332,7 @@ class LibrarySweep {
                 // answer through a PreviewAny node — so the answer has to come from
                 // ComfyUI's history or it is simply lost. Appended as an output of
                 // kind 'text' so the card and the report show it like any other.
-                const texts = await this._collectTextOutputs(entry.id, rec.outputs.length > 0);
+                const texts = await this._collectTextOutputs(entry.id, rec.outputs.length > 0, startedMs);
                 if (texts.length) rec.outputs = rec.outputs.concat(texts);
                 rec.flagged = rec.outputs
                     .filter(o => (o.flags || []).length || o.error)
@@ -489,8 +489,11 @@ class LibrarySweep {
      *
      * @param {string} [workflowId]  whose run this must be
      * @param {boolean} [haveFiles]  whether the run already produced output files
+     * @param {number} [startedMs]   when this bundle's run began; an entry older than
+     *   that is somebody else's, which is the only guard that works for a workflow
+     *   carrying no stamp
      */
-    async _collectTextOutputs(workflowId, haveFiles) {
+    async _collectTextOutputs(workflowId, haveFiles, startedMs) {
         const cfg = this._config() || {};
         const host = cfg.comfy_ui?.api_host || '127.0.0.1';
         const port = cfg.comfy_ui?.api_port || 8188;
@@ -523,6 +526,19 @@ class LibrarySweep {
             const esc = workflowId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const mine = new RegExp(`^bench_${esc}_\\d`);
             if (stamps.length && !stamps.some(s => mine.test(s))) return [];
+        }
+        // ★★ And a SECOND guard, because "carries no stamp" is not the same as "is mine":
+        // any stampless entry would otherwise be accepted, including the previous
+        // bundle's. That is not hypothetical — the two Gemma captioners are both
+        // stampless and run back to back, so if the second failed before queueing it
+        // would inherit the first one's caption. ComfyUI stamps each entry with an
+        // `execution_start` timestamp, so an entry older than this run cannot be ours.
+        // (A test reaching a live ComfyUI is how this was found: the stub was missing and
+        // the real history walked in.)
+        if (startedMs) {
+            const start = (entry?.status?.messages || [])
+                .find(m => Array.isArray(m) && m[0] === 'execution_start')?.[1]?.timestamp;
+            if (typeof start === 'number' && start < startedMs - 2000) return [];
         }
         const nodes = entry?.outputs || {};
         const out = [];
