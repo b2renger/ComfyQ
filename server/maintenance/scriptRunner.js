@@ -49,6 +49,18 @@ const TASKS = [
         steps: [{ kind: 'python', script: 'model-audit/verify_audit.py' }],
     },
     {
+        key: 'custom-node-fixes',
+        label: 'Re-apply the custom-node fixes',
+        blurb: 'Some node packs need a local fix to run on this ComfyUI. The patches live in the'
+            + ' repo rather than only on this rig, so a cloned or rebuilt machine can be brought'
+            + ' up to them. Safe to run twice — it says what was already in place, and it'
+            + ' REFUSES loudly if a pack has changed under the patch instead of guessing.'
+            + ' ⚠ It modifies custom_nodes, and ComfyUI must be restarted afterwards.',
+        mutating: true,
+        needsComfy: false,
+        steps: [{ kind: 'python', script: 'fix_custom_node_patches.py' }],
+    },
+    {
         key: 'install-repair',
         label: 'Repair the ComfyUI install',
         blurb: 'Checks the portable install for the damage this fleet has hit before and'
