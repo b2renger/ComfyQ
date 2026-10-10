@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "calibratedAt": "2026-10-10T09:12:48.151Z",
+  "estimatedDurationSec": 9,
+  "warmDurationSec": 9,
+  "coldDurationSec": 13,
+  "modelLoadSec": 5,
+  "samplesPerSec": 4.964990451941438,
+  "steps": 40,
+  "durationMs": 13199,
+  "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+  "vramPeakGb": 16.21,
+  "vramTorchPeakGb": 0.55,
+  "vramResidentGb": 0.02,
+  "vramCardPeakGb": 17.93,
+  "source": "benchmark"
+}

@@ -1,0 +1,199 @@
+{
+  "schemaVersion": 1,
+  "id": "image_edit_qwen_2_1_multiple_angles",
+  "name": "Qwen Image 2.1 — reshoot from another angle (multiple angles)",
+  "description": "Reshoot the same subject from a different camera position. Upload one photo, pick an angle and a height, and Qwen-Image-2.1 with a camera-control adapter renders that subject as seen from there — the back of an object really is its back, not a mirrored front.\n\n★ The prompt is BUILT FOR YOU from the two dropdowns. The adapter answers only to its own grammar, which starts with the trigger word <mva>, and a prompt missing it produces a perfectly plausible picture with the camera never having moved — so the trigger is wired into the graph as a fixed literal instead of being something to remember. 12 angles × 8 heights (each with a close-up variant) = 96 framings, and every one is the documented spelling.\n\n★ To build a turnaround, schedule it once per angle on the same photo and the same seed — the dropdown is in turning order, so working down it walks the camera around the subject.\n\n★ 'Adapter version' switches between the author's two releases on the same picture and seed: **v2 (step 1500, rank 64)** is the recommended one and was trained with characters and full-precision weights; **v1 (step 1000, rank 32)** is the original, kept for comparison. Strength 0.8–1.0 — start at 1.0, and if the result drifts back toward simply copying your photo, lower it to 0.8 rather than switching version.\n\n⚠ It was trained on 512×512 renders, so your photo is scaled to about that before it is used, and the result comes back that size. Raising 'Reference size' is outside what the adapter saw — the card says larger canvases inherit the style but were not trained on.\n\n⚠ It was trained on rendered objects. Real photos do work — the author shows a dog, a cat and an apple — but fine detail like fur softens, and a turn is a re-render, so anything the original photo could not see is invented. Experimental: not used in a class yet.\n\nLicence: the adapter is Apache 2.0, unusually permissive for this family — but the Qwen-Image-2.1 base it runs on is Qwen Research, research and evaluation only, so the combination is not for commercial work.",
+  "category": "image-edit",
+  "tags": [
+    "qwen",
+    "qwen-image-2.1",
+    "camera",
+    "multi-view",
+    "turnaround",
+    "multiple-angles",
+    "lora",
+    "experimental"
+  ],
+  "experimental": true,
+  "promptGuides": [
+    {
+      "label": "The adapter’s own model card (pose dictionary, examples, honest limits)",
+      "url": "https://huggingface.co/akhaliq/Qwen-Image-2.1-Multiple-Angles-LoRA",
+      "tip": "There is nothing to write: the two dropdowns are the whole prompt grammar, and the <mva> trigger is built into the graph. The card shows what each angle looks like on real photos."
+    },
+    {
+      "label": "Qwen-Image-2.1 — official model card",
+      "url": "https://huggingface.co/Qwen/Qwen-Image-2.1"
+    }
+  ],
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_edit_qwen_2_1_multiple_angles.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 18,
+    "models": [
+      {
+        "type": "unet",
+        "file": "qwen_image_2.1_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/diffusion_models/qwen_image_2.1_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_8b_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/text_encoders/qwen3vl_8b_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_2.1_vae_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image-2.1/resolve/main/vae/qwen_image_2.1_vae_bf16.safetensors"
+      },
+      {
+        "type": "lora",
+        "file": "Qwen21-MultipleAngles-v2-step1500.safetensors",
+        "url": "https://huggingface.co/akhaliq/Qwen-Image-2.1-Multiple-Angles-LoRA/resolve/main/checkpoints_v2/angles_v2_full_qwen21_multiple_angles_v2_qwen21_multiple_angles_v2_000001500.safetensors",
+        "source": "https://huggingface.co/akhaliq/Qwen-Image-2.1-Multiple-Angles-LoRA",
+        "note": "Camera-control LoRA, v2 step 1500, rank 64, trained on Qwen-Image-2.1 at 512². Trigger '<mva>'. Renamed on download from the repo's 80-character checkpoint filename. 192 of 192 modules map onto this rig's fused int8-convrot build."
+      },
+      {
+        "type": "lora",
+        "file": "Qwen21-MultipleAngles-v1-step1000.safetensors",
+        "url": "https://huggingface.co/akhaliq/Qwen-Image-2.1-Multiple-Angles-LoRA/resolve/main/multiple_angles_step1000.safetensors",
+        "source": "https://huggingface.co/akhaliq/Qwen-Image-2.1-Multiple-Angles-LoRA",
+        "note": "The v1 release, step 1000, rank 32. Kept so the two can be compared on one picture and seed; the author recommends v2."
+      }
+    ]
+  },
+  "estimatedDurationSec": 25,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_470",
+      "nodeId": "470",
+      "field": "image",
+      "type": "image",
+      "label": "The subject to reshoot — one clear photo, the subject filling the frame",
+      "required": true,
+      "order": 0,
+      "maxInputEdge": 2048
+    },
+    {
+      "key": "primitivestring_value_901",
+      "nodeId": "901",
+      "field": "value",
+      "type": "select",
+      "label": "Camera angle — where the camera stands, going round the subject",
+      "options": [
+        "front view",
+        "front-right view",
+        "front-right quarter view",
+        "right side view",
+        "back-right quarter view",
+        "back-right view",
+        "back view",
+        "back-left view",
+        "back-left quarter view",
+        "left side view",
+        "front-left quarter view",
+        "front-left view"
+      ],
+      "default": "back view",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "primitivestring_value_902",
+      "nodeId": "902",
+      "field": "value",
+      "type": "select",
+      "label": "Camera height and framing — eye level, raised, high, or straight down",
+      "options": [
+        "eye-level shot",
+        "eye-level shot close-up",
+        "elevated shot",
+        "elevated shot close-up",
+        "high-angle shot",
+        "high-angle shot close-up",
+        "top-down shot",
+        "top-down shot close-up"
+      ],
+      "default": "eye-level shot",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "loraloadermodelonly_lora_name_900",
+      "nodeId": "900",
+      "field": "lora_name",
+      "type": "lora",
+      "label": "Adapter version (v2 is the author’s recommendation)",
+      "optionsFilter": "Qwen21-MultipleAngles",
+      "default": "Qwen21-MultipleAngles-v2-step1500.safetensors",
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "loraloadermodelonly_strength_model_900",
+      "nodeId": "900",
+      "field": "strength_model",
+      "type": "number",
+      "label": "Adapter strength (0.8–1.0; lower it if the camera will not move)",
+      "default": 1,
+      "min": 0,
+      "max": 1.5,
+      "step": 0.05,
+      "required": true,
+      "order": 4
+    },
+    {
+      "key": "imagescaletototalpixels_megapixels_920",
+      "nodeId": "920",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Reference size in megapixels — 0.26 is the 512² it was trained at, and also the size of the result",
+      "default": 0.26,
+      "min": 0.1,
+      "max": 1.5,
+      "step": 0.01,
+      "required": true,
+      "order": 5
+    },
+    {
+      "key": "ksampler_steps_458",
+      "nodeId": "458",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps (40 is the author’s own setting)",
+      "default": 40,
+      "min": 10,
+      "max": 60,
+      "step": 1,
+      "required": true,
+      "order": 6
+    },
+    {
+      "key": "ksampler_seed_458",
+      "nodeId": "458",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed — keep it fixed across angles to build a consistent turnaround",
+      "default": 414422718835297,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 7
+    }
+  ],
+  "warmupParams": {
+    "loadimage_image_470": "asset:Woman.png",
+    "primitivestring_value_901": "back view",
+    "primitivestring_value_902": "eye-level shot",
+    "loraloadermodelonly_lora_name_900": "Qwen21-MultipleAngles-v2-step1500.safetensors",
+    "loraloadermodelonly_strength_model_900": 1,
+    "ksampler_steps_458": 40
+  },
+  "presets": {}
+}
