@@ -37,6 +37,7 @@ Open `http://<machine-ip>:5173` and you get a timeline, a booking form, and a gr
 - **Watch it run** — live progress and an ETA from the workflow's measured timing, not a guess.
 - **Collect the result** — images, video, audio, 3D models and Gaussian splats each render in their own viewer. Multi-output jobs get a gallery.
 - **Re-run it** — *Use these settings* refills the form from a past job; **Download ingredients (.zip)** packages the inputs plus a `settings.json` so a generation can be rebuilt later, even on another machine.
+- **See what the rig can do** — the **All jobs** tab, user `examples`, carries one finished example per workflow in the library: the result, the prompt, the parameters and the input files. Clicking *Use these settings* on one is the quickest way to start from something that already works.
 
 Idle tabs park themselves after five minutes to keep a room of thirty laptops from hammering the rig.
 
@@ -111,6 +112,8 @@ All of it is admin-only, and the destructive parts sit behind the admin password
 
 **Audit and repair.** Rebuild the model audit, verify it, repair the install, make install paths portable. These are ordinary Python in [tools/maintenance](tools/maintenance/), resolving the install from `config.json` so they work under any drive letter.
 
+**Preparing a drive to be cloned.** This drive is duplicated with a physical cloner, so whatever is on it travels — including a term of student pictures and a quarantine batch full of models you meant to delete. [docs/cloning-the-drive.md](docs/cloning-the-drive.md) is the checklist: verify the library, empty the quarantine, keep one example per workflow, clear the residue. Three scripts under [tools/maintenance](tools/maintenance/) do the mechanical parts, each with a `--dry` mode that shows you the damage before you accept it.
+
 ---
 
 ## ComfyQ Discovery (desktop app)
@@ -132,6 +135,7 @@ Windows and Linux builds **auto-update**; macOS needs a manual re-download. Inst
 | [docs/workflow-redundancy.md](docs/workflow-redundancy.md) | Which bundles overlap, with the pros and cons of cutting each. |
 | [docs/comfyui-idv2v.md](docs/comfyui-idv2v.md) | The ID-V2V feature and why no patch is needed any more. |
 | [docs/storyboard-format.md](docs/storyboard-format.md) | The multi-shot storyboard document format. |
+| [docs/cloning-the-drive.md](docs/cloning-the-drive.md) | Preparing this drive to be imaged onto another machine. |
 | [tools/maintenance/](tools/maintenance/) | The audit and repair scripts, and the notes that go with them. |
 | [tools/model-provenance/](tools/model-provenance/) | Where each model came from, and which are exclusive to a bundle. |
 | [tools/api-to-ui/](tools/api-to-ui/) · [tools/ui-to-api/](tools/ui-to-api/) | Converting between ComfyUI's editable graph and the API format ComfyQ runs. |

@@ -4,6 +4,20 @@
 **the same job for a student**, with what you'd gain and lose by cutting one. It is a
 worksheet, not a plan: nothing here has been deleted or changed.
 
+> ⚠ **Read as of its date: the library is now 61 bundles and seven of the ones
+> weighed below are gone.** Acted on since the survey, each on the owner's call —
+> `image_flux2_dev_t2i` and `image_edit_flux2_dev_image_edit` (85.76 GB, §6d),
+> `image_qwen_image_2_1_viggle_turbo`, `3d_pixal3d_image_to_mesh` and
+> `3d_trellis2_image_to_textured_mesh` (the custom-node 3D pair, §6 note), and
+> `image_edit_qwen_multiple_character_angles` / `…_scene_angles`, replaced by the
+> single LoRA-based [image_edit_qwen_2_1_multiple_angles](../workflows/image_edit_qwen_2_1_multiple_angles/).
+> Bundles have been added since as well — among them
+> [image_edit_qwen_2_1_relight_composite](../workflows/image_edit_qwen_2_1_relight_composite/)
+> and the two Qwen 2.1 ControlNet bundles — so this survey does not cover the
+> whole library any more either. The comparisons between bundles that *remain*
+> are unaffected; the counts in the next two bullets are not. CLAUDE.md carries
+> the reason for every addition and removal.
+
 Two things to keep in mind while reading:
 
 - **Most durations are measured, most VRAM figures are not.** Only 22 of 63 bundles have
