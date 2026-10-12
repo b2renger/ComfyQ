@@ -142,7 +142,7 @@
   },
   "900": {
     "inputs": {
-      "lora_name": "Qwen21-MultipleAngles-v2-step1500.safetensors",
+      "lora_name": "Qwen21-MultipleAngles-v1-step1000.safetensors",
       "strength_model": 1,
       "model": [
         "451",
@@ -161,12 +161,12 @@
         0
       ],
       "upscale_method": "lanczos",
-      "megapixels": 0.26,
+      "megapixels": 1.0,
       "resolution_steps": 32
     },
     "class_type": "ImageScaleToTotalPixels",
     "_meta": {
-      "title": "Normalise to the trained 512²"
+      "title": "Normalise the reference to ~1 MP"
     }
   },
   "901": {
