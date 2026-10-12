@@ -135,7 +135,7 @@ const MissingPackChip = ({ classes, packs }) => {
     );
 };
 
-const WorkflowSelector = ({ nodePackGaps = null, selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false, onValidate, validatingId = null,
+const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false, onValidate, validatingId = null,
     lanes = [], laneFit = {}, onServeAlongside = null, serveAlongsideId = null, onCloseLane = null, closingLaneId = null }) => {
     const [workflows, setWorkflows] = useState([]);
     // This machine's card, so "17.3 GB" can be judged against what it has —
@@ -456,7 +456,7 @@ const WorkflowSelector = ({ nodePackGaps = null, selectedWorkflowId, activeWorkf
                                     <MissingPackChip
                                         classes={nodePackGaps?.missingByBundle?.[w.id]}
                                         packs={nodePackGaps?.packs} />
-                                    <ModelReadiness vram={w.vram} models={w.models} />
+                                    <ModelReadiness vram={w.vram} models={w.models} headers={headers} />
                                     {w.hasCalibration && w.calibration?.gpu && (
                                         <span className="flex items-center gap-1 text-success/80"
                                             title={`Time measured on this GPU. Move to a different GPU and re-calibrate for an accurate estimate.`}>

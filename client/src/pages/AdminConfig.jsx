@@ -875,6 +875,7 @@ const AdminConfig = ({ currentMode }) => {
                     </div>
                     <WorkflowSelector
                         key={refreshKey}
+                        headers={adminHeaders()}
                         nodePackGaps={nodePackGaps}
                         selectedWorkflowId={config.workflows.activeWorkflowId}
                         activeWorkflowId={config.workflows.activeWorkflowId}
