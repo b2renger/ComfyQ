@@ -13,7 +13,6 @@
     "lora",
     "experimental"
   ],
-  "experimental": true,
   "promptGuides": [
     {
       "label": "The adapter’s own model card (trigger word + recommended prompt)",

@@ -11,7 +11,6 @@
     "structure",
     "composition"
   ],
-  "experimental": true,
   "promptGuides": [
     {
       "label": "Qwen-Image-2.1 — official model card",

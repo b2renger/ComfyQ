@@ -14,7 +14,6 @@
     "lora",
     "experimental"
   ],
-  "experimental": true,
   "promptGuides": [
     {
       "label": "The adapter’s own model card (pose dictionary, examples, honest limits)",

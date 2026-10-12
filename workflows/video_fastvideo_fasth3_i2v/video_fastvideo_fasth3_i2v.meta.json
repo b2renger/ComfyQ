@@ -15,7 +15,6 @@
     "audio",
     "8-step"
   ],
-  "experimental": true,
   "promptGuides": [
     {
       "label": "MiniMax H3 — official video prompt guide",

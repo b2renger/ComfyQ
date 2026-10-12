@@ -13,7 +13,6 @@
     "8-step",
     "distilled"
   ],
-  "experimental": true,
   "promptGuides": [
     {
       "label": "MiniMax H3 — official video prompt guide",
