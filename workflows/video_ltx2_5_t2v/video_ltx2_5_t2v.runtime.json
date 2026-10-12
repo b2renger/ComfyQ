@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "calibratedAt": "2026-10-08T10:21:43.423Z",
+  "calibratedAt": "2026-10-12T12:15:20.135Z",
   "estimatedDurationSec": 50,
   "warmDurationSec": 50,
   "coldDurationSec": 64,
   "modelLoadSec": 14,
-  "samplesPerSec": 0.08113261125309318,
+  "samplesPerSec": 0.08431347750937987,
   "steps": 3,
-  "durationMs": 63708,
+  "durationMs": 63789,
   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
-  "vramPeakGb": 29.21,
-  "vramTorchPeakGb": 5.72,
+  "vramPeakGb": 29.39,
+  "vramTorchPeakGb": 5.9,
   "vramResidentGb": 2.46,
-  "vramCardPeakGb": 31.41,
+  "vramCardPeakGb": 31.59,
   "source": "benchmark"
 }
