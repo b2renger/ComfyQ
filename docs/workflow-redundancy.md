@@ -118,19 +118,26 @@ kept only because it shows a student no upload fields at all.
 
 ---
 
-## 5. Camera-angle pairs
+## 5. Camera-angle pairs — RESOLVED (both removed 2026-10-12)
 
-`image_edit_qwen_multiple_character_angles` (2511, 39 GB bf16 UNET, 10 s) and
-`image_edit_qwen_multiple_scene_angles` (2509, 20 GB fp8, 4 s). Same job — re-photograph
-the subject from a described angle — on two different model generations.
+`image_edit_qwen_multiple_character_angles` (Qwen-Image-Edit 2511) and
+`image_edit_qwen_multiple_scene_angles` (2509) were **removed at the owner's request**. The
+section below recorded the problem: two nearly identical cards whose names implied a
+character/scene distinction that was not real — *both* took any picture — differing only in
+model generation.
 
-- **Pro of keeping both:** 2511 is the better model; 2509 is less than half the weights and
-  runs on cards where 2511 streams from RAM.
-- **Con:** two nearly identical cards whose names suggest a character/scene distinction
-  that isn't real — *both* take any picture. The naming is misleading today.
+Their job is now done by **[image_edit_qwen_2_1_multiple_angles](../workflows/image_edit_qwen_2_1_multiple_angles/)**
+on the newer Qwen-Image-2.1 base: one card instead of two, the angle picked from a dropdown
+rather than typed, and 9 s rather than 10 s / 4 s.
 
-**Suggestion:** keep both, but rename so the difference (model generation / size) is what
-the names say. Or merge into one with a model dropdown.
+★ **What the removal actually freed: 20.31 GB of 68.13 GB** — and the other 47.82 GB had to
+stay, which is the whole reason removals go through
+[exclusive.cjs](../tools/model-provenance/README.md) rather than the metas' own model lists.
+`qwen_image_edit_2511_bf16` (38.05 GB), `qwen_2.5_vl_7b_fp8_scaled` (8.74 GB) and the 2511
+Lightning LoRA are all still loaded by `utility_qwen_2511_unblur_upscale`, and
+`qwen_image_vae` by six krea/PiD bundles. Moved to quarantine (reversible), not deleted:
+`qwen_image_edit_2509_fp8_e4m3fn` 19.03, the 2509 Lightning LoRA 0.79, and the two
+multiple-angles LoRAs 0.27 + 0.22.
 
 ---
 
