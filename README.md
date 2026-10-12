@@ -1,78 +1,140 @@
 # ComfyQ
 
-**ComfyQ** is a web-based job scheduler and workflow manager for [ComfyUI](https://github.com/comfyanonymous/ComfyUI) in multi-user environments (classrooms, labs, studios). It solves the problem of scheduling access to expensive GPU-bound generative-AI workflows when multiple students or researchers compete for a single GPU.
+**ComfyQ turns one GPU into a room full of people making things.**
 
+It is a web-based job scheduler and workflow manager for [ComfyUI](https://github.com/comfyanonymous/ComfyUI), built for classrooms, labs and studios where a dozen people want the same expensive graphics card at once. Students book a slot on a shared timeline, fill in a simple form, and watch their job run. Nobody installs anything; nobody touches ComfyUI.
 
-## What it does
-
-- **Timeline-based booking:** Students see a shared schedule, pick an empty slot, submit parameters (text prompt, images, video clips, audio), and watch generation happen in real time with live progress bars and ETAs.
-- **Zero-config workflows:** Drop any ComfyUI workflow in (API format), the system auto-detects inputs/outputs (images, video, audio, 3D models, text captions), exposes parameters to students, renders results in the right viewer (3D model rotator, Gaussian-splat viewer, audio player, multi-image gallery, inline text).
-- **Admin controls:** Configure ComfyUI paths, calibrate per-workflow timing, upload new workflows, reorder exposed parameters, set an admin password for destructive actions.
-- **Persistent job queue:** Jobs survive server restarts; in-flight work reconciles safely. Full history is kept for reference and re-running past parameters.
-- **Multi-output UX:** Workflows that produce many files (3D generation, multi-angle scenes, audio+video) get dedicated galleries — students navigate and download each output separately.
-- **Collision avoidance:** Jobs queue safely; no overlapping work. Emergency stop cancels all jobs and restarts ComfyUI if something goes wrong.
-
-## Quick start
-
-**Prerequisites:**
-- **Node.js 24 LTS** (or 22 LTS) — see [Prerequisites](#prerequisites) below for the full rationale
-- **ComfyUI** installed and able to run on the same machine
-- C++ build tools (only needed as a fallback for `better-sqlite3`; prebuilds ship for Node 24/22 LTS)
-
-**Installation & boot:**
-
-```bash
-git clone <repo>
-cd ComfyQ
-npm install        # also installs client + server deps (via postinstall)
-npm run dev        # Express API (:3000) + Vite client (:5173), both plain HTTP
-```
-
-Open **`http://localhost:5173`** in a browser. On first boot, the server starts in **admin mode** (`/admin`) — configure your ComfyUI paths there, add/activate a workflow, then flip to student mode. Students book jobs via the Timeline; jobs run on ComfyUI and results appear in the grid.
-
-See **[First-run setup (admin)](#first-run-setup-admin)** below for detailed steps including path validation and workflow onboarding.
+It currently serves a library of **61 ready-made workflows** — image generation and editing, video generation and editing, 3D, audio, captioning and utilities — each one measured on the rig so the timeline knows how long it really takes.
 
 ---
 
-## Status
+## The two modes — the first thing to understand
 
-- ✅ **M0** *(verified on rig — RTX 5090)* — Flux2 Klein 9B t2i, image-edit, and image-edit-with-reference all run end-to-end.
-- ✅ **M1** — Real benchmark (cold/warm split), image upload pipeline, admin workflow editor, calibrate/delete/edit per-card actions, emergency stop.
-- ✅ **M2** *(complete 2026-05-16)* — Job management (user colors, prompt search, CSV export) + real-time progress visualization (ETA badge, sampler progress).
-- ✅ **M4** — File upload (click + drag-and-drop) with client-side image resize. Webcam capture removed 2026-05-19 (plain HTTP, no secure context); phones use OS file picker.
-- ✅ **Audio I/O** — Output: audio player in cards + lightbox. Input: audio upload widget (`audio/*` file picker + drag-drop).
-- ✅ **3D viewers** — GLB model viewer (three.js) + Gaussian-splat viewer (Spark), both in lightbox + cards with export buttons.
-- ✅ **Target workflows** *(bundled in `workflows/`; TripoSplat verified on rig 2026-06-10, LivePortrait on 2026-06-15, SAM3 segmentation on 2026-06-16, FILM frame interpolation and SeedVR2 upscalers on 2026-06-17, the Gemma 4 captioners registered 2026-06-21, the rest registered through 2026-06-13 and pending rig smoke-test):*
-  - TripoSplat (image → `.spz` + `.ply` + `.glb`) — **verified on rig**
-  - Qwen-Edit multi-angle (1 image → 8 angle images, N-image gallery) *(moved to `_candidate_workflows/` staging in the cleanup; the N-image gallery infra remains)*
-  - Stable Audio 3 (text → `.mp3`, in-graph magic-prompt LLM)
-  - Ideogram 4.0 t2i (structured-JSON prompt)
-  - Wan 2.1 360° rotate LoRA (image → video) *(removed in the cleanup; the i2v infra it reused remains)*
-  - LTX 2.3 t2v (text → video; built-in Gemma auto-prompt enhancer; no input image) *(registered 2026-06-26, pending rig verification)*
-  - LTX 2.3 i2v (image → video)
-  - LTX 2.3 FLF2V (first + last frame → video with audio)
-  - LTX 2.3 IC-LoRA vid2vid (video + reference image → depth-guided restyle + audio; first **video** input)
-  - LTX 2.3 IC-LoRA image + audio → video (character image + audio → talking video; auto-prompt enhancer) *(registered 2026-06-26, pending rig verification)*
-  - LivePortrait (portrait image + driving video → animated talking-head video; first **image + video** input) — **verified on rig**
-  - SAM3 video segmentation (video + text prompt → black/white mask/matte video; first **preprocessor** workflow) — **verified on rig**
-  - Frame interpolation (FILM) (video → smoother or slow-motion video; `preprocessor` utility) — **verified on rig**
-  - SeedVR2 image upscale to 4K (diffusion super-resolution; first **i2i** workflow) — **verified on rig**
-  - SeedVR2 video upscale to HD (diffusion super-resolution; keeps source fps + audio) — **verified on rig**
-  - Gemma 4 image captioning (image → text description; first **text-output** workflow)
-  - Gemma 4 video captioning (video → text description) — **verified on rig**
-  - Bernini-R video editing (video + instruction → edited/restyled video; Wan 2.2, Turbo "fast mode" toggle, edit-type selector) — **verified on rig**
-  - Bernini-R video editing with reference image (video + reference image + instruction → edited video; first image+video → video on a diffusion edit graph) — **verified on rig**
-  - Bernini-R image editing (image + instruction → edited image; Wan 2.2, Turbo "fast mode" toggle, edit-type selector) — **verified on rig**
-  - Bernini-R image editing with reference image (image + reference image + instruction → edited image) — **verified on rig**
-  - Bernini-R video editing with reference image, **auto-prompt** (video + reference image → edited video; a Gemma-4 chain writes the edit instruction for you — no prompt to type) *(registered 2026-06-25, pending rig verification)*
-  - Flux.2 Klein inpainting — **paint a mask** + prompt (paint the area to replace, in a fullscreen mask painter; first **paint-a-mask** input) *(re-added 2026-07-05, pending rig verification)*
-  - Flux.2 Klein inpainting with reference image — paint a mask + prompt + a reference image to insert into the painted area *(re-added 2026-07-05, pending rig verification)*
-- ✅ **Every bundle run and measured — 61 of 61 clean** *(2026-10-08)* — the whole library swept end to end on an RTX 5090 and ComfyUI 0.39.2: **61 bundles, 2 h 30 m, 0 failures, nothing flagged, 150 distinct model files observed.** Each output is *measured* rather than trusted (size, luminance, spread, frame count), and every row's ingredients and result are inspectable in the admin panel. The two ControlNet bundles that failed the 2026-10-07 passes (59 clean / 2 failed) were fixed the next day — the cause was a node pack allocating inside ComfyUI's per-block malloc scope on every second block, not the ComfyUI version — and the fix is held in the repo as a maintenance repair. The "pending rig smoke-test" notes further up predate all of this and are superseded; see **[Maintaining the install](#maintaining-the-install-admin--maintenance)** for the button that does it.
-- ✅ **61 workflow bundles** — the newest two are Qwen-Image-2.1 adapters: relight a composite into its background, and reshoot a subject from a chosen camera angle (12 around × 4 heights). Both measured and eyeballed before shipping, and both now validated. The angles bundle replaced the two older Qwen-Image-Edit camera-angle cards, which were removed.
-- ✅ **Updating the install from the panel** *(2026-10-08)* — ComfyUI through the portable's own stable updater, and **each node pack individually** by fast-forward, with the incoming commits shown first and a pack that has local edits left alone. Reports the version before and after, and says “nothing moved” when a correct update had nothing newer to take.
-- ✅ **Maintaining the install** *(2026-10-06/07)* — a **Maintenance** tab: run the whole library and get a pasteable report, download the models a bundle declares (server-side, onto the right machine), install missing node packs, prune unused weights to a reversible quarantine, and run the model-audit scripts. Model readiness now shows on every workflow card. See [Maintaining the install](#maintaining-the-install-admin--maintenance).
-- ✅ **Phase F — Multi-instance federation (fleet monitor)** *(first slice shipped 2026-06-28; now in user testing).* A **LAN status beacon** + a standalone **[ComfyQ Discovery desktop app](#comfyq-discovery-desktop-app)** (Electron — Windows / macOS / Linux) that lists every ComfyQ machine on the network — name, GPU/RAM, IP, status, active workflow, planned jobs — with a one-click "open this rig's booking page". The desktop app now ships as a **downloadable installer that auto-updates itself** from GitHub Releases (version number + "Check for updates" button in its settings). Remaining locked design (mDNS, cross-instance admin actions, in-browser panel, student station picker, orchestrator role) still deferred. See [implementation_plan.md](implementation_plan.md#phase-f--multi-instance-federation-final-phase--design-locked-2026-05-16-implementation-deferred).
-- 🚧 **Next** — two planned features: **batch processing** (admin runs a workflow over a folder of inputs from a manifest) and **instance mode** (2–3 ComfyQ instances + backends on one machine). See [implementation_plan.md](implementation_plan.md) → Phase G / Phase H.
+A ComfyQ machine is always in exactly one of two modes, and the difference is the whole design.
+
+| | **Admin mode** | **Student mode** |
+|---|---|---|
+| What it is | The machine is being *set up* | The machine is *serving a class* |
+| Who uses it | You, at `/admin` | Everyone, at `/` |
+| ComfyUI | Started on demand, for calibration and maintenance | Running, with one workflow's models resident |
+| Jobs | Nothing is scheduled | Students book and run jobs |
+| Workflow | You pick and prepare any of the 61 | Exactly **one** is served (or several, with lanes) |
+
+You switch by pressing **Activate & serve** on a workflow card (→ student) or **Stop serving** / **Reset to admin** (→ admin).
+
+- **A restart resumes serving.** A crash, a Windows update or a power cut brings the machine back serving the same workflow, because `/activate-workflow` leaves a marker. The deliberate stops clear it.
+- **`/admin` is always reachable**, even while serving, so you can fix something mid-class. It is deliberately *not* linked from the student page — but that is tidiness, not security. **The admin password is the boundary.**
+- **Students can be locked out too.** An optional *student access password* reserves a machine for one group; without it set, behaviour is exactly as before.
+
+---
+
+## For students (the default view)
+
+Open `http://<machine-ip>:5173` and you get a timeline, a booking form, and a grid of results.
+
+- **Book a slot** — pick a free time, or *as soon as possible* and it queues into the next gap.
+- **Fill in the form** — the fields come from whichever workflow is being served. Prompts, dropdowns, sliders, file uploads, and for some workflows a mask painter or a visual prompt composer.
+- **Watch it run** — live progress and an ETA from the workflow's measured timing, not a guess.
+- **Collect the result** — images, video, audio, 3D models and Gaussian splats each render in their own viewer. Multi-output jobs get a gallery.
+- **Re-run it** — *Use these settings* refills the form from a past job; **Download ingredients (.zip)** packages the inputs plus a `settings.json` so a generation can be rebuilt later, even on another machine.
+
+Idle tabs park themselves after five minutes to keep a room of thirty laptops from hammering the rig.
+
+---
+
+## For admins — the four tabs
+
+### 1. Workflows
+The library, and what is running.
+
+- **Running** — one row per lane: the workflow, its port, whether it is busy, and its resident VRAM.
+- **Workflow library** — all 61 bundles, searchable, filtered by type (Image generation · Image editing · Video generation · Video editing · 3D · Audio · Description · Utilities). Each card shows the measured duration, a **VRAM chip** judged against *this* machine's card, and whether its models are on disk. Per card: *Activate & serve*, *Open in ComfyUI*, *Calibrate*, *Edit*, *Validate*, *Delete*.
+- **Storyboard batch** — submit a whole multi-shot document as one job set.
+- **Add workflow** — drop in a new ComfyUI API-format export.
+
+### 2. Manage server
+- **Student access** — optional password reserving the machine for one group.
+- **Admin password** — gates every destructive action. ⚠ **Set one before a prune session**; without it, anyone on the LAN who knows the URL can reach the admin routes.
+- **Network presence** — whether this machine announces itself to ComfyQ Discovery.
+- **Cleanup** and **Clear job history**.
+
+### 3. Manage ComfyUI
+- **ComfyUI settings** — install paths, Python, output dir, API port, VRAM budget. A **drive-letter swap** repoints every absolute path at once, and **Auto-detect** finds a portable install by itself — both there because this drive is cloned between machines that mount it under different letters.
+- **Performance flags** — Sage attention and fp16 accumulation, off by default. Individual workflows can opt out of a flag they produce black images under, and ComfyQ relaunches ComfyUI without it for that workflow.
+- **HuggingFace token** — needed only for gated repositories. Write-only; never sent back to the browser.
+- **Node packs** — which node classes your bundles need, which are missing, and who provides them. Installing is a `git clone` into `custom_nodes`; ⚠ **pip is a separate, explicit step**, because one Python environment is shared by every workflow on the drive.
+
+### 4. Maintenance
+Everything that changes the install. See [Maintaining the install](#maintaining-the-install) below.
+
+---
+
+## Getting models onto the machine
+
+This is the part that most often goes wrong on a fresh rig, so it has its own section.
+
+Every workflow card says whether its models are present, read from **the graph** — what the workflow actually loads — rather than from a hand-written list. A missing model shows red.
+
+Expand the chip and each missing file offers:
+
+- **fetch to rig** — downloads it **onto this machine**, into the folder the workflow will look in, under the name the workflow expects. This is the one you want. It resumes interrupted transfers, checks free space first, and renames the file into place only once the byte count matches, so a half-downloaded file is never mistaken for an installed one. Progress appears under **Maintenance → Model downloads**.
+- **to my computer** — a plain browser link to the source. It saves to *the machine you are reading this on*, under the repo's own filename. Useful for a gated repo you must fetch by hand; **not** how you install a model on the rig.
+
+> ⚠ **Why the distinction matters:** the admin panel is routinely open on a laptop, not on the rig. A browser download lands on the laptop with the wrong filename in the wrong folder — which is exactly the failure the server-side downloader exists to prevent.
+
+**Gated repositories** (some FLUX.2 and LTX-2.5 weights) answer 401 until you accept the licence on HuggingFace and paste a read token under *Manage ComfyUI*.
+
+**One known gap:** a model reachable only through a dropdown (an alternative LoRA checkpoint, say) never reports as missing, because the readiness check reads the graph and a dropdown option appears in no graph. "0 models missing" does not promise every dropdown option is present.
+
+---
+
+## Maintaining the install
+
+All of it is admin-only, and the destructive parts sit behind the admin password.
+
+**Updates.** The installed ComfyUI version is always on screen. *Check for updates* reaches the remotes and says in a sentence whether a newer release exists; every node pack that is a real git clone gets its own **Update** button, lists the commits that would land *before* you take them, and is fast-forwarded only.
+- ★ A run that changes nothing says so. `--stable` lands on the newest *release*, which may well be the one you already have.
+- ★ A pack with uncommitted local changes is not offered — it is a working copy, and a pull must not decide that for you.
+- Roughly half of installed packs are copies ComfyUI-Manager unpacked rather than clones, so they have no remote; the card says which.
+- ⚠ ComfyUI's own `current_requirements.txt` is a separate, acknowledged step: it asks for bare `torch`, and an install can be deliberately pinned to a build some node packs need.
+
+**Run the whole library.** One button runs every bundle once with sample inputs — about **2½ hours for 61 bundles** on an RTX 5090 — and answers the two questions nothing else can: does each bundle still work, and which model files the library actually opens. Every output is *measured* (size, luminance, spread, frame count) and anything black, flat, empty or single-framed is named for you to open, because a workflow can report success and save black images. **Copy report** gives a plain-text report you can paste to someone: every failure carries its full error, its traceback, and the performance flags ComfyUI was actually running with.
+
+**Download models** — see [the section above](#getting-models-onto-the-machine).
+
+**Prune unused models.** Finds weight files nothing references, scored by confidence with its reasons in plain words. ⚠ Three things to know:
+- **A prune MOVES, it does not delete.** Files go to `_model_quarantine\<batch>\` on the same drive — instant and reversible. It does **not** free space until you empty a batch from the **Quarantine** card.
+- **A quarantine batch travels in a cloned drive image.** Empty it before imaging a master drive.
+- **"Nothing references it" is weaker than it sounds.** Only the confident tier offers bulk selection. A model nobody happened to exercise leaves no trace either.
+
+**Re-apply the custom-node fixes.** A few node packs need a local fix to run on this ComfyUI. The patches live in the repo rather than only on the rig that was fixed, so a cloned machine can be brought up to them with one button. Safe to press twice, and it **refuses loudly** if a pack has changed under its patch instead of guessing.
+
+**Audit and repair.** Rebuild the model audit, verify it, repair the install, make install paths portable. These are ordinary Python in [tools/maintenance](tools/maintenance/), resolving the install from `config.json` so they work under any drive letter.
+
+---
+
+## ComfyQ Discovery (desktop app)
+
+A small cross-platform app that finds every ComfyQ machine on the network and shows what each is doing: whether it is serving or idle, which workflow, how many people are connected, how long since anything happened, and a **Schedule a job** button that opens that machine's page.
+
+It discovers machines three ways at once — a UDP beacon, a unicast subnet sweep, and manually added IPs — because managed school networks routinely block broadcast.
+
+Windows and Linux builds **auto-update**; macOS needs a manual re-download. Installers come from the repo's GitHub Releases. Full detail, including the platform matrix and how to cut a release, is in [the Discovery section below](#comfyq-discovery--details).
+
+---
+
+## Where to read more
+
+| Document | What it covers |
+|---|---|
+| [CLAUDE.md](CLAUDE.md) | **The engineering log.** Every decision, every bug and why it was fixed that way. Long, dated, and the first place to look before changing anything. |
+| [implementation_plan.md](implementation_plan.md) | The phased plan and what is deferred. |
+| [docs/workflow-redundancy.md](docs/workflow-redundancy.md) | Which bundles overlap, with the pros and cons of cutting each. |
+| [docs/comfyui-idv2v.md](docs/comfyui-idv2v.md) | The ID-V2V feature and why no patch is needed any more. |
+| [docs/storyboard-format.md](docs/storyboard-format.md) | The multi-shot storyboard document format. |
+| [tools/maintenance/](tools/maintenance/) | The audit and repair scripts, and the notes that go with them. |
+| [tools/model-provenance/](tools/model-provenance/) | Where each model came from, and which are exclusive to a bundle. |
+| [tools/api-to-ui/](tools/api-to-ui/) · [tools/ui-to-api/](tools/ui-to-api/) | Converting between ComfyUI's editable graph and the API format ComfyQ runs. |
 
 ---
 
@@ -125,7 +187,7 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
 
    All three need: `flux-2-klein-base-9b-fp8.safetensors` (UNET), `flux2-vae.safetensors` (VAE), `qwen_3_8b_fp8mixed.safetensors` (CLIP) in the corresponding `<comfy_root>/models/` subfolders.
 
-   It also bundles the **target workshop workflows** (TripoSplat, Stable Audio 3, Ideogram 4.0, the Flux.2 Klein family incl. inpainting, the Wan 2.2 Bernini editors, the SeedVR2 upscalers, the Gemma captioners, and the LTX 2.3 family — see [Status](#status) for the full list and per-workflow state). Each needs its own models in `<comfy_root>/models/`. ComfyQ does **not** verify models up front, so a workflow whose models are missing still appears in the library — its jobs fail at run time instead (the error names the missing file). (A bundle is only marked `unavailable` — and hidden from the library — when its own `meta.json`/`api.json` is missing or invalid, e.g. the "Missing workflow file" case in [Troubleshooting](#troubleshooting).) Raw, unedited API exports for every bundled workflow live in `workflows/exported_api_workflow_comfy/` for reference.
+   It also bundles the rest of the library — **61 workflows** across image generation and editing, video generation and editing, 3D, audio, captioning and utilities. Each needs its own models under `<comfy_root>/models/`. **ComfyQ checks this for you:** every card carries a chip saying how many of the models its graph loads are on disk, and a missing one can be fetched straight onto the machine — see [Getting models onto the machine](#getting-models-onto-the-machine). (A bundle is only marked `unavailable` — and hidden from the library — when its own `meta.json`/`api.json` is missing or invalid, e.g. the "Missing workflow file" case in [Troubleshooting](#troubleshooting).)
 3. **Workflow library** — pick one → **Activate & start student mode**. The server restarts into student mode and launches (or attaches to) ComfyUI.
 4. **Calibrate** (optional but recommended) — click the gauge icon on a workflow card (works in admin **or** student mode; in admin mode ComfyUI is started on demand). ComfyQ does **one real run** (a fresh seed avoids ComfyUI's result cache) and writes `<id>.runtime.json` with the first-run cost (incl. model load), the recurring generation cost (what the timeline uses), and the GPU. Inputs are supplied automatically from the assets directory (`config.json` → `assets.dir`, default `D:\_assets`) — no upload needed. Image inputs fall back to a built-in reference image if the assets dir has none.
 5. **(Optional) Admin password** — required for any cross-user destructive action (deleting / cancelling another student's job, restarting, resetting, cleaning outputs). **Without a password set, cross-user deletes are refused entirely** — you can still manage your own jobs, but you can't interfere with anyone else's. Set one for classroom deployments.
@@ -136,52 +198,45 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
 - **Stop & kill all** — emergency stop. Cancels every scheduled job, marks every in-flight job FAILED, REST-interrupts ComfyUI, kills the process if ComfyQ spawned it, and restarts in admin mode. Confirmation modal lists exactly what will happen.
 - **Clean all outputs** (in the Admin page Cleanup card) — purges every output file on disk for terminal jobs and clears the `outputs` field in the DB. Job records are kept so prompt history survives. In-flight jobs are skipped so a running collector isn't disrupted.
 
-## Maintaining the install (admin → Maintenance)
+---
 
-The admin panel is four tabs — **Workflows**, **Manage server**, **Manage ComfyUI**, **Maintenance**. The first three are covered above; this is what the fourth does. All of it is admin-only, and the destructive parts are behind the admin password (set one — see step 5 above).
+## Workflow folder layout
 
-**Is this workflow runnable here?** Every card in the workflow library carries a chip saying how many of its models are on disk, read from the **graph** (not the hand-written model list, which contains prose and repo ids no file check can satisfy). Expand it for the file list with sizes and on-disk paths, each with a download or source link. A model a node pack fetches for itself is listed as such rather than as a file you need to find.
+```
+workflows/
+└── image_flux2_klein_9b_t2i/
+    ├── image_flux2_klein_9b_t2i.api.json         the workflow (API format, REQUIRED)
+    ├── image_flux2_klein_9b_t2i.meta.json        the metadata (REQUIRED for v2)
+    ├── image_flux2_klein_9b_t2i.config.meta.json (optional, per-deployment overrides — gitignored)
+    └── image_flux2_klein_9b_t2i.runtime.json     (optional, written by BenchmarkService — gitignored)
+```
 
-**Run the whole library.** One button runs every bundle once with sample inputs — about **2½ hours for 61 bundles** on an RTX 5090 — and answers two questions nothing else can: does each bundle still work, and which model files the library actually opens. Every output is *measured* (size, luminance, spread, frame count) and anything black, flat, empty or single-framed is named for you to open, because this rig has twice shipped a bundle that reported success and saved black images. Each row opens to show the ingredients that went in (the prompt that really ran, the input files, the seed) and the result itself, rendered inline with its path on disk. **Copy report** gives you a plain-text report you can paste to someone — every failure carries its full error, its traceback, and the performance flags ComfyUI was actually running with. It refuses to start while the machine is serving students.
+The `meta.json` is treated as read-only by the server. The admin UI never writes it; it only writes `config.meta.json` (overrides) and `runtime.json` (calibration). This keeps the original workflow export distinct from class-deployment tweaks.
 
-**Download models.** Paste nothing — the card lists what each bundle declares and fetches it **onto this machine** (not the laptop you have the panel open on). Resumes interrupted transfers, checks free space first, and renames the file into place only once the byte count matches, so a half-downloaded file is never mistaken for an installed one. Gated repositories (FLUX.2, LTX-2.5) need you to accept the licence on HuggingFace and paste an access token under **Manage ComfyUI**.
-
-**Install node packs.** Lists the node classes your bundles need and which are missing, resolving who provides each from ComfyUI-Manager's own data read off disk, so it works with no internet. Installing is a shallow `git clone` into `custom_nodes` — ComfyUI's own code is never touched. ⚠ **Python dependencies are a separate, explicit step**, because one interpreter is shared by every workflow on the drive: the card shows you the requirements first and names the lines that would replace something shared.
-
-**Update ComfyUI, and each node pack on its own** — the first card in this tab. Every installed pack is listed straight away with its own **Update** button, so you can see what is updatable without touching the network; the ones that are only copies say why they cannot be. The installed ComfyUI version is always on screen; **Check for updates** reaches the remotes and says, in a sentence, whether a newer release actually exists. Updating ComfyUI runs the portable's own `update/update.py --stable`, which stashes local changes onto a backup branch before it pulls. Each node pack that is a real `git` clone gets its own **Update** button, lists the commits that would land *before* you take them, and is fast-forwarded only — never merged.
-
-- ★ **A run that changes nothing says so.** `--stable` lands on the newest *release*, which may well be the one you already have: development continues past it untagged. An updater that prints “Done” after changing nothing is indistinguishable from one that worked, and that cost a day here once — so every answer names the version before and after.
-- ★ **A pack with uncommitted changes is not offered.** It is a working copy, and a pull must not decide what happens to your own edits. Commit or stash first.
-- **Most packs cannot be updated this way, and the card says which.** ComfyUI-Manager unpacks a copy rather than cloning, so roughly half have no remote to pull from.
-- A pack whose remote could not be reached is reported as **unknown**, never as up to date.
-- ⚠ **ComfyUI's own `current_requirements.txt` is a separate, acknowledged step**, because it asks for bare `torch` — and an install can be deliberately pinned to a specific torch build that some node packs need. Nothing here restarts ComfyUI; an update is not live until you do.
-
-**Prune unused models.** Finds weight files that nothing references, scored by confidence with its reasons in plain words. ⚠ Three things to know before using it:
-
-- **A prune MOVES, it does not delete.** Files go to `_model_quarantine\<batch>\` on the same drive — instant, reversible, and it does **not** free space until you empty a batch from the **Quarantine** card. Emptying is the only irreversible step and says so.
-- **A quarantine batch travels in a cloned drive image.** Empty it before imaging a master drive, or every rig made from it carries the files.
-- **"Nothing references it" is weaker than it sounds.** Only the confident tier offers bulk selection; everything doubtful must be ticked one file at a time. And a model nobody *happened* to exercise — Fast mode left off, the second entry in a dropdown — leaves no trace either, so the library sweep's "never opened" is a reason to keep, never proof you can delete.
-
-**Re-apply the custom-node fixes.** A few node packs need a local fix to run on this ComfyUI. The patches are held in the repo rather than only on the rig that was fixed, so a cloned or rebuilt machine can be brought up to them with one button. Safe to press twice — it reports what was already in place — and it **refuses loudly** if a pack has changed under its patch instead of guessing, because a repair step that silently matches nothing reports success over a machine it did not fix. ⚠ It modifies `custom_nodes`, and ComfyUI has to be restarted afterwards.
-
-**Audit and repair the install.** The maintenance scripts (rebuild the model audit, verify it, repair the install, make paths portable) run from here, through ComfyUI's own interpreter. They live as ordinary Python in [tools/maintenance](tools/maintenance/) and resolve your install from `config.json`, so they work under any drive letter.
-
-## Daily use (student mode)
-
-1. Open `http://<host>:5173` (the Vite URL printed at boot — it proxies the API/websocket on :3000; don't open :3000 directly). You're routed to the timeline; the active workflow's name and description (admin-edited prompting tips) appear in the header.
-2. Set your username (stored in `localStorage`).
-3. The timeline auto-follows current time (10 min back / 50 min ahead). Click an empty slot or **Schedule a job**, fill in the exposed parameters, **Book Slot**. The booking dialog repeats the workflow description at the top so you can reference it while typing your prompt.
-   - The seed field auto-randomizes each time the dialog opens; click the dice icon to re-roll, or type a specific value to pin it.
-4. Watch progress in real time. Each card / sidebar entry / lightbox shows which workflow produced it.
-5. Recent Generations defaults to **My Generations** (your own results only). Switch to **All Jobs** to see everyone's work; use the user dropdown to filter to one specific contributor. The sidebar always shows just your own jobs.
-6. Click any completed card to open the lightbox. **Use these settings** re-opens the booking dialog pre-filled with that job's prompt, parameters, **and the media it used** — images preview and video/audio play right in the form (keep them or Replace). Text captions have a **Copy text** button that works over plain HTTP too.
-7. Delete your own scheduled jobs (cancels the job) or completed images (also unlinks the file from disk) via the X on each card. The same X button on a **running** job interrupts ComfyUI and moves the job to `cancelled` (the record is kept; the X reappears so you can also delete it). A confirmation dialog appears for every destructive action.
-
-Deleting / cancelling **another user's job** opens the same dialog with an admin-password field. The server refuses cross-user actions outright when no admin password is configured.
+See [implementation_plan.md](implementation_plan.md#schemas) for the full schema.
 
 ---
 
-## ComfyQ Discovery (desktop app)
+## Architecture (one-line tour)
+
+```
+HTTP/Socket.IO  →  RealtimeBus  →  JobExecutor  →  LocalComfyUIWorker  →  ComfyUI
+                       │                                  │
+                       ▼                                  ▼
+                  JobQueue (sqlite)              ComfyRestClient + ComfyWsClient (auto-reconnect)
+                       │
+                       ▼
+                  WorkflowRegistry  ──── reads ────▶  workflows/<id>/{api,meta,config-meta,runtime}.json
+```
+
+See [implementation_plan.md](implementation_plan.md#architecture) for module-by-module responsibilities and the job state machine.
+
+
+---
+
+---
+
+## ComfyQ Discovery — details
 
 **ComfyQ – Discovery** is a standalone cross-platform desktop app (`desktop/`, Electron — Windows +
 macOS) that shows **every ComfyQ machine on the LAN at a glance** — no configuration, no central
@@ -321,38 +376,6 @@ Notes:
   to enable macOS auto-update. Windows + Linux auto-update fine.
 
 ---
-
-## Workflow folder layout
-
-```
-workflows/
-└── image_flux2_klein_9b_t2i/
-    ├── image_flux2_klein_9b_t2i.api.json         the workflow (API format, REQUIRED)
-    ├── image_flux2_klein_9b_t2i.meta.json        the metadata (REQUIRED for v2)
-    ├── image_flux2_klein_9b_t2i.config.meta.json (optional, per-deployment overrides — gitignored)
-    └── image_flux2_klein_9b_t2i.runtime.json     (optional, written by BenchmarkService — gitignored)
-```
-
-The `meta.json` is treated as read-only by the server. The admin UI never writes it; it only writes `config.meta.json` (overrides) and `runtime.json` (calibration). This keeps the original workflow export distinct from class-deployment tweaks.
-
-See [implementation_plan.md](implementation_plan.md#schemas) for the full schema.
-
----
-
-## Architecture (one-line tour)
-
-```
-HTTP/Socket.IO  →  RealtimeBus  →  JobExecutor  →  LocalComfyUIWorker  →  ComfyUI
-                       │                                  │
-                       ▼                                  ▼
-                  JobQueue (sqlite)              ComfyRestClient + ComfyWsClient (auto-reconnect)
-                       │
-                       ▼
-                  WorkflowRegistry  ──── reads ────▶  workflows/<id>/{api,meta,config-meta,runtime}.json
-```
-
-See [implementation_plan.md](implementation_plan.md#architecture) for module-by-module responsibilities and the job state machine.
-
 
 ---
 
