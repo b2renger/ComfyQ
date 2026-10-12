@@ -148,6 +148,13 @@ async function main() {
                 rawConfig.comfy_ui.output_dir = detected.output_dir;
                 rawConfig.comfy_ui.installation_type = detected.installation_type;
                 if (detected.assets_dir) { rawConfig.assets = rawConfig.assets || {}; rawConfig.assets.dir = detected.assets_dir; }
+                // The scan folders have to follow the drive as well; see
+                // configManager.followDriveLetter for why this one is worth care.
+                if (Array.isArray(rawConfig.maintenance?.workflowScanDirs)) {
+                    rawConfig.maintenance.workflowScanDirs = configManager.followDriveLetter(
+                        rawConfig.maintenance.workflowScanDirs, detected.root_path,
+                        (m) => console.log(`[ComfyQ] scan folder followed the drive: ${m}`));
+                }
                 configManager.save(rawConfig);
             } else if (root) {
                 console.log(`[ComfyQ] configured ComfyUI root has no main.py (${root}) and none was auto-detected — set it in the admin UI.`);

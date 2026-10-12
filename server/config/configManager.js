@@ -150,6 +150,33 @@ function detectComfyPaths() {
     return null;
 }
 
+// A configured absolute folder, pointed at whatever drive the install is on now.
+//
+// This drive is cloned between machines that mount it under different letters,
+// so a path recorded on one rig does not resolve on the next. The ComfyUI paths
+// are re-detected at boot and the assets folder follows them; the workflow scan
+// folders have to follow too, and they are the ones where being wrong is QUIET
+// -- a folder that cannot be read makes every model only that folder references
+// look UNUSED, so the prune tool ends up reasoning about a folder that is not
+// there. (It refuses outright in that state rather than giving a bad verdict,
+// which is the safe failure -- but it leaves the tool simply broken on every
+// clone until somebody repoints it by hand.)
+//
+// It rewrites a path only when that path is BOTH unreachable now AND reachable
+// on the new drive. A folder missing for any other reason is left alone so the
+// scan reports it, rather than being quietly redirected somewhere plausible.
+function followDriveLetter(dirs, installRoot, log = () => {}) {
+    const to = (String(installRoot || '').match(/^([A-Za-z]):/) || [])[1];
+    if (!to || !Array.isArray(dirs)) return dirs;
+    return dirs.map((d) => {
+        if (typeof d !== 'string' || !/^[A-Za-z]:/.test(d) || fs.existsSync(d)) return d;
+        const moved = to + d.slice(1);
+        if (!fs.existsSync(moved)) return d;
+        log(`${d} -> ${moved}`);
+        return moved;
+    });
+}
+
 // Resolve all relative paths to absolute, given a (validated) config.
 function resolvePaths(config) {
     const out = JSON.parse(JSON.stringify(config));
@@ -186,5 +213,6 @@ module.exports = {
     setActiveWorkflow,
     resolvePaths,
     defaultConfig,
-    detectComfyPaths
+    detectComfyPaths,
+    followDriveLetter
 };
