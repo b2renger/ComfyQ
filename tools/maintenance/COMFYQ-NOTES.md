@@ -73,9 +73,31 @@ from its new home: it found the install through the config, parsed 321 workflows
 across ComfyQ's bundles, the demo folder and ComfyUI's own user folder, and wrote
 `inventory.json`.
 
-## The original is still in place
+## The original is gone
 
-`<nvme>\ComfyUI_windows_portable_nvidia\_maintenance\` was **copied**, not moved,
-so the generated scans and this rig's history are undisturbed. Delete it once you
-are satisfied with the copy here — note that the gitignored scan files only exist
-there, and are rebuilt by running the four scripts above.
+`<nvme>\ComfyUI_windows_portable_nvidia\_maintenance\` was copied here first and
+then **deleted** — this folder is the only copy now. The gitignored scans
+(`object_info.json` 4.5 MB, `inventory.json`, `links.json`, `nodes.json`) were
+rebuilt here by running the scripts from their new home, so they are present but
+describe **this** disk at one moment. They are not committed, for that reason —
+but being gitignored is also why they travel in a cloned drive image. Harmless
+(rebuilding the audit overwrites them), just not evidence about the machine you
+are reading them on.
+
+## Preparing the drive to be cloned
+
+Three scripts for the operation in [docs/cloning-the-drive.md](../../docs/cloning-the-drive.md),
+which is where the order and the reasons are. Each takes `--dry`.
+
+| | |
+|---|---|
+| `wipe_for_clone.cjs` | clear a workshop's residue, sparing exactly the files the published sweep report points at. Refuses to touch anything in `ComfyUI/input` that ComfyQ did not put there. |
+| `seed_examples.cjs` | turn the sweep's results into one browsable example job per workflow, under the user `examples`. Run **after** the wipe. |
+| `publish_partial_sweep.cjs` | rescue a sweep that was killed mid-run, from the per-run `.jsonl` it left. Prints the bundles still to sweep, so the merge produces one complete report. |
+
+★ `recover_sweep.cjs` answers a different question and is not a substitute: it
+rebuilds a report from a run's *side effects* (rewritten `runtime.json` files,
+`bench_*` outputs, the access log) for when the run records are gone.
+`publish_partial_sweep.cjs` is for when the rows survive and only the published
+report is missing — which keeps the ingredients, tracebacks and perf diagnostics
+those rows carry.
