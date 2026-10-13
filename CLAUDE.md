@@ -4,6 +4,62 @@ Portable project knowledge for ComfyQ (multi-user ComfyUI workflow scheduler). T
 
 Detailed, evolving plans live in [implementation_plan.md](implementation_plan.md); user-facing overview in [README.md](README.md). This file is the durable, auto-loaded summary + the "why" behind decisions that aren't obvious from the code.
 
+## Latest progress (2026-10-13)
+
+**Three candidates promoted — and the library's first MESH INPUT, which needed a new parameter type (owner, 2026-10-13)** — owner: *"check in the WF in candidate folder and build experimental cards for ComfyQ"*, then *"do the same with the audio yue2 music cover workflow"*, then *"we do not need a full resweep, but examples for the three new experimental workflows (for the input of yue use an output from stable audio — the inputs of the meshes use outputs from treillis or pixal)"*. 61 → **64 bundles**, all three experimental, all three calibrated and seeded as examples.
+
+| Bundle | Measured | Produces |
+|---|---|---|
+| [3d_mesh_remesh_decimate](workflows/3d_mesh_remesh_decimate/) | **17 s · 0.17 GB** | low-poly `.glb` + before/after stat panels |
+| [3d_mesh_uv_unwrap](workflows/3d_mesh_uv_unwrap/) | **55 s · 1.88 GB** | `.glb` with UVs + UV layout PNG + AO PNG |
+| [audio_yue2_music_cover](workflows/audio_yue2_music_cover/) | **163 s · 6.19 GB** | one FLAC cover of an uploaded song |
+
+### ★★★ RemeshMesh returns an EMPTY mesh on a large-coordinate model, silently
+
+The headline defect, and it is upstream rather than ours — but it is student-facing, so it is on the card in words rather than in a footnote. With *Watertight remesh* on (the default), **two of nine test meshes came back with no file at all: `Faces: 0`, job reports SUCCESS, nothing saved.** The Stanford Bunny is one of the two.
+
+- ★★ **It is not a setting.** `resolution` 64 → 256, `drop_small_components` 0.01 → 0, `sign_mode` udf → sdf, `band` 1 → 2, `drop_inverted_components` on → off: every one of them still empty, on both failing meshes. **It is SCALE** — the identical camel mesh divided by 50 remeshes correctly (3,576 → 1,989 faces). The failures are the two largest models (bbox 87 and 119 units); the teapot at 19 works. A mesh exported in millimetres fails where the same mesh in metres succeeds, and nothing says so.
+- ★ **Which is why both `GetMeshInfo` passthroughs were KEPT rather than pruned.** They are not output nodes, yet they do report `text` in the history, so ComfyQ collects them — and the second panel reading `Faces: 0` is the only signal a student gets that the run produced nothing. Pruning them as "in-path preview passthroughs" would have removed the only evidence. **A preview node is plumbing until it is the one thing that explains a silent failure.**
+- **Default left ON anyway, deliberately:** manifold ON lands on the target almost exactly (469,436 → 2,000) where OFF undershoots (→ 1,612 on the same mesh), and the realistic input here — a mesh made by this rig's own TripoSplat / Pixal3D bundles — is unit-scale and works. The card names the failure, the tell and both fixes (turn it off, or rescale).
+
+### ★★ A new media type has to be added everywhere media is ENUMERATED, not where it is defined
+
+`model3d` is the first parameter that takes a MESH. Adding it to the zod enum made the bundles load, the registry accept them and the suite pass — and calibration still died with `Invalid 3D model file: asset:tshirt.glb`, because the staging loop tests `['image','video','audio','mask'].includes(p.type)` and simply skipped it.
+
+- ★ **Grepping for the list rather than fixing the one that bit was the right move**: the same literal array appears in **five** places. Three needed it — `benchmarkService._buildCalibrationParams` (staging), `librarySweep._ingredients` (what a sweep records as media, and therefore what `seed_examples` can re-stage), and `seed_examples` itself. Two correctly did not: `optionalMedia.PLACEHOLDER_TYPES` (there is no neutral placeholder mesh, same as video/audio) and `storyboardPlanner.MEDIA_TYPES` (that set is what a storyboard can CHAIN between shots, and a mesh is not chainable from an image shot). ⚠ The admin panel's assets-dir health check was a sixth, counting only image/video/audio extensions — a rig whose assets dir held only meshes was told calibration would find nothing there.
+- **The widget matches on EXTENSION, not MIME.** `image/*` and `video/*` work as accept filters; there is no `model/*`, and browsers report `.obj` and `.stl` with an empty type and `.glb` inconsistently. So `MODEL3D_EXTS` drives both the file picker's `accept` and the drop filter, and a mesh shows as a named row rather than a broken `<img>` — a 56 MB blob URL in an image tag renders as nothing.
+- **Verified by booking a real job from the real UI**, which is the only thing that proves a new widget: a 23 MB `.glb` uploaded, staged under `comfyq_session__`, injected into `model_file`, **469,436 → 2,000 faces**, result rendering in the 3D viewer, 0 console errors and 0 failed media requests.
+
+### What the three exports got wrong, found by reading the node schemas against them
+
+- ★ **`SaveGLB` has no `image` input, and both 3D exports passed one.** ComfyUI ignores an undeclared key, so it runs — but [api-to-ui](tools/api-to-ui/README.md)'s round-trip refuses it, and it is a false statement about the graph. Dropped from both.
+- **The remesh export's default pointed at a file in the OUTPUT folder** (a previous sweep's result), which no freshly cloned rig would have. Repointed at an input-dir mesh.
+- ★★ **YuE2 shipped two `PreviewAny` nodes and they needed opposite treatment.** `33:23` is a PURE sink on the generator's `seconds` FLOAT — it would have published a bare **`98.3`** into the result gallery, exactly the stray text tile already recorded against seven production bundles. `33:44` is IN-PATH: its STRING output feeds the generator's `abc`, so deleting it without rewiring `33:25.abc` to the real source would have broken the graph. Sink deleted, passthrough rewired then deleted.
+- ★★ **Two `mode` dropdowns that MUST agree became one control.** ComfyUI's own node description says to *"use the matching mode"* on the transcriber and the generator; disagreeing reads the score against the wrong expectation, with no error. One exposed `select` drives both through `linkedValues`. ★ **Driven with a fixture, because the default is already `melody` on both literals — the only path that exercises the link is choosing `full`**, which is precisely the shape this file already warns about ("a guard whose only reachable path is the case it exists for").
+
+### ★ Calibrating a mesh tool on a toy mesh would have advertised a quarter of the real cost
+
+The UV bundle takes **14 s on 3,576 triangles and 53 s on 698,361** — the cost tracks mesh density, not atlas size. `_resolveAsset` picks the *smallest* file for video/audio (decode time, content irrelevant); for a mesh that rule would have timed a decimation bundle against a twelve-triangle cube, so `model3d` takes the MEDIAN, like images — and every bundle names its asset explicitly in `warmupParams` anyway. Same family as the 512×512 calibration-image bias already recorded here.
+
+### The examples chain the rig to itself (owner's instruction)
+
+No re-sweep: **a 3-bundle subset run merged over the published report — 61 + 3 = 64 rows, `mergedFrom: 3`, 0 failed, 0 flagged, 0 produced nothing** — then `seed_examples.cjs` seeded just those three. The inputs are the rig's own earlier results, which is the point: the remesh example eats **`3d_pixal3d_multi_views`**'s mesh, the UV example eats **`3d_pixal3d_trellis2_image_to_model`**'s, and the YuE2 cover is sung over **`audio_stable_audio_3_medium`**'s 150-second tropical-house track. A student opening the All-jobs view can now see a whole pipeline rather than 64 unrelated cards.
+
+- ★ **`seed_examples.cjs` gained `--only <ids>` because seeding INSERTS, it does not replace.** Re-running the whole thing to add three bundles would have duplicated all 61 examples and orphaned every input it had already staged. Naming the new ones avoids both.
+- **Verified 550 checks / 0 failed** through ComfyQ's own read path against a copy of the database (every output present where `/images` serves from, every kind one the client renders, every input on disk and reading back as its original name, coverage 64 of 64), then in headless Chrome: the user filter reads **`examples — 64`**, 0 failed media requests, 0 console errors, and each new example's inputs serve 200 under their real names (`pixal3d_multi_views_mesh.glb`, `trellis2_mesh.glb`, `stable_audio_tropical_house.mp3`).
+
+### ⚠ The install has moved off the tagged line since the sweep
+
+`git describe` reads **`v0.39.0-49-g8010b48d`** on **master**, pulled 2026-10-13 — and `v0.39.2`, the tag the 61-of-61 clean sweep ran on, is **not an ancestor of HEAD**. So the library measurement and the code on the drive are no longer the same ComfyUI. Checked and safe for these three: every node class they use (`UnwrapMesh`, `RemeshMesh`, `BakeAmbientOcclusion`, `RenderUVAtlas`, `DecimateMesh`, `WeldVertices`, `MeshSmoothNormals`, `GetMeshInfo`, `Get3DComponents`, `Load3DAdvanced`, `YuE2GenerateMusic`, `SheetSage2AudioToABC`, `EmptyYuE2LatentAudio`, `AudioEncoderLoader`, `SeedNode`) **also exists at v0.39.2**, so pressing the stable-update button on a clone will not take them away.
+
+### Conventions this added
+
+- ★★★ **A node that silently returns NOTHING is worse than one that throws, and the only defence is to keep whatever reports the count.** Measure the failure rate before choosing a default, name the tell in the student-facing text, and do not prune the "preview" node that happens to be the evidence.
+- ★★ **A new media type is finished when every place that ENUMERATES media knows it, not when the enum that DEFINES it does.** Grep the literal list; here it appeared six times and three were wrong. The zod enum, the registry and the whole test suite were green while calibration could not stage the input at all.
+- ★★ **When two nodes carry a setting that must agree, expose ONE control and link the other.** Two dropdowns a student can leave disagreeing is a silently wrong result — the same reasoning as `whenEmptySet` for an optional media input. And test it at the non-default value, because the default usually already matches both literals.
+- ★ **A media filter matches on extension when the type has no MIME family.** `image/*` and `video/*` are real; `model/*` is not, and browsers disagree about `.glb`.
+- ★ **Calibrate a tool on an input of realistic SIZE, not the cheapest one that type-checks.** Smallest-wins is right for video and audio, where decode time is the whole cost; it is wrong wherever the input's own complexity is what the workflow is paid to chew through.
+
 ## Latest progress (2026-10-12)
 
 **Preparing the drive to be cloned — docs rewritten for the people who read them, the library swept clean, and the sweep's own results kept as a browsable example per workflow (owner, 2026-10-12)** — owner: *"check the state of the code vs the docs and specifically the readme users see. We need to clean everything to duplicate… run a sweep of the workflow to be sure everything runs, clear models quarantine, update docs and readme… readme.txt at the base of J:"*, then *"I am interested in keeping the sweep inputs and outputs as examples I can look at or students can look at in the all jobs filter in the client UI to know what we can actually do with the full rig."*
