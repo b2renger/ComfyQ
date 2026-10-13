@@ -441,7 +441,7 @@ class LibrarySweep {
         const graph = entry.apiWorkflow || {};
         const out = [];
         for (const p of (entry.effective?.exposedParameters || [])) {
-            const isMedia = ['image', 'video', 'audio', 'mask'].includes(p.type);
+            const isMedia = ['image', 'video', 'audio', 'mask', 'model3d'].includes(p.type);
             const literal = graph[p.nodeId]?.inputs?.[p.field];
             const wasSent = Object.prototype.hasOwnProperty.call(sent, p.key);
             const row = {

@@ -19,7 +19,7 @@ const CATEGORIES = [
     { value: 'other', label: 'Other' }
 ];
 
-const PARAM_TYPES = ['text', 'textarea', 'number', 'select', 'checkbox', 'image', 'video', 'audio', 'mask', 'lora'];
+const PARAM_TYPES = ['text', 'textarea', 'number', 'select', 'checkbox', 'image', 'video', 'audio', 'mask', 'model3d', 'lora'];
 
 // Field names that are usually infrastructure, not student-facing.
 const INFRASTRUCTURE_FIELDS = new Set([

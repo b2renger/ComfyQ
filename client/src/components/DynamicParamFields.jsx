@@ -176,7 +176,7 @@ const DynamicParamFields = ({
                 // Image / video / audio input — delegated to MediaCaptureField,
                 // which renders the file-upload widget (click + drag-and-drop),
                 // then applies maxInputEdge resizing for images.
-                if (type === 'image' || type === 'video' || type === 'audio') {
+                if (type === 'image' || type === 'video' || type === 'audio' || type === 'model3d') {
                     const field = (
                         <MediaCaptureField
                             key={key}

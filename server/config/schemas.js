@@ -15,7 +15,14 @@ const ParamType = z.enum([
     // so incompatible LoRAs don't show. The wire value is just the `.safetensors`
     // filename fed to a LoraLoader field, so materialize/recall/calibration treat
     // it like a plain string; only the widget (a dynamic dropdown) differs.
-    'lora'
+    'lora',
+    // 'model3d' is a 3D MESH upload (.glb/.gltf/.obj/.stl/.ply/.fbx) feeding a
+    // Load3D/Load3DAdvanced `model_file` field. The wire value is the staged
+    // filename in ComfyUI/input, exactly like 'image' -- ComfyUI resolves it
+    // with get_annotated_filepath, so a flat name in the input dir is enough
+    // and the `3d/` subfolder the node's own dropdown lists is not required.
+    // Only the BookingDialog widget differs (no resize, no visual preview).
+    'model3d'
 ]);
 
 const ExposedParameter = z.object({

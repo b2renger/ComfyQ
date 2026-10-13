@@ -12,7 +12,7 @@ import { acquireIdleHold } from '../utils/idleHold';
 // Param types whose value is an uploaded file (handled via mediaFiles + /upload
 // + recall), as opposed to a plain form value. 'mask' is an image the user
 // paints in-browser (MaskDrawField) but is otherwise an image upload.
-const MEDIA_TYPES = ['image', 'video', 'audio', 'mask'];
+const MEDIA_TYPES = ['image', 'video', 'audio', 'mask', 'model3d'];
 
 /**
  * Booking Dialog Component
