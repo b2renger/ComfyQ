@@ -40,6 +40,13 @@ const OUT = cfg.comfy_ui.output_dir || path.join(COMFY, 'output');
 const INP = path.join(COMFY, 'input');
 const DRY = process.argv.includes('--dry');
 const USER = 'examples';
+// `--only a,b,c` seeds just those bundles. Seeding INSERTS rather than
+// replaces, so when a few bundles are added to an existing showcase, re-running
+// the whole thing would duplicate every example and orphan every input it had
+// already staged. Naming the new ones avoids both.
+const onlyArg = (process.argv.find(a => a.startsWith('--only=')) || '').slice('--only='.length)
+    || (process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : '');
+const ONLY = onlyArg ? new Set(onlyArg.split(',').map(s => s.trim()).filter(Boolean)) : null;
 
 // The run the sweep published is the showcase: one row per bundle, merged over
 // previous runs, which is exactly the 61-row picture the report serves.
@@ -91,6 +98,7 @@ let made = 0, noOutput = 0, failedRow = 0;
 const lostInputs = [];
 const skipped = [];
 for (const r of rows) {
+    if (ONLY && !ONLY.has(r.id)) continue;
     if (!r.ok) { failedRow++; skipped.push(r.id + ' (the sweep run failed)'); continue; }
 
     // Outputs. `file` is already output-root-relative, which is what /images
@@ -128,7 +136,7 @@ for (const r of rows) {
             const whole = literalOf(r.id, ing.node);
             if (typeof whole === 'string' && whole.length >= String(v || '').length) v = whole;
         }
-        const isMedia = ['image', 'video', 'audio', 'mask'].includes(ing.type);
+        const isMedia = ['image', 'video', 'audio', 'mask', 'model3d'].includes(ing.type);
         if (ing.sourcePath && fs.existsSync(ing.sourcePath)) {
             v = stage(ing.sourcePath);
         } else if (isMedia && typeof v === 'string' && /^comfyq_/.test(v)) {
