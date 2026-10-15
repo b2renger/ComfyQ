@@ -18,7 +18,7 @@ import { SERVER_URL } from '../../utils/api';
  * ⚠ Emptying a batch is the only irreversible action in the whole prune
  * mechanism. It is the one thing here that deletes, and it says so.
  */
-const ModelQuarantine = ({ headers, onToast }) => {
+const ModelQuarantine = ({ headers, onToast, refreshKey = 0, onChanged }) => {
     const [data, setData] = useState(null);
     const [busy, setBusy] = useState(null);
     const [open, setOpen] = useState({});
@@ -30,7 +30,9 @@ const ModelQuarantine = ({ headers, onToast }) => {
             setData(await res.json());
         } catch { /* a poll failure is not worth a toast */ }
     }, []);
-    useEffect(() => { load(); }, [load]);
+    // Reloaded whenever the tab rescans or a prune lands, so a new batch shows here
+    // without leaving the tab.
+    useEffect(() => { load(); }, [load, refreshKey]);
 
     const post = async (what, body, key) => {
         setBusy(key);
@@ -45,6 +47,8 @@ const ModelQuarantine = ({ headers, onToast }) => {
                 : `Batch ${body.batch} emptied, ${out.gb ?? '?'} GB freed`);
             setConfirmEmpty(null);
             await load();
+            // A restored file is back under models/, so the prune list changed too.
+            if (what === 'restore') onChanged?.();
         } catch (e) {
             onToast?.(`Could not ${what}: ${e.message}`, 'err');
         } finally { setBusy(null); }

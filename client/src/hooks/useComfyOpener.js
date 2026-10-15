@@ -68,6 +68,24 @@ export function useComfyOpener({ adminPassword, notify } = {}) {
         }
         const base = `${window.location.protocol}//${window.location.hostname}:${port}/`;
         const url = (staged && autoOpen) ? `${base}?comfyq_open=${encodeURIComponent(openName)}` : base;
+        // ★ A failure must not look like ComfyUI opening on the wrong workflow.
+        // Sending the tab to plain ComfyUI after the request failed — a missing
+        // admin password, ComfyUI unable to start — did exactly that, with the
+        // only explanation in a toast on the OTHER tab. Say it where they look.
+        if (problem && !staged) {
+            if (tab) {
+                try {
+                    tab.document.title = 'Could not open in ComfyUI';
+                    tab.document.body.innerHTML = '';
+                    const p = tab.document.createElement('p');
+                    p.style.cssText = 'font:15px sans-serif;padding:2rem;color:#c33;max-width:46rem;line-height:1.5';
+                    p.textContent = `Could not open "${workflowId}" in ComfyUI: ${problem}. Nothing was opened — fix that in the ComfyQ admin panel and try again.`;
+                    tab.document.body.appendChild(p);
+                } catch { /* the tab went elsewhere already */ }
+            }
+            notify?.(`Couldn’t open “${workflowId}” in ComfyUI (${problem}).`, 'err');
+            return;
+        }
         if (tab) tab.location = url; else window.open(url, '_blank', 'noopener');
         if (staged && autoOpen) {
             notify?.(problem

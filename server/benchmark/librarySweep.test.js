@@ -501,6 +501,32 @@ console.log('\nthe recorder\'s absence must be visible, not read as "nothing was
         ok('a bundle that saved a file is never reported as producing nothing', img.noOutput === 0);
     }
 
+
+    console.log('\na deleted workflow leaves the report');
+    {
+        // ★ The card read "64 of 64 ran" after workflows had been deleted from the
+        // library, because the published report still carried their rows.
+        const rowOf = (id, okv = true) => ({ id, ok: okv, flagged: [], observedModels: [`${id}.safetensors`], outputs: [{ file: `${id}.png` }] });
+        const report = { recorderAvailable: true, results: [rowOf('a'), rowOf('b'), rowOf('gone', false)] };
+        report.summary = LibrarySweep.summarize(report.results, true);
+        const cur = LibrarySweep.forLibrary(report, ['a', 'b']);
+        ok('rows for a deleted workflow are not counted', cur.results.length === 2 && cur.summary.ran === 2);
+        ok('...and its failure no longer reads as the library failing', cur.summary.failed === 0);
+        ok('...and the dropped ids are named, not silently lost', cur.removedSince.join() === 'gone');
+        ok('forLibrary does not touch the report it was given', report.results.length === 3);
+        ok('a report with nothing removed comes back unchanged', LibrarySweep.forLibrary(report, ['a', 'b', 'gone']) === report);
+
+        const { sweep } = make();
+        fs.mkdirSync(dataDir, { recursive: true });
+        fs.writeFileSync(path.join(dataDir, 'library-sweep-latest.json'), JSON.stringify(report));
+        const out = sweep.forgetBundles(['gone']);
+        const disk = JSON.parse(fs.readFileSync(path.join(dataDir, 'library-sweep-latest.json'), 'utf8'));
+        ok('forgetBundles rewrites the published report without the deleted row',
+            out.dropped === 1 && disk.results.length === 2 && disk.summary.ran === 2 && disk.summary.failed === 0);
+        ok('forgetting a bundle the report never had changes nothing', sweep.forgetBundles(['nope']).dropped === 0);
+        fs.rmSync(path.join(dataDir, 'library-sweep-latest.json'));
+    }
+
     // Nothing to tidy in server/data: this test writes only under its own temp dir.
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(`\nlibrarySweep: all ${pass} checks passed`);

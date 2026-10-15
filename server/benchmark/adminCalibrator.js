@@ -193,15 +193,42 @@ class AdminCalibrator {
     // own is already running without it (predates this feature), restarts once to
     // load it. An external ComfyUI can't be restarted → openerLoaded stays false
     // and the caller falls back to the Workflows-sidebar handoff.
+    /**
+     * Ask ComfyUI whether the opener extension is actually loaded.
+     *
+     * ★ Ownership was used as a proxy for this, and it is a bad one: whenever
+     * ComfyQ restarts (any edit under server/ under nodemon), the ComfyUI it had
+     * started carries on running and is from then on "external" — so the opener
+     * it loaded was assumed absent, and "Open in ComfyUI" quietly fell back to
+     * opening plain ComfyUI on whatever was last on the canvas. ComfyUI lists its
+     * loaded web extensions at /extensions; that is the answer.
+     */
+    async _openerReported() {
+        try {
+            const c = this.comfyConfig;
+            const host = (!c.api_host || c.api_host === '0.0.0.0') ? '127.0.0.1' : c.api_host;
+            const r = await fetch(`http://${host}:${c.api_port || 8188}/extensions`, { signal: AbortSignal.timeout(5000) });
+            if (!r.ok) return null;
+            const list = await r.json();
+            return Array.isArray(list) && list.some(x => /\/comfyq_opener\//.test(String(x)));
+        } catch { return null; }
+    }
+
     async ensureOpenerLoaded() {
         await this._ensureWorker({ network: true });
+        const reported = await this._openerReported();
+        if (reported === true) {
+            this._openerLoaded = true;
+            return { ...this.comfyStatus(), openerLoaded: true };
+        }
         if (!this._openerLoaded && !this._external) {
             console.log('[AdminCalibrator] restarting ComfyUI to load the ComfyQ opener extension…');
             try { ensureOpenerInstalled(this.comfyConfig.root_path); } catch (e) { console.warn(`[AdminCalibrator] opener install skipped: ${e.message}`); }
             await this._stopWorker();
             await this._ensureWorker({ network: true });
         }
-        return { ...this.comfyStatus(), openerLoaded: this._openerLoaded && !this._external };
+        const after = await this._openerReported();
+        return { ...this.comfyStatus(), openerLoaded: after === null ? (this._openerLoaded && !this._external) : after };
     }
 
     /** What the last calibration was actually fed — prompts, params, asset paths. */

@@ -11,14 +11,18 @@ const { validateApiWorkflow } = require('../workflows/workflowValidator');
 const { parseWorkflow } = require('../workflows/workflowParser');
 const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
 const { buildModelUsage } = require('../workflows/modelUsage');
-const { listInstalledPacks, missingNodePacks, readRequirements } = require('../workflows/nodePacks');
+const { listInstalledPacks, missingNodePacks, readRequirements, refreshCachedObjectInfo } = require('../workflows/nodePacks');
 const { renderSweepReport } = require('../benchmark/sweepReport');
 const { revealPath } = require('../maintenance/revealPath');
 const {
     scoreDeletable, auditRedownload, invalidateReferenceNames,
 } = require('../workflows/modelConfidence');
-const { invalidatePackCode } = require('../workflows/modelUsage');
-const { invalidateModelIndex } = require('../workflows/vramEstimate');
+const { invalidatePackCode, bundleModelNames, recordRemovedWorkflow } = require('../workflows/modelUsage');
+const { invalidateAccessLog } = require('../workflows/modelAccessLog');
+const { LibrarySweep } = require('../benchmark/librarySweep');
+const jobCleanup = require('../storage/jobCleanup');
+const { stagedCopiesOf, bundleTemplateFingerprint, removeStagedCopies } = require('../workflows/stagedCopies');
+const { invalidateModelIndex, buildModelIndex } = require('../workflows/vramEstimate');
 const { KNOWN_DIRS: KNOWN_MODEL_DIRS } = require('../models/modelDestination');
 const {
     quarantineRoot, quarantineFile, listQuarantine, restoreFile, emptyBatch,
@@ -189,6 +193,12 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         invalidateModelIndex();
         invalidatePackCode();
         invalidateReferenceNames();
+        invalidateAccessLog();
+    }
+
+    // The ids of every workflow folder that exists now, whether or not it loads.
+    function liveBundleIds() {
+        return registry.list({ includeUnavailable: true, includeHidden: true }).map(e => e.id);
     }
 
     // ★ Append-only JSON Lines, one record per file, written BEFORE the next
@@ -338,6 +348,8 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             const r = await fetch(`http://${host}:${port}/object_info`, { signal: AbortSignal.timeout(8000) });
             if (r.ok) objectInfo = await r.json();
         } catch { /* down, or busy loading a model; the cache covers it */ }
+        // Keep the fallback no older than the last time ComfyUI answered.
+        refreshCachedObjectInfo(objectInfo);
 
         const bundles = registry.list({ includeUnavailable: false, includeHidden: true })
             .filter(e => e.apiWorkflow)
@@ -481,9 +493,15 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         // sweep never reached — which is the normal case at two hours per run.
         const bundles = registry.list({ includeUnavailable: false, includeHidden: true })
             .filter(e => e.apiWorkflow).map(e => e.id);
+        // ★ Only the library that exists NOW. A report still listing workflows
+        // deleted since reads "64 of 64 ran" on a library of 58.
+        const live = liveBundleIds();
+        const run = sw.status();
+        const running = run && (run.state === 'running' || run.state === 'stopping');
         res.json({
             available: true, bundles, bundleCount: bundles.length,
-            run: sw.status(), last: sw.lastReport(),
+            run: running ? run : LibrarySweep.forLibrary(run, live),
+            last: LibrarySweep.forLibrary(sw.lastReport(), live),
         });
     });
 
@@ -532,7 +550,8 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         // instead of replacing it with a one-line report.
         const run = sw.status();
         const live = run && (run.state === 'running' || run.state === 'stopping');
-        const report = (live && run.results?.length) ? run : (sw.lastReport() || (run?.results?.length ? run : null));
+        const report = (live && run.results?.length) ? run
+            : LibrarySweep.forLibrary(sw.lastReport() || (run?.results?.length ? run : null), liveBundleIds());
         if (!report) return res.status(404).type('text/plain').send('No sweep has been run on this machine yet.');
         // Cross-reference costs a usage scan; skip it rather than fail the report.
         let unused = null;
@@ -607,6 +626,10 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
 
     router.get('/models/usage', (req, res) => {
         try {
+            // Rescan means rescan: without this the pack-code and reference scans
+            // answered from a ten-minute cache, so a workflow deleted a minute ago
+            // still looked present to half the verdict.
+            if (req.query.fresh) invalidateUsageCaches();
             res.json(usageReport());
         } catch (e) {
             res.status(500).json({ error: e.message });
@@ -694,7 +717,10 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 const who = m.usedBy.length ? `used by ${m.usedBy.join(', ')}`
                     : m.templateOnly.length ? `loaded by the editable template of ${m.templateOnly.join(', ')}`
                         : m.dropdowns.length ? `offered by a dropdown in ${m.dropdowns.join(', ')}`
-                            : 'referenced by a workflow outside the bundles';
+                            : m.external.length ? `referenced by ${m.external[0]}${m.external.length > 1 ? ` and ${m.external.length - 1} more` : ''}`
+                                : m.packCode.length ? `loaded by the code of node pack ${m.packCode.join(', ')}`
+                                    : m.observedAt ? 'ComfyUI has been seen loading it, and no removed workflow accounts for that'
+                                        : 'still referenced by something';
                 refused.push({ rel, why: who });
                 continue;
             }
@@ -1517,6 +1543,8 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         }
     });
 
+
+
     // Delete a workflow folder bundle. Refuses to delete the currently-active
     // workflow — caller must activate another (or reset to admin) first.
     router.delete('/workflows/:id', adminGate, (req, res) => {
@@ -1539,9 +1567,57 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 return res.status(400).json({ error: 'path traversal rejected' });
             }
             if (!fs.existsSync(folder)) return res.status(404).json({ error: 'workflow not found' });
+            if ((cfg.workflows.extraLaneWorkflowIds || []).includes(id) || runtime?.lanes?.get?.(id)) {
+                return res.status(409).json({ error: 'this workflow is being served in a lane; close the lane first' });
+            }
+            const comfyRoot = cfg.comfy_ui?.root_path || '';
+
+            // ★ Write down which models it carried BEFORE the folder goes. Its
+            // weights are often protected only by "ComfyUI was seen loading
+            // this" — loads that were this workflow's own. Without the record,
+            // nothing it ever ran could be pruned afterwards.
+            const models = bundleModelNames(folder, { onDisk: buildModelIndex(comfyRoot) });
+            const recorded = recordRemovedWorkflow(comfyRoot, { id, at: Date.now() / 1000, models });
+
+            // Copies "Open in ComfyUI" left behind, judged against the template
+            // while the folder still exists. See stagedCopies.js.
+            const staged = stagedCopiesOf(id, {
+                comfyRoot,
+                lanesRoot: path.resolve(__dirname, '../..', '.comfyq-lanes'),
+                templateFingerprint: bundleTemplateFingerprint(folder),
+            });
+
             fs.rmSync(folder, { recursive: true, force: true });
             registry.discover();
-            res.json({ ok: true, id });
+
+            // The sweep report and the showcase must agree with the library.
+            let sweepRows = 0;
+            try { sweepRows = runtime?.sweep?.forgetBundles([id])?.dropped || 0; } catch { /* report optional */ }
+            // Only the seeded `examples` jobs go — they exist to show this
+            // workflow. Anybody's own jobs are their history and stay.
+            let examples = 0;
+            try {
+                const rcfg = configManager.resolvePaths(cfg);
+                const queue = runtime?.queue || _openQueueAdHoc(rcfg);
+                if (queue) {
+                    for (const j of queue.list({ userId: 'examples', limit: 100000 })) {
+                        if ((j.workflowId || j.workflow_id) !== id) continue;
+                        try { jobCleanup.removeJobArtifacts({ job: j, comfyConfig: rcfg.comfy_ui }); } catch { /* best effort */ }
+                        queue.delete(j.id);
+                        examples++;
+                    }
+                    if (!runtime?.queue && queue._closeAdHoc) queue._closeAdHoc();
+                }
+            } catch (e) { console.warn('[Admin] example cleanup failed: ' + e.message); }
+            const { removed: stagedRemoved, kept: stagedKept } = removeStagedCopies(staged);
+            invalidateUsageCaches();
+            console.log(`[Admin] deleted workflow ${id}: ${stagedRemoved.length} staged copy(ies) removed, ${stagedKept.length} edited one(s) kept`);
+            console.log(`[Admin] deleted workflow ${id}: ${models.length} model name(s) recorded`
+                + `${recorded ? '' : ' (NOT recorded — no ComfyUI root)'}, ${sweepRows} sweep row(s), ${examples} example job(s)`);
+            res.json({
+                ok: true, id, modelsRecorded: recorded ? models.length : 0, sweepRows, examples,
+                stagedRemoved, stagedKept,
+            });
         } catch (e) { res.status(500).json({ error: e.message }); }
     });
 

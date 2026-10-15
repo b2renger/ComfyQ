@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { HardDrive, RefreshCw, Trash2, AlertTriangle, Eye, ChevronDown, ChevronUp, FolderSearch, X, Save, FileWarning } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
@@ -23,7 +23,7 @@ import { SERVER_URL } from '../../utils/api';
 const ModelPrune = ({
     headers, onToast,
     scanDirs = [], onScanDirsChange = () => {}, onSaveScanDirs = async () => false,
-    savingScanDirs = false,
+    savingScanDirs = false, refreshKey = 0, onChanged,
 }) => {
     const [report, setReport] = useState(null);
     const [loading, setLoading] = useState(false);
@@ -46,7 +46,10 @@ const ModelPrune = ({
         setLoading(true);
         setError(null);
         try {
-            const res = await fetch(`${SERVER_URL}/admin/models/usage`);
+            // Always a fresh scan: the server otherwise answers parts of this from
+            // ten-minute caches, and the point of coming here after deleting
+            // workflows is to see what that freed.
+            const res = await fetch(`${SERVER_URL}/admin/models/usage?fresh=1`);
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
             setReport(data);
@@ -58,7 +61,8 @@ const ModelPrune = ({
         }
     }, []);
 
-    useEffect(() => { load(); }, [load]);
+    // refreshKey: the tab's one Rescan, which reloads every card in it.
+    useEffect(() => { load(); }, [load, refreshKey]);
     useEffect(() => {
         let gone = false;
         fetch(`${SERVER_URL}/admin/models/quarantine`)
@@ -75,7 +79,13 @@ const ModelPrune = ({
     // weaker claim than it sounds — a near-miss here already put a 1.82 GB LoRA
     // two templates load on this list — so the wider sets are a deliberate
     // click, not the default view.
-    const atLevel = level === 'all' ? unused : unused.filter(m => m.confidence === level);
+    // Freed by workflows deleted from the library — the rows someone came here for
+    // after slimming the library down.
+    const released = unused.filter(m => (m.releasedBy || []).length);
+    const releasedGb = +released.reduce((t, m) => t + m.gb, 0).toFixed(2);
+    const atLevel = level === 'all' ? unused
+        : level === 'removed' ? released
+            : unused.filter(m => m.confidence === level);
     const shown = showAll ? atLevel : atLevel.slice(0, 25);
     const pickedRows = unused.filter(m => picked.has(m.rel));
     const pickedGb = pickedRows.reduce((t, m) => t + m.gb, 0);
@@ -92,7 +102,18 @@ const ModelPrune = ({
         if (allowLow && pickedLow.length === 0) setAllowLow(false);
     }, [allowLow, pickedLow.length]);
 
+    // Open on what the admin came for: after deleting workflows, the files that
+    // freed — unless they have already chosen a group themselves.
+    const levelChosen = useRef(false);
+    useEffect(() => {
+        // The group empties once its files are quarantined; never leave the view
+        // on a group that no longer exists.
+        if (!released.length && level === 'removed') { setLevel('high'); return; }
+        if (!levelChosen.current && released.length && level !== 'removed') setLevel('removed');
+    }, [released.length, level]);
+
     const LEVELS = [
+        ...(released.length ? [{ key: 'removed', label: 'Freed by removed workflows', n: released.length, gb: releasedGb, tone: 'text-primary' }] : []),
         { key: 'high', label: 'Confident', n: report?.totals?.confident, gb: report?.totals?.confidentGb, tone: 'text-success' },
         { key: 'medium', label: 'Worth a look', n: report?.totals?.unsure, gb: report?.totals?.unsureGb, tone: 'text-warning' },
         { key: 'low', label: 'Suspicious', n: report?.totals?.suspicious, gb: report?.totals?.suspiciousGb, tone: 'text-danger' },
@@ -123,7 +144,9 @@ const ModelPrune = ({
                 data.refused?.length ? 'err' : 'ok');
             setConfirming(false);
             setAllowLow(false);
-            await load();
+            // Reloads this card AND the quarantine and sweep cards beside it, so
+            // the new batch is visible without leaving the tab.
+            if (onChanged) onChanged(); else await load();
         } catch (e) {
             onToast?.(`Could not prune: ${e.message}`, 'err');
         } finally {
@@ -145,7 +168,9 @@ const ModelPrune = ({
                                 : 'nothing unused'}
                         </Badge>
                     )}
-                    <Button variant="secondary" icon={RefreshCw} onClick={load} disabled={loading}>
+                    <Button variant="secondary" icon={RefreshCw}
+                        onClick={() => (onChanged ? onChanged() : load())} disabled={loading}
+                        title="Rescan the disk and the library, and reload every card on this tab">
                         {loading ? 'Scanning…' : 'Rescan'}
                     </Button>
                 </div>
@@ -309,7 +334,7 @@ const ModelPrune = ({
                             <div className="flex items-center gap-1 flex-wrap mb-2">
                                 {LEVELS.map(l => (
                                     <button key={l.key} type="button"
-                                        onClick={() => { setLevel(l.key); setShowAll(false); setPicked(new Set()); }}
+                                        onClick={() => { levelChosen.current = true; setLevel(l.key); setShowAll(false); setPicked(new Set()); }}
                                         className={`px-2 py-1 rounded-full text-xs border transition-colors
                                             ${level === l.key
                                                 ? 'border-primary/50 bg-primary/10 text-primary'
@@ -319,6 +344,14 @@ const ModelPrune = ({
                                 ))}
                             </div>
 
+                            {level === 'removed' && (
+                                <p className="text-xs text-muted mb-2">
+                                    These were held only because ComfyUI had been seen loading them, and every
+                                    one of those loads happened before the workflow that named it was deleted.
+                                    Nothing still on this machine refers to them. A row marked suspicious still
+                                    needs reading before you tick it.
+                                </p>
+                            )}
                             {level === 'high' && (
                                 <p className="text-xs text-muted mb-2">
                                     Nothing on this machine mentions these and nothing on disk resembles them.
@@ -397,11 +430,12 @@ const ModelPrune = ({
                                     click used to take all of them. Outside this tier
                                     a row has to be ticked after reading its reason,
                                     which is the whole point of having reasons. */}
-                                {level === 'high' ? (
+                                {level === 'high' || level === 'removed' ? (
                                     <button type="button"
-                                        onClick={() => setPicked(new Set(shown.map(m => m.rel)))}
+                                        onClick={() => setPicked(new Set(shown.filter(m => m.confidence !== 'low').map(m => m.rel)))}
                                         className="text-xs text-primary hover:underline">
-                                        Select the {shown.length} shown
+                                        Select the {shown.filter(m => m.confidence !== 'low').length} shown
+                                        {level === 'removed' && shown.some(m => m.confidence === 'low') ? ' (not the suspicious ones)' : ''}
                                     </button>
                                 ) : (
                                     <span className="text-xs text-muted">

@@ -151,6 +151,91 @@ function availableClasses({ objectInfo = null, allowCache = true } = {}) {
 }
 
 /**
+ * Keep the fallback list current: every time a live /object_info is read, it
+ * replaces the cached copy.
+ *
+ * ★ The cache was the model audit's snapshot from 2026-10-06, a week older than
+ * the ComfyUI on the drive. Whenever ComfyUI was down or slow to answer, a node
+ * ComfyUI had gained since — CameraAngle, which the 2511 angles bundle uses —
+ * read as a missing NODE PACK, with no Install button because no pack provides
+ * it. The fallback is now never older than the last time ComfyUI answered.
+ */
+function refreshCachedObjectInfo(objectInfo) {
+    // ★ Only a payload that can be a real ComfyUI. The first version of this was
+    // called from inside missingNodePacks, and its own test handed that function a
+    // two-class fixture — which then overwrote the 4.7 MB cache. It is called from
+    // the route only now, and a payload this small is refused regardless.
+    if (!objectInfo || typeof objectInfo !== 'object' || Object.keys(objectInfo).length < 200) return false;
+    // ★ And not a ComfyUI that lost most of what the cache knew. One started with
+    // --disable-all-custom-nodes, or a different install answering on the same
+    // port, would replace the list with a stripped one — and every pack bundle
+    // would then read as missing whenever ComfyUI is down. Removing a pack or two
+    // passes this; losing a fifth of the classes does not.
+    try {
+        if (fs.existsSync(CACHED_OBJECT_INFO)) {
+            const prev = Object.keys(JSON.parse(fs.readFileSync(CACHED_OBJECT_INFO, 'utf8')));
+            if (prev.length >= 200) {
+                const kept = prev.filter(k => k in objectInfo).length;
+                if (kept < prev.length * 0.8) return false;
+            }
+        }
+    } catch { /* an unreadable cache is replaced */ }
+    try {
+        fs.mkdirSync(path.dirname(CACHED_OBJECT_INFO), { recursive: true });
+        const tmp = CACHED_OBJECT_INFO + '.tmp';
+        fs.writeFileSync(tmp, JSON.stringify(objectInfo));
+        fs.renameSync(tmp, CACHED_OBJECT_INFO);
+        return true;
+    } catch { return false; }
+}
+
+// Class names ComfyUI REGISTERS in its own source (nodes.py, comfy_extras,
+// comfy_api_nodes). A core class can never be supplied by installing a pack, so
+// when only a cached list is available and a class is absent from it, finding it
+// here means "the cache is older than ComfyUI", not "a pack is missing".
+//
+// ★ Registration, not mention. The first version accepted any quoted string in
+// those files, which made "name", "description" and other generic words read as
+// core nodes — 487 pack classes matched. Two shapes register a node:
+//   node_id="CameraAngle"                        a V3 schema node
+//   NODE_CLASS_MAPPINGS = { "LoadImage": … }     a classic node table
+let _coreCache = { root: null, at: 0, names: null };
+function coreClassNames(comfyRoot) {
+    if (_coreCache.names && _coreCache.root === comfyRoot && Date.now() - _coreCache.at < 600000) {
+        return _coreCache.names;
+    }
+    const names = new Set();
+    const files = [];
+    const walk = (dir, depth) => {
+        let ents = [];
+        try { ents = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+        for (const e of ents) {
+            if (e.isDirectory()) { if (depth < 3 && !SKIP_DIRS.has(e.name)) walk(path.join(dir, e.name), depth + 1); }
+            else if (e.name.endsWith('.py')) files.push(path.join(dir, e.name));
+        }
+    };
+    if (comfyRoot) {
+        files.push(path.join(comfyRoot, 'nodes.py'));
+        walk(path.join(comfyRoot, 'comfy_extras'), 0);
+        walk(path.join(comfyRoot, 'comfy_api_nodes'), 0);
+    }
+    for (const f of files) {
+        let src = '';
+        try { src = fs.readFileSync(f, 'utf8'); } catch { continue; }
+        for (const m of src.matchAll(/node_id\s*=\s*["']([A-Za-z0-9_+\-. ]+)["']/g)) names.add(m[1]);
+        for (const block of src.matchAll(/NODE_CLASS_MAPPINGS\s*=\s*\{([\s\S]*?)\n\}/g)) {
+            for (const k of block[1].matchAll(/["']([^"'\n]+)["']\s*:/g)) names.add(k[1]);
+        }
+    }
+    _coreCache = { root: comfyRoot, at: Date.now(), names };
+    return names;
+}
+function coreSourceDefines(comfyRoot, className) {
+    if (!comfyRoot) return false;
+    return coreClassNames(comfyRoot).has(className);
+}
+
+/**
  * What a set of bundles needs that this machine cannot provide.
  *
  * ⚠ With no class list at all the answer is UNKNOWN, never "nothing missing":
@@ -193,7 +278,11 @@ function missingNodePacks(bundles, comfyRoot, opts = {}) {
 
     for (const b of bundles) {
         const wanted = classesInGraph(b.graph);
-        const miss = [...wanted].filter(c => !classes.has(c)).sort();
+        const miss = [...wanted]
+            .filter(c => !classes.has(c))
+            // Only a CACHED list can be older than ComfyUI; a live one is the truth.
+            .filter(c => source === 'live' || !coreSourceDefines(comfyRoot, c))
+            .sort();
         if (!miss.length) continue;
         out.missingByBundle[b.id] = miss;
         for (const c of miss) {
@@ -256,6 +345,7 @@ function readRequirements(absPackDir, filename = 'requirements.txt') {
 function invalidateNodePacks() { _cache = { key: null, at: 0, value: null }; }
 
 module.exports = {
+    refreshCachedObjectInfo, coreSourceDefines, coreClassNames,
     listInstalledPacks,
     missingNodePacks,
     availableClasses,

@@ -23,7 +23,7 @@ import { copyToClipboard } from '../../utils/clipboard';
  * or single-framed is named for a human to open. A bundle that "succeeded" with
  * no output at all is called out too.
  */
-const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
+const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 }) => {
     const [data, setData] = useState(null);
     const [busy, setBusy] = useState(false);
     const [open, setOpen] = useState(false);
@@ -41,7 +41,7 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
         } catch { /* a poll failure is not worth a toast */ }
     }, []);
 
-    useEffect(() => { load(); }, [load]);
+    useEffect(() => { load(); }, [load, refreshKey]);
     const running = data?.run?.state === 'running' || data?.run?.state === 'stopping';
     useEffect(() => {
         if (!running) return undefined;
@@ -60,7 +60,7 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
             const out = await res.json();
             if (!res.ok) throw new Error(out.error || `HTTP ${res.status}`);
             if (out.note) onToast?.(out.note);
-            if (what === clear) { setConfirmClear(false); setOpen(false); setInspecting(null); onToast?.(`Cleared ${out.removed ?? 0} report file(s)`); }
+            if (what === 'clear') { setConfirmClear(false); setOpen(false); setInspecting(null); onToast?.(`Cleared ${out.removed ?? 0} report file(s)`); }
             await load();
         } catch (e) {
             onToast?.(e.message, 'err');
@@ -92,7 +92,10 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
 
     // A finished run in memory, else the last one off disk — so the results
     // survive a server restart, which a two-hour run makes likely.
-    const run = data.run || data.last || null;
+    // ★ The in-memory run only while it is RUNNING. Once finished it holds just the
+    // bundles THAT run covered — "Run the remaining 3" left a 3-row card — whereas
+    // the file on disk is the merge over every earlier run, i.e. the record.
+    const run = (running ? data.run : (data.last || data.run)) || null;
     const results = run?.results || [];
     const s = run?.summary || null;
     const serving = mode === 'student';
@@ -219,6 +222,13 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000 }) => {
                             style={{ width: `${run.total ? (run.done / run.total) * 100 : 0}%` }} />
                     </div>
                 </div>
+            )}
+
+            {(run?.removedSince || []).length > 0 && !running && (
+                <p className="text-xs text-muted mb-2">
+                    Not counted: {run.removedSince.length} workflow(s) deleted since this sweep
+                    ({run.removedSince.join(', ')}).
+                </p>
             )}
 
             {/* summary */}

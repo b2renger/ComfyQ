@@ -463,5 +463,113 @@ check('and the reclaimable total is that one file',
     }
 }
 
+// 20. ★ Deleting a workflow must release the weights only it ever opened.
+//     The access log can only protect, which inverts in a removal: the loads
+//     it recorded were often the deleted workflow's own, so without a record of
+//     the removal nothing that workflow ever ran could be pruned afterwards —
+//     found by hand twice before this existed. A load recorded AFTER the
+//     removal is somebody else's and must go on protecting.
+{
+    const { recordRemovedWorkflow, bundleModelNames, REMOVED_LOG } = require('./modelUsage');
+    const { invalidateModelIndex } = require('./vramEstimate');
+    put('loras', 'gone_only.safetensors');
+    put('loras', 'gone_shared.safetensors');
+    put('loras', 'gone_late.safetensors');
+    put('loras', 'gone_never_seen.safetensors');
+    const loader = (n) => ({ class_type: 'LoraLoaderModelOnly', inputs: { lora_name: n } });
+    bundle('doomed', {
+        api: { 1: loader('gone_only.safetensors'), 2: loader('gone_shared.safetensors'), 3: loader('gone_late.safetensors') },
+        meta: { id: 'doomed', requirements: { models: [{ type: 'lora', file: 'gone_never_seen.safetensors' }] } },
+    });
+    bundle('keeper', { api: { 1: loader('gone_shared.safetensors') } });
+    const at = (name, t) => JSON.stringify({ at: t, path: path.join(comfy, 'models', 'loras', name), how: 'folder_paths' });
+    fs.appendFileSync(accessLog, [
+        at('gone_only.safetensors', 1000),
+        at('gone_shared.safetensors', 1000),
+        at('gone_late.safetensors', 1000),
+        at('gone_late.safetensors', 5000),     // opened again, after the removal below
+    ].join(String.fromCharCode(10)) + String.fromCharCode(10));
+    invalidateModelIndex();
+    invalidateAccessLog();
+    const row = (rep, n) => rep.models.find(m => m.name === n);
+
+    const names = bundleModelNames(path.join(wf, 'doomed'));
+    check('a bundle\'s model names come from its graph AND its meta',
+        names.includes('gone_only.safetensors') && names.includes('gone_never_seen.safetensors'));
+
+    // ★ Loads only: a note that names a model is documentation, and recording it
+    // would let a removal release a file the bundle never touched.
+    {
+        const noteDir = path.join(root, 'note_bundle');
+        fs.mkdirSync(noteDir, { recursive: true });
+        fs.writeFileSync(path.join(noteDir, 'note_bundle_template.json'), JSON.stringify({ nodes: [
+            { id: 1, type: 'MarkdownNote', widgets_values: ['only_mentioned.safetensors'] },
+            { id: 2, type: 'LoraLoaderModelOnly', widgets_values: ['really_loaded.safetensors', 1] },
+        ] }));
+        const n2 = bundleModelNames(noteDir);
+        check('a model a note only MENTIONS is not recorded as the bundle one', !n2.includes('only_mentioned.safetensors'));
+        check('a model a loader node names is', n2.includes('really_loaded.safetensors'));
+    }
+    // ★ And a lora dropdown's files: they appear in no graph at all.
+    {
+        put('loras', 'stylex_one.safetensors');
+        put('loras', 'stylex_two.safetensors');
+        put('checkpoints', 'stylex_not_a_lora.safetensors');
+        const dd = path.join(root, 'dropdown_bundle');
+        fs.mkdirSync(dd, { recursive: true });
+        fs.writeFileSync(path.join(dd, 'dropdown_bundle.meta.json'), JSON.stringify({
+            id: 'dropdown_bundle', exposedParameters: [{ type: 'lora', optionsFilter: 'StyleX_' }],
+        }));
+        invalidateModelIndex();
+        const n3 = bundleModelNames(dd, { onDisk: require('./vramEstimate').buildModelIndex(comfy) });
+        check('every LoRA a dropdown offers is recorded', n3.includes('stylex_one.safetensors') && n3.includes('stylex_two.safetensors'));
+        check('...but only from the dropdown folder', !n3.includes('stylex_not_a_lora.safetensors'));
+    }
+
+    const live = run();
+    check('while installed, its observed weight is in use', row(live, 'gone_only.safetensors').unused === false);
+
+    // The "what would deleting this free?" question: an ignored bundle counts as
+    // removed now, so its own loads stop protecting.
+    const asked = run({ ignoreBundles: ['doomed'] });
+    check('ignoring a bundle releases a weight only it was seen loading',
+        row(asked, 'gone_only.safetensors').unused === true
+        && row(asked, 'gone_only.safetensors').releasedBy[0].id === 'doomed');
+    check('...but not one another bundle still loads',
+        row(asked, 'gone_shared.safetensors').unused === false);
+
+    // Deleted with NO record — the state the route was in before this existed.
+    const dir = path.join(wf, 'doomed');
+    fs.rmSync(dir, { recursive: true, force: true });
+    check('without a removal record, a deleted workflow\'s weights stay protected for ever',
+        run().models.find(m => m.name === 'gone_only.safetensors').unused === false);
+
+    // Now record the removal at t=3000, between the two loads of gone_late.
+    recordRemovedWorkflow(comfy, { id: 'doomed', at: 3000, models: names });
+    const after = run();
+    check('with the record, a weight only it was seen loading is released',
+        row(after, 'gone_only.safetensors').unused === true);
+    check('...naming the workflow it was released by',
+        row(after, 'gone_only.safetensors').releasedBy.map(g => g.id).join() === 'doomed');
+    check('a weight opened AGAIN after the removal stays protected',
+        row(after, 'gone_late.safetensors').unused === false);
+    check('a weight another bundle loads stays protected',
+        row(after, 'gone_shared.safetensors').unused === false);
+    check('a weight it named but nobody ever opened was already unused, and is not "released"',
+        row(after, 'gone_never_seen.safetensors').unused === true
+        && row(after, 'gone_never_seen.safetensors').releasedBy.length === 0);
+
+    // And the confidence scorer says WHY, in words.
+    const { scoreDeletable } = require('./modelConfidence');
+    const scored = scoreDeletable(after, { comfyRoot: comfy, repoRoot: root, now: Date.now() });
+    const reason = row(scored, 'gone_only.safetensors').confidenceReasons.find(x => x.code === 'removed-workflow');
+    check('the released row says which removed workflow freed it', !!reason && /doomed/.test(reason.detail));
+
+    // A torn removal log costs one line, like the access log.
+    fs.appendFileSync(path.join(comfy, REMOVED_LOG), '{ torn');
+    check('a torn removal log still reads the lines before it',
+        run().models.find(m => m.name === 'gone_only.safetensors').unused === true);
+}
+
 fs.rmSync(root, { recursive: true, force: true });
 console.log(`modelUsage: all ${ok.length} checks passed`);

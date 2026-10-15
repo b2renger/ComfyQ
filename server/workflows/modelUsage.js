@@ -315,6 +315,103 @@ function packCodeClaims(comfyRoot) {
     return _codeCache.value;
 }
 
+// ---- Workflows removed from this machine ----------------------------------
+//
+// ★ Why this exists: the access log ("ComfyUI was seen opening this file") can
+// only PROTECT, which is right for a prune — absence is not disuse. In a
+// REMOVAL it inverts: the only thing that ever opened a weight is often the
+// workflow just deleted, so without this every model a removed workflow ever ran
+// stays protected for ever and the prune tool never offers it. That is the
+// circularity found by hand twice (2026-10-12, 2026-10-15).
+//
+// So deleting a workflow records which model names it carried. A file whose ONLY
+// protection is an observed load is released when a removed workflow named it and
+// nothing has opened it since that removal. A load recorded AFTER the removal is
+// somebody else's and keeps protecting.
+//
+// Kept beside the access log in the ComfyUI root, so the two travel together: a
+// clone keeps the log, and must keep what explains it.
+const REMOVED_LOG = 'comfyq_removed_workflows.jsonl';
+
+/**
+ * Folded basenames of the models a bundle LOADS — what to record when it is
+ * removed.
+ *
+ * ★ Loads only. A template's notes and download hints mention whole model
+ * families the graph never opens; recording those would let a removal release
+ * a file the bundle never touched. Every graph node that is not a note counts
+ * (the api.json executes; the template is what "Open in ComfyUI" runs), plus the
+ * meta's declared models.
+ *
+ * ★ And a `lora` dropdown's files. A dropdown offers every file matching its
+ * prefix, so those LoRAs appear in no graph — without this, a LoRA a student
+ * picked would stay protected by its observed load after the bundle is gone.
+ *
+ * @param {string} bundleDir
+ * @param {object} [opts]
+ * @param {Map} [opts.onDisk]  vramEstimate.buildModelIndex(): name -> { rel }
+ */
+function bundleModelNames(bundleDir, { onDisk = null } = {}) {
+    const names = new Set();
+    let entries = [];
+    try { entries = fs.readdirSync(bundleDir); } catch { return []; }
+    for (const n of entries) {
+        if (!n.endsWith('.json') || n.endsWith('.runtime.json')) continue;
+        const j = readJson(path.join(bundleDir, n));
+        if (!j) continue;
+        if (n.endsWith('.meta.json')) {
+            for (const m of (j.requirements?.models || [])) {
+                const f = typeof m === 'string' ? m : m?.file || m?.name;
+                if (typeof f === 'string' && WEIGHT_RX.test(f)) names.add(basename(f));
+            }
+            for (const p of (j.exposedParameters || [])) {
+                if (!p.optionsFilter || !onDisk) continue;
+                const prefix = String(p.optionsFilter).toLowerCase();
+                const dir = `models/${String(p.optionsDir || 'loras').split('\\').join('/').toLowerCase()}/`;
+                for (const [name, hit] of onDisk) {
+                    const lower = String(name).toLowerCase();
+                    if (lower.startsWith(prefix) && String(hit.rel || '').toLowerCase().startsWith(dir)) names.add(lower);
+                }
+            }
+            continue;
+        }
+        for (const [k, refs] of refsInGraph(j)) {
+            if (refs.some(r => r.loader !== false)) names.add(k);
+        }
+    }
+    return [...names].sort();
+}
+
+/** Append one removal. `at` is epoch SECONDS, the access log's own unit. */
+function recordRemovedWorkflow(comfyRoot, { id, at, models }) {
+    if (!comfyRoot) return false;
+    try {
+        fs.appendFileSync(path.join(comfyRoot, REMOVED_LOG),
+            JSON.stringify({ id, at, models }) + String.fromCharCode(10));
+        return true;
+    } catch { return false; }
+}
+
+/** folded name -> [{ id, at }] for every removal on record. */
+function readRemovedWorkflows(comfyRoot) {
+    const out = new Map();
+    if (!comfyRoot) return out;
+    let text = '';
+    try { text = fs.readFileSync(path.join(comfyRoot, REMOVED_LOG), 'utf8'); } catch { return out; }
+    for (const line of text.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        let row;
+        try { row = JSON.parse(line); } catch { continue; }   // a torn tail costs one line
+        if (!row || !row.id || !Array.isArray(row.models)) continue;
+        for (const n of row.models) {
+            const k = String(n).toLowerCase();
+            if (!out.has(k)) out.set(k, []);
+            out.get(k).push({ id: row.id, at: row.at || 0 });
+        }
+    }
+    return out;
+}
+
 /**
  * Classify every weight file under the install.
  *
@@ -458,6 +555,17 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
     // observation rather than an inference. It can only protect: an
     // unrecorded file is judged exactly as before.
     const access = readAccessLog(comfyRoot);
+    // Removals on record, plus the bundles this call is asked to treat as gone —
+    // the "what would deleting these free?" question exclusive.cjs asks. An
+    // ignored bundle counts as removed now, so any observation is its own.
+    const removed = readRemovedWorkflows(comfyRoot);
+    const nowSec = Date.now() / 1000;
+    for (const id of ignore) {
+        for (const n of bundleModelNames(path.join(workflowsDir, id), { onDisk })) {
+            if (!removed.has(n)) removed.set(n, []);
+            removed.get(n).push({ id, at: nowSec, pending: true });
+        }
+    }
     const filters = [];
     // HuggingFace repos a pipeline stages through: a folder of weights on disk
     // that no graph names file by file. See where this is filled, below.
@@ -540,6 +648,15 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
         const known = nodeTypes.filter(t => t.loader !== null);
         const textOnly = known.length > 0 && known.every(t => t.loader === false);
         const observed = access.byName.get(name) || null;
+        const otherwiseUnused = !used.length && !tpl.length && !ext.length && !drops.length
+            && !packedBy.length;
+        // Released: the only thing holding it is an observed load, a removed
+        // workflow named it, and nothing has opened it since that removal.
+        let releasedBy = [];
+        if (observed && otherwiseUnused) {
+            const last = observed.lastAt || observed.at || 0;
+            releasedBy = (removed.get(name) || []).filter(g => last <= g.at);
+        }
         used.sort();
         models.push({
             name: hit.name,
@@ -568,8 +685,11 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
             external: ext,
             nodeTypes,
             textOnly,
-            unused: !used.length && !tpl.length && !ext.length && !drops.length
-                && !packedBy.length && !observed,
+            observedLastAt: observed ? (observed.lastAt || observed.at) : null,
+            // The removed workflow(s) an observed load is attributed to. Non-empty
+            // only when that observation is ALL that protected the file.
+            releasedBy: [...new Map(releasedBy.map(g => [g.id, { id: g.id, at: g.at, pending: !!g.pending }])).values()],
+            unused: otherwiseUnused && (!observed || releasedBy.length > 0),
         });
     }
     models.sort((a, b) => b.gb - a.gb);
@@ -634,6 +754,7 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
 function invalidatePackCode() { _codeCache = { root: null, at: 0, value: null }; }
 
 module.exports = {
+    bundleModelNames, recordRemovedWorkflow, readRemovedWorkflows, REMOVED_LOG,
     buildModelUsage, refsInGraph, namesInGraph, basename, isLoader, isGenericBasename,
     packCodeClaims, invalidatePackCode,
 };

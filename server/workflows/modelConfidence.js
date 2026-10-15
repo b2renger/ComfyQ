@@ -297,6 +297,20 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
             reasons.push({ code: 'scan-incomplete', effect: 'lowers', detail: why });
         }
 
+        // ★ Freed by a workflow somebody removed. Its only protection was an
+        // observed load, and the loads predate the removal — so they were most
+        // plausibly that workflow's own. Said in so many words, because this is
+        // the row a person deleting a workflow came here to find.
+        if ((m.releasedBy || []).length) {
+            const ids = m.releasedBy.map(g => g.id).join(', ');
+            const when = m.releasedBy.some(g => g.pending) ? 'is being removed'
+                : `was removed`;
+            reasons.push({
+                code: 'removed-workflow', effect: 'raises',
+                detail: `only ever seen loaded while ${ids} was installed, and ${ids} ${when}`
+                    + ' — nothing has opened it since',
+            });
+        }
         if (verdict && verdict.classify === 'DELETE') {
             reasons.push({
                 code: 'audit-delete', effect: 'raises',

@@ -118,19 +118,29 @@ const VramChip = ({ vram, gpu, fit, servedHere, measured }) => {
 // A node pack this machine does not have. Louder than a missing model on
 // purpose: ComfyUI rejects the whole prompt for an unknown class_type, so the
 // student gets a failure that names nothing, and no amount of retrying helps.
-const MissingPackChip = ({ classes, packs }) => {
+const MissingPackChip = ({ classes, packs, source }) => {
     if (!classes?.length) return null;
     const named = (packs || []).filter(p => p.classes.some(c => classes.includes(c)));
-    const where = named.length
-        ? named.map(p => p.title).join(', ')
-        : 'no pack database knows it';
+    const provided = new Set(named.flatMap(p => p.classes));
+    const orphan = classes.filter(c => !provided.has(c));
+    // ★ Say which problem this is. A node no pack provides cannot be fixed by
+    // installing anything — it comes with a newer ComfyUI — so calling it a
+    // "missing node pack" sent the owner looking for an Install button that
+    // could not exist.
+    const label = named.length ? 'node pack missing' : 'node not in this ComfyUI';
+    const offline = source === 'cache'
+        ? '\n\nComfyUI was not answering, so this was checked against the last node list it gave. Start ComfyUI and reload to be sure.'
+        : '';
+    const fix = named.length
+        ? `Install ${named.map(p => p.title).join(', ')} under Manage ComfyUI → Node packs, then restart ComfyUI.`
+        : 'No node pack provides it: it ships with a newer ComfyUI. Update ComfyUI under Maintenance → Updates, then restart it.';
     return (
         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]
             font-medium border bg-danger/10 text-danger border-danger/20"
-            title={`This machine has no node for ${classes.join(', ')}.\nFrom: ${where}.\n\n`
-                + 'ComfyUI refuses the whole graph for an unknown class, so this bundle cannot run '
-                + 'here. Install it under Manage ComfyUI → Node packs, then restart ComfyUI.'}>
-            <PackageX size={12} />node pack missing
+            title={`This machine has no node for ${classes.join(', ')}.`
+                + `${orphan.length && named.length ? `\n${orphan.join(', ')}: no pack provides it — needs a newer ComfyUI.` : ''}`
+                + `\n\nComfyUI refuses the whole graph for an unknown node, so this bundle cannot run here.\n${fix}${offline}`}>
+            <PackageX size={12} />{label}{source === 'cache' ? ' (offline check)' : ''}
         </span>
     );
 };
@@ -455,7 +465,7 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
                                     <VramChip vram={w.vram} gpu={gpu} fit={anyLaneRunning ? fit : null} servedHere={!!lane} measured={w.calibration?.vramPeakGb || null} />
                                     <MissingPackChip
                                         classes={nodePackGaps?.missingByBundle?.[w.id]}
-                                        packs={nodePackGaps?.packs} />
+                                        packs={nodePackGaps?.packs} source={nodePackGaps?.source} />
                                     <ModelReadiness vram={w.vram} models={w.models} headers={headers} />
                                     {w.hasCalibration && w.calibration?.gpu && (
                                         <span className="flex items-center gap-1 text-success/80"

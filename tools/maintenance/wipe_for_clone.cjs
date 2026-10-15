@@ -13,6 +13,9 @@
  *   - comfyq_model_access.jsonl: the record of which weights have actually been
  *     loaded on this machine. It can only ever PROTECT a model from pruning,
  *     and a cloned rig starts with no history of its own.
+ *   - comfyq_removed_workflows.jsonl: which models each deleted workflow named.
+ *     It is what lets the access log STOP protecting a deleted workflow's own
+ *     weights, so it must travel with that log or the protection comes back.
  *   - pruned-models.jsonl: how to get a pruned model back. The difference
  *     between "deleted" and "lost".
  *   - config.json: checked separately; both password hashes and the HF token

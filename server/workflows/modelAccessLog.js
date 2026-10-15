@@ -30,7 +30,7 @@ let _cache = { path: null, at: 0, value: null };
  * @param {string} comfyRoot
  * @returns {{
  *   available: boolean,     the log exists, i.e. the recorder has run
- *   byName: Map,            folded basename -> { path, at, how }
+ *   byName: Map,            folded basename -> { path, at (first), lastAt (latest), how }
  *   lines: number,
  *   since: number|null,     epoch seconds of the earliest record
  * }}
@@ -56,8 +56,15 @@ function readAccessLog(comfyRoot) {
             const name = String(row.path).split(/[\\/]/).pop().toLowerCase();
             if (!name) continue;
             const prev = out.byName.get(name);
-            if (!prev || (row.at || 0) < (prev.at || 0)) {
-                out.byName.set(name, { path: row.path, at: row.at || 0, how: row.how || 'unknown' });
+            const at = row.at || 0;
+            if (!prev) {
+                out.byName.set(name, { path: row.path, at, lastAt: at, how: row.how || 'unknown' });
+            } else {
+                if (at < (prev.at || 0)) Object.assign(prev, { path: row.path, at, how: row.how || 'unknown' });
+                // ★ The LATEST sighting as well. When a workflow is removed, a load
+                // recorded before the removal is plausibly that workflow's own; one
+                // recorded after it is somebody else's and must keep protecting.
+                if (at > (prev.lastAt || 0)) prev.lastAt = at;
             }
             if (row.at && (out.since === null || row.at < out.since)) out.since = row.at;
         }

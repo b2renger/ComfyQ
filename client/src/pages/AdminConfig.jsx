@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen, Gauge, Clapperboard, ListChecks, Sparkles, Wrench } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
@@ -73,6 +73,10 @@ const AdminConfig = ({ currentMode }) => {
     const [editingWorkflowId, setEditingWorkflowId] = useState(null);
     const [refreshKey, setRefreshKey] = useState(0);
     const [deletingWorkflowId, setDeletingWorkflowId] = useState(null);
+    // Bumped by a Rescan, a prune, a restore or a workflow delete: every Maintenance
+    // card reloads, so the tab never shows a library that no longer exists.
+    const [maintenanceKey, setMaintenanceKey] = useState(0);
+    const bumpMaintenance = useCallback(() => setMaintenanceKey(k => k + 1), []);
     // Experimental → validated sign-off: the id awaiting confirmation, and the
     // id whose request is in flight.
     const [confirmValidateId, setConfirmValidateId] = useState(null);
@@ -731,7 +735,17 @@ const AdminConfig = ({ currentMode }) => {
             });
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || 'Delete failed');
-            showToast(`Workflow "${id}" deleted`);
+            const extra = [
+                data.modelsRecorded ? `${data.modelsRecorded} model name(s) noted for pruning` : null,
+                data.examples ? `${data.examples} example job(s) removed` : null,
+                data.sweepRows ? 'its sweep row dropped' : null,
+                data.stagedRemoved?.length ? `${data.stagedRemoved.length} copy(ies) left by "Open in ComfyUI" removed` : null,
+                // An edited copy is somebody's work, so it stays — and its models stay
+                // protected, which is worth saying before they go looking for them.
+                data.stagedKept?.length ? `kept ${data.stagedKept.length} copy you edited in ComfyUI (${data.stagedKept.map(f => f.split(/[\\/]/).pop()).join(', ')}) — its models stay in use until you delete it` : null,
+            ].filter(Boolean).join(' · ');
+            showToast(`Workflow "${id}" deleted${extra ? ` — ${extra}` : ''}. Its models are offered under Maintenance → Prune.`);
+            bumpMaintenance();
             setRefreshKey(k => k + 1);
             setPickedWorkflow(prev => (prev?.id === id ? null : prev));
         } catch (err) {
@@ -1433,15 +1447,20 @@ const AdminConfig = ({ currentMode }) => {
 
                     <ModelDownloads headers={adminHeaders()} onToast={showToast} hasHfToken={hasHfToken} />
 
+                    {/* One Rescan for the whole tab: after deleting workflows, the
+                        prune list, the quarantine and the sweep report all change. */}
                     <ModelPrune headers={adminHeaders()} onToast={showToast}
                         scanDirs={scanDirs} onScanDirsChange={setScanDirs}
-                        onSaveScanDirs={saveScanDirs} savingScanDirs={savingScanDirs} />
+                        onSaveScanDirs={saveScanDirs} savingScanDirs={savingScanDirs}
+                        refreshKey={maintenanceKey} onChanged={bumpMaintenance} />
 
                     {/* Directly under the prune card: it is the way back from it, and the
                         only place the reclaimed space actually happens. */}
-                    <ModelQuarantine headers={adminHeaders()} onToast={showToast} />
+                    <ModelQuarantine headers={adminHeaders()} onToast={showToast}
+                        refreshKey={maintenanceKey} onChanged={bumpMaintenance} />
 
-                    <LibrarySweep headers={adminHeaders()} onToast={showToast} mode={config.mode} />
+                    <LibrarySweep headers={adminHeaders()} onToast={showToast} mode={config.mode}
+                        refreshKey={maintenanceKey} />
 
                     <MaintenanceScripts headers={adminHeaders()} onToast={showToast} />
                 </>
@@ -1537,7 +1556,13 @@ const AdminConfig = ({ currentMode }) => {
                         including its <code>api.json</code>, <code>meta.json</code>, and any calibration data.
                     </p>
                     <p className="text-xs text-muted">
-                        Existing job records that reference this workflow will remain in the queue but won't be runnable.
+                        Its seeded example job and its row in the library sweep report go with it.
+                        Other job records that reference it stay in the history but won't be runnable.
+                    </p>
+                    <p className="text-xs text-muted">
+                        Its <strong>model files are not touched</strong>. The ones nothing else uses are then
+                        offered under <span className="text-foreground">Maintenance → Prune unused models</span>,
+                        in the group "Freed by removed workflows", to move to quarantine.
                     </p>
                     <div className="flex justify-end gap-2 pt-2 border-t border-border">
                         <Button variant="ghost" onClick={() => setDeletingWorkflowId(null)}>Cancel</Button>

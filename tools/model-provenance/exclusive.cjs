@@ -101,7 +101,13 @@ for (const m of shared) {
     const who = m.usedBy.length ? m.usedBy.join(', ')
         : m.templateOnly.length ? `template of ${m.templateOnly.join(', ')}`
             : m.dropdowns.length ? `dropdown in ${m.dropdowns.join(', ')}`
-                : 'a workflow outside the bundles';
+                // ★ Name the real signal. This used to print "a workflow outside the
+                // bundles" for an observed load and a pack's own code too, which
+                // sent people grepping folders that were never involved.
+                : m.external.length ? `the workflow ${m.external[0]}${m.external.length > 1 ? ` (+${m.external.length - 1} more)` : ''}`
+                    : m.packCode.length ? `the code of node pack ${m.packCode.join(', ')}`
+                        : m.observedAt ? `nothing named — ComfyUI was seen loading it (last ${new Date((m.observedLastAt || m.observedAt) * 1000).toISOString().slice(0, 10)}) after any removal on record`
+                            : 'something unidentified';
     console.log(`   ${gb(m.gb)}  ${m.name}`);
     console.log(`               still used by ${who}`);
 }

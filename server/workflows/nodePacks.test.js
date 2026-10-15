@@ -145,6 +145,50 @@ ok('an existing folder is reported, so install can refuse it',
     ok('pip on something that is not installed is refused',
         absent.ok === false && /not installed/.test(absent.error));
 
+    // ★ A cached class list can be older than ComfyUI. CameraAngle arrived in a
+    // ComfyUI update after the cache was taken, and the 2511 angles bundle read as
+    // "node pack missing" whenever ComfyUI was not answering — with no Install
+    // button, because no pack provides a core node.
+    {
+        const np = require('./nodePacks');
+        fs.mkdirSync(path.join(root, 'comfy_extras'), { recursive: true });
+        fs.writeFileSync(path.join(root, 'comfy_extras', 'nodes_camera_angle.py'),
+            'class CameraAngle:\n    node_id="CameraAngle"\n');
+        ok('a class ComfyUI defines in its own source is recognised as core',
+            np.coreSourceDefines(root, 'CameraAngle') === true);
+        ok('a pack class is not mistaken for core', np.coreSourceDefines(root, 'VHS_VideoCombine') === false);
+        // ★ Registration, not mention: a quoted word in core source is not a node.
+        // (A different root string so the ten-minute parse cache is not reused.)
+        fs.writeFileSync(path.join(root, 'comfy_extras', 'nodes_misc.py'),
+            'cfg = {"name": 1, "description": 2}\nNODE_CLASS_MAPPINGS = {\n    "ClassicNode": ClassicNode,\n}\n');
+        const core2 = np.coreClassNames(root + path.sep);
+        ok('a generic quoted word is not a core node', !core2.has('name') && !core2.has('description'));
+        ok('a NODE_CLASS_MAPPINGS entry is', core2.has('ClassicNode'));
+        ok('a V3 node_id is', core2.has('CameraAngle'));
+
+        // ★ And the cache refresh must never take a fixture for a real ComfyUI:
+        // the first version ran inside missingNodePacks, and THIS test file's
+        // two-class fixture overwrote the real 4.7 MB cache.
+        const cachePath = path.resolve(__dirname, '..', '..', 'tools', 'maintenance', 'model-audit', 'object_info.json');
+        const before = fs.existsSync(cachePath) ? fs.statSync(cachePath).mtimeMs : null;
+        np.missingNodePacks([{ id: 'x', graph: { 1: { class_type: 'KSampler', inputs: {} } } }], root,
+            { objectInfo: { KSampler: {}, VAEDecode: {} } });
+        ok('checking against a live list never rewrites the cache by itself',
+            (fs.existsSync(cachePath) ? fs.statSync(cachePath).mtimeMs : null) === before);
+        ok('a payload too small to be a ComfyUI is refused as a cache',
+            np.refreshCachedObjectInfo({ KSampler: {}, VAEDecode: {} }) === false);
+        // ★ And a ComfyUI that lost most of what the cache knew — one started with
+        // --disable-all-custom-nodes — must not replace it. The payload is refused
+        // before anything is written, so the real cache is never at risk here.
+        if (fs.existsSync(cachePath)) {
+            const prev = Object.keys(JSON.parse(fs.readFileSync(cachePath, 'utf8')));
+            const stripped = Object.fromEntries(prev.slice(0, Math.floor(prev.length * 0.5)).map(k => [k, {}]));
+            const mtime = fs.statSync(cachePath).mtimeMs;
+            ok('a stripped class list does not replace the cache',
+                np.refreshCachedObjectInfo(stripped) === false && fs.statSync(cachePath).mtimeMs === mtime);
+        }
+    }
+
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(`\n${pass} checks passed`);
 })();

@@ -12,7 +12,14 @@ const path = require('path');
 //    ⚠ A bump needs a ComfyUI restart to take effect (the admin's own
 //    "Activate & serve" performs one), and for the JS half a browser
 //    hard-refresh, because the module is HTTP-cached.
-const OPENER_VERSION = '4';
+// 5: waits for ComfyUI's own session restore to settle, then checks the canvas
+//    really holds the staged graph — on a slow machine the restore landed after
+//    the load and showed the previous workflow under this one's name. And the
+//    script is now installed under a VERSIONED file name: ComfyUI lists web
+//    extensions per request, so a new version is a new URL and no browser can
+//    keep running a cached old one (the hard refresh this note used to ask for).
+// 6: a reload after a lost race writes into OUR tab instead of opening "name (2)".
+const OPENER_VERSION = '6';
 const SRC = path.join(__dirname, 'opener');
 const DEST_NAME = 'comfyq_opener';
 
@@ -27,9 +34,15 @@ function ensureInstalled(comfyRoot) {
     try { current = fs.readFileSync(verFile, 'utf8').trim(); } catch { /* not installed yet */ }
     if (current === OPENER_VERSION) return { wrote: false, dir: dest };
 
-    fs.mkdirSync(path.join(dest, 'js'), { recursive: true });
+    const jsDir = path.join(dest, 'js');
+    fs.mkdirSync(jsDir, { recursive: true });
     fs.copyFileSync(path.join(SRC, '__init__.py'), path.join(dest, '__init__.py'));
-    fs.copyFileSync(path.join(SRC, 'js', 'comfyq_opener.js'), path.join(dest, 'js', 'comfyq_opener.js'));
+    // Exactly one script, under this version's name: two would both run.
+    const script = `comfyq_opener_v${OPENER_VERSION}.js`;
+    for (const n of fs.readdirSync(jsDir)) {
+        if (n.endsWith('.js') && n !== script) fs.rmSync(path.join(jsDir, n), { force: true });
+    }
+    fs.copyFileSync(path.join(SRC, 'js', 'comfyq_opener.js'), path.join(jsDir, script));
     fs.writeFileSync(verFile, OPENER_VERSION);
     return { wrote: true, dir: dest };
 }

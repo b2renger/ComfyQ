@@ -145,8 +145,61 @@ class LibrarySweep {
         const fresh = this._run.results;
         if (!prev || !Array.isArray(prev.results) || !prev.results.length) return fresh;
         const now = new Set(fresh.map(r => r.id));
-        const kept = prev.results.filter(r => !now.has(r.id));
+        // A workflow deleted since the last report has no row worth carrying.
+        let exists = null;
+        try {
+            exists = new Set(this.registry.list({ includeUnavailable: true, includeHidden: true }).map(e => e.id));
+        } catch { /* a registry that cannot list keeps everything */ }
+        const kept = prev.results.filter(r => !now.has(r.id) && (!exists || exists.has(r.id)));
         return [...kept, ...fresh].sort((a, b) => String(a.id).localeCompare(String(b.id)));
+    }
+
+    /**
+     * A report as it stands for the library that EXISTS now.
+     *
+     * ★ Rows for workflows that have since been deleted are dropped and the
+     * summary recomputed, so a library slimmed for a workshop does not go on
+     * reading "64 of 64 ran" — which is how the card looked after workflows were
+     * deleted from the library. Pure: returns a new object, never writes.
+     */
+    static forLibrary(report, liveIds) {
+        if (!report || !Array.isArray(report.results)) return report;
+        const live = new Set(liveIds);
+        const kept = report.results.filter(r => live.has(r.id));
+        if (kept.length === report.results.length) return report;
+        const removed = report.results.filter(r => !live.has(r.id)).map(r => r.id);
+        return {
+            ...report,
+            results: kept,
+            summary: LibrarySweep.summarize(kept, report.recorderAvailable ?? report.summary?.recorderAvailable),
+            removedSince: removed,
+        };
+    }
+
+    /**
+     * Drop the given bundles' rows from the published report on disk — called
+     * when a workflow is deleted, so the record and the library agree. The
+     * summary is recomputed by summarize(), never counted here.
+     */
+    forgetBundles(ids) {
+        const gone = new Set(ids);
+        const p = path.join(this._dataDir, 'library-sweep-latest.json');
+        const prev = this.lastReport();
+        let dropped = 0;
+        if (prev && Array.isArray(prev.results)) {
+            const kept = prev.results.filter(r => !gone.has(r.id));
+            dropped = prev.results.length - kept.length;
+            if (dropped) {
+                prev.results = kept;
+                prev.summary = LibrarySweep.summarize(kept, prev.recorderAvailable ?? prev.summary?.recorderAvailable);
+                fs.writeFileSync(p, JSON.stringify(prev, null, 1));
+            }
+        }
+        // A finished run still held in memory would otherwise be served instead.
+        if (this._run && this._run.state !== 'running' && Array.isArray(this._run.results)) {
+            this._run.results = this._run.results.filter(r => !gone.has(r.id));
+        }
+        return { dropped };
     }
 
     /** The report of the last sweep, read off disk — survives a restart. */
