@@ -442,7 +442,14 @@ class LibrarySweep {
         const out = [];
         for (const p of (entry.effective?.exposedParameters || [])) {
             const isMedia = ['image', 'video', 'audio', 'mask', 'model3d'].includes(p.type);
-            const literal = graph[p.nodeId]?.inputs?.[p.field];
+            // ★ A `camera` param is ONE control over several node fields, so the
+            //   literal on its primary field is a fragment of the answer — the
+            //   azimuth without the height or the framing. Recording that would
+            //   make an example recall a placement nobody chose. The whole
+            //   position is what was sent, or the meta's own default.
+            const literal = p.type === 'camera'
+                ? p.default
+                : graph[p.nodeId]?.inputs?.[p.field];
             const wasSent = Object.prototype.hasOwnProperty.call(sent, p.key);
             const row = {
                 key: p.key,

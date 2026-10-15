@@ -9,8 +9,9 @@ worksheet, not a plan: nothing here has been deleted or changed.
 > `image_flux2_dev_t2i` and `image_edit_flux2_dev_image_edit` (85.76 GB, §6d),
 > `image_qwen_image_2_1_viggle_turbo`, `3d_pixal3d_image_to_mesh` and
 > `3d_trellis2_image_to_textured_mesh` (the custom-node 3D pair, §6 note), and
-> `image_edit_qwen_multiple_character_angles` / `…_scene_angles`, replaced by the
-> single LoRA-based [image_edit_qwen_2_1_multiple_angles](../workflows/image_edit_qwen_2_1_multiple_angles/).
+> `image_edit_qwen_multiple_character_angles` / `…_scene_angles`, and (2026-10-15)
+> `image_edit_qwen_2_1_multiple_angles` itself — the camera-angle job is now done by
+> [image_edit_qwen_2511_multiple_angles](../workflows/image_edit_qwen_2511_multiple_angles/).
 > Bundles have been added since as well — among them
 > [image_edit_qwen_2_1_relight_composite](../workflows/image_edit_qwen_2_1_relight_composite/)
 > and the two Qwen 2.1 ControlNet bundles — so this survey does not cover the
@@ -140,9 +141,24 @@ section below recorded the problem: two nearly identical cards whose names impli
 character/scene distinction that was not real — *both* took any picture — differing only in
 model generation.
 
-Their job is now done by **[image_edit_qwen_2_1_multiple_angles](../workflows/image_edit_qwen_2_1_multiple_angles/)**
-on the newer Qwen-Image-2.1 base: one card instead of two, the angle picked from a dropdown
-rather than typed, and 9 s rather than 10 s / 4 s.
+Their job passed first to `image_edit_qwen_2_1_multiple_angles` on the Qwen-Image-2.1 base,
+and since **2026-10-15** to **[image_edit_qwen_2511_multiple_angles](../workflows/image_edit_qwen_2511_multiple_angles/)**,
+where the camera is placed on an orbit widget rather than picked from a dropdown.
+
+★ **The 2.1 bundle was removed because a measured A/B said it did not do its job.** Same
+subject, same seed, five matched placements: it moved the camera on **1 of 5** (only the back
+view, which the base model produces unaided), and its side and quarter views came back
+near-frontal. Its other adapter version rotates further but returns a flat cut-out on a plain
+background — it reverts to the Objaverse renders it was trained on. Re-run on a 3D-render
+subject, where that training should have favoured it, it again managed only the back view and
+additionally replaced the white plate with flat purple. The 2511 bundle gave a clean profile,
+a real back and a 3/4 on both subjects, at 9 s against 29 s. It costs ~9 GB more VRAM (27.6
+against 18.65), which is the one thing the old bundle was better at.
+
+⚠ Its two adapters (`Qwen21-MultipleAngles-v1-step1000`, `-v2-step1500`, 0.45 GB) are in
+**quarantine, not deleted**. With the bundle ignored the only thing still claiming them was an
+`observedAt` entry dated the day the bundle was built — the circular signal a removal must
+discount, checked against the sweep's per-bundle attribution before anything moved.
 
 ★ **What the removal actually freed: 20.31 GB of 68.13 GB** — and the other 47.82 GB had to
 stay, which is the whole reason removals go through

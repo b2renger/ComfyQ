@@ -1375,6 +1375,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                         options: found.options ?? d.options,
                         optionsDir: found.optionsDir,
                         optionsFilter: found.optionsFilter,
+                        camera: found.camera,
                         min: found.min,
                         max: found.max,
                         step: found.step,

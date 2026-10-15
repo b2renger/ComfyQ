@@ -4,6 +4,102 @@ Portable project knowledge for ComfyQ (multi-user ComfyUI workflow scheduler). T
 
 Detailed, evolving plans live in [implementation_plan.md](implementation_plan.md); user-facing overview in [README.md](README.md). This file is the durable, auto-loaded summary + the "why" behind decisions that aren't obvious from the code.
 
+## Latest progress (2026-10-15)
+
+**`image_edit_qwen_2_1_multiple_angles` removed — and `exclusive.cjs` said nothing was exclusive (owner, 2026-10-15)** — owner: *"ok we should remove the image_edit_qwen_2_1_multiple_angles"*, after the measured A/B the day before. 65 → **64 bundles**; the camera-angle job is now [image_edit_qwen_2511_multiple_angles](workflows/image_edit_qwen_2511_multiple_angles/) alone.
+
+### ★★ The tool reported the protection correctly and the verdict was still wrong to act on
+
+`exclusive.cjs` came back **EXCLUSIVE — (none)**, listing both angle adapters as *"still used by a workflow outside the bundles"*. Taken at face value that is "remove the bundle, keep the weights forever" — and it is the second time this exact trap has appeared.
+
+- ★★★ **Reading the REASON rather than the verdict is what settled it.** With the bundle ignored, the only field still claiming either file was **`observedAt`** — an observed load, no graph, no template, no dropdown, no pack code. And `observedAt` is **2026-10-10T09:10:02 UTC**, which is the day the bundle was *built*: the only thing that ever opened those weights is the thing being removed. That is the inversion this file already records (*"in a REMOVAL, presence is not need"*), hit again from a different direction — last time through the sweep, this time through the build session.
+- **Checked rather than assumed, both ways the convention asks for:** no sweep row in any report is credited with opening either file, and a grep of `workflows/` finds them named only in the three files of the bundle being removed. The catch-all reason string *"a workflow outside the bundles"* was also checked literally — the candidate folder, `J:/_demo_workflows` and ComfyUI's own user-workflows dir contain no mention of them.
+- ⚠ **The reason string is misleading and worth knowing:** `exclusive.cjs` falls through to *"a workflow outside the bundles"* whenever `usedBy`/`templateOnly`/`dropdowns` are all empty — so an **observed load, a node pack's code or a staged HF repo folder all print as an outside workflow**. It names a protection it has not actually identified. Read the model record, not the summary line.
+- **MOVED TO QUARANTINE, NOT DELETED** — `J:\_model_quarantine\2026-10-15T07-41-54-229Z`, 2 files / **0.45 GB** (`Qwen21-MultipleAngles-v1-step1000`, `-v2-step1500`), restorable from the Quarantine card. ★ Note the prune ROUTE would have refused these, correctly by its own rules: it re-derives usage and `observedAt` makes them read as used. The quarantine module was driven directly after the circularity was established, which is the one case where going round the route is the honest move rather than a shortcut.
+- **Verified after:** 64 bundles load, **0 report a missing model**, and all **6 remaining Qwen 2.1 bundles** (relight, both ControlNets, image-edit, t2i, t2i-fix) still resolve the three shared base weights — 16.55 GB that reading the meta's model list literally would have taken.
+
+### Keeping the library, the report and the showcase at the same number
+
+- ★ **A shared staged input nearly made this destructive.** The removed bundle's seeded example points at `comfyq_session__0_0__Woman.png`, and **five** examples share that file. `jobCleanup.removeJobArtifacts` only deletes outputs, the ingredients snapshot and **chain-prefixed** inputs — never the `comfyq_session__` upload — so the other four were never at risk. Worth checking before deleting any example, because the prefix that is swept and the prefix that is shared look alike.
+- **The published report's row went with the bundle**, and its summary was recomputed by `LibrarySweep.summarize` rather than counted in the removal script — the same rule the recovery tool follows, so the card and the report cannot disagree. Library, report and examples all read **64**, and the round-trip check passes **550 assertions, coverage 64 of 64**.
+- **[docs/workflow-redundancy.md](docs/workflow-redundancy.md) updated** with the measured reason for the removal rather than just the fact of it. Its two remaining mentions of the old id are plain text in a dated passage, not links — a record, not a dead reference.
+
+### Conventions this added
+
+- ★★★ **"Nothing is exclusive" is a question, not an answer.** When a removal tool protects a file, read WHICH signal protected it. An observed load, pack code and a staged repo folder are very different claims, and one of them inverts in a removal.
+- ★★ **A catch-all reason string in a safety tool is a defect.** `exclusive.cjs` prints "a workflow outside the bundles" for three unrelated protections including the one that cannot be trusted here. Either name the real signal or say it is unknown — a confident wrong reason is what sends somebody to grep a directory that was never involved.
+- ★ **Before deleting a job, check whether its inputs are shared.** Examples are seeded from one asset pool and routinely point at the same staged upload.
+
+## Latest progress (2026-10-14)
+
+**Place the camera instead of picking a phrase — a new control type, and the A/B that says which angle bundle to actually use (owner, 2026-10-14)** — owner: *"Build an experimental comfyQ card from image_edit_qwen_multiangle.json. You will need to build a new widget to place the camera as it is done in comfyUI. This could also probably be adapted to image_edit_qwen_2_1_multiple_angles. Do some tests checks the outputs and compare both workflows to see which one you find better."* New **[image_edit_qwen_2511_multiple_angles](workflows/image_edit_qwen_2511_multiple_angles/)** (experimental, **6 s warm / 14 s cold / 27.6 GB**), 64 → **65 bundles**, and both angle bundles now take the same camera.
+
+### ★★★ The A/B: the new bundle wins on the thing the old one is for
+
+Same portrait, same seed, five matched placements, both bundles — then the pictures were opened rather than scored.
+
+| | Qwen-Image **2.1** + akhaliq LoRA | Qwen-Image-**Edit 2511** + fal LoRA |
+|---|---|---|
+| camera actually moved | **1 of 5** (only the back view) | **5 of 5** |
+| look | photographic when it works | photographic |
+| per shot | 29 s (40 steps) | **9 s** (4-step Lightning) |
+| VRAM | 18.65 GB | 27.6 GB |
+
+- ★★ **2.1's side and quarter views came back near-FRONTAL** — the camera had not moved. Only "back view" worked, which is the one CLAUDE.md already records the base model doing on its own (*"v2 @0.0 — the base model on the same seed — also produces a back view"*). So on a photographic portrait its angle control is mostly inert.
+- ★★ **And being fair to it changed nothing: v2 rotates further and destroys the photograph.** Given the same placement, the v2 adapter returned a **flat cut-out head on a plain pale background, shoulders gone** — precisely the training-distribution collapse recorded on 2026-10-12 (*"the flat, plain-background look of the Objaverse renders it was trained on"*). Neither adapter version gives a usable side view of a real photo.
+- **2511 gave a clean profile, a real back, a 3/4 and the opposite side**, keeping the pearl earring, the houndstooth jacket continued round the shoulder, the hairstyle, the film grain and the studio backdrop. At **4 steps and 9 seconds**.
+- ★ **The slow path buys nothing here.** The same shot at 40 steps / cfg 4 took **142 s** and is indistinguishable from the 9 s one. Fast mode is the default for that reason, not for thrift.
+- ★★ **Re-measured on the OWNER'S OWN subject, which refuted my hypothesis.** Their test image is a 3D-render character, and 2.1's adapter was trained on renders, so it should have been the case where 2.1 wins. It is not: on the clay figure 2.1 again gave **only the back view**, and on the side and quarter placements it returned a near-frontal figure **with the white plate replaced by flat purple** — it did not merely fail to turn, it wrecked the background. 2511 gave a clean profile, a real back and a 3/4 with the plate and even the stock watermark intact. ★ The guess was reasonable and wrong, which is the argument for running it rather than reasoning about it.
+- **The 2.1 bundle is kept, not removed** — it is the owner's validated card, it costs 9 GB less, and its 12-point compass is finer than CameraAngle's 8. Its description now states the measured limitation in words instead of implying the control works everywhere.
+
+### ★★ A control that writes SEVERAL fields — the first one ComfyQ has had
+
+Every parameter so far set one field on one node. A camera position is three numbers, and the two bundles do not even spell it the same way: ComfyUI's `CameraAngle` node takes azimuth/elevation/zoom and writes its own English, while the 2.1 bundle has two string dropdowns (12 compass points, 4 heights × a close-up variant) and no numbers anywhere.
+
+- **New `camera` param type.** Its wire value is a small JSON position; `camera.targets` in the meta says how THIS graph is told about it — raw numbers, or the nearest label from a list the meta supplies. ★ **The vocabulary is DECLARED, not hardcoded**, so the widget's readout and the value the graph receives are computed from one set of numbers that travels on the wire. [cameraAngle.js](server/workers/cameraAngle.js) + the materializer hook; the widget is [CameraAngleField.jsx](client/src/components/capture/CameraAngleField.jsx).
+- ★★ **Both halves are pinned to ComfyUI's own python, not to each other.** `describe_camera_angle` was run over a **5110-point grid** and the result committed as [cameraAngle.fixture.json](server/workers/cameraAngle.fixture.json); the server test and the client test each assert every point. So the phrase a student reads and the phrase the node emits cannot drift apart without a test going red — the alternative, two copies agreeing with each other, is the shape this file already warns about.
+- ★ **What the widget is really for is the READOUT.** The control looks continuous and is not: the prompt is a bucket, **8 positions × 4 heights × 3 framings = 96 shots**, so most nudges change nothing. The stage shows the subject with the uploaded picture on it and the camera on its orbit, and under it the exact chips the model will be given. **Move until a chip changes** is the whole instruction, and it is in the description.
+- **The 2.1 bundle's two dropdowns became the same widget** — its graph is untouched, the same two `PrimitiveString` nodes still get the same strings. Verified exhaustively: over **11,552 placements** every one writes a string that dropdown already offered, so the adapter can never be handed a phrase it was not trained on. Its seeded example gained the equivalent placement so "Use these settings" still works.
+- ⚠ **Its vertical vocabulary has no low-angle term**, so below eye level the chip does not change. The widget shows that rather than hiding it, and the axis is clamped at 0.
+
+### ★★★ Black images again — and this time it ate my own calibration
+
+The first comparison run came back with **every 2511 output pure black, mean 0.0**, while the 2.1 row was fine. Qwen-Image-Edit under `--use-sage-attention` saves black images with no error — the failure this file has recorded twice and which this rig runs into because Sage is on globally.
+
+- ★★★ **The bundle had calibrated "successfully" on a black render.** 6 s warm, 26.61 GB, a clean `runtime.json` — all of it measured on nothing, because the meta did not yet declare `disabledPerfFlags` and nothing in a calibration looks at the picture. **A timing is not a result.** It was caught only by running `output_stats.py` over the outputs out of habit, which is exactly why that habit is written down.
+- **Fixed by declaring it:** `requirements.disabledPerfFlags: ["use_sage_attention"]`, after which ComfyQ relaunches ComfyUI masked and the same run produces a real picture — at **the same 6 s**, so Sage was buying nothing here anyway (the same finding as Ideogram 4).
+- ★★ **And the guard proved itself an hour later.** A nodemon restart left the running ComfyUI *external* to the new ComfyQ, so a sweep of this bundle **refused to run**: *"the ComfyUI it would run on was started with Sage attention, which this workflow lists as incompatible — the run would produce black output and the timing would be meaningless."* It declined to measure rather than report a number. Handing the backend back (`POST /admin/comfyui/restart`) and re-running gave a clean row. ★ **A refusal is the correct output when the only alternative is a confident wrong figure.**
+
+### ★ Height implies distance — the third slider is not decoration
+
+The one placement that looked broken was "elevated shot": a head-and-shoulders portrait became a small full-body figure on a blurry street. Probing one axis at a time showed it is the vocabulary working as written, not a fault: **"elevated shot" and "high-angle shot" are framing terms that imply standing back**, and the model obeys. Setting the framing to **close-up pulls it straight back to the face** at the same elevation. So the three terms interact, and the description says so.
+
+### ★★ The sliders could be clicked but not dragged — a component declared in a render body
+
+Owner: *"In the new widget we cannot drag the sliders, we can just click to the position we want."* Exactly right, and the cause is a React trap worth writing down: `Slider` was declared **inside** `CameraAngleField`. An arrow function in a render body is a **new component TYPE on every render**, so React unmounted the `<input type="range">` and mounted a fresh one the instant the first change fired — which is mid-gesture. The browser's pointer capture died with the old element, so the mousedown jump landed and the rest of the drag went nowhere.
+
+- **Fixed by hoisting it to module scope**, where the element keeps its identity across renders.
+- ★★ **Proved by A/B rather than asserted.** Measured as *distinct values seen during one press*: inline **1** (and the other two handles went stale — the DOM nodes were gone), hoisted **12 of 12** on all three axes, with click-to-position still working. Reverting the fix brought the failure straight back. ★ The first attempt at that check reported a false failure of its own — the sliders sit below the fold in a long dialog, so the mouse was landing on nothing until it scrolled them into view. **A UI check that does not scroll to its target is measuring the viewport, not the widget.**
+- **Swept the rest of the client for the same shape:** three others (`LibrarySweep.PathLink`, `ModelReadiness.ToRig`/`Where`), all links and buttons. A remount costs them a re-render and nothing else — the bug only bites a control holding a live interaction: a drag, a caret, focus, a playing media element. Left alone.
+
+### Also
+
+- **The candidate converted through [ui-to-api](tools/ui-to-api/convert.mjs)** (subgraph export — hand-flattening was never an option). ★ The owner independently exported their own api.json mid-session: **26 nodes, 0 differing inputs** against the converter's. A free check that the converter is faithful.
+- ★ **A multi-field param was recorded as a fragment.** `librarySweep._ingredients` reads the graph literal at `p.field`, which for a camera is the azimuth without the height or the framing — so the seeded example recalled a placement nobody chose. It records the whole position now (the sent value, else the meta default), and the bundle's `warmupParams` names the camera so the sweep exercises the real path.
+- **Verified in the browser, which is the only thing that can check a new widget**: the WebGL stage mounts, dragging moves the phrase to the neighbouring shot, the presets land exactly, and a booked job carried `{"horizontal":90,"vertical":0,"zoom":5}` through to a completed render — 0 console errors, 0 failed media requests.
+- **65 of 65 clean** in the merged sweep report, an example seeded for the new bundle, and **558 round-trip checks** over the showcase.
+
+### Conventions this added
+
+- ★★★ **A timing measured on an unopened output is not a measurement.** A calibration reports seconds and VRAM whatever the picture contains; this bundle produced a clean `runtime.json` from an all-black render. Run the output through `output_stats.py` before believing any new bundle's first numbers.
+- ★★★ **A refusal beats a confident wrong number.** The sweep declining to calibrate under a flag the workflow disowns is the behaviour to copy, not a bug to route around.
+- ★★ **When one control feeds several fields, the mapping belongs in the META and the arithmetic gets pinned to the authority.** Declaring the vocabulary makes client and server read the same numbers off the wire; generating the test fixture from the node's own code is what stops two copies agreeing with each other while both are wrong.
+- ★★ **A control that looks continuous but buckets must show its buckets.** 96 reachable shots behind three sliders reads as 1° precision unless the resulting phrase is on screen and visibly stops changing.
+- ★ **An ingredient for a multi-field param must record the whole value.** The literal on its primary field is a fragment, and an example seeded from a fragment recalls a setting nobody chose.
+- ★★★ **Never declare a component inside a render body.** It is a new type every render, so React throws the DOM node away and builds another — which silently kills any in-progress interaction. It looks like "the slider only responds to clicks", and no unit test can see it.
+- ★★ **A harness that talks to ComfyUI DIRECTLY does not get ComfyQ's flag masking.** The black-image trap bit twice in one session for this reason: the comparison runner bypassed the masking that `disabledPerfFlags` buys. Any direct-to-ComfyUI script must read `/system_stats` argv and refuse, the way the sweep does.
+- ★ **Being fair to the losing option is part of the comparison.** 2.1 was re-run with its other adapter before the verdict; that run is what turned "it barely rotates" into the more useful "v1 barely rotates and v2 reverts to its training renders".
+
 ## Latest progress (2026-10-13)
 
 **Three candidates promoted — and the library's first MESH INPUT, which needed a new parameter type (owner, 2026-10-13)** — owner: *"check in the WF in candidate folder and build experimental cards for ComfyQ"*, then *"do the same with the audio yue2 music cover workflow"*, then *"we do not need a full resweep, but examples for the three new experimental workflows (for the input of yue use an output from stable audio — the inputs of the meshes use outputs from treillis or pixal)"*. 61 → **64 bundles**, all three experimental, all three calibrated and seeded as examples.
