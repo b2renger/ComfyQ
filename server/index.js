@@ -151,9 +151,17 @@ async function main() {
                 // The scan folders have to follow the drive as well; see
                 // configManager.followDriveLetter for why this one is worth care.
                 if (Array.isArray(rawConfig.maintenance?.workflowScanDirs)) {
-                    rawConfig.maintenance.workflowScanDirs = configManager.followDriveLetter(
-                        rawConfig.maintenance.workflowScanDirs, detected.root_path,
+                    const before = rawConfig.maintenance.workflowScanDirs;
+                    const after = configManager.followDriveLetter(
+                        before, detected.root_path,
                         (m) => console.log(`[ComfyQ] scan folder followed the drive: ${m}`));
+                    rawConfig.maintenance.workflowScanDirs = after;
+                    // A switched-off folder is keyed by its path, so the off-list
+                    // follows the same rewrite — or it would quietly switch back on.
+                    if (Array.isArray(rawConfig.maintenance.scanDirsOff)) {
+                        const moved = new Map(before.map((b, i) => [b, after[i]]));
+                        rawConfig.maintenance.scanDirsOff = rawConfig.maintenance.scanDirsOff.map(k => moved.get(k) ?? k);
+                    }
                 }
                 configManager.save(rawConfig);
             } else if (root) {

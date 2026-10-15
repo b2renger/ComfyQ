@@ -98,6 +98,8 @@ const AdminConfig = ({ currentMode }) => {
     // This machine's label on the LAN (fleet monitor). Draft + saving flag.
     const [machineName, setMachineName] = useState('');
     const [scanDirs, setScanDirs] = useState([]);
+    // Folders switched off in the prune scan: a default's key or a custom entry.
+    const [scanDirsOff, setScanDirsOff] = useState([]);
     const [savingScanDirs, setSavingScanDirs] = useState(false);
     // The HF token is write-only: the server reports whether one is set, never
     // what it is, so the draft starts empty even when a token is stored.
@@ -176,6 +178,7 @@ const AdminConfig = ({ currentMode }) => {
             // ModelPrune, so the Drive letter swap can reach them: an absolute
             // entry is exactly the kind of path a cloned drive invalidates.
             setScanDirs(data.config.maintenance?.workflowScanDirs || []);
+            setScanDirsOff(data.config.maintenance?.scanDirsOff || []);
         } catch (e) {
             console.error(e);
         } finally {
@@ -222,17 +225,22 @@ const AdminConfig = ({ currentMode }) => {
         }
     };
 
-    const saveScanDirs = async (dirs) => {
+    const saveScanDirs = async (dirs, off = scanDirsOff) => {
         setSavingScanDirs(true);
         try {
             const res = await fetch(`${SERVER_URL}/admin/maintenance/scan-dirs`, {
                 method: 'PUT', headers: adminHeaders(),
-                body: JSON.stringify({ workflowScanDirs: dirs })
+                body: JSON.stringify({ workflowScanDirs: dirs, scanDirsOff: off })
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
             setScanDirs(data.workflowScanDirs);
-            showToast('Saved the extra workflow folders — rescan to apply them');
+            setScanDirsOff(data.scanDirsOff || []);
+            // Keep `config` in step so "unsaved changes" clears and Save settings
+            // does not think the folders are stale.
+            setConfig(c => (c ? { ...c, maintenance: { ...(c.maintenance || {}),
+                workflowScanDirs: data.workflowScanDirs, scanDirsOff: data.scanDirsOff || [] } } : c));
+            showToast('Saved the workflow folders');
             return true;
         } catch (e) {
             showToast(`Could not save: ${e.message}`, 'err');
@@ -255,8 +263,9 @@ const AdminConfig = ({ currentMode }) => {
             // then reloadConfig() pulled the OLD scan dirs straight back over the
             // swapped ones. On a cloned rig that is exactly how you end up pruning
             // against a folder that no longer resolves.
-            const stale = JSON.stringify(scanDirs) !== JSON.stringify(config.maintenance?.workflowScanDirs || []);
-            if (stale) await saveScanDirs(scanDirs);
+            const stale = JSON.stringify(scanDirs) !== JSON.stringify(config.maintenance?.workflowScanDirs || [])
+                || JSON.stringify(scanDirsOff) !== JSON.stringify(config.maintenance?.scanDirsOff || []);
+            if (stale) await saveScanDirs(scanDirs, scanDirsOff);
 
             // ★★ The HuggingFace token too, for exactly the reason above it. It sits
             // in this card among the fields this button saves, but it lives on its
@@ -375,6 +384,8 @@ const AdminConfig = ({ currentMode }) => {
         // paths too, and a folder missed by the swap makes its models look
         // unused — which is what the prune list offers for deletion.
         setScanDirs(prev => prev.map(swap));
+        // A switched-off entry is keyed by its path, so it follows the swap too.
+        setScanDirsOff(prev => prev.map(k => (/^[A-Za-z]:[\\/]/.test(k) ? swap(k) : k)));
         setPathChecks(null);
         showToast(`Switched all absolute paths to ${letter}:\\ — click Save settings to apply`);
     };
@@ -1452,6 +1463,9 @@ const AdminConfig = ({ currentMode }) => {
                     <ModelPrune headers={adminHeaders()} onToast={showToast}
                         scanDirs={scanDirs} onScanDirsChange={setScanDirs}
                         onSaveScanDirs={saveScanDirs} savingScanDirs={savingScanDirs}
+                        scanDirsOff={scanDirsOff} onScanDirsOffChange={setScanDirsOff}
+                        savedScanDirs={config?.maintenance?.workflowScanDirs || []}
+                        savedScanDirsOff={config?.maintenance?.scanDirsOff || []}
                         refreshKey={maintenanceKey} onChanged={bumpMaintenance} />
 
                     {/* Directly under the prune card: it is the way back from it, and the

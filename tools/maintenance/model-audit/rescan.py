@@ -11,7 +11,7 @@ from collections import defaultdict
 HERE = os.path.dirname(os.path.abspath(__file__))
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-from comfyq_paths import comfy_root, labelled_workflow_dirs, repo_root
+from comfyq_paths import comfy_root, labelled_workflow_dirs, repo_root, walk_workflows
 # Where ComfyUI is comes from ComfyQ's config (Manage ComfyUI -> ComfyUI
 # Settings), not from this file's position on the disk. See comfyq_paths.py.
 COMFY = comfy_root()
@@ -145,7 +145,7 @@ def iter_workflow_files():
     for d in WORKFLOW_DIRS:
         if not os.path.isdir(d):
             continue
-        for root, _dirs, files in os.walk(d):
+        for root, _dirs, files in walk_workflows(d):
             for f in files:
                 if f.lower().endswith(".json"):
                     yield d, os.path.join(root, f)

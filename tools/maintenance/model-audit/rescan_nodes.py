@@ -16,7 +16,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 OI_PATH = os.path.join(HERE, "object_info.json")
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
-from comfyq_paths import comfy_root, labelled_workflow_dirs, repo_root
+from comfyq_paths import comfy_root, labelled_workflow_dirs, repo_root, walk_workflows
 # From ComfyQ's config rather than this file's position. See comfyq_paths.py.
 CUSTOM = os.path.join(comfy_root(), "custom_nodes")
 OUT = os.path.join(HERE, "nodes.json")
@@ -75,7 +75,7 @@ nwf = 0
 for base, origin in WF.items():
     if not os.path.isdir(base):
         continue
-    for root, _d, files in os.walk(base):
+    for root, _d, files in walk_workflows(base):
         for f in files:
             if not f.lower().endswith(".json"):
                 continue

@@ -33,17 +33,20 @@ if (!REMOVE.length && !UNUSED_MODE) {
 }
 
 let comfyRoot = process.env.COMFY_ROOT;
-let extraDirs = [];
+let cfg = {};
 try {
-    const cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
+    cfg = JSON.parse(fs.readFileSync(path.join(ROOT, 'config.json'), 'utf8'));
     comfyRoot = comfyRoot || cfg.comfy_ui?.root_path;
-    extraDirs = [...(cfg.maintenance?.workflowScanDirs || [])];
 } catch { /* no config on this machine */ }
 if (!comfyRoot || !fs.existsSync(comfyRoot)) {
     console.error('ComfyUI install not found — set COMFY_ROOT');
     process.exit(2);
 }
-extraDirs.push(path.join(comfyRoot, 'user', 'default', 'workflows'));
+// The same folders, switched on and off the same way, as the admin panel —
+// one resolver, so the two cannot disagree. See server/workflows/scanFolders.js.
+const { scanSetup } = require(path.join(ROOT, 'server', 'workflows', 'scanFolders'));
+const usageOpts = scanSetup({ ...cfg, comfy_ui: { ...(cfg.comfy_ui || {}), root_path: comfyRoot } },
+    { repoRoot: ROOT, workflowsDir: WF }).usageOpts;
 
 const { buildModelUsage } = require(path.join(ROOT, 'server', 'workflows', 'modelUsage'));
 const gb = (n) => `${n.toFixed(2)} GB`.padStart(10);
@@ -53,7 +56,7 @@ for (const id of REMOVE) {
     if (!fs.existsSync(path.join(WF, id))) { console.error(`no such bundle: ${id}`); process.exit(2); }
 }
 
-const report = buildModelUsage({ comfyRoot, workflowsDir: WF, extraDirs, ignoreBundles: REMOVE });
+const report = buildModelUsage({ comfyRoot, workflowsDir: WF, ...usageOpts, ignoreBundles: REMOVE });
 console.log(`scanned ${report.scanned.bundles} bundles and ${report.scanned.files} workflow files`);
 for (const d of report.scanned.dirs) console.log(`   also: ${d}`);
 
@@ -76,7 +79,7 @@ if (UNUSED_MODE) {
 
 // What the doomed bundles reference is whatever became unused by ignoring them,
 // plus anything of theirs that is still held by something else.
-const full = buildModelUsage({ comfyRoot, workflowsDir: WF, extraDirs });
+const full = buildModelUsage({ comfyRoot, workflowsDir: WF, ...usageOpts });
 const theirs = new Set();
 for (const m of full.models) {
     const mine = [...m.usedBy, ...m.templateOnly, ...m.dropdowns].some(b => REMOVE.includes(b));

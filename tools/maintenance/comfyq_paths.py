@@ -90,15 +90,45 @@ def models_root(required=True):
     return os.path.join(root, 'models') if root else None
 
 
-def workflow_dirs():
-    """Every folder on this machine holding ComfyUI workflow JSON.
+def _scan_off():
+    """What the admin switched off in Maintenance → Folders scanned."""
+    return set((load_config().get('maintenance') or {}).get('scanDirsOff') or [])
 
-    ★ Keep this in step with server/workflows/modelUsage.js, which decides what
-    is safe to delete. A folder missing from one and present in the other means
-    the two tools disagree about whether a model is in use.
+
+def excluded_workflow_dirs():
+    """Folders the walkers must skip even when a parent is scanned.
+
+    Only the candidates folder needs this: it lives INSIDE workflows/, which is
+    always scanned because it holds the bundles.
+    """
+    root = repo_root()
+    out = []
+    if root and 'candidates' in _scan_off():
+        out.append(os.path.normcase(os.path.normpath(os.path.join(root, 'workflows', '_candidate_workflows'))))
+    return out
+
+
+def walk_workflows(base):
+    """os.walk over a workflow folder, minus anything switched off."""
+    skip = excluded_workflow_dirs()
+    for root, dirs, files in os.walk(base):
+        dirs[:] = [d for d in dirs
+                   if os.path.normcase(os.path.normpath(os.path.join(root, d))) not in skip]
+        yield root, dirs, files
+
+
+def workflow_dirs():
+    """Every folder on this machine holding ComfyUI workflow JSON that counts.
+
+    ★ Keep this in step with server/workflows/scanFolders.js, which decides the
+    same thing for the admin panel's prune tool. A folder counted by one and not
+    the other means the two tools disagree about whether a model is in use.
+    Switched-off folders (config.maintenance.scanDirsOff) are left out here; the
+    panel still reads them to say why a model is unprotected.
     """
     dirs = []
     root = repo_root()
+    off = _scan_off()
     if root:
         dirs.append(os.path.join(root, 'workflows'))
 
@@ -107,14 +137,24 @@ def workflow_dirs():
     # Relative entries resolve against the ComfyUI root, so a config travels
     # between machines that mount the NVMe under different letters.
     for entry in (cfg.get('maintenance') or {}).get('workflowScanDirs') or []:
-        if not entry:
+        if not entry or entry in off:
             continue
         p = entry if os.path.isabs(entry) else (os.path.join(comfy, entry) if comfy else None)
         if p:
             dirs.append(os.path.normpath(p))
 
-    if comfy:
+    if comfy and 'comfyui-user' not in off:
         dirs.append(os.path.join(comfy, 'user', 'default', 'workflows'))
+
+    # Each parallel lane's own ComfyUI saves graphs here, one folder per profile.
+    if root and 'lanes' not in off:
+        lanes = os.path.join(root, '.comfyq-lanes')
+        if os.path.isdir(lanes):
+            for wf in sorted(os.listdir(lanes)):
+                user = os.path.join(lanes, wf, 'user')
+                if os.path.isdir(user):
+                    for prof in sorted(os.listdir(user)):
+                        dirs.append(os.path.join(user, prof, 'workflows'))
 
     seen, out = set(), []
     for d in dirs:
@@ -145,6 +185,8 @@ def labelled_workflow_dirs():
             label = 'comfyq'
         elif key == staged:
             label = 'comfyui_staged'
+        elif '.comfyq-lanes' in key:
+            label = 'lane'
         else:
             base = os.path.basename(d.rstrip('\\/')).lstrip('_').lower()
             label = 'demo' if 'demo' in base else (base or 'extra')

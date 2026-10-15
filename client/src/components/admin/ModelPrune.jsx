@@ -23,6 +23,7 @@ import { SERVER_URL } from '../../utils/api';
 const ModelPrune = ({
     headers, onToast,
     scanDirs = [], onScanDirsChange = () => {}, onSaveScanDirs = async () => false,
+    scanDirsOff = [], onScanDirsOffChange = () => {}, savedScanDirs = [], savedScanDirsOff = [],
     savingScanDirs = false, refreshKey = 0, onChanged,
 }) => {
     const [report, setReport] = useState(null);
@@ -41,6 +42,10 @@ const ModelPrune = ({
     // than describing a deletion that does not happen.
     const [quarantineRoot, setQuarantineRoot] = useState('');
     const [showMissing, setShowMissing] = useState(false);
+    // Edited but not saved: the list on screen no longer matches what the scan used.
+    const norm = (a) => JSON.stringify([...(a || [])].map(x => String(x).trim()).filter(Boolean));
+    const dirsDirty = norm(scanDirs) !== norm(savedScanDirs)
+        || JSON.stringify([...(scanDirsOff || [])].sort()) !== JSON.stringify([...(savedScanDirsOff || [])].sort());
 
     const load = useCallback(async () => {
         setLoading(true);
@@ -204,80 +209,120 @@ const ModelPrune = ({
                         </span>
                     </p>
 
-                    {/* What the verdict rests on. Always-scanned folders are listed
-                        as fixed context so nobody adds them as a row, and the
-                        editable ones show where a relative entry resolved to. */}
+                    {/* What the verdict rests on: every folder of workflows, each one
+                        switchable except the bundles. A switched-off folder is still read,
+                        so a model only it names is listed with that as the reason and is
+                        kept out of the confident group — never silently deletable. */}
                     <button type="button" onClick={() => setShowDirs(d => !d)}
                         className="flex items-center gap-1 text-xs text-primary hover:underline mb-3">
                         <FolderSearch size={12} />
-                        Folders scanned ({report.scanned.dirs?.length || 0} extra)
+                        Folders scanned for workflows
+                        ({(report.folders || []).filter(f => f.on).length} on
+                        {(report.folders || []).some(f => !f.on) ? `, ${(report.folders || []).filter(f => !f.on).length} off` : ''})
+                        {dirsDirty && <span className="text-warning"> · unsaved changes</span>}
                         {showDirs ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
                     </button>
 
                     {showDirs && (
                         <div className="mb-4 rounded-lg border border-border bg-background/60 p-2 space-y-2 text-xs">
                             <p className="text-muted">
-                                Always scanned, and <span className="text-foreground">recursively</span> — one parent
-                                folder covers every graph nested inside it:
+                                A model counts as <span className="text-foreground">in use</span> when a workflow in a
+                                folder that is switched <span className="text-foreground">on</span> loads it. Folders are
+                                searched <span className="text-foreground">recursively</span>. Switching one off does not
+                                hide it: a model only it uses is listed below as "worth a look", with that folder as the
+                                reason — never in the confident group.
                             </p>
-                            <ul className="text-muted/80 space-y-0.5 pl-1">
-                                <li>· every bundle in <code>workflows/</code>, including its editable template</li>
-                                <li>· <code>workflows/_candidate_workflows</code></li>
-                                <li>· each parallel lane's own ComfyUI user folder</li>
-                                <li>· <code>{report.comfyRoot ? `${report.comfyRoot}\\user\\default\\workflows` : 'ComfyUI\\user\\default\\workflows'}</code></li>
-                            </ul>
+
+                            {/* The built-in folders */}
+                            {(report.folders || []).filter(f => f.kind === 'default').map(f => {
+                                const on = f.locked || !scanDirsOff.includes(f.key);
+                                return (
+                                    <label key={f.key}
+                                        className={`flex items-start gap-2 p-2 rounded-lg border border-border bg-background
+                                            ${f.locked ? '' : 'cursor-pointer'} ${on ? '' : 'opacity-60'}`}>
+                                        <input type="checkbox" className="mt-0.5" checked={on} disabled={f.locked}
+                                            onChange={() => onScanDirsOffChange(on
+                                                ? [...scanDirsOff, f.key]
+                                                : scanDirsOff.filter(k => k !== f.key))} />
+                                        <span className="min-w-0">
+                                            <span className="text-foreground">{f.label}</span>
+                                            {f.locked && <span className="text-muted"> · always on</span>}
+                                            <span className="block text-muted/80">{f.detail}</span>
+                                            <code className="block text-muted/60 break-all">{f.path || '—'}</code>
+                                            {f.path && !f.exists && <span className="text-muted/60">(not present on this machine — nothing to scan)</span>}
+                                        </span>
+                                    </label>
+                                );
+                            })}
 
                             <p className="text-muted pt-1">
-                                Extra folders of workflow JSON on this machine. A path relative to the
-                                ComfyUI root set in <span className="text-foreground">Manage ComfyUI</span> travels
-                                between rigs that mount the drive under another letter; an absolute one is also
-                                fine and the Drive-letter control rewrites it.
+                                Your own folders of workflow JSON. A path relative to the ComfyUI root set in
+                                <span className="text-foreground"> Manage ComfyUI</span> follows the drive between rigs;
+                                an absolute one is fine too, and the Drive-letter control rewrites it.
                             </p>
 
                             {(scanDirs || []).map((dir, i) => {
-                                const resolved = report.scanned.configured?.find(c => c.entry === dir);
+                                const key = dir.trim();
+                                const on = !scanDirsOff.includes(key);
+                                const known = (report.folders || []).find(f => f.kind === 'custom' && f.entry === key);
                                 return (
-                                    <div key={i} className="p-2 rounded-lg border border-border bg-background space-y-1">
+                                    <div key={i} className={`p-2 rounded-lg border border-border bg-background space-y-1 ${on ? '' : 'opacity-60'}`}>
                                         <div className="flex items-center gap-2">
+                                            <input type="checkbox" checked={on} disabled={!key}
+                                                title={on ? 'Switch this folder off' : 'Switch this folder on'}
+                                                onChange={() => onScanDirsOffChange(on
+                                                    ? [...scanDirsOff, key]
+                                                    : scanDirsOff.filter(k => k !== key))} />
                                             <input
                                                 type="text"
                                                 value={dir}
-                                                onChange={(e) => onScanDirsChange(
-                                                    scanDirs.map((d, di) => (di === i ? e.target.value : d)))}
+                                                onChange={(e) => {
+                                                    const next = e.target.value;
+                                                    // An edited path keeps its on/off state.
+                                                    if (!on) onScanDirsOffChange(scanDirsOff.map(k => (k === key ? next.trim() : k)));
+                                                    onScanDirsChange(scanDirs.map((d, di) => (di === i ? next : d)));
+                                                }}
                                                 placeholder="..\..\_demo_workflows   or   D:\my_workflows"
                                                 className="flex-1 bg-background border border-border rounded-md p-1.5 text-xs text-foreground font-mono"
                                             />
-                                            <button type="button" title="Remove this folder"
-                                                onClick={() => onScanDirsChange(scanDirs.filter((_, di) => di !== i))}
+                                            <button type="button" title="Remove this folder from the list"
+                                                onClick={() => {
+                                                    onScanDirsChange(scanDirs.filter((_, di) => di !== i));
+                                                    onScanDirsOffChange(scanDirsOff.filter(k => k !== key));
+                                                }}
                                                 className="text-muted hover:text-danger">
                                                 <X size={14} />
                                             </button>
                                         </div>
-                                        {resolved && resolved.resolved !== dir && (
-                                            <p className={resolved.found ? 'text-muted' : 'text-warning'}>
-                                                → {resolved.resolved}{resolved.found ? '' : ' — not found'}
+                                        {known && known.path !== key && (
+                                            <p className={known.exists ? 'text-muted' : 'text-warning'}>
+                                                → {known.path}{known.exists ? '' : ' — not found'}
                                             </p>
                                         )}
-                                        {resolved && resolved.resolved === dir && !resolved.found && (
-                                            <p className="text-warning">not found</p>
-                                        )}
+                                        {known && known.path === key && !known.exists && <p className="text-warning">not found</p>}
+                                        {!known && key && <p className="text-muted/60">not saved yet</p>}
                                     </div>
                                 );
                             })}
 
+                            {dirsDirty && (
+                                <p className="text-warning">
+                                    Unsaved changes — the list below still reflects the folders as they were saved.
+                                </p>
+                            )}
                             <div className="flex items-center gap-3 pt-1">
                                 <button type="button"
                                     onClick={() => onScanDirsChange([...(scanDirs || []), ''])}
                                     className="text-xs font-semibold text-primary hover:underline">
                                     + Add a folder
                                 </button>
-                                <Button variant="secondary" icon={Save} isLoading={savingScanDirs}
+                                <Button variant="secondary" icon={Save} isLoading={savingScanDirs} disabled={!dirsDirty}
                                     onClick={async () => {
                                         const ok = await onSaveScanDirs(
-                                            (scanDirs || []).map(d => d.trim()).filter(Boolean));
-                                        if (ok) load();
+                                            (scanDirs || []).map(d => d.trim()).filter(Boolean), scanDirsOff);
+                                        if (ok) { if (onChanged) onChanged(); else load(); }
                                     }}>
-                                    Save folders
+                                    Save folders and rescan
                                 </Button>
                             </div>
                         </div>

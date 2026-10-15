@@ -59,12 +59,17 @@ install still works. `prune-models.ps1` reads the same config in PowerShell, and
 Stdlib only — these run under ComfyUI's bundled `python_embeded`.
 
 ★ **`labelled_workflow_dirs()` must stay in step with
-[server/workflows/modelUsage.js](../../server/workflows/modelUsage.js)**, which
-is what the admin panel's prune button stands on. A folder counted by one and
-not the other means the two disagree about whether a model is in use, and one of
-them is then offering a model in use for deletion. Both read
-`maintenance.workflowScanDirs` from the same config; relative entries resolve
-against the ComfyUI root.
+[server/workflows/scanFolders.js](../../server/workflows/scanFolders.js)**, which
+decides the folders the admin panel's prune button stands on. A folder counted by
+one and not the other means the two disagree about whether a model is in use, and
+one of them is then offering a model in use for deletion. Both read
+`maintenance.workflowScanDirs` (extra folders; relative entries resolve against
+the ComfyUI root) and `maintenance.scanDirsOff` (what the admin switched off in
+Maintenance → Folders scanned: `candidates`, `comfyui-user`, `lanes`, or a custom
+entry as written). The audit simply skips a switched-off folder — every walker
+goes through `walk_workflows()`, which also prunes `_candidate_workflows` out of
+`workflows/` when candidates are off. The panel still reads switched-off folders,
+to say why a model they name is no longer protected.
 
 ## Verified after the move
 

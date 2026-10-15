@@ -297,6 +297,17 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
             reasons.push({ code: 'scan-incomplete', effect: 'lowers', detail: why });
         }
 
+        // ★ Named by a workflow in a folder the admin switched off. Unused by the
+        // admin's own decision, which is a reason to look rather than a reason
+        // to bulk-delete: soft, so it caps at "worth a look".
+        if ((m.excludedBy || []).length) {
+            const first = m.excludedBy[0];
+            reasons.push({
+                code: 'excluded-folder', effect: 'lowers',
+                detail: `named by ${first}${m.excludedBy.length > 1 ? ` and ${m.excludedBy.length - 1} more` : ''}`
+                    + ' — in a folder you switched off in the scan, so it does not count as using it',
+            });
+        }
         // ★ Freed by a workflow somebody removed. Its only protection was an
         // observed load, and the loads predate the removal — so they were most
         // plausibly that workflow's own. Said in so many words, because this is
@@ -327,7 +338,7 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
         // claimed it capped the whole report; now it does.
         const strong = ['variant-sibling', 'near-missing', 'generic-name', 'audit-keep',
             'duplicate-basename', 'scan-incomplete'];
-        const soft = ['reference-template', 'recently-added'];
+        const soft = ['reference-template', 'recently-added', 'excluded-folder'];
 
         if (strong.some(c => codes.has(c))) m.confidence = 'low';
         else if (soft.some(c => codes.has(c))) m.confidence = 'medium';

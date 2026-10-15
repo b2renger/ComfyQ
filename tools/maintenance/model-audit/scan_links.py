@@ -38,6 +38,15 @@ def collections(here):
     return labelled_workflow_dirs(), comfy_root(required=False)
 
 
+def _walk(base):
+    # Skips folders switched off in Maintenance, like every other walker here.
+    try:
+        from comfyq_paths import walk_workflows
+        return walk_workflows(base)
+    except ImportError:
+        return os.walk(base)
+
+
 def is_model_name(text):
     if not isinstance(text, str) or not text or len(text) > 400:
         return False
@@ -150,7 +159,7 @@ def build(here, models_root, unit_by_name=None):
     for base, collection in dirs:
         if not os.path.isdir(base):
             continue
-        for root, _d, files in os.walk(base):
+        for root, _d, files in _walk(base):
             for f in files:
                 if not f.lower().endswith('.json'):
                     continue

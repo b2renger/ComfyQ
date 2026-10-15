@@ -22,6 +22,7 @@ const { invalidateAccessLog } = require('../workflows/modelAccessLog');
 const { LibrarySweep } = require('../benchmark/librarySweep');
 const jobCleanup = require('../storage/jobCleanup');
 const { stagedCopiesOf, bundleTemplateFingerprint, removeStagedCopies } = require('../workflows/stagedCopies');
+const { scanSetup, cleanOffList } = require('../workflows/scanFolders');
 const { invalidateModelIndex, buildModelIndex } = require('../workflows/vramEstimate');
 const { KNOWN_DIRS: KNOWN_MODEL_DIRS } = require('../models/modelDestination');
 const {
@@ -224,14 +225,13 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     function usageReport() {
         const { config } = configManager.load();
         const comfyRoot = config.comfy_ui?.root_path || '';
-        const configured = [...(config.maintenance?.workflowScanDirs || [])];
-        const extra = [...configured];
-        if (comfyRoot) extra.push(path.join(comfyRoot, 'user', 'default', 'workflows'));
-        const report = buildModelUsage({
-            comfyRoot,
-            workflowsDir: registry.dir || path.resolve(__dirname, '../../workflows'),
-            extraDirs: extra,
-        });
+        const workflowsDir = registry.dir || path.resolve(__dirname, '../../workflows');
+        // Which folders count, and which the admin switched off — one resolver,
+        // shared with tools/model-provenance/exclusive.cjs. See scanFolders.js.
+        const setup = scanSetup(config, { repoRoot: path.resolve(__dirname, '../..'), workflowsDir });
+        const configured = setup.configured;
+        const report = buildModelUsage({ comfyRoot, workflowsDir, ...setup.usageOpts });
+        report.folders = setup.folders;
         // Say what the verdict rests on: a folder of workflows nobody told us
         // about makes its models look unused.
         //
@@ -268,13 +268,23 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             if (!Array.isArray(raw) || raw.some(d => typeof d !== 'string')) {
                 return res.status(400).json({ error: 'workflowScanDirs must be an array of strings' });
             }
-            const dirs = raw.map(d => d.trim()).filter(Boolean);
+            const offRaw = req.body?.scanDirsOff;
+            if (offRaw !== undefined && (!Array.isArray(offRaw) || offRaw.some(d => typeof d !== 'string'))) {
+                return res.status(400).json({ error: 'scanDirsOff must be an array of strings' });
+            }
+            const dirs = [...new Set(raw.map(d => d.trim()).filter(Boolean))];
             configManager.update(c => {
                 c.maintenance = c.maintenance || {};
                 c.maintenance.workflowScanDirs = dirs;
+                // An older client that does not know about switching folders off
+                // must not switch them all back on by saving: keep the stored
+                // list, minus entries that no longer exist.
+                const off = offRaw !== undefined ? offRaw : (c.maintenance.scanDirsOff || []);
+                c.maintenance.scanDirsOff = cleanOffList(off, dirs);
                 return c;
             });
-            res.json({ ok: true, workflowScanDirs: dirs });
+            const saved = configManager.load().config.maintenance;
+            res.json({ ok: true, workflowScanDirs: saved.workflowScanDirs, scanDirsOff: saved.scanDirsOff || [] });
         } catch (e) {
             res.status(400).json({ error: e.message });
         }

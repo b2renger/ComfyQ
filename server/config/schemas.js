@@ -282,12 +282,16 @@ const AppConfig = z.object({
         // models look unused, so the prune list names every folder it scanned
         // and the admin can see what the verdict rests on.
         workflowScanDirs: z.array(z.string()).default([]),
+        // What the admin switched OFF in that list: a default folder's key
+        // ('candidates', 'comfyui-user', 'lanes') or a workflowScanDirs entry as
+        // written. Still read; it just no longer protects. See scanFolders.js.
+        scanDirsOff: z.array(z.string()).default([]),
         // Where a pruned model is MOVED to. Empty means <drive>\_model_quarantine
         // beside the install, which is also where _maintenance/prune-models.ps1
         // puts its own — so the two agree. Must be on the same volume as the
         // models, or a 40 GB prune becomes a 40 GB copy.
         quarantineDir: z.string().default('')
-    }).default({ workflowScanDirs: [] }),
+    }).default({ workflowScanDirs: [], scanDirsOff: [] }),
     // Federation (Phase F) — persistent identity for this machine, captured at
     // boot (see server/federation/systemInfo.js) and broadcast on the LAN status
     // beacon. All optional/defaulted so an existing config.json validates

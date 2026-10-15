@@ -571,5 +571,44 @@ check('and the reclaimable total is that one file',
         run().models.find(m => m.name === 'gone_only.safetensors').unused === true);
 }
 
+// 21. ★ Folders the admin switched OFF. They are still read, so a model only
+//     they name is reported with them as the reason — but it is no longer
+//     protected, and it must never reach the confident tier.
+{
+    const { invalidateModelIndex } = require('./vramEstimate');
+    const { scoreDeletable } = require('./modelConfidence');
+    put('loras', 'cand_only.safetensors');
+    const candDir = path.join(wf, '_candidate_workflows');
+    fs.mkdirSync(candDir, { recursive: true });
+    fs.writeFileSync(path.join(candDir, 'staged.json'), JSON.stringify({ nodes: [
+        { id: 1, type: 'LoraLoaderModelOnly', widgets_values: ['cand_only.safetensors', 1] },
+        { id: 2, type: 'MarkdownNote', widgets_values: ['nobody.safetensors'] },
+    ] }));
+    invalidateModelIndex();
+    const row = (rep, n) => rep.models.find(m => m.name === n);
+
+    const allOn = run();
+    check('with every folder on, a candidate workflow protects its model', row(allOn, 'cand_only.safetensors').unused === false);
+
+    const off = buildModelUsage({
+        comfyRoot: comfy, workflowsDir: wf,
+        extraDirs: [], excludedDirs: [demo], includeCandidates: false, includeLanes: false,
+    });
+    check('a custom folder switched off no longer protects its model', row(off, 'demo_only.safetensors').unused === true);
+    check('...and the folder is named as the reason', row(off, 'demo_only.safetensors').excludedBy.length === 1);
+    check('candidates switched off: their model is no longer protected', row(off, 'cand_only.safetensors').unused === true
+        && row(off, 'cand_only.safetensors').excludedBy.some(f => /staged\.json$/.test(f)));
+    check('lanes switched off: their model is no longer protected', row(off, 'lane_saved.safetensors').unused === true
+        && row(off, 'lane_saved.safetensors').excludedBy.length === 1);
+    check('a note in a switched-off folder is not a reason', row(off, 'nobody.safetensors').excludedBy.length === 0);
+    check('the report lists the folders it read but did not count', off.scanned.offDirs.length >= 2);
+    check('a model the bundles use stays protected whatever is switched off', row(off, 'served.safetensors').unused === false);
+
+    const scored = scoreDeletable(off, { comfyRoot: comfy, repoRoot: root, now: Date.now() });
+    const r = row(scored, 'cand_only.safetensors');
+    check('a model freed only by switching a folder off is never confident', r.confidence !== 'high');
+    check('...and says why', r.confidenceReasons.some(x => x.code === 'excluded-folder' && /switched off/.test(x.detail)));
+}
+
 fs.rmSync(root, { recursive: true, force: true });
 console.log(`modelUsage: all ${ok.length} checks passed`);

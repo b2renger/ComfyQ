@@ -428,7 +428,13 @@ function readRemovedWorkflows(comfyRoot) {
  *   totals: { all: number, allGb: number, unused: number, unusedGb: number }
  * }}
  */
-function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundles = [] }) {
+function buildModelUsage({
+    comfyRoot, workflowsDir, extraDirs = [], ignoreBundles = [],
+    // ★ Folders an admin switched OFF. Read anyway, but a reference found there
+    // does not protect anything: the file is reported with `excludedBy` so the
+    // reason is visible, and the scorer keeps it out of the confident tier.
+    excludedDirs = [], includeCandidates = true, includeLanes = true,
+}) {
     const onDisk = buildModelIndex(comfyRoot);
     // Keyed the same way basename() folds, with the real spelling kept so the
     // UI shows the file as it actually appears on disk.
@@ -522,14 +528,20 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
     const resolveDir = (d) => (path.isAbsolute(d) ? d : (comfyRoot ? path.resolve(comfyRoot, d) : d));
 
     const repoRoot = path.dirname(workflowsDir);
+    const candidatesDir = path.join(workflowsDir, '_candidate_workflows');
+    // ★ Every parallel lane gets its own ComfyUI --user-directory, so an admin
+    // using "Open in ComfyUI" on a lane saves graphs in here. Globbed per
+    // profile, and only the workflows folder: the lane's user/__manager/cache
+    // holds a model-list.json naming 527 weights (walkJson prunes __manager too).
+    const laneDirs = laneWorkflowDirs(repoRoot);
     const always = [
-        path.join(workflowsDir, '_candidate_workflows'),
-        // ★ Every parallel lane gets its own ComfyUI --user-directory, so an
-        // admin using "Open in ComfyUI" on a lane saves graphs in here. One
-        // such file is already on this machine. Globbed per profile, and only
-        // the workflows folder: the lane's user/__manager/cache holds a
-        // model-list.json naming 527 weights (walkJson prunes __manager too).
-        ...laneWorkflowDirs(repoRoot),
+        ...(includeCandidates ? [candidatesDir] : []),
+        ...(includeLanes ? laneDirs : []),
+    ];
+    const off = [
+        ...(includeCandidates ? [] : [candidatesDir]),
+        ...(includeLanes ? [] : laneDirs),
+        ...excludedDirs.map(resolveDir),
     ];
 
     const dirs = [];
@@ -543,6 +555,21 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
             for (const [name, refs] of refsInGraph(g)) {
                 noteSites(name, refs);
                 add(external, name, p);
+            }
+        }
+    }
+
+    // Switched-off folders: what they name, without it protecting anything.
+    const excluded = new Map();   // name -> Set(file)
+    const offDirs = [];
+    for (const dir of off) {
+        if (!dir || !fs.existsSync(dir)) continue;
+        offDirs.push(dir);
+        for (const p of walkJson(dir)) {
+            const g = readJson(p);
+            if (!g) continue;
+            for (const [name, refs] of refsInGraph(g)) {
+                if (refs.some(r => r.loader !== false)) add(excluded, name, p);
             }
         }
     }
@@ -683,6 +710,8 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
             observedAt: observed ? observed.at : null,
             observedHow: observed ? observed.how : null,
             external: ext,
+            // Named by a workflow in a folder the admin switched off.
+            excludedBy: [...(excluded.get(name) || [])].sort(),
             nodeTypes,
             textOnly,
             observedLastAt: observed ? (observed.lastAt || observed.at) : null,
@@ -728,6 +757,8 @@ function buildModelUsage({ comfyRoot, workflowsDir, extraDirs = [], ignoreBundle
             bundles: bundleIds.length,
             files: fileCount,
             dirs,
+            // Read, but switched off: they protect nothing.
+            offDirs,
             // The configured entries as RESOLVED, so a report can say which
             // absolute path it actually looked for rather than echoing a
             // relative string the admin cannot act on.
