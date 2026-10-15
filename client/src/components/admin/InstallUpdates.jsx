@@ -32,6 +32,15 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
     const [acceptStash, setAcceptStash] = useState(false);
     const [acceptDeps, setAcceptDeps] = useState(false);
     const [showAll, setShowAll] = useState(false);
+    // The pack list is long (44 rows here), so it can be folded away. The choice
+    // is remembered per browser — wrapped, because storage can be unavailable.
+    const [packsOpen, setPacksOpen] = useState(() => {
+        try { return localStorage.getItem('comfyq.updates.packsOpen') !== '0'; } catch { return true; }
+    });
+    const togglePacks = () => setPacksOpen(v => {
+        try { localStorage.setItem('comfyq.updates.packsOpen', v ? '0' : '1'); } catch { /* not persisted */ }
+        return !v;
+    });
     const [showOutput, setShowOutput] = useState(true);
 
     const load = useCallback(async () => {
@@ -251,9 +260,13 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
             {/* ------------------------------------------------------- node packs */}
             <div className="mt-4">
                 <div className="flex items-center justify-between">
-                    <h3 className="text-sm font-medium flex items-center gap-2">
+                    <button type="button" onClick={togglePacks} aria-expanded={packsOpen}
+                        title={packsOpen ? 'Fold the node pack list away' : 'Show the node pack list'}
+                        className="text-sm font-medium flex items-center gap-2 hover:text-primary">
+                        {packsOpen ? <ChevronUp size={15} /> : <ChevronDown size={15} />}
                         <Package size={15} /> Node packs
-                    </h3>
+                        <span className="text-xs text-muted font-normal">({packs.length})</span>
+                    </button>
                     {checked && (
                         <span className="text-xs text-muted">
                             {withUpdates.length === 0
@@ -264,6 +277,7 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                     )}
                 </div>
 
+                {packsOpen && (<>
                 {!checked && (
                     <p className="text-xs text-muted mt-1">
                         {clones.length} of these {packs.length} packs are real git clones and can be
@@ -365,6 +379,14 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                                 : `Show all ${packs.length} packs, and why ${copies.length} cannot be updated`}
                         </button>
                     </div>
+                )}
+                </>)}
+                {/* Folded away, a pack that HAS an update still must not go unseen. */}
+                {!packsOpen && checked && withUpdates.length > 0 && (
+                    <p className="text-xs text-primary mt-1">
+                        {withUpdates.length} pack{withUpdates.length === 1 ? ' has' : 's have'} an update
+                        ({withUpdates.map(p => p.name).join(', ')}) — open the list to update.
+                    </p>
                 )}
             </div>
 
