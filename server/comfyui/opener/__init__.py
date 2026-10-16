@@ -33,6 +33,7 @@
 # calls through, and swallows its own errors.
 import json
 import os
+import sys
 import threading
 import time
 
@@ -69,10 +70,30 @@ def _resolve_log_path():
         return None
 
 
+def _from_asset_scanner():
+    """True when this lookup comes from ComfyUI's asset scanner (app.assets).
+
+    ★ The prompt counter alone is not enough: the scanner runs on its own thread
+    and the counter is process-wide, so a scan that overlaps a prompt — any job
+    booked within seconds of a ComfyUI starting, routine with parallel lanes —
+    logged the whole disk as loads (218 models in one second on 2026-10-16).
+    The call stack says who is asking, whatever the timing.
+    """
+    f = sys._getframe(2)
+    while f is not None:
+        name = f.f_globals.get("__name__", "") or ""
+        if name == "app.assets" or name.startswith("app.assets."):
+            return True
+        f = f.f_back
+    return False
+
+
 def _record(path, how):
     """Append one access, once per path per process. Never raises."""
     try:
         if not path or _executing <= 0:
+            return
+        if _from_asset_scanner():
             return
         p = str(path)
         if not p.lower().endswith(_WEIGHT_EXT):

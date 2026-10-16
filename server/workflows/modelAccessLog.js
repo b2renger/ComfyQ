@@ -49,24 +49,37 @@ function parseRows(text) {
     return rows;
 }
 
-/** The records that are real loads: made during a prompt, or not part of a scan burst. */
+/**
+ * The records that are real loads: those not part of a scan burst.
+ *
+ * ★ Prompt-tagged records are judged by the same shape, against each other.
+ * Recorder v9 tagged a lookup `ctx: "prompt"` whenever ANY prompt was running,
+ * and the asset scanner runs on its own thread — so a scan overlapping a prompt
+ * (a job booked seconds after a ComfyUI starts, routine with parallel lanes)
+ * logged 218 models in one second, all tagged as loads, on 2026-10-16. Each class
+ * is measured only against its own kind, so a real load that happens to land
+ * inside an old untagged scan still counts.
+ */
 function genuineRows(rows) {
-    const perSecond = new Map();
+    const cls = r => (r.ctx === 'prompt' ? 'prompt' : 'legacy');
+    const perSecond = { prompt: new Map(), legacy: new Map() };
     for (const r of rows) {
-        if (r.ctx === 'prompt' || !r.at) continue;
-        if (!perSecond.has(r.at)) perSecond.set(r.at, new Set());
-        perSecond.get(r.at).add(r.name);
+        if (!r.at) continue;
+        const m = perSecond[cls(r)];
+        if (!m.has(r.at)) m.set(r.at, new Set());
+        m.get(r.at).add(r.name);
     }
     const memo = new Map();
-    const inBurst = (at) => {
-        if (!memo.has(at)) {
+    const inBurst = (c, at) => {
+        const key = `${c}:${at}`;
+        if (!memo.has(key)) {
             const seen = new Set();
-            for (const t of [at - 1, at, at + 1]) for (const n of perSecond.get(t) || []) seen.add(n);
-            memo.set(at, seen.size >= BURST);
+            for (const t of [at - 1, at, at + 1]) for (const n of perSecond[c].get(t) || []) seen.add(n);
+            memo.set(key, seen.size >= BURST);
         }
-        return memo.get(at);
+        return memo.get(key);
     };
-    return rows.filter(r => r.ctx === 'prompt' || !r.at || !inBurst(r.at));
+    return rows.filter(r => !r.at || !inBurst(cls(r), r.at));
 }
 const TTL_MS = 10000;
 

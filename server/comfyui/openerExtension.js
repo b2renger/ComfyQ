@@ -26,7 +26,7 @@ const path = require('path');
 //    restart to take effect.
 // 9: v8's execution hook closed over a rebound variable and called load_torch_file
 //    for every prompt — caught on a throwaway ComfyUI before any rig restarted on it.
-const OPENER_VERSION = '9';
+const OPENER_VERSION = '10';
 const SRC = path.join(__dirname, 'opener');
 const DEST_NAME = 'comfyq_opener';
 

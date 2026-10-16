@@ -27,6 +27,11 @@ lines.push(rec(5000, 'unet_a.safetensors'), rec(5001, 'clip_a.safetensors'), rec
 // A run recorded by the fixed recorder, during ANOTHER scan burst: still counts.
 for (let i = 0; i < 40; i++) lines.push(rec(9000, `scan2_${i}.safetensors`));
 lines.push(rec(9000, 'loaded_mid_scan.safetensors', { ctx: 'prompt' }));
+// Recorder v9's leak (2026-10-16): the asset scan overlapped a prompt, so a
+// whole-disk burst arrived TAGGED as prompt loads. Shape still decides.
+for (let i = 0; i < 30; i++) lines.push(rec(12000, `tagged_scan_${i}.safetensors`, { ctx: 'prompt' }));
+// …while a real prompt's handful of loads keeps counting.
+lines.push(rec(15000, 'real_unet.safetensors', { ctx: 'prompt' }), rec(15001, 'real_vae.safetensors', { ctx: 'prompt' }));
 lines.push('{ torn');
 fs.writeFileSync(log, lines.join('\n') + '\n');
 invalidateAccessLog();
@@ -36,7 +41,9 @@ ok('a model seen only in a startup scan is not observed', !r.byName.has('sd_xl_b
 ok('none of the scanned names is observed', ![...r.byName.keys()].some(n => n.startsWith('scanned_') || n.startsWith('scan2_')));
 ok('a real run of a few models still is', ['unet_a', 'clip_a', 'vae_a'].every(n => r.byName.has(`${n}.safetensors`)));
 ok('a prompt-time record counts even inside a scan burst', r.byName.has('loaded_mid_scan.safetensors'));
-ok('the report says how many records were discounted as a scan', r.ignoredAsScan === 61 + 40);
+ok('a scan burst tagged as prompt loads is still a scan', ![...r.byName.keys()].some(n => n.startsWith('tagged_scan_')));
+ok('a real prompt beside it still counts', r.byName.has('real_unet.safetensors') && r.byName.has('real_vae.safetensors'));
+ok('the report says how many records were discounted as a scan', r.ignoredAsScan === 61 + 40 + 30);
 ok('a torn line does not break the read', r.available === true);
 
 ok('the sweep window reads the same way',
