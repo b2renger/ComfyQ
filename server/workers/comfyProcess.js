@@ -17,7 +17,7 @@ const PORT_SETTLE_MS = 90000;
 class ComfyProcess extends EventEmitter {
     constructor({ rootPath, pythonExecutable, host, bindHost, port, installationType, onMilestone,
         useSageAttention = false, fp16Accumulation = false,
-        userDir = null, tempDir = null, vramHeadroomGb = null }) {
+        userDir = null, tempDir = null, vramHeadroomGb = null, managerOffline = true }) {
         super();
         this.rootPath = rootPath;
         this.pythonExecutable = pythonExecutable;
@@ -39,6 +39,8 @@ class ComfyProcess extends EventEmitter {
         this.tempDir = tempDir || null;
         // GB this instance keeps free for the others sharing the card.
         this.vramHeadroomGb = vramHeadroomGb || null;
+        // Keep ComfyUI-Manager from fetching from the internet at start (see spawn).
+        this.managerOffline = managerOffline !== false;
         this.proc = null;
         // Boot-milestone callback (see LocalComfyUIWorker). Used here to
         // reprint the LAN URL banner the moment ComfyUI's comfyregistry
@@ -179,6 +181,28 @@ class ComfyProcess extends EventEmitter {
         if (this.userDir) {
             fs.mkdirSync(this.userDir, { recursive: true });
             comfyArgs.push('--user-directory', this.userDir);
+            // ★ And its own asset database, named explicitly. ComfyUI 0.40 keeps
+            // the asset DB in the user dir, and when a user dir has none yet it
+            // "migrates" the install's <root>/user/comfyui.db by RENAMING it to
+            // .bak — which fails with WinError 32 while the primary lane holds that
+            // file open, and ComfyUI then exits (ASSETS_STARTUP_FAILED: locked), so
+            // the lane never serves. An explicit --database-url skips the migration
+            // altogether (app/database/db.py copy_legacy_default_db).
+            const dbFile = path.join(this.userDir, 'comfyui.db').split(path.sep).join('/');
+            comfyArgs.push('--database-url', `sqlite:///${dbFile}`);
+        }
+        // ComfyUI-Manager fetches the registry and five lists from github at every
+        // start; ComfyQ needs none of it, and on a LAN without internet each fetch
+        // just waits out a timeout. Its only switch is network_mode in the user
+        // dir's __manager/config.ini, so that is set before the process starts.
+        if (this.managerOffline) {
+            const userDir = this.userDir || path.join(this.rootPath, 'user');
+            try {
+                const r = require('../comfyui/managerOffline').setManagerOffline(userDir);
+                if (r !== 'already') console.log(`[ComfyUI] ComfyUI-Manager set to offline (${r}) in ${userDir}`);
+            } catch (e) {
+                console.warn(`[ComfyUI] could not set ComfyUI-Manager offline: ${e.message}`);
+            }
         }
         if (this.tempDir) {
             fs.mkdirSync(this.tempDir, { recursive: true });
@@ -256,7 +280,10 @@ class ComfyProcess extends EventEmitter {
         while ((idx = this._stdoutBuf.indexOf('\n')) !== -1) {
             const line = this._stdoutBuf.slice(0, idx);
             this._stdoutBuf = this._stdoutBuf.slice(idx + 1);
-            if (/comfyregistry/i.test(line) && /(fetched|cannot|failed|done|complete|skip)/i.test(line)) {
+            // Offline (see managerOffline) there is no registry fetch; Manager
+            // ends its start with "All startup tasks have been completed".
+            if ((/comfyregistry/i.test(line) && /(fetched|cannot|failed|done|complete|skip)/i.test(line))
+                || /ComfyUI-Manager\] All startup tasks have been completed/i.test(line)) {
                 this._registryMilestoneFired = true;
                 this.onMilestone('ComfyUI registry fetch completed');
                 // Stop buffering — we found what we wanted, no need to

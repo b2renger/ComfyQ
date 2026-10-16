@@ -398,12 +398,18 @@ class JobQueue {
     // is pushed past any it collides with (mirrors findCollisions' single-
     // duration model). The executor still serializes execution; this just keeps
     // the timeline non-overlapping and the job queued right after what's pending.
-    nextFreeSlot(from = Date.now(), durationMs = 0) {
+    //
+    // ★ Pass `workflowId` to ask about ONE lane. Each lane runs exactly one
+    // workflow, one job at a time, so only that workflow's jobs can be in the
+    // way. Unscoped, a job for the second lane was slotted after the first
+    // lane's job and the second ComfyUI sat idle — two lanes taking turns.
+    nextFreeSlot(from = Date.now(), durationMs = 0, workflowId = null) {
         const rows = this.db.prepare(`
             SELECT scheduled_at FROM jobs
             WHERE status NOT IN ('failed', 'cancelled', 'completed')
+              ${workflowId ? 'AND workflow_id = ?' : ''}
             ORDER BY scheduled_at ASC
-        `).all();
+        `).all(...(workflowId ? [workflowId] : []));
         let t = from;
         for (const r of rows) {
             const start = r.scheduled_at;
@@ -413,25 +419,23 @@ class JobQueue {
         return t;
     }
 
-    findCollisions(scheduledAt, durationMs, excludeJobId = null) {
+    // Approximate: same fixed duration on both sides. Caller should pass the expected duration.
+    // We can't store per-job duration without joining; for v2 collision detection we treat
+    // each in-flight/scheduled job as occupying [scheduled_at, scheduled_at + durationMs).
+    // `workflowId` scopes the check to one lane, as in nextFreeSlot.
+    findCollisions(scheduledAt, durationMs, excludeJobId = null, workflowId = null) {
         const endAt = scheduledAt + durationMs;
-        const args = [scheduledAt, endAt];
-        let q = `
-            SELECT id, scheduled_at FROM jobs
-            WHERE status NOT IN ('failed', 'cancelled', 'completed')
-              AND scheduled_at < ?
-              AND (scheduled_at + ?) > ?
-        `;
-        // Approximate: same fixed duration on both sides. Caller should pass the expected duration.
-        // We can't store per-job duration without joining; for v2 collision detection we treat
-        // each in-flight/scheduled job as occupying [scheduled_at, scheduled_at + durationMs).
+        const args = [endAt, durationMs, scheduledAt];
+        if (excludeJobId) args.push(excludeJobId);
+        if (workflowId) args.push(workflowId);
         const rows = this.db.prepare(`
             SELECT id, scheduled_at FROM jobs
             WHERE status NOT IN ('failed', 'cancelled', 'completed')
               AND scheduled_at < ?
               AND (scheduled_at + ?) > ?
               ${excludeJobId ? 'AND id != ?' : ''}
-        `).all(...(excludeJobId ? [endAt, durationMs, scheduledAt, excludeJobId] : [endAt, durationMs, scheduledAt]));
+              ${workflowId ? 'AND workflow_id = ?' : ''}
+        `).all(...args);
         return rows.map(r => r.id);
     }
 

@@ -54,4 +54,21 @@ ok('a filename already served as media is not re-emitted as text',
 ok('no outputs at all yields nothing', collectFromHistory({ outputs: {} }).length === 0);
 ok('a missing history entry yields nothing', collectFromHistory(null).length === 0);
 
+// An extra lane's ComfyUI has its own --temp-directory, so its temp files live
+// under .comfyq-lanes/<id>/temp. Resolved against the install's temp, a lane's
+// temp result read as size 0 and served as a broken tile.
+{
+    const path = require('path');
+    const { resolveOutputPath } = require('./outputCollector');
+    const rec = { type: 'temp', subfolder: '', filename: 'p.png' };
+    const root = path.resolve('/comfy');
+    const lane = path.resolve('/q/.comfyq-lanes/edit');
+    ok('a primary temp record resolves under the install',
+        resolveOutputPath(rec, { root_path: root, output_dir: path.join(root, 'output') }) === path.join(root, 'temp', 'p.png'));
+    ok('a lane temp record resolves under the lane',
+        resolveOutputPath(rec, { root_path: root, output_dir: path.join(root, 'output'), temp_dir: lane }) === path.join(lane, 'temp', 'p.png'));
+    ok('an output record is unaffected by the lane temp dir',
+        resolveOutputPath({ ...rec, type: 'output' }, { root_path: root, output_dir: path.join(root, 'output'), temp_dir: lane }) === path.join(root, 'output', 'p.png'));
+}
+
 console.log(`\noutputCollector: all ${pass} checks passed`);

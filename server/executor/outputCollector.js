@@ -53,7 +53,8 @@ function _mediaRecordFromPath(str, comfyConfig, nodeId) {
     try { if (!fs.statSync(p).isFile()) return null; abs = path.resolve(p); }
     catch { return null; }
     const roots = [{ dir: comfyConfig.output_dir, type: 'output' }];
-    if (comfyConfig.root_path) roots.push({ dir: path.resolve(comfyConfig.root_path, 'temp'), type: 'temp' });
+    const temp = tempDirOf(comfyConfig);
+    if (temp) roots.push({ dir: temp, type: 'temp' });
     for (const { dir, type } of roots) {
         const rel = path.relative(path.resolve(dir), abs);
         if (!rel || rel.startsWith('..') || path.isAbsolute(rel)) continue;  // outside this root
@@ -154,14 +155,20 @@ function _keepResultText(out, mediaCount) {
     return out.filter(o => o.kind !== 'text' || /\s/.test(String(o.text || '').trim()));
 }
 
+// The temp dir THIS ComfyUI writes to. An extra lane runs with its own
+// --temp-directory (comfy_ui.temp_dir, to which ComfyUI appends "temp"), so its
+// temp files are not under the install's — resolving them there reads nothing.
+function tempDirOf(comfyConfig) {
+    if (comfyConfig.temp_dir) return path.resolve(comfyConfig.temp_dir, 'temp');
+    return comfyConfig.root_path ? path.resolve(comfyConfig.root_path, 'temp') : null;
+}
+
 // Resolve a {type, subfolder, filename} record to an absolute path on disk.
-// ComfyUI emits 'output' (config.comfy_ui.output_dir) or 'temp'
-// (<root_path>/temp).
+// ComfyUI emits 'output' (config.comfy_ui.output_dir) or 'temp' (see tempDirOf).
 function resolveOutputPath({ type, subfolder, filename }, comfyConfig) {
     if (!filename) return null;   // inline outputs (kind 'text') have no file on disk
-    const baseRoot = comfyConfig.root_path;
     const baseDir = type === 'temp'
-        ? path.resolve(baseRoot, 'temp')
+        ? tempDirOf(comfyConfig)
         : comfyConfig.output_dir;
     return path.resolve(baseDir, subfolder || '', filename);
 }
@@ -181,4 +188,4 @@ function enrich(outputs, comfyConfig) {
     });
 }
 
-module.exports = { collectFromHistory, resolveOutputPath, enrich };
+module.exports = { collectFromHistory, resolveOutputPath, enrich, tempDirOf };

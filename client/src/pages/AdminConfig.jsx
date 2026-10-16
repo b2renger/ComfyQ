@@ -893,6 +893,7 @@ const AdminConfig = ({ currentMode }) => {
                         closingLaneId={closingLaneId}
                         onDeactivate={resetToAdmin}
                         deactivating={deactivating}
+                        lanAccess={!!config.comfy_ui?.lan_access}
                     />
                 <Card>
                     <div className="flex items-center justify-between mb-4">

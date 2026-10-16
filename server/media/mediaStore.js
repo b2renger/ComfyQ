@@ -3,6 +3,10 @@ const fs = require('fs');
 const path = require('path');
 const { classify, KIND_BY_EXT } = require('./mediaTypes');
 
+// Where extra lanes keep their own ComfyUI folders — the same path as
+// laneManager's LANES_DIR, kept here rather than requiring the lane manager.
+const LANES_DIR = path.join(__dirname, '..', '..', '.comfyq-lanes');
+
 // Serves media files from ComfyUI's output_dir and temp/ directory.
 // Routes:
 //   GET /media/:kind/:filename(*)    — kind = image|video|audio|model3d|json|binary
@@ -48,10 +52,21 @@ function makeRouter(comfyConfig) {
     const tempDir = path.resolve(comfyConfig.root_path, 'temp');
     const roots = [{ dir: outputDir, immutable: true }, { dir: tempDir, immutable: false }];
 
+    // An extra lane's ComfyUI writes its temp files under its own folder in
+    // .comfyq-lanes/<id>/temp, not the install's temp. Listed per request: lanes
+    // open and close while the server runs, and the listing is one readdir.
+    function laneTempRoots() {
+        try {
+            return fs.readdirSync(LANES_DIR, { withFileTypes: true })
+                .filter(d => d.isDirectory())
+                .map(d => ({ dir: path.join(LANES_DIR, d.name, 'temp'), immutable: false }));
+        } catch { return []; }
+    }
+
     function serve(req, res) {
         const filename = req.params.filename;
         if (!filename) return res.status(400).send('Missing filename');
-        const found = _findInRoots(roots, filename);
+        const found = _findInRoots(roots, filename) || _findInRoots(laneTempRoots(), filename);
         if (!found) return res.status(404).send('Not found');
         const { abs, immutable } = found;
         const { mime } = classify(abs);

@@ -236,11 +236,7 @@
       },
       "last_incoming": {
         "__value__": []
-      },
-      "background": [
-        "54",
-        0
-      ]
+      }
     },
     "class_type": "CreateBoundingBoxes",
     "_meta": {

@@ -188,12 +188,13 @@ class RealtimeBus {
                     // No slot picked (or a stale/past time) → run ASAP: drop the
                     // job into the earliest free slot after whatever's pending,
                     // instead of rejecting it on a collision. An explicit future
-                    // slot still gets the normal collision guard.
+                    // slot still gets the normal collision guard. Both are scoped
+                    // to this workflow's lane: another lane's jobs run beside it.
                     let scheduledAt = scheduledTime;
                     if (!scheduledAt || scheduledAt < Date.now()) {
-                        scheduledAt = this.queue.nextFreeSlot(Date.now(), duration);
+                        scheduledAt = this.queue.nextFreeSlot(Date.now(), duration, wfId);
                     } else {
-                        const collisions = this.queue.findCollisions(scheduledAt, duration);
+                        const collisions = this.queue.findCollisions(scheduledAt, duration, null, wfId);
                         if (collisions.length > 0) throw new Error('Time slot collision detected');
                     }
 
@@ -296,7 +297,7 @@ class RealtimeBus {
                     const cfg = this.configManager.load().config;
                     const entry = this.registry.get(job.workflowId);
                     const duration = ((entry?.summary?.estimatedDurationSec) || 60) * 1000;
-                    const collisions = this.queue.findCollisions(newTimeSlot, duration, jobId);
+                    const collisions = this.queue.findCollisions(newTimeSlot, duration, jobId, job.workflowId);
                     if (collisions.length > 0) return socket.emit('error', { message: 'Time slot collision' });
                     this.queue.reorder(jobId, newTimeSlot);
                 } catch (e) {

@@ -174,6 +174,16 @@ const StudentLayout = () => {
 };
 
 /**
+ * `/` → `/user`, keeping the query string. `?workflow=<id>` is how a tab is
+ * pinned to one lane, and a bare <Navigate to="/user"> dropped it, so a link to
+ * `/?workflow=…` silently opened on the primary lane instead.
+ */
+const ToUserKeepingQuery = () => {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: '/user', search }} replace />;
+};
+
+/**
  * NavLink Component
  * 
  * A styled wrapper around React Router's Link component.
@@ -315,7 +325,7 @@ const App = () => {
 
         {/* Root Redirect */}
         <Route path="/" element={
-          mode === 'admin' ? <Navigate to="/admin" replace /> : <Navigate to="/user" replace />
+          mode === 'admin' ? <Navigate to="/admin" replace /> : <ToUserKeepingQuery />
         } />
 
         {/* Fallback */}
