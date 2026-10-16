@@ -46,6 +46,13 @@ _WEIGHT_EXT = (".safetensors", ".sft", ".ckpt", ".pt", ".pth", ".gguf", ".onnx",
 _lock = threading.Lock()
 _seen = set()
 _log_path = None
+# ★ How many prompts are executing right now. A lookup only counts as a LOAD
+# while a workflow runs: ComfyUI 0.40's asset scanner (app/assets/scanner.py)
+# calls folder_paths.get_full_path for EVERY model file at startup, and recording
+# those marked the whole disk as "observed loading" on each ComfyUI start — which
+# protected every model from pruning. A process-wide counter rather than a
+# thread-local, so a node that loads from a worker thread still counts.
+_executing = 0
 
 
 def _resolve_log_path():
@@ -65,7 +72,7 @@ def _resolve_log_path():
 def _record(path, how):
     """Append one access, once per path per process. Never raises."""
     try:
-        if not path:
+        if not path or _executing <= 0:
             return
         p = str(path)
         if not p.lower().endswith(_WEIGHT_EXT):
@@ -77,13 +84,55 @@ def _record(path, how):
             target = _log_path
         if not target:
             return
-        line = json.dumps({"at": int(time.time()), "path": p, "how": how}, ensure_ascii=False)
+        # `ctx` marks a record made inside a running prompt. Records without it
+        # predate this rule and are judged by ComfyQ with that in mind.
+        line = json.dumps({"at": int(time.time()), "path": p, "how": how, "ctx": "prompt"}, ensure_ascii=False)
         # Append-only: a torn write costs one line, and concurrent lanes
         # interleave whole lines rather than corrupting the file.
         with open(target, "a", encoding="utf-8") as fh:
             fh.write(line + "\n")
     except Exception:
         pass
+
+
+def _executor_wrapper(orig, is_async):
+    """Count a prompt as running for exactly as long as `orig` runs."""
+    def enter():
+        global _executing
+        with _lock:
+            _executing += 1
+
+    def leave():
+        global _executing
+        with _lock:
+            _executing -= 1
+
+    if is_async:
+        async def wrapper(self, *args, **kwargs):
+            enter()
+            try:
+                return await orig(self, *args, **kwargs)
+            finally:
+                leave()
+    else:
+        def wrapper(self, *args, **kwargs):
+            enter()
+            try:
+                return orig(self, *args, **kwargs)
+            finally:
+                leave()
+    wrapper._comfyq_wrapped = True
+    wrapper.__name__ = getattr(orig, "__name__", "execute")
+    return wrapper
+
+
+def _load_wrapper(orig):
+    def wrapper(ckpt, *args, **kwargs):
+        _record(ckpt, "load_torch_file")
+        return orig(ckpt, *args, **kwargs)
+    wrapper._comfyq_wrapped = True
+    wrapper.__name__ = "load_torch_file"
+    return wrapper
 
 
 def _install_hooks():
@@ -112,18 +161,29 @@ def _install_hooks():
     except Exception:
         pass
 
+    # 0. Know when a prompt is executing — the only time a lookup is a load.
+    #    ★ The wrapper comes from a FACTORY, so it captures this function and no
+    #    other. Written inline, it closed over a local named `original` that the
+    #    load_torch_file hook below then rebound — Python binds closures late — so
+    #    every prompt called load_torch_file(self, ...) and failed with a TypeError.
+    try:
+        import execution
+        cls = getattr(execution, "PromptExecutor", None)
+        target = "execute_async" if hasattr(cls, "execute_async") else "execute"
+        orig_run = getattr(cls, target, None) if cls else None
+        if orig_run is not None and not getattr(orig_run, "_comfyq_wrapped", False):
+            setattr(cls, target, _executor_wrapper(orig_run, target == "execute_async"))
+            installed.append("PromptExecutor." + target + " (records only while a prompt runs)")
+    except Exception:
+        pass
+
     # 2. comfy.utils.load_torch_file — catches a pack that builds its own path.
     try:
         import comfy.utils
 
-        original = getattr(comfy.utils, "load_torch_file", None)
-        if original is not None and not getattr(original, "_comfyq_wrapped", False):
-            def load_wrapper(ckpt, *args, **kwargs):
-                _record(ckpt, "load_torch_file")
-                return original(ckpt, *args, **kwargs)
-            load_wrapper._comfyq_wrapped = True
-            load_wrapper.__name__ = "load_torch_file"
-            comfy.utils.load_torch_file = load_wrapper
+        orig_load = getattr(comfy.utils, "load_torch_file", None)
+        if orig_load is not None and not getattr(orig_load, "_comfyq_wrapped", False):
+            comfy.utils.load_torch_file = _load_wrapper(orig_load)
             installed.append("comfy.utils.load_torch_file")
     except Exception:
         pass

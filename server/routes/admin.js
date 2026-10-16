@@ -253,6 +253,12 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             comfyRoot,
             repoRoot: path.resolve(__dirname, '../..'),
         });
+        const t = report.totals || {};
+        console.log(`[Maint] usage scan: ${report.scanned.bundles} bundles, ${report.scanned.files} workflow files · folders `
+            + setup.folders.map(f => `${f.on ? 'on' : 'OFF'}:${f.kind === 'custom' ? f.entry : f.key}`).join(', ')
+            + ` · ${t.all} model files, ${t.unused} unused (${t.unusedGb} GB): confident ${t.confident}, worth-a-look ${t.unsure}, suspicious ${t.suspicious}`
+            + ` · released by removed workflows ${report.models.filter(m => m.unused && (m.releasedBy || []).length).length}`
+            + ` · blind: ${(report.scanned.blind || []).join('; ') || 'no'}`);
         return report;
     }
 
@@ -284,6 +290,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 return c;
             });
             const saved = configManager.load().config.maintenance;
+            console.log(`[Maint] folders saved: ${JSON.stringify(saved.workflowScanDirs)} · off ${JSON.stringify(saved.scanDirsOff || [])}`);
             res.json({ ok: true, workflowScanDirs: saved.workflowScanDirs, scanDirsOff: saved.scanDirsOff || [] });
         } catch (e) {
             res.status(400).json({ error: e.message });
@@ -767,6 +774,8 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             appendPruneLog({ at: stamp, batch, ...deleted[deleted.length - 1] });
         }
 
+        console.log(`[Maint] prune: asked ${wanted.length}, moved ${deleted.length}, refused ${refused.length}`
+            + (refused.length ? ` — ${refused.map(r => `${r.rel}: ${r.why}`).join(' | ')}` : ''));
         if (deleted.length) {
             console.log(`[Prune] quarantined ${deleted.length} file(s), ${(freed / 1024 ** 3).toFixed(2)} GB -> ${qRoot}`);
             // ★ And again AFTER the move. The caches were dropped before the
@@ -1513,6 +1522,18 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     // Launches/restarts ComfyUI as needed (blocks until reachable). Returns
     // `autoOpen:false` when we can't guarantee the opener (e.g. an external
     // ComfyUI we can't restart) so the client falls back to the sidebar handoff.
+    // Is the ComfyQ opener loaded in the ComfyUI on this port? true / false, or
+    // null when that ComfyUI does not answer.
+    async function openerListedOn(cfg, port) {
+        try {
+            const host = (!cfg.api_host || cfg.api_host === '0.0.0.0') ? '127.0.0.1' : cfg.api_host;
+            const r = await fetch(`http://${host}:${port}/extensions`, { signal: AbortSignal.timeout(5000) });
+            if (!r.ok) return null;
+            const list = await r.json();
+            return Array.isArray(list) && list.some(x => /\/comfyq_opener\//.test(String(x)));
+        } catch { return null; }
+    }
+
     router.post('/workflows/:id/open-in-comfyui', adminGate, async (req, res) => {
         const backend = runtime?.comfyBackend;
         try {
@@ -1535,19 +1556,33 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             fs.copyFileSync(entry.templatePath, path.join(dir, `${openName}.json`));
             let port = cfg.api_port;
             let autoOpen = false;
+            let how;
             if (lane) {
-                // The lane already has a ComfyUI running on its own port, and the
-                // opener extension lives in the install's shared custom_nodes, so
-                // every lane loads it. Nothing to launch or restart.
+                // A served workflow has its own ComfyUI on its own port.
                 port = lane.port;
-                autoOpen = fs.existsSync(path.join(cfg.root_path, 'custom_nodes', 'comfyq_opener'));
+                how = 'lane';
             } else if (backend && typeof backend.ensureOpenerLoaded === 'function') {
-                // Ensure ComfyUI is up with the opener extension (launch/restart as needed).
+                // Admin mode: ensure ComfyUI is up with the opener extension
+                // (launch/restart as needed).
                 const st = await backend.ensureOpenerLoaded();
                 port = st.port || port;
                 autoOpen = st.openerLoaded === true;
+                how = 'admin backend';
+            } else {
+                // ★ Student mode, a workflow that is not the one being served.
+                // There is no admin backend in this mode, so this branch used to
+                // leave autoOpen false — and the tab got plain ComfyUI on the
+                // last session, i.e. "it opens ComfyUI but not the workflow".
+                // The serving ComfyUI is on the configured port; ask it.
+                how = 'serving ComfyUI';
             }
-            res.json({ ok: true, workflowName: id, openName, port, autoOpen });
+            // Whatever the route, the authority is the ComfyUI itself: it lists
+            // the web extensions it has loaded.
+            const listed = await openerListedOn(cfg, port);
+            if (listed !== null) autoOpen = listed;
+            console.log(`[Maint] open-in-comfyui ${id}: staged ${path.join(dir, `${openName}.json`)} · via ${how} · port ${port}`
+                + ` · opener ${listed === null ? 'not answering' : listed ? 'loaded' : 'NOT loaded'} · autoOpen ${autoOpen}`);
+            res.json({ ok: true, workflowName: id, openName, port, autoOpen, via: how, openerListed: listed });
         } catch (e) {
             res.status(500).json({ error: e.message });
         }

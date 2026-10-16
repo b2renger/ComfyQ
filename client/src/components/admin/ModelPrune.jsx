@@ -5,6 +5,7 @@ import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import Modal from '../ui/Modal';
 import { SERVER_URL } from '../../utils/api';
+import { diagFetch } from '../../utils/diag';
 
 /**
  * Prune the models nothing uses.
@@ -38,6 +39,8 @@ const ModelPrune = ({
     // Opens on the confident group; the wider sets are a deliberate click.
     const [level, setLevel] = useState('high');
     const [allowLow, setAllowLow] = useState(false);
+    // Bulk select on "worth a look" needs a deliberate tick, dropped on any group change.
+    const [ackMedium, setAckMedium] = useState(false);
     // Where a prune actually puts things, so the confirm modal can name it rather
     // than describing a deletion that does not happen.
     const [quarantineRoot, setQuarantineRoot] = useState('');
@@ -54,9 +57,19 @@ const ModelPrune = ({
             // Always a fresh scan: the server otherwise answers parts of this from
             // ten-minute caches, and the point of coming here after deleting
             // workflows is to see what that freed.
-            const res = await fetch(`${SERVER_URL}/admin/models/usage?fresh=1`);
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            const { res, data } = await diagFetch('prune', 'rescan', `${SERVER_URL}/admin/models/usage?fresh=1`, {},
+                (d) => ({
+                bundles: d.scanned?.bundles, workflowFiles: d.scanned?.files,
+                folders: (d.folders || []).map(f => `${f.on ? 'on' : 'OFF'}:${f.kind === 'custom' ? f.entry : f.key}${f.exists ? '' : '(missing)'}`),
+                offFoldersRead: (d.scanned?.offDirs || []).length,
+                blind: d.scanned?.blind || [],
+                modelFiles: d.totals?.all, unused: d.totals?.unused, unusedGb: d.totals?.unusedGb,
+                confident: d.totals?.confident, worthALook: d.totals?.unsure, suspicious: d.totals?.suspicious,
+                releasedByRemovedWorkflows: (d.models || []).filter(m => m.unused && (m.releasedBy || []).length).map(m => `${m.name} ← ${(m.releasedBy || []).map(g => g.id).join('+')}`),
+                unusedBecauseFolderOff: (d.models || []).filter(m => m.unused && (m.excludedBy || []).length).length,
+                missingModels: d.totals?.missing,
+            }));
+            if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
             setReport(data);
             setPicked(new Set());
         } catch (e) {
@@ -135,13 +148,12 @@ const ModelPrune = ({
     const prune = async () => {
         setDeleting(true);
         try {
-            const res = await fetch(`${SERVER_URL}/admin/models/prune`, {
+            const { res, data } = await diagFetch('prune', 'move to quarantine', `${SERVER_URL}/admin/models/prune`, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({ files: [...picked], allowLow: allowLowEffective }),
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            }, (d) => ({ moved: (d.deleted || []).map(x => x.rel), refused: d.refused || [], gb: d.freedGb, batch: d.quarantine?.batch, error: d.error }));
+            if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
             const refused = data.refused?.length
                 ? ` ${data.refused.length} refused — ${data.refused[0].why}.`
                 : '';
@@ -379,7 +391,7 @@ const ModelPrune = ({
                             <div className="flex items-center gap-1 flex-wrap mb-2">
                                 {LEVELS.map(l => (
                                     <button key={l.key} type="button"
-                                        onClick={() => { levelChosen.current = true; setLevel(l.key); setShowAll(false); setPicked(new Set()); }}
+                                        onClick={() => { levelChosen.current = true; setLevel(l.key); setShowAll(false); setPicked(new Set()); setAckMedium(false); }}
                                         className={`px-2 py-1 rounded-full text-xs border transition-colors
                                             ${level === l.key
                                                 ? 'border-primary/50 bg-primary/10 text-primary'
@@ -407,8 +419,9 @@ const ModelPrune = ({
                                 <p className="text-xs text-warning mb-2">
                                     Nothing on this machine loads these, but something explains why each
                                     one is on the disk — a ComfyUI built-in template, a node pack's example
-                                    workflow, or a recent arrival somebody may still be working with.
-                                    Read the reason on each row.
+                                    workflow, a folder you switched off, an earlier model-audit decision, or a
+                                    recent arrival somebody may still be working with. Read the reason on
+                                    each row; once you have, you can select them all.
                                 </p>
                             )}
                             {level === 'low' && (
@@ -482,10 +495,26 @@ const ModelPrune = ({
                                         Select the {shown.filter(m => m.confidence !== 'low').length} shown
                                         {level === 'removed' && shown.some(m => m.confidence === 'low') ? ' (not the suspicious ones)' : ''}
                                     </button>
+                                ) : level === 'medium' ? (
+                                    // ★ Every row here carries a reason to look. Selecting them all
+                                    // is allowed, but only after saying so — a waiver is a deliberate
+                                    // act, never derived from the selection itself.
+                                    <span className="flex items-center gap-2 flex-wrap">
+                                        <label className="flex items-center gap-1 text-xs text-warning cursor-pointer">
+                                            <input type="checkbox" checked={ackMedium}
+                                                onChange={(e) => setAckMedium(e.target.checked)} />
+                                            I have read the reason on each row
+                                        </label>
+                                        <button type="button" disabled={!ackMedium}
+                                            onClick={() => setPicked(new Set(shown.map(m => m.rel)))}
+                                            className="text-xs text-primary hover:underline disabled:opacity-40 disabled:no-underline">
+                                            Select the {shown.length} shown
+                                        </button>
+                                    </span>
                                 ) : (
                                     <span className="text-xs text-muted">
-                                        Tick rows individually here — bulk select is only offered for
-                                        the confident group.
+                                        Tick rows individually here — these are suspicious, so there is
+                                        no select-all.
                                     </span>
                                 )}
                                 {picked.size > 0 && (

@@ -17,6 +17,7 @@ import Button from '../components/ui/Button';
 import Badge from '../components/ui/Badge';
 import ThemeToggle from '../components/ui/ThemeToggle';
 import { SERVER_URL } from '../utils/api';
+import { diagFetch } from '../utils/diag';
 import { useComfyOpener } from '../hooks/useComfyOpener';
 
 // The admin panel's four jobs, in the order an admin needs them: what this
@@ -119,8 +120,11 @@ const AdminConfig = ({ currentMode }) => {
         let gone = false;
         (async () => {
             try {
-                const res = await fetch(`${SERVER_URL}/admin/nodepacks`);
-                const d = await res.json();
+                const { data: d } = await diagFetch('nodepacks', 'check', `${SERVER_URL}/admin/nodepacks`, {}, (x) => ({
+                    source: x.source, known: x.known, bundlesChecked: x.bundlesChecked,
+                    missingByBundle: x.missingByBundle, packsToInstall: (x.packs || []).map(p => p.title),
+                    nodesNoPackProvides: (x.unknownClasses || []).map(u => u.name),
+                }));
                 if (!gone) setNodePackGaps(d);
             } catch { /* the Node packs card says so in detail */ }
         })();
@@ -228,12 +232,11 @@ const AdminConfig = ({ currentMode }) => {
     const saveScanDirs = async (dirs, off = scanDirsOff) => {
         setSavingScanDirs(true);
         try {
-            const res = await fetch(`${SERVER_URL}/admin/maintenance/scan-dirs`, {
+            const { res, data } = await diagFetch('folders', 'save', `${SERVER_URL}/admin/maintenance/scan-dirs`, {
                 method: 'PUT', headers: adminHeaders(),
                 body: JSON.stringify({ workflowScanDirs: dirs, scanDirsOff: off })
             });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+            if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
             setScanDirs(data.workflowScanDirs);
             setScanDirsOff(data.scanDirsOff || []);
             // Keep `config` in step so "unsaved changes" clears and Save settings
@@ -741,10 +744,10 @@ const AdminConfig = ({ currentMode }) => {
 
     const deleteWorkflow = async (id) => {
         try {
-            const res = await fetch(`${SERVER_URL}/admin/workflows/${id}`, {
+            const { res, data: body } = await diagFetch('library', `delete ${id}`, `${SERVER_URL}/admin/workflows/${id}`, {
                 method: 'DELETE', headers: adminHeaders()
             });
-            const data = await res.json().catch(() => ({}));
+            const data = body || {};
             if (!res.ok) throw new Error(data.error || 'Delete failed');
             const extra = [
                 data.modelsRecorded ? `${data.modelsRecorded} model name(s) noted for pruning` : null,

@@ -125,14 +125,16 @@ const isLoader = (nodeType) => {
 //   widgets_values_named       UI named values, authoritative when present
 //   properties.models[].name   what the frontend recorded the node as needing
 //   extra.prompt               a whole API graph embedded in a UI template
-function refsInGraph(graph, into = new Map()) {
+function refsInGraph(graph, into = new Map(), embedded = false) {
     const note = (v, nodeType) => {
         if (typeof v !== 'string' || !WEIGHT_RX.test(v)) return;
         const name = basename(v);
         if (!into.has(name)) into.set(name, []);
         // `raw` keeps the spelling the graph used, so a file that is missing can
         // be reported the way the workflow asks for it rather than folded.
-        into.get(name).push({ nodeType, loader: isLoader(nodeType), raw: rawBasename(v) });
+        // `embedded`: named only inside extra.prompt — a snapshot of the graph saved
+        // in the template's metadata, which ComfyUI does not load.
+        into.get(name).push({ nodeType, loader: isLoader(nodeType), raw: rawBasename(v), embedded });
     };
 
     const nodes = Array.isArray(graph.nodes) ? graph.nodes : Object.values(graph);
@@ -151,13 +153,13 @@ function refsInGraph(graph, into = new Map()) {
         }
         for (const m of (n.properties?.models || [])) note(m?.name, nodeType);
 
-        if (Array.isArray(n.nodes)) refsInGraph({ nodes: n.nodes }, into);
+        if (Array.isArray(n.nodes)) refsInGraph({ nodes: n.nodes }, into, embedded);
     }
-    for (const d of graph.definitions?.subgraphs || []) refsInGraph(d, into);
+    for (const d of graph.definitions?.subgraphs || []) refsInGraph(d, into, embedded);
     // An exported UI template can carry the whole API graph under extra.prompt.
     // It is a real graph in a file already being read, so it counts.
     if (graph.extra?.prompt && typeof graph.extra.prompt === 'object') {
-        refsInGraph(graph.extra.prompt, into);
+        refsInGraph(graph.extra.prompt, into, true);
     }
     return into;
 }
@@ -470,12 +472,16 @@ function buildModelUsage({
     const sites = new Map();
     // folded name -> how a graph first spelled it, for reporting a missing file
     const spelling = new Map();
+    // Names a REAL loader node asks for — not one only inside a template's
+    // extra.prompt snapshot, which ComfyUI never loads.
+    const realLoads = new Set();
     const noteSites = (name, refs) => {
         if (!sites.has(name)) sites.set(name, new Map());
         const m = sites.get(name);
         for (const r of refs) {
             m.set(r.nodeType, (m.get(r.nodeType) || 0) + 1);
             if (r.raw && !spelling.has(name)) spelling.set(name, r.raw);
+            if (!r.embedded && r.loader === true) realLoads.add(name);
         }
     };
 
@@ -737,6 +743,12 @@ function buildModelUsage({
             .map(([type, n]) => ({ type, count: n, loader: isLoader(type) }));
         // A note naming a file it has no copy of is not a problem.
         if (!nodeTypes.some(t => t.loader === true)) continue;
+        // ★ Nor is a name found only in a template's extra.prompt: a snapshot of an
+        // OLDER graph saved in its metadata, which ComfyUI ignores on open. Three
+        // LTX templates carried one naming a pre-release "ltx-av-step-1751000"
+        // checkpoint, and the warning read as a missing model nothing actually
+        // asks for. (Still read for PROTECTION, where over-protecting is safe.)
+        if (!realLoads.has(name)) continue;
         missing.push({
             name: spelling.get(name) || name,
             nodeTypes,

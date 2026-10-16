@@ -7,6 +7,7 @@ import Card from '../ui/Card';
 import Badge from '../ui/Badge';
 import Button from '../ui/Button';
 import { SERVER_URL } from '../../utils/api';
+import { diagFetch } from '../../utils/diag';
 import { copyToClipboard } from '../../utils/clipboard';
 
 /**
@@ -36,8 +37,14 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
 
     const load = useCallback(async () => {
         try {
-            const res = await fetch(`${SERVER_URL}/admin/library-sweep`);
-            setData(await res.json());
+            const { data: d } = await diagFetch('sweep', 'load', `${SERVER_URL}/admin/library-sweep`, {}, (x) => ({
+                libraryBundles: x.bundleCount,
+                runState: x.run?.state || null, runDone: x.run?.done, runTotal: x.run?.total, running: x.run?.current?.id || null,
+                lastReportRows: x.last?.results?.length ?? null, lastSummary: x.last?.summary || null,
+                removedSince: x.last?.removedSince || [],
+                notYetSwept: (x.bundles || []).filter(id => !(x.last?.results || []).some(r => r.id === id)),
+            }));
+            setData(d);
         } catch { /* a poll failure is not worth a toast */ }
     }, []);
 
@@ -54,13 +61,12 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
         setBusy(true);
         setConfirming(false);
         try {
-            const res = await fetch(`${SERVER_URL}/admin/library-sweep/${what}`, {
+            const { res, data: out } = await diagFetch('sweep', what, `${SERVER_URL}/admin/library-sweep/${what}`, {
                 method: 'POST', headers, body: JSON.stringify(body),
             });
-            const out = await res.json();
-            if (!res.ok) throw new Error(out.error || `HTTP ${res.status}`);
-            if (out.note) onToast?.(out.note);
-            if (what === 'clear') { setConfirmClear(false); setOpen(false); setInspecting(null); onToast?.(`Cleared ${out.removed ?? 0} report file(s)`); }
+            if (!res.ok) throw new Error(out?.error || `HTTP ${res.status}`);
+            if (out?.note) onToast?.(out.note);
+            if (what === 'clear') { setConfirmClear(false); setOpen(false); setInspecting(null); onToast?.(`Cleared ${out?.removed ?? 0} report file(s)`); }
             await load();
         } catch (e) {
             onToast?.(e.message, 'err');

@@ -610,5 +610,26 @@ check('and the reclaimable total is that one file',
     check('...and says why', r.confidenceReasons.some(x => x.code === 'excluded-folder' && /switched off/.test(x.detail)));
 }
 
+// 22. A model named only in a template's extra.prompt — an embedded snapshot of an
+//     older graph, which ComfyUI never loads — is not reported missing, but it
+//     still protects a file of that name (over-protecting is the safe side).
+{
+    const { invalidateModelIndex } = require('./vramEstimate');
+    bundle('snapshot_tpl', {
+        api: { 1: { class_type: 'UNETLoader', inputs: { unet_name: 'served.safetensors' } } },
+        template: { nodes: [{ id: 1, type: 'UNETLoader', widgets_values: ['served.safetensors'] }],
+            extra: { prompt: { 1: { class_type: 'CheckpointLoaderSimple', inputs: { ckpt_name: 'old_snapshot_only.safetensors' } } } } },
+    });
+    invalidateModelIndex();
+    const snap = run();
+    check('a model named only in extra.prompt is NOT reported missing',
+        !snap.missing.some(m => /old_snapshot_only/i.test(m.name)));
+    put('checkpoints', 'old_snapshot_only.safetensors');
+    invalidateModelIndex();
+    const snap2 = run();
+    check('...but a file of that name is still protected',
+        snap2.models.find(m => m.name === 'old_snapshot_only.safetensors').unused === false);
+}
+
 fs.rmSync(root, { recursive: true, force: true });
 console.log(`modelUsage: all ${ok.length} checks passed`);

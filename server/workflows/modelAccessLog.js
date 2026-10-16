@@ -20,6 +20,54 @@ const path = require('path');
 // unrecorded one is judged exactly as before.
 
 const LOG_NAME = 'comfyq_model_access.jsonl';
+
+// ★★ A BULK SCAN IS NOT A LOAD. ComfyUI 0.40's asset scanner (app/assets/
+// scanner.py) calls folder_paths.get_full_path for every model file each time
+// ComfyUI starts, and the recorder logged every one of those as an observed load
+// — 2,160 records on 2026-10-13, 6,625 on 2026-10-15 — which protected every model
+// on the disk from pruning (sd_xl_base "observed" on a morning nobody ran SDXL).
+// Records the fixed recorder writes carry `ctx: "prompt"` (made while a workflow
+// ran) and always count. An older record carries nothing to tell them apart, so
+// the SHAPE decides: measured on the real log, a 3-second window holds either
+// fewer than 10 distinct models (a workflow running) or more than 50 (a scan),
+// never anything in between. At BURST distinct models or more in its window, a
+// legacy record is a scan and does not count.
+const BURST = 20;
+
+function parseRows(text) {
+    const rows = [];
+    for (const line of text.split(/\r?\n/)) {
+        if (!line.trim()) continue;
+        let row;
+        // A torn final line is the normal cost of an append-only log; skip it
+        // rather than discarding everything before it.
+        try { row = JSON.parse(line); } catch { continue; }
+        if (!row || !row.path) continue;
+        const name = String(row.path).split(/[\\/]/).pop().toLowerCase();
+        if (name) rows.push({ ...row, name });
+    }
+    return rows;
+}
+
+/** The records that are real loads: made during a prompt, or not part of a scan burst. */
+function genuineRows(rows) {
+    const perSecond = new Map();
+    for (const r of rows) {
+        if (r.ctx === 'prompt' || !r.at) continue;
+        if (!perSecond.has(r.at)) perSecond.set(r.at, new Set());
+        perSecond.get(r.at).add(r.name);
+    }
+    const memo = new Map();
+    const inBurst = (at) => {
+        if (!memo.has(at)) {
+            const seen = new Set();
+            for (const t of [at - 1, at, at + 1]) for (const n of perSecond.get(t) || []) seen.add(n);
+            memo.set(at, seen.size >= BURST);
+        }
+        return memo.get(at);
+    };
+    return rows.filter(r => r.ctx === 'prompt' || !r.at || !inBurst(r.at));
+}
 const TTL_MS = 10000;
 
 let _cache = { path: null, at: 0, value: null };
@@ -40,21 +88,17 @@ function readAccessLog(comfyRoot) {
     if (_cache.value && _cache.path === logPath && (Date.now() - _cache.at) < TTL_MS) {
         return _cache.value;
     }
-    const out = { available: false, byName: new Map(), lines: 0, since: null };
+    const out = { available: false, byName: new Map(), lines: 0, since: null, ignoredAsScan: 0 };
     if (logPath && fs.existsSync(logPath)) {
         out.available = true;
         let text = '';
         try { text = fs.readFileSync(logPath, 'utf8'); } catch { text = ''; }
-        for (const line of text.split(/\r?\n/)) {
-            if (!line.trim()) continue;
-            let row;
-            // A torn final line is the normal cost of an append-only log; skip
-            // it rather than discarding everything before it.
-            try { row = JSON.parse(line); } catch { continue; }
-            if (!row || !row.path) continue;
+        const all = parseRows(text);
+        const rows = genuineRows(all);
+        out.ignoredAsScan = all.length - rows.length;
+        for (const row of rows) {
             out.lines++;
-            const name = String(row.path).split(/[\\/]/).pop().toLowerCase();
-            if (!name) continue;
+            const name = row.name;
             const prev = out.byName.get(name);
             const at = row.at || 0;
             if (!prev) {
@@ -99,17 +143,15 @@ function namesOpenedBetween(comfyRoot, fromMs, toMs) {
     let text = '';
     try { text = fs.readFileSync(logPath, 'utf8'); } catch { return []; }
     const names = new Set();
-    for (const line of text.split(/\r?\n/)) {
-        if (!line.trim()) continue;
-        let row;
-        try { row = JSON.parse(line); } catch { continue; }   // a torn tail costs one entry
-        if (!row || !row.path || !row.at) continue;
+    // Same rule as readAccessLog: a scan burst inside a sweep's window is
+    // ComfyUI starting up, not the bundle loading its weights.
+    for (const row of genuineRows(parseRows(text))) {
+        if (!row.at) continue;
         const ms = row.at * 1000;
         if (ms < fromMs || ms > toMs) continue;
-        const name = String(row.path).split(/[\\/]/).pop().toLowerCase();
-        if (name) names.add(name);
+        names.add(row.name);
     }
     return [...names].sort();
 }
 
-module.exports = { readAccessLog, invalidateAccessLog, namesOpenedBetween, LOG_NAME };
+module.exports = { readAccessLog, invalidateAccessLog, namesOpenedBetween, genuineRows, parseRows, LOG_NAME, BURST };

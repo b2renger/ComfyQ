@@ -19,7 +19,14 @@ const path = require('path');
 //    extensions per request, so a new version is a new URL and no browser can
 //    keep running a cached old one (the hard refresh this note used to ask for).
 // 6: a reload after a lost race writes into OUR tab instead of opening "name (2)".
-const OPENER_VERSION = '6';
+// 7: logs every step to the ComfyUI tab's console as "[ComfyQ open] …", for pasting back.
+// 8: the model-access recorder only records while a prompt RUNS. ComfyUI 0.40's
+//    asset scanner resolved every model at startup and each one was logged as a
+//    load, which protected the whole disk from pruning. Python: needs a ComfyUI
+//    restart to take effect.
+// 9: v8's execution hook closed over a rebound variable and called load_torch_file
+//    for every prompt — caught on a throwaway ComfyUI before any rig restarted on it.
+const OPENER_VERSION = '9';
 const SRC = path.join(__dirname, 'opener');
 const DEST_NAME = 'comfyq_opener';
 

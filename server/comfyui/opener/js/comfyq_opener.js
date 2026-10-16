@@ -22,6 +22,16 @@ import { app } from "../../scripts/app.js";
 import { api } from "../../scripts/api.js";
 
 const PARAM = "comfyq_open";
+const VERSION = "7";
+const T0 = performance.now();
+// One line per step, in the same format as the ComfyQ admin page, so both
+// consoles can be pasted together: filter the console on "ComfyQ".
+const log = (event, data) => {
+    try {
+        const ms = Math.round(performance.now() - T0);
+        console.log(`[ComfyQ open] +${ms}ms ${event}${data === undefined ? "" : " " + JSON.stringify(data)}`);
+    } catch { /* never break ComfyUI */ }
+};
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 // setup() runs BEFORE ComfyUI's Vue <GraphCanvas> has finished mounting, so at
@@ -119,18 +129,34 @@ async function reloadInto(graph, name) {
     await load(graph, name);
 }
 
+function activeTab() {
+    try {
+        const w = app?.extensionManager?.workflow?.activeWorkflow;
+        return w ? (w.filename || w.path || null) : null;
+    } catch { return null; }
+}
+function onCanvas(want) {
+    const have = new Set(canvasEntries());
+    return { nodes: have.size, ofStaged: want.filter((e) => have.has(e)).length, stagedNodes: want.length, tab: activeTab(), title: document.title };
+}
+
 async function openStaged(name) {
+    log("start", { workflow: name, opener: VERSION, comfyui: window.__COMFYUI_FRONTEND_VERSION__ || null });
     if (!(await waitForCanvas(60000))) {
-        console.warn("[ComfyQ] canvas never became ready — skipping auto-open");
+        log("FAILED: the canvas never became ready in 60 s — not opening");
         return;
     }
+    log("canvas ready", onCanvas([]));
     const graph = await fetchStagedWorkflow(name);
-    if (!graph) { console.warn(`[ComfyQ] staged workflow not found: ${name}`); return; }
+    if (!graph) { log(`FAILED: staged workflow not found: workflows/${name}.json`); return; }
     const want = (graph.nodes || []).map((n) => `${n.id}:${n.type}`);
+    log("staged workflow fetched", { nodes: want.length, subgraphs: (graph.definitions?.subgraphs || []).length });
 
     // 1. Let ComfyUI finish restoring the previous session first.
-    await waitForQuiet(1500, 30000);
+    const settled = await waitForQuiet(1500, 30000);
+    log(settled ? "previous session settled" : "previous session still changing after 30 s — loading anyway", onCanvas(want));
     await load(graph, name);
+    log("loaded", onCanvas(want));
 
     // 2. Then make sure nothing replaced it. A restore that was still in flight
     //    lands here; load again (at most twice) rather than leave the admin
@@ -147,17 +173,17 @@ async function openStaged(name) {
         await sleep(500);
         if (touched || !looksReplaced(want)) continue;
         if (reloads >= 2) {
-            console.warn(`[ComfyQ] "${name}" keeps being replaced on the canvas — open it from the Workflows menu`);
+            log(`GAVE UP: "${name}" keeps being replaced on the canvas — open it from the Workflows menu`, onCanvas(want));
             return;
         }
         reloads++;
-        console.warn(`[ComfyQ] the canvas was replaced after opening "${name}" — loading it again (${reloads})`);
+        log(`canvas REPLACED after loading — loading again (${reloads})`, onCanvas(want));
         await waitForQuiet(1000, 10000);
         await reloadInto(graph, name);
     }
     window.removeEventListener("pointerdown", stop, { capture: true });
     window.removeEventListener("keydown", stop, { capture: true });
-    console.log(`[ComfyQ] opened workflow "${name}"${reloads ? ` after ${reloads} reload(s)` : ""}`);
+    log(`done${touched ? " (watch stopped: you clicked or typed)" : ""}${reloads ? ` after ${reloads} reload(s)` : ""}`, onCanvas(want));
 }
 
 app.registerExtension({
@@ -178,6 +204,6 @@ app.registerExtension({
         // Fire-and-forget: return from setup() at once so ComfyUI's startup —
         // including the canvas mount we wait for — is not held up. Errors are
         // logged, never surfaced as ComfyUI's "Loading aborted" dialog.
-        openStaged(name).catch((e) => console.error(`[ComfyQ] failed to open workflow "${name}"`, e));
+        openStaged(name).catch((e) => log("FAILED with an error", { message: String(e?.message || e) }));
     },
 });

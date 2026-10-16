@@ -1,5 +1,6 @@
 import { useState, useCallback, useMemo } from 'react';
 import { SERVER_URL } from '../utils/api';
+import { diag, diagFetch } from '../utils/diag';
 
 // useComfyOpener — the shared "Open in ComfyUI" flow used by the admin panel
 // (per-card button) and the workflow meta editor.
@@ -43,9 +44,10 @@ export function useComfyOpener({ adminPassword, notify } = {}) {
         let staged = false;     // template staged (sidebar handoff works even without autoOpen)
         let openName = `${workflowId}_template`; // the staged workflow's name in ComfyUI
         try {
-            const r = await fetch(`${SERVER_URL}/admin/workflows/${encodeURIComponent(workflowId)}/open-in-comfyui`, { method: 'POST', headers });
+            const { res: r, data: d0 } = await diagFetch('open', `stage ${workflowId}`,
+                `${SERVER_URL}/admin/workflows/${encodeURIComponent(workflowId)}/open-in-comfyui`, { method: 'POST', headers });
             if (r.ok) {
-                const d = await r.json().catch(() => ({}));
+                const d = d0 || {};
                 if (d.port) port = d.port;
                 if (d.openName) openName = d.openName;
                 autoOpen = !!d.autoOpen;
@@ -58,7 +60,7 @@ export function useComfyOpener({ adminPassword, notify } = {}) {
                 const s = await (await fetch(`${SERVER_URL}/admin/comfyui/status`, { headers })).json().catch(() => ({}));
                 if (s.port) port = s.port;
             } else {
-                const e = await r.json().catch(() => ({}));
+                const e = d0 || {};
                 throw new Error(e.error || 'could not open in ComfyUI');
             }
         } catch (e) {
@@ -86,6 +88,9 @@ export function useComfyOpener({ adminPassword, notify } = {}) {
             notify?.(`Couldn’t open “${workflowId}” in ComfyUI (${problem}).`, 'err');
             return;
         }
+        diag('open', 'navigate', { workflowId, staged, autoOpen, openName, url, problem: problem || null,
+            note: staged && autoOpen ? 'the ComfyUI tab logs the rest — open ITS console (F12) and filter on ComfyQ'
+                : 'fallback: plain ComfyUI, the workflow will NOT open by itself' });
         if (tab) tab.location = url; else window.open(url, '_blank', 'noopener');
         if (staged && autoOpen) {
             notify?.(problem

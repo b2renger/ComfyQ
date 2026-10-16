@@ -173,6 +173,11 @@ function auditVerdicts(repoRoot) {
 function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) {
     const refs = referenceNames(comfyRoot);
     const audit = auditVerdicts(repoRoot);
+    let auditDate = null;
+    try {
+        auditDate = new Date(fs.statSync(path.join(repoRoot, 'tools', 'maintenance', 'model-audit', 'decisions.json')).mtimeMs)
+            .toISOString().slice(0, 10);
+    } catch { /* no audit on this machine */ }
 
     // Families of the files that ARE spoken for, so a lookalike can be spotted.
     const usedFamilies = new Map();
@@ -273,8 +278,9 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
         if (verdict && /KEEP|REVIEW|BUILD/.test(verdict.classify)) {
             reasons.push({
                 code: 'audit-keep', effect: 'lowers',
-                detail: `the model audit marked this ${verdict.classify}`
-                    + (verdict.reason ? `: ${String(verdict.reason).slice(0, 180)}` : ''),
+                detail: `the model audit${auditDate ? ` of ${auditDate}` : ''} marked this ${verdict.classify}`
+                    + (verdict.reason ? `: ${String(verdict.reason).slice(0, 180)}` : '')
+                    + ' — read that reason: it was written before the scan you are looking at',
             });
         }
 
@@ -336,9 +342,18 @@ function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) 
         // "medium" — and medium was ungated, so a scan that could not read a
         // folder it was told about still deleted. The comment above it always
         // claimed it capped the whole report; now it does.
-        const strong = ['variant-sibling', 'near-missing', 'generic-name', 'audit-keep',
+        // ★ audit-keep is SOFT (since 2026-10-15). It was strong, and that made the
+        // prune list useless the moment an admin narrowed the scan: decisions.json
+        // is a hand-reviewed SNAPSHOT (2026-10-05), and of the 61 KEEPs on the
+        // unused rows, 19 rested on a ComfyUI built-in template (which
+        // reference-template already reports), 21 on a workflow in a folder the
+        // admin had just switched off, and 13 on pack code or a dropdown the live
+        // scan no longer finds. A dated opinion must not overrule the live scan;
+        // it caps a row at "worth a look" with its reason printed, so a human
+        // still reads it before ticking.
+        const strong = ['variant-sibling', 'near-missing', 'generic-name',
             'duplicate-basename', 'scan-incomplete'];
-        const soft = ['reference-template', 'recently-added', 'excluded-folder'];
+        const soft = ['reference-template', 'recently-added', 'excluded-folder', 'audit-keep'];
 
         if (strong.some(c => codes.has(c))) m.confidence = 'low';
         else if (soft.some(c => codes.has(c))) m.confidence = 'medium';

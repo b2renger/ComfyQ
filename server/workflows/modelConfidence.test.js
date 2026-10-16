@@ -184,8 +184,10 @@ fs.writeFileSync(path.join(root, 'tools', 'maintenance', 'model-audit', 'decisio
         row('lookalike_bf16.safetensors', { unused: false, usedBy: ['b'] }),
         row('lookalike_fp8.safetensors'),
     ]));
-    check('a model the audit says to KEEP is low confidence',
-        find(r, 'audit_keep.safetensors').confidence === 'low');
+    // ★ Soft since 2026-10-15: the audit is a dated snapshot and must not overrule
+    // the live scan — but it still keeps a row out of the confident, bulk-selectable tier.
+    check('a model the audit says to KEEP is "worth a look", never confident',
+        find(r, 'audit_keep.safetensors').confidence === 'medium');
     check('a model the audit says to DELETE is confident',
         find(r, 'audit_delete.safetensors').confidence === 'high');
     check('...carrying the audit\'s own reason',
@@ -205,8 +207,8 @@ fs.writeFileSync(path.join(root, 'tools', 'maintenance', 'model-audit', 'decisio
     // the prune route does not gate.
     const r3 = score(makeReport([row('audit_overturned.safetensors')]));
     const over = find(r3, 'audit_overturned.safetensors');
-    check('a verdict the audit overturned to KEEP is low, not confident',
-        over.confidence === 'low');
+    check('a verdict the audit overturned to KEEP is not confident',
+        over.confidence === 'medium');
     check('...and it reads as audit-keep rather than audit-delete',
         over.confidenceReasons.some(x => x.code === 'audit-keep')
         && !over.confidenceReasons.some(x => x.code === 'audit-delete'));

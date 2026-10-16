@@ -3,6 +3,7 @@ import { Archive, Undo2, Trash2, AlertTriangle, ChevronDown, ChevronUp, RotateCw
 import Card from '../ui/Card';
 import Button from '../ui/Button';
 import { SERVER_URL } from '../../utils/api';
+import { diagFetch } from '../../utils/diag';
 
 /**
  * What pruning actually did, and the way back.
@@ -26,8 +27,9 @@ const ModelQuarantine = ({ headers, onToast, refreshKey = 0, onChanged }) => {
 
     const load = useCallback(async () => {
         try {
-            const res = await fetch(`${SERVER_URL}/admin/models/quarantine`);
-            setData(await res.json());
+            const { data: d } = await diagFetch('quarantine', 'load', `${SERVER_URL}/admin/models/quarantine`, {},
+                (q) => ({ root: q.root, totalGb: q.totalGb, batches: (q.batches || []).map(b => `${b.batch}: ${b.files?.length ?? 0} file(s), ${b.gb} GB`) }));
+            setData(d);
         } catch { /* a poll failure is not worth a toast */ }
     }, []);
     // Reloaded whenever the tab rescans or a prune lands, so a new batch shows here
@@ -37,14 +39,13 @@ const ModelQuarantine = ({ headers, onToast, refreshKey = 0, onChanged }) => {
     const post = async (what, body, key) => {
         setBusy(key);
         try {
-            const res = await fetch(`${SERVER_URL}/admin/models/quarantine/${what}`, {
+            const { res, data: out } = await diagFetch('quarantine', what, `${SERVER_URL}/admin/models/quarantine/${what}`, {
                 method: 'POST', headers, body: JSON.stringify(body),
             });
-            const out = await res.json();
-            if (!res.ok) throw new Error(out.error || `HTTP ${res.status}`);
+            if (!res.ok) throw new Error(out?.error || `HTTP ${res.status}`);
             onToast?.(what === 'restore'
                 ? `Moved back into models/ — ${body.rel.split('/').pop()}`
-                : `Batch ${body.batch} emptied, ${out.gb ?? '?'} GB freed`);
+                : `Batch ${body.batch} emptied, ${out?.gb ?? '?'} GB freed`);
             setConfirmEmpty(null);
             await load();
             // A restored file is back under models/, so the prune list changed too.
