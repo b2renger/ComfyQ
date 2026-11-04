@@ -4,7 +4,7 @@
 
 It is a web-based job scheduler and workflow manager for [ComfyUI](https://github.com/comfyanonymous/ComfyUI), built for classrooms, labs and studios where a dozen people want the same expensive graphics card at once. Students book a slot on a shared timeline, fill in a simple form, and watch their job run. Nobody installs anything; nobody touches ComfyUI.
 
-It currently serves a library of **61 ready-made workflows** — image generation and editing, video generation and editing, 3D, audio, captioning and utilities — each one measured on the rig so the timeline knows how long it really takes.
+It currently serves a library of **80 ready-made workflows** — image generation and editing, video generation and editing, 3D, audio, captioning and utilities — each one measured on the rig so the timeline knows how long it really takes.
 
 ---
 
@@ -18,11 +18,12 @@ A ComfyQ machine is always in exactly one of two modes, and the difference is th
 | Who uses it | You, at `/admin` | Everyone, at `/` |
 | ComfyUI | Started on demand, for calibration and maintenance | Running, with one workflow's models resident |
 | Jobs | Nothing is scheduled | Students book and run jobs |
-| Workflow | You pick and prepare any of the 61 | Exactly **one** is served (or several, with lanes) |
+| Workflow | You pick and prepare any of the 80 | Exactly **one** is served (or several, with lanes) |
 
 You switch by pressing **Activate & serve** on a workflow card (→ student) or **Stop serving** / **Reset to admin** (→ admin).
 
 - **A restart resumes serving.** A crash, a Windows update or a power cut brings the machine back serving the same workflow, because `/activate-workflow` leaves a marker. The deliberate stops clear it.
+- **ComfyUI outlives ComfyQ.** ComfyQ starts ComfyUI as an independent process (its output goes to `.comfyq-lanes/logs/`), so restarting ComfyQ — switching workflow, stopping serving, a crash, a code reload — no longer cold-starts ComfyUI or reloads the model: the next ComfyQ adopts the ComfyUI it started. Switching workflow while already serving happens in place, without a restart at all. The **Running** card says how many times ComfyUI started in the last 24 h, and why. To stop ComfyUI, use the admin panel (it is not closed by Ctrl+C in ComfyQ's console).
 - **`/admin` is always reachable**, even while serving, so you can fix something mid-class. It is deliberately *not* linked from the student page — but that is tidiness, not security. **The admin password is the boundary.**
 - **Students can be locked out too.** An optional *student access password* reserves a machine for one group; without it set, behaviour is exactly as before.
 
@@ -33,11 +34,14 @@ You switch by pressing **Activate & serve** on a workflow card (→ student) or 
 Open `http://<machine-ip>:5173` and you get a timeline, a booking form, and a grid of results.
 
 - **Book a slot** — pick a free time, or *as soon as possible* and it queues into the next gap.
+- **Know what the card does** — every card leads with a plain title saying what it does ("Repaint a marked area from words", "Start or end on your picture"), a one- or two-sentence summary, and the technical name in small print; the technical details are folded under *How it works*. **See an example** opens the card's example result with a caption saying what to notice.
+- **Several models at once** — when a machine serves several workflows (lanes), each has its own queue. A tab books one of them; the header shows every lane's queue (waiting jobs, ~time) with a link to the others, and the timeline can show all lanes, one row each. The header also names the machine, and the browser tab says which model on which machine.
 - **Fill in the form** — the fields come from whichever workflow is being served. Prompts, dropdowns, sliders, file uploads, and for some workflows a mask painter or a visual prompt composer.
 - **Watch it run** — live progress and an ETA from the workflow's measured timing, not a guess.
 - **Collect the result** — images, video, audio, 3D models and Gaussian splats each render in their own viewer. Multi-output jobs get a gallery.
 - **Re-run it** — *Use these settings* refills the form from a past job; **Download ingredients (.zip)** packages the inputs plus a `settings.json` so a generation can be rebuilt later, even on another machine.
-- **See what the rig can do** — the **All jobs** tab, user `examples`, carries one finished example per workflow in the library: the result, the prompt, the parameters and the input files. Clicking *Use these settings* on one is the quickest way to start from something that already works.
+- **See what the rig can do** — the **All jobs** tab, user `examples`, carries one finished example per workflow in the library: the result, the prompt, the parameters, the input files and a caption saying what it shows. Each was chosen from research into what that model is actually good at ([`docs/showcase-research/`](docs/showcase-research/README.md)). Clicking *Use these settings* on one is the quickest way to start from something that already works; the **model filter** narrows the grid to one card.
+- **Links** — every link out of ComfyQ (prompt guides, model pages) has a small copy button beside it, for a browser or a school proxy that refuses to open it.
 
 Idle tabs park themselves after five minutes to keep a room of thirty laptops from hammering the rig.
 
@@ -48,8 +52,8 @@ Idle tabs park themselves after five minutes to keep a room of thirty laptops fr
 ### 1. Workflows
 The library, and what is running.
 
-- **Running** — one row per lane: the workflow, its port, whether it is busy, and its resident VRAM.
-- **Workflow library** — all 61 bundles, searchable, filtered by type (Image generation · Image editing · Video generation · Video editing · 3D · Audio · Description · Utilities). Each card shows the measured duration, a **VRAM chip** judged against *this* machine's card, and whether its models are on disk. Per card: *Activate & serve*, *Open in ComfyUI*, *Calibrate*, *Edit*, *Validate*, *Delete*.
+- **Running** — one row per lane: the workflow, its port, whether it is busy, and its resident VRAM. While several lanes run, **any** of them can be closed on its own (the main one too — another becomes main); *Stop serving* appears on the last one. A lane on the install's own ComfyUI keeps that ComfyUI running, models unloaded, so the next workflow you serve starts warm.
+- **Workflow library** — all 80 bundles, searchable, filtered by type (Image generation · Image editing · Video generation · Video editing · 3D · Audio · Description · Utilities). Each card shows the measured duration, a **VRAM chip** judged against *this* machine's card, and whether its models are on disk. Per card: *Activate & serve*, *Open in ComfyUI*, *Calibrate*, *Edit*, *Validate*, *Delete*.
 - **Storyboard batch** — submit a whole multi-shot document as one job set.
 - **Add workflow** — drop in a new ComfyUI API-format export.
 
@@ -99,7 +103,7 @@ All of it is admin-only, and the destructive parts sit behind the admin password
 - Roughly half of installed packs are copies ComfyUI-Manager unpacked rather than clones, so they have no remote; the card says which.
 - ⚠ ComfyUI's own `current_requirements.txt` is a separate, acknowledged step: it asks for bare `torch`, and an install can be deliberately pinned to a build some node packs need.
 
-**Run the whole library.** One button runs every bundle once with sample inputs — about **2½ hours for 61 bundles** on an RTX 5090 — and answers the two questions nothing else can: does each bundle still work, and which model files the library actually opens. Every output is *measured* (size, luminance, spread, frame count) and anything black, flat, empty or single-framed is named for you to open, because a workflow can report success and save black images. **Copy report** gives a plain-text report you can paste to someone: every failure carries its full error, its traceback, and the performance flags ComfyUI was actually running with.
+**Run the whole library.** One button runs every bundle once with sample inputs — about **2½–3½ hours for 80 bundles** on an RTX 5090 — and answers the two questions nothing else can: does each bundle still work, and which model files the library actually opens. Every output is *measured* (size, luminance, spread, frame count) and anything black, flat, empty or single-framed is named for you to open, because a workflow can report success and save black images. **Copy report** gives a plain-text report you can paste to someone: every failure carries its full error, its traceback, and the performance flags ComfyUI was actually running with.
 
 **Run the test suite.** The same run, but on purpose: [tools/test-suite/library.suite.json](tools/test-suite/README.md) gives every workflow a relevant prompt and feeds it an *earlier workflow's result* — text-to-image pictures become what the edit cards edit, the edits become video frames, one generated clip becomes what every video-to-video card restyles — and cards that do the same job get the same inputs, so they can be compared. About **3½ hours for 80 bundles**. Afterwards `node tools/maintenance/seed_examples.cjs --replace` turns the results into the **examples** students browse. It runs from the sweep card (**Run the test suite**) or from a terminal: `node tools/test-suite/run-suite.cjs library`. What the last run found is in [docs/workflow-assessment.md](docs/workflow-assessment.md).
 
@@ -123,6 +127,8 @@ All of it is admin-only, and the destructive parts sit behind the admin password
 A small cross-platform app that finds every ComfyQ machine on the network and shows what each is doing: whether it is serving or idle, which workflow, how many people are connected, how long since anything happened, and a **Schedule a job** button that opens that machine's page.
 
 It discovers machines three ways at once — a UDP beacon, a unicast subnet sweep, and manually added IPs — because managed school networks routinely block broadcast.
+
+Each machine's page opens in a tab inside the app. Links in those pages (prompt guides, model pages) open in the system browser, and a tab is renamed when its machine switches model (from v2.1.0 — earlier versions dropped those links silently).
 
 Windows and Linux builds **auto-update**; macOS needs a manual re-download. Installers come from the repo's GitHub Releases. Full detail, including the platform matrix and how to cut a release, is in [the Discovery section below](#comfyq-discovery--details).
 
@@ -195,7 +201,7 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
 
    All three need: `flux-2-klein-base-9b-fp8.safetensors` (UNET), `flux2-vae.safetensors` (VAE), `qwen_3_8b_fp8mixed.safetensors` (CLIP) in the corresponding `<comfy_root>/models/` subfolders.
 
-   It also bundles the rest of the library — **61 workflows** across image generation and editing, video generation and editing, 3D, audio, captioning and utilities. Each needs its own models under `<comfy_root>/models/`. **ComfyQ checks this for you:** every card carries a chip saying how many of the models its graph loads are on disk, and a missing one can be fetched straight onto the machine — see [Getting models onto the machine](#getting-models-onto-the-machine). (A bundle is only marked `unavailable` — and hidden from the library — when its own `meta.json`/`api.json` is missing or invalid, e.g. the "Missing workflow file" case in [Troubleshooting](#troubleshooting).)
+   It also bundles the rest of the library — **80 workflows** across image generation and editing, video generation and editing, 3D, audio, captioning and utilities. Each needs its own models under `<comfy_root>/models/`. **ComfyQ checks this for you:** every card carries a chip saying how many of the models its graph loads are on disk, and a missing one can be fetched straight onto the machine — see [Getting models onto the machine](#getting-models-onto-the-machine). (A bundle is only marked `unavailable` — and hidden from the library — when its own `meta.json`/`api.json` is missing or invalid, e.g. the "Missing workflow file" case in [Troubleshooting](#troubleshooting).)
 3. **Workflow library** — pick one → **Activate & start student mode**. The server restarts into student mode and launches (or attaches to) ComfyUI.
 4. **Calibrate** (optional but recommended) — click the gauge icon on a workflow card (works in admin **or** student mode; in admin mode ComfyUI is started on demand). ComfyQ does **one real run** (a fresh seed avoids ComfyUI's result cache) and writes `<id>.runtime.json` with the first-run cost (incl. model load), the recurring generation cost (what the timeline uses), and the GPU. Inputs are supplied automatically from the assets directory (`config.json` → `assets.dir`, default `D:\_assets`) — no upload needed. Image inputs fall back to a built-in reference image if the assets dir has none.
 5. **(Optional) Admin password** — required for any cross-user destructive action (deleting / cancelling another student's job, restarting, resetting, cleaning outputs). **Without a password set, cross-user deletes are refused entirely** — you can still manage your own jobs, but you can't interfere with anyone else's. Set one for classroom deployments.
