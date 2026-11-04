@@ -1053,7 +1053,7 @@
         },
         {
           "workflow": "video_edit_bernini_r_video_editing",
-          "note": "One sentence turned the cream sweater bright red. Compare with the original: the face, the hair, the grass, the sky and every movement are the same — only the sweater changed.",
+          "note": "One sentence turned the cream sweater bright red. Compare with the original: the face, the hair, the grass, the sky and every movement are the same, and only the sweater changed — almost: on the raised arm the black under-sleeve turned red with it, which is where an edit like this tends to bleed.",
           "keepRuntime": true,
           "params": {
             "customcombo_choice_76_54": "Video Editing",
@@ -1100,7 +1100,7 @@
         },
         {
           "workflow": "video_edit_bernini_r_video_editing_ref_autoprompt",
-          "note": "The dance comes from the video, the dancer and the glass-flower field come from one picture, and nobody typed a prompt: an assistant looked at both and wrote the instruction (you can read it in the parameters).",
+          "note": "The dance comes from the video, the dancer and the glass-flower field come from one picture, and nobody typed a prompt: an assistant looked at both and wrote the instruction itself. The moves are followed loosely — the arm sweeps, not the exact steps — because a reference picture pulls harder than the video.",
           "keepRuntime": true,
           "params": {
             "primitiveboolean_value_117_70": true,
@@ -1129,7 +1129,7 @@
         },
         {
           "workflow": "video_edit_wan_animate2",
-          "note": "Same picture and same dance as the 'replace a person' card — but here only the moves are kept: the dancer from the picture performs them on a beach that exists in neither input, written in the prompt.",
+          "note": "Same picture and same dance as the 'replace a person' card — but here the moves are carried into the PICTURE: she dances the rooftop dancer's moves in front of her own concrete wall, and the beach asked for in the prompt only shows as palm trees on the right. A full-frame picture brings its background with it.",
           "params": {
             "primitivestringmultiline_value_605": "Character appearance description: a young Black woman with a red-and-orange patterned headwrap, a black leather biker jacket worn open over a long yellow-and-black plaid shirt dress, orange-and-black tiger-striped leggings and black-and-white sneakers, full body from head to toe.\nBackground description: a wide sandy beach at golden hour, turquoise waves breaking behind her, tall palm trees on the left, warm low sunlight and long soft shadows on the sand, cinematic travel photography.",
             "primitivestringmultiline_value_604": "A person doing an energetic street dance: swaying, squatting with bent knees, throwing both hands up and swinging the arms.",
@@ -1142,7 +1142,7 @@
         },
         {
           "workflow": "video_edit_wan_idv2v_restyle_compare",
-          "note": "The first frame was repainted as watercolour by the \"Edit a picture in seconds\" card; this card carries that look through the whole dance and shows the result beside the original.",
+          "note": "The first frame was repainted as watercolour by the \"Edit a picture in seconds\" card; this card carries that look through the whole dance and shows the result beside the original. It copies the frame faithfully, flaw included: the edit painted the wall but left the dancer photographic, and so does every frame. A better first frame is the lever.",
           "params": {
             "cliptextencode_text_3": "A loose watercolour painting of a young woman in a red patterned headwrap, a black leather jacket, a yellow plaid shirt dress and orange tiger-striped leggings, dancing happily on a sunlit plaza in front of a tall painted concrete wall with rows of square light openings, trees on the right, warm ochre afternoon light, flat painted shapes and visible brush texture.",
             "primitiveint_value_245": 640,
@@ -1156,7 +1156,7 @@
         },
         {
           "workflow": "video_edit_wan_idv2v_restyle_hires",
-          "note": "The same clip and the same painted frame as the side-by-side card, rendered clean and larger: look at the brush texture on the wall and on her plaid — that is what the extra size buys.",
+          "note": "The same clip as the side-by-side card, but a different painted first frame — a gouache painting in which the dancer is painted too — rendered clean and larger. Here she stays painted in every frame, and the brush texture on the wall and on her plaid is what the extra size buys. Put the two examples side by side: the first frame decides the look.",
           "params": {
             "cliptextencode_text_3": "A gouache illustration of a young woman in a red patterned headwrap, a black leather jacket, a yellow plaid shirt dress and orange tiger-striped leggings, dancing happily on a sunlit plaza in front of a tall painted concrete wall with rows of square light openings, trees on the right, warm ochre afternoon light, flat painted shapes and visible brush texture.",
             "primitiveint_value_245": 960,
@@ -1186,7 +1186,7 @@
         },
         {
           "workflow": "utility_seedvr2_hd_upscale",
-          "note": "A soft, blocky 540p clip of a dancer in tall grass rebuilt at 1080p. Watch the knit of the sweater, the hair and the grass stalks; the ×2 video card got exactly the same clip.",
+          "note": "A soft, blocky 540p clip of a dancer in tall grass rebuilt at 1080p: the compression blocks are gone and the frayed threads, the hair and the grass stalks are crisp again. What the copy had lost completely — the ribbing of the sweater — is not invented back. The ×2 video card got exactly the same clip.",
           "keepRuntime": true,
           "params": {
             "resolution_10": 1080,
@@ -1280,7 +1280,7 @@
         },
         {
           "workflow": "utility_video_segment_sam3",
-          "note": "Typing only 'black leather jacket' cuts that one garment out of five seconds of dancing. The jacket is white; everything else (her face, the plaid shirt under it, the striped leggings, the building) is black.",
+          "note": "Typing only 'black leather jacket' cuts that one garment out of five seconds of dancing. The jacket is white; everything else (her face, the plaid shirt under it, the striped leggings, the building) is black. Look closely: the sleeves are mostly missed and the matte breaks up in the last second, as the jacket turns — a text-prompted matte is a fast starting point, not a finished rotoscope.",
           "params": {
             "segment_text_114_100": "black leather jacket",
             "threshold_114_101": 0.5,
