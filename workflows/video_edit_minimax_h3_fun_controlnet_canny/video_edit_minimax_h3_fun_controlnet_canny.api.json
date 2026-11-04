@@ -242,7 +242,7 @@
   },
   "138": {
     "inputs": {
-      "value": "Scene: Hyperreal desert-storm aesthetic. A humanoid figure made of packed sand dances in a barren wasteland, each move shedding dust, the wind eroding and reshaping its body.\n[0s-2s] Pale desert, a sand humanoid begins to move from stillness, surface grains trickling off and dragging mist-like trails in the wind.\n[2s-4s] Spins and arm swings keep dissolving and rebuilding its edges, raised sand columns glowing gold in hard light under a searing white sky.\n[4s-5s] On the final pose, half the body has already been carried away by wind as a hanging line of sand, not yet fallen.\nCamera: medium fixed shot, focus pull from sand-grain close-up to full body.\nAudio: fine sand-scrape texture throughout, one distant desert wind call at 2s, no music.\nNegative: no dissolve transitions / no text overlays / no human face / no camera shake"
+      "value": "Hyperreal desert-storm look. A humanoid figure made of packed sand dances alone in a barren wasteland under a searing white sky: every spin and arm swing sheds dust that trails behind it like mist in the wind, its edges crumble away and rebuild, and raised columns of sand glow gold in the hard light. By the final pose half of its body has blown away into a long hanging line of sand that has not yet fallen. Medium fixed shot, real-time speed.\n\noverall_soundscape: A fine, continuous scrape of moving sand, the dry hiss of wind, and one distant desert wind call about two seconds in.\n\nnon_diegetic_music: none."
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
