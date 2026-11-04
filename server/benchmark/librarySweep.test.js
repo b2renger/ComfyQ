@@ -466,6 +466,20 @@ console.log('\nthe recorder\'s absence must be visible, not read as "nothing was
             ok('...and does not match a different bundle',
                 (await sweep._collectTextOutputs('video_ltx2_5_t2v', false)).length === 0);
 
+            // ★★ A test suite feeds one bundle's RESULT to the next, so an INPUT filename
+            // carries the upstream bundle's stamp. The guard searched the whole prompt and
+            // read the captioner's own entry as that bundle's, dropping the caption — the
+            // first suite run recorded both Gemma captioners as NO OUTPUT this way. Only a
+            // save node's filename_prefix says whose run it is.
+            global.fetch = async () => ({ ok: true, json: async () => ({
+                k: { prompt: [0, 'id', {
+                        2: { class_type: 'LoadImage', inputs: { image: 'comfyq__bench-x__source_image_2__bench_image_ideogram4_t2i_1793740000000_00001_.png' } },
+                        4: { class_type: 'PreviewAny', inputs: { source: ['1', 0] } } }],
+                    outputs: { 4: { text: ['A vintage poster of a lighthouse; the title reads PHARE DU CAP.'] } } },
+            }) });
+            ok("an upstream bundle's stamp in an INPUT filename does not disown the caption",
+                (await sweep._collectTextOutputs('describe_gemma4_image_description', false)).length === 1);
+
             global.fetch = async () => ({ ok: true, json: async () => ({
                 k: { prompt: [0, 'id', { 9: { inputs: { filename_prefix: 'bench_solo_1791399205943' } } }],
                     outputs: { 4: { text: ['the answer, in prose'] }, 7: { text: ['3'] } } },

@@ -24,7 +24,12 @@
  *  - A parameter's value must be the staged filename, not the asset's path,
  *    because that is what the form recalls and what /input-media serves.
  *
- * Usage: node seed_examples.cjs [--dry]
+ * Usage: node seed_examples.cjs [--dry] [--only a,b] [--replace]
+ *
+ *  --replace  first delete the `examples` jobs of every bundle about to be
+ *             seeded, so a re-run REPLACES that bundle's example instead of
+ *             adding a second one. Only the job rows go: their inputs stay staged
+ *             (another example may share one) and their outputs stay on disk.
  */
 const fs = require('fs');
 const path = require('path');
@@ -47,6 +52,7 @@ const USER = 'examples';
 const onlyArg = (process.argv.find(a => a.startsWith('--only=')) || '').slice('--only='.length)
     || (process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : '');
 const ONLY = onlyArg ? new Set(onlyArg.split(',').map(s => s.trim()).filter(Boolean)) : null;
+const REPLACE = process.argv.includes('--replace');
 
 // The run the sweep published is the showcase: one row per bundle, merged over
 // previous runs, which is exactly the 61-row picture the report serves.
@@ -94,12 +100,21 @@ const insert = db && db.prepare(
     + "VALUES (@id,@user_id,@workflow_id,NULL,'completed',@at,@at,@fin,NULL,@prompt,"
     + "@param_values,'[]',@outputs,@progress,NULL,NULL,NULL,'library-sweep',@at)");
 
-let made = 0, noOutput = 0, failedRow = 0;
+let made = 0, noOutput = 0, failedRow = 0, replaced = 0;
 const lostInputs = [];
 const skipped = [];
+
+// Replace rather than add: drop the example of every bundle this run seeds,
+// decided BEFORE inserting so a bundle whose new row fails is not left empty
+// for nothing -- it keeps its old example.
+const seeding = rows.filter(r => (!ONLY || ONLY.has(r.id)) && r.ok && (r.outputs || []).length).map(r => r.id);
+if (REPLACE && seeding.length && !DRY) {
+    const del = db.prepare("DELETE FROM jobs WHERE user_id = ? AND workflow_id = ?");
+    for (const id of seeding) replaced += del.run(USER, id).changes;
+}
 for (const r of rows) {
     if (ONLY && !ONLY.has(r.id)) continue;
-    if (!r.ok) { failedRow++; skipped.push(r.id + ' (the sweep run failed)'); continue; }
+    if (!r.ok) { failedRow++; skipped.push(r.id + (r.skipped ? ' (a test-suite input was missing)' : ' (the sweep run failed)')); continue; }
 
     // Outputs. `file` is already output-root-relative, which is what /images
     // serves; kind and mime come from ComfyQ's classifier so each result lands
@@ -169,6 +184,7 @@ for (const r of rows) {
     made++;
 }
 
+if (REPLACE) console.log('replaced    %d earlier example job(s)', replaced);
 console.log('examples    %d jobs written as user "%s"', made, USER);
 console.log('inputs      %d media files staged durably (%d distinct sources)', stageN, stagedCache.size);
 if (lostInputs.length) {

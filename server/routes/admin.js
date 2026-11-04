@@ -20,6 +20,7 @@ const {
 const { invalidatePackCode, bundleModelNames, recordRemovedWorkflow } = require('../workflows/modelUsage');
 const { invalidateAccessLog } = require('../workflows/modelAccessLog');
 const { LibrarySweep } = require('../benchmark/librarySweep');
+const { loadSuite, validateSuite } = require('../benchmark/suitePlan');
 const jobCleanup = require('../storage/jobCleanup');
 const { stagedCopiesOf, bundleTemplateFingerprint, removeStagedCopies } = require('../workflows/stagedCopies');
 const { scanSetup, cleanOffList } = require('../workflows/scanFolders');
@@ -525,7 +526,17 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     router.post('/library-sweep/run', adminGate, express.json(), async (req, res) => {
         const sw = runtime?.sweep;
         if (!sw) return res.status(503).json({ error: 'the sweep is not available' });
-        const out = await sw.start({ ids: Array.isArray(req.body?.ids) ? req.body.ids : undefined });
+        // `suite`: the NAME of a committed test suite (tools/test-suite/<name>.suite.json),
+        // never a path or a body of params — the configuration lives in the repo.
+        let suite;
+        if (req.body?.suite) {
+            try { suite = loadSuite(String(req.body.suite)); } catch (e) {
+                return res.status(400).json({ error: `cannot read suite "${req.body.suite}": ${e.message}` });
+            }
+            const check = validateSuite(suite, registry);
+            if (check.errors.length) return res.status(400).json({ error: 'the suite has errors', errors: check.errors, warnings: check.warnings });
+        }
+        const out = await sw.start({ ids: Array.isArray(req.body?.ids) ? req.body.ids : undefined, suite });
         res.status(out.ok ? 200 : 409).json(out);
     });
 
@@ -1418,6 +1429,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                         label: found.label,
                         default: found.default,
                         options: found.options ?? d.options,
+                        optionLabels: found.optionLabels,
                         optionsDir: found.optionsDir,
                         optionsFilter: found.optionsFilter,
                         camera: found.camera,

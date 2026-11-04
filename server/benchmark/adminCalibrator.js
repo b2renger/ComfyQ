@@ -234,11 +234,12 @@ class AdminCalibrator {
     /** What the last calibration was actually fed — prompts, params, asset paths. */
     lastRunDetails() { return this.bench?.lastRun || null; }
 
-    async calibrate(workflowId) {
+    /** @param {object} [opts]  passed through: a test suite's params and input notes */
+    async calibrate(workflowId, opts = {}) {
         await this._ensureWorker({ workflowId });
         this._clearIdle();
         try {
-            return await this.bench.calibrate(workflowId);
+            return await this.bench.calibrate(workflowId, opts);
         } finally {
             this._scheduleIdleFree();
         }

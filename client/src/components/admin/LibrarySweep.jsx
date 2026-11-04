@@ -102,6 +102,7 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
     // bundles THAT run covered — "Run the remaining 3" left a 3-row card — whereas
     // the file on disk is the merge over every earlier run, i.e. the record.
     const run = (running ? data.run : (data.last || data.run)) || null;
+    const suiteName = run?.suite?.name || (run?.results || []).find(r => r.suite?.name)?.suite?.name || null;
     const results = run?.results || [];
     const s = run?.summary || null;
     const serving = mode === 'student';
@@ -167,7 +168,10 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
                         </Button>
                     ) : confirming ? (
                         <>
-                            <Button variant="danger" onClick={() => post('run')} disabled={busy}>Start the sweep</Button>
+                            <Button variant="danger" disabled={busy}
+                                onClick={() => post('run', confirming === 'suite' ? { suite: 'library' } : {})}>
+                                {confirming === 'suite' ? 'Start the test suite' : 'Start the sweep'}
+                            </Button>
                             <Button variant="ghost" onClick={() => setConfirming(false)}>Cancel</Button>
                         </>
                     ) : (
@@ -184,9 +188,17 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
                                     <Play size={14} /> Run the remaining {remaining.length}
                                 </Button>
                             )}
-                            <Button variant="secondary" onClick={() => setConfirming(true)} disabled={busy || serving}
+                            <Button variant="secondary" onClick={() => setConfirming('all')} disabled={busy || serving}
                                 title={serving ? 'Stop serving first — a sweep holds the GPU for about two hours.' : undefined}>
                                 <Play size={14} /> Run every workflow
+                            </Button>
+                            {/* The committed test suite (tools/test-suite/library.suite.json):
+                                every workflow in dependency order, each fed the suite's
+                                prompts and an earlier workflow's result, so the examples
+                                read as one pipeline and same-job cards can be compared. */}
+                            <Button variant="secondary" onClick={() => setConfirming('suite')} disabled={busy || serving}
+                                title={serving ? 'Stop serving first.' : 'Every workflow, in order, fed the test suite’s prompts and each other’s results.'}>
+                                <Play size={14} /> Run the test suite
                             </Button>
                         </>
                     )}
@@ -204,10 +216,21 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
 
             {confirming && (
                 <p className="text-xs text-warning mb-3">
-                    This occupies the GPU for roughly two hours, recalibrates every bundle's timing and
-                    VRAM figures, and writes sample outputs into ComfyUI's output folder. It can be
-                    stopped between workflows. Hand-measured timings (<code>source: manual</code>) are
-                    put back afterwards.
+                    This occupies the GPU for roughly {confirming === 'suite' ? 'three and a half hours' : 'two hours'},
+                    recalibrates every bundle's timing and VRAM figures, and writes sample outputs into
+                    ComfyUI's output folder. It can be stopped between workflows. Hand-measured timings
+                    (<code>source: manual</code>) are put back afterwards.
+                    {confirming === 'suite' && <> The test suite feeds each workflow the prompts in{' '}
+                    <code>tools/test-suite/library.suite.json</code> and earlier workflows' results; a run
+                    whose input is missing is skipped with the reason. Afterwards,{' '}
+                    <code>node tools/maintenance/seed_examples.cjs --replace</code> turns the results into
+                    the examples.</>}
+                </p>
+            )}
+            {suiteName && (
+                <p className="text-xs text-muted mb-2">
+                    Test suite <code>{suiteName}</code> — each workflow was fed the suite's prompts and
+                    earlier workflows' results.
                 </p>
             )}
 

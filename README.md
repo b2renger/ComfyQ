@@ -101,6 +101,8 @@ All of it is admin-only, and the destructive parts sit behind the admin password
 
 **Run the whole library.** One button runs every bundle once with sample inputs — about **2½ hours for 61 bundles** on an RTX 5090 — and answers the two questions nothing else can: does each bundle still work, and which model files the library actually opens. Every output is *measured* (size, luminance, spread, frame count) and anything black, flat, empty or single-framed is named for you to open, because a workflow can report success and save black images. **Copy report** gives a plain-text report you can paste to someone: every failure carries its full error, its traceback, and the performance flags ComfyUI was actually running with.
 
+**Run the test suite.** The same run, but on purpose: [tools/test-suite/library.suite.json](tools/test-suite/README.md) gives every workflow a relevant prompt and feeds it an *earlier workflow's result* — text-to-image pictures become what the edit cards edit, the edits become video frames, one generated clip becomes what every video-to-video card restyles — and cards that do the same job get the same inputs, so they can be compared. About **3½ hours for 80 bundles**. Afterwards `node tools/maintenance/seed_examples.cjs --replace` turns the results into the **examples** students browse. It runs from the sweep card (**Run the test suite**) or from a terminal: `node tools/test-suite/run-suite.cjs library`. What the last run found is in [docs/workflow-assessment.md](docs/workflow-assessment.md).
+
 **Download models** — see [the section above](#getting-models-onto-the-machine).
 
 **Prune unused models.** Finds weight files nothing references, scored by confidence with its reasons in plain words. ⚠ Three things to know:
@@ -132,7 +134,9 @@ Windows and Linux builds **auto-update**; macOS needs a manual re-download. Inst
 |---|---|
 | [CLAUDE.md](CLAUDE.md) | **The engineering log.** Every decision, every bug and why it was fixed that way. Long, dated, and the first place to look before changing anything. |
 | [implementation_plan.md](implementation_plan.md) | The phased plan and what is deferred. |
+| [docs/workflow-assessment.md](docs/workflow-assessment.md) | Which workflow to reach for, per job — speed, quality and accuracy, measured on one test-suite run. |
 | [docs/workflow-redundancy.md](docs/workflow-redundancy.md) | Which bundles overlap, with the pros and cons of cutting each. |
+| [tools/test-suite/](tools/test-suite/) | The library test suite: what every workflow is asked, and which result feeds which. |
 | [docs/comfyui-idv2v.md](docs/comfyui-idv2v.md) | The ID-V2V feature and why no patch is needed any more. |
 | [docs/storyboard-format.md](docs/storyboard-format.md) | The multi-shot storyboard document format. |
 | [docs/cloning-the-drive.md](docs/cloning-the-drive.md) | Preparing this drive to be imaged onto another machine. |

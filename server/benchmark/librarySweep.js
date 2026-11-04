@@ -4,6 +4,8 @@ const path = require('path');
 const { spawn } = require('child_process');
 const { readAccessLog, invalidateAccessLog, namesOpenedBetween } = require('../workflows/modelAccessLog');
 const { flagsFromArgv } = require('../workers/perfFlags');
+const { classify } = require('../media/mediaTypes');
+const { parseMediaSpec, kindForParam, MEDIA_TYPES } = require('./suitePlan');
 
 // Run every workflow in the library once, and write down what happened.
 //
@@ -37,6 +39,7 @@ const { flagsFromArgv } = require('../workers/perfFlags');
 
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
 const STATS_SCRIPT = path.resolve(__dirname, '..', '..', 'tools', 'maintenance', 'output_stats.py');
+const DERIVE_SCRIPT = path.resolve(__dirname, '..', '..', 'tools', 'test-suite', 'derive_input.py');
 const STATS_TIMEOUT_MS = 120000;
 
 class LibrarySweep {
@@ -81,6 +84,7 @@ class LibrarySweep {
             // went out saying nothing about the host, the GPU, the ComfyUI version or
             // the commit, while both files on disk held all of it.
             machine: r.machine,
+            suite: r.suite ? { name: r.suite.name, file: r.suite.file } : null,
             reportPath: path.relative(path.resolve(__dirname, '..', '..'), r.reportPath)
                 .split(path.sep).join('/'),
             results: r.results,
@@ -213,6 +217,8 @@ class LibrarySweep {
     /**
      * @param {object} [opts]
      * @param {string[]} [opts.ids]  a subset, default every available bundle
+     * @param {object}   [opts.suite]  a loaded test suite (suitePlan.loadSuite): runs
+     *   its bundles in ITS order with its inputs; `ids` then narrows it
      */
     async start(opts = {}) {
         if (this._run && this._run.state === 'running') {
@@ -234,9 +240,20 @@ class LibrarySweep {
 
         const entries = this.registry.list({ includeUnavailable: false, includeHidden: true })
             .filter(e => e.apiWorkflow);
-        const wanted = Array.isArray(opts.ids) && opts.ids.length
-            ? entries.filter(e => opts.ids.includes(e.id))
-            : entries;
+        const narrow = Array.isArray(opts.ids) && opts.ids.length ? opts.ids : null;
+        let wanted;
+        if (opts.suite) {
+            // The suite's order IS the point: a result has to exist before the
+            // workflow that is fed it runs.
+            const byId = new Map(entries.map(e => [e.id, e]));
+            wanted = opts.suite.runs
+                .filter(r => !narrow || narrow.includes(r.workflow))
+                .filter(r => byId.has(r.workflow))
+                .map(r => ({ entry: byId.get(r.workflow), run: r }));
+        } else {
+            wanted = (narrow ? entries.filter(e => narrow.includes(e.id)) : entries)
+                .map(entry => ({ entry, run: null }));
+        }
         if (!wanted.length) return { ok: false, error: 'no workflows to run' };
 
         const stamp = new Date().toISOString().replace(/[:.]/g, '-');
@@ -246,7 +263,8 @@ class LibrarySweep {
             state: 'running',
             startedAt: new Date().toISOString(),
             finishedAt: null,
-            ids: wanted.map(e => e.id),
+            ids: wanted.map(w => w.entry.id),
+            suite: opts.suite ? { name: opts.suite.name, file: opts.suite.file, description: opts.suite.description } : null,
             results: [],
             current: null,
             // Written per bundle, not once at the end: a two-hour run that is
@@ -255,6 +273,9 @@ class LibrarySweep {
             reportPath: path.join(this._dataDir, `library-sweep-${stamp}.jsonl`),
             stamp,
             recorderAvailable: readAccessLog(this._config()?.comfy_ui?.root_path || '').available,
+            // The last published rows, read once: a suite run narrowed with `ids`
+            // takes the inputs it does not produce itself from here.
+            prevRows: (this.lastReport()?.results) || [],
         };
         // Captured once, up front: a report is read later, often on another
         // machine, and "it failed" means nothing without knowing what it ran on.
@@ -263,6 +284,7 @@ class LibrarySweep {
             JSON.stringify({
                 type: 'start', at: this._run.startedAt,
                 bundles: this._run.ids.length, machine: this._run.machine,
+                suite: this._run.suite,
             }) + '\n');
 
         this._execute(wanted, cal).catch(e => {
@@ -307,7 +329,9 @@ class LibrarySweep {
 
     async _execute(entries, cal) {
         const root = this._config()?.comfy_ui?.root_path || '';
-        for (const entry of entries) {
+        for (const item of entries) {
+            // { entry, run } from start(); a bare registry entry from an older caller
+            const { entry, run } = item && item.entry ? item : { entry: item, run: null };
             if (this._cancelled) break;
             this._run.current = { id: entry.id, name: entry.summary?.name || entry.id, startedAt: new Date().toISOString() };
 
@@ -320,7 +344,10 @@ class LibrarySweep {
             // so its automatic split under-reports the warm time by 10 s — its
             // runtime.json says source:'manual' for that reason, and a sweep must
             // not quietly overwrite a figure someone measured by hand.
-            const prevRuntime = entry.runtime && entry.runtime.source === 'manual' ? entry.runtime : null;
+            // A suite run that changes a setting which drives the cost (a shorter
+            // clip, a smaller size) asks for its runtime to be kept too: its
+            // timing would describe a job nobody books by default.
+            const prevRuntime = entry.runtime && (entry.runtime.source === 'manual' || run?.keepRuntime) ? entry.runtime : null;
 
             const rec = {
                 id: entry.id,
@@ -335,8 +362,31 @@ class LibrarySweep {
                 observedModels: [],
             };
 
+            // ★ A suite run's inputs are resolved NOW, from what this sweep has
+            // already produced — which is why the suite's order matters. An input
+            // that cannot be found skips the run and says why, rather than falling
+            // back to a random asset and producing an example that pretends to
+            // follow from a result it never saw.
+            let calOpts = {};
+            if (run) {
+                const res = await this._resolveSuiteParams(entry, run);
+                rec.suite = { name: this._run.suite?.name || null, stage: run.stage, note: run.note, inputs: res.inputs };
+                if (res.missing.length) {
+                    rec.error = `skipped — ${res.missing.join('; ')}`;
+                    rec.skipped = true;
+                    rec.finishedAt = new Date().toISOString();
+                    rec.wallSec = 0;
+                    this._run.results.push(rec);
+                    this._run.current = null;
+                    try { fs.appendFileSync(this._run.reportPath, JSON.stringify({ type: 'bundle', ...rec }) + '\n'); } catch { /* keep going */ }
+                    console.log(`[Sweep] SKIP ${entry.id} — ${rec.error}`);
+                    continue;
+                }
+                calOpts = { params: res.params, mediaNotes: res.notes };
+            }
+
             try {
-                const runtime = await cal.calibrate(entry.id);
+                const runtime = await cal.calibrate(entry.id, calOpts);
                 rec.ok = true;
                 // ★ The ingredients, so a human can read what produced the result
                 // rather than taking the measurement on trust.
@@ -458,6 +508,7 @@ class LibrarySweep {
             finishedAt: this._run.finishedAt,
             state: this._run.state,
             machine: this._run.machine,
+            suite: this._run.suite || null,
             summary: this._summary(),
             results: this._run.results,
         };
@@ -504,12 +555,13 @@ class LibrarySweep {
                 ? p.default
                 : graph[p.nodeId]?.inputs?.[p.field];
             const wasSent = Object.prototype.hasOwnProperty.call(sent, p.key);
+            const fromSuite = (details?.suiteKeys || []).includes(p.key);
             const row = {
                 key: p.key,
                 label: p.label || p.key,
                 type: p.type,
                 node: `${p.nodeId}.${p.field}`,
-                from: wasSent ? 'calibration' : 'the graph default',
+                from: fromSuite ? 'the test suite' : wasSent ? 'calibration' : 'the graph default',
                 value: wasSent ? sent[p.key] : literal,
             };
             if (isMedia && media[p.key]) {
@@ -529,6 +581,106 @@ class LibrarySweep {
             out.push(row);
         }
         return out;
+    }
+
+    /**
+     * A suite run's parameters, with every media reference turned into a file.
+     *
+     * Returns { params, notes, inputs, missing }: `params` is what calibrate()
+     * lays over warmupParams (media as `file:<path>` or `asset:<name>`), `notes`
+     * says where each media input came from, `inputs` is what the report records,
+     * and `missing` lists every input that could not be found — any entry there
+     * skips the run.
+     */
+    async _resolveSuiteParams(entry, run) {
+        const exposed = new Map((entry.effective?.exposedParameters || []).map(p => [p.key, p]));
+        const params = {}, notes = {}, inputs = {}, missing = [];
+        for (const [key, spec] of Object.entries(run.params || {})) {
+            const p = exposed.get(key);
+            if (!p) { missing.push(`the suite sets "${key}", which this workflow does not have`); continue; }
+            const media = MEDIA_TYPES.includes(p.type) ? parseMediaSpec(spec) : null;
+            if (!media) { params[key] = spec; continue; }
+            if (media.empty) { params[key] = null; inputs[key] = { empty: true }; continue; }
+            if (media.asset) { params[key] = media.asset; inputs[key] = { asset: media.asset.slice('asset:'.length) }; continue; }
+
+            const kind = media.kind || kindForParam(p.type);
+            let src = null, from = null;
+            for (const id of media.from) {
+                src = this._suiteOutput(id, kind, media.pick);
+                if (src) { from = id; break; }
+            }
+            if (!src && media.fallback) {
+                params[key] = media.fallback;
+                inputs[key] = { asset: media.fallback.replace(/^asset:/, ''), fallbackFor: media.from };
+                notes[key] = `fallback asset — no ${kind} output from ${media.from.join(' or ')}`;
+                continue;
+            }
+            if (!src) {
+                missing.push(`"${key}" needs a ${kind} from ${media.from.join(' or ')}, and there is none`);
+                continue;
+            }
+            let file = src;
+            if (media.derive.length) {
+                try {
+                    file = await this._derive(src, media.derive, `${entry.id}__${key}`);
+                } catch (e) {
+                    missing.push(`"${key}": could not derive it from ${from}'s output — ${e.message}`);
+                    continue;
+                }
+            }
+            params[key] = `file:${file}`;
+            const ops = media.derive.map(o => o.op).join(' + ');
+            notes[key] = `output of ${from}${ops ? ` (${ops})` : ''}`;
+            inputs[key] = { from, source: src, path: file, ...(ops ? { derive: media.derive } : {}) };
+        }
+        return { params, notes, inputs, missing };
+    }
+
+    /**
+     * The `pick`-th output of `kind` that `workflowId` produced — this sweep's
+     * row first, else the last published report's. Kind is ComfyQ's own
+     * classification, with an unambiguous mesh format preferred over a .ply.
+     */
+    _suiteOutput(workflowId, kind, pick = 0) {
+        const rows = [...(this._run?.results || []), ...(this._run?.prevRows || [])];
+        const row = rows.find(r => r.id === workflowId && r.ok);
+        if (!row) return null;
+        const files = (row.outputs || []).filter(o => o.path && o.file
+            && classify(o.file).kind === kind && fs.existsSync(o.path));
+        // A .ply counts as a mesh, but TripoSplat writes a SPLAT .ply beside its
+        // .glb — so a mesh input takes the unambiguous formats first.
+        if (kind === 'model3d') files.sort((a, b) => (/\.ply$/i.test(a.file) ? 1 : 0) - (/\.ply$/i.test(b.file) ? 1 : 0));
+        return files[pick]?.path || null;
+    }
+
+    /** Make an input from an output (a frame, a crop, a transparent hole), through ComfyUI's python. */
+    _derive(src, ops, name) {
+        const dir = path.join(this._dataDir, 'suite-inputs', this._run?.stamp || 'adhoc');
+        fs.mkdirSync(dir, { recursive: true });
+        const dest = path.join(dir, `${name}.png`);
+        return new Promise((resolve, reject) => {
+            const py = this._python();
+            if (!py || !fs.existsSync(DERIVE_SCRIPT)) return reject(new Error('ComfyUI\'s python or derive_input.py is missing'));
+            const boot = "import runpy, sys, os; p = sys.argv[1]; "
+                + "sys.path.insert(0, os.path.dirname(os.path.abspath(p))); "
+                + "sys.argv = sys.argv[1:]; runpy.run_path(p, run_name='__main__')";
+            let out = '', err = '';
+            const child = spawn(py, ['-c', boot, DERIVE_SCRIPT], {
+                env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' }, windowsHide: true,
+            });
+            const timer = setTimeout(() => { try { child.kill(); } catch { /* gone */ } reject(new Error('timed out')); }, 120000);
+            child.stdout.on('data', d => { out += d.toString('utf8'); });
+            child.stderr.on('data', d => { err += d.toString('utf8'); });
+            child.on('error', e => { clearTimeout(timer); reject(e); });
+            child.on('close', () => {
+                clearTimeout(timer);
+                let res = null;
+                try { res = JSON.parse(out); } catch { /* fall through */ }
+                if (res?.ok && fs.existsSync(dest)) return resolve(dest);
+                reject(new Error(res?.error || err.trim().split('\n').pop() || 'no result'));
+            });
+            try { child.stdin.write(JSON.stringify({ src, dest, ops })); child.stdin.end(); } catch { /* closed */ }
+        });
     }
 
     /**
@@ -582,7 +734,15 @@ class LibrarySweep {
             // A lazy match would stop at the first digit run inside the id itself —
             // `bench_video_ltx2_5_i2v_1791…` would read as the stamp `bench_video_ltx2_5`
             // and then fail to match its own bundle.
-            const stamps = JSON.stringify(entry?.prompt || '').match(/bench_[A-Za-z0-9_]+_\d{10,}/g) || [];
+            // ★ Only where a stamp is WRITTEN — a save node's filename_prefix. A test
+            // suite feeds one bundle's result to the next, so an INPUT filename now
+            // carries the upstream bundle's stamp too (`…__bench_image_ideogram4_t2i_
+            // 1793…png`), and searching the whole prompt read the captioner's own
+            // entry as somebody else's and threw its caption away — found by the
+            // first suite run, which recorded both Gemma captioners as NO OUTPUT.
+            const prefixes = Object.values((Array.isArray(entry?.prompt) ? entry.prompt[2] : null) || {})
+                .map(n => n?.inputs?.filename_prefix).filter(v => typeof v === 'string');
+            const stamps = prefixes.join(' ').match(/bench_[A-Za-z0-9_]+_\d{10,}/g) || [];
             const esc = workflowId.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const mine = new RegExp(`^bench_${esc}_\\d`);
             if (stamps.length && !stamps.some(s => mine.test(s))) return [];

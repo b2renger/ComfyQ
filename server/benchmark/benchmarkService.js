@@ -150,6 +150,26 @@ class BenchmarkService {
     // just the type: a pose / character-replacement workflow calibrated on
     // whatever video happens to be smallest may find no person and fail.
     _namedAsset(value, type) {
+        // `file:<absolute path>` — what a test suite passes when it feeds one
+        // workflow's RESULT to the next (see suitePlan.js). Accepted only inside
+        // the folders ComfyQ already works with: ComfyUI's output and input dirs,
+        // the assets dir, and the suite's own derived-inputs folder. A path from
+        // anywhere else is refused rather than copied into ComfyUI's input dir.
+        if (typeof value === 'string' && value.startsWith('file:')) {
+            const full = path.resolve(value.slice('file:'.length).trim());
+            const roots = [
+                this.comfyConfig?.output_dir || (this.comfyConfig?.root_path ? path.join(this.comfyConfig.root_path, 'output') : null),
+                this.comfyConfig?.root_path ? path.join(this.comfyConfig.root_path, 'input') : null,
+                this.assetsDir || null,
+                path.resolve(__dirname, '..', 'data', 'suite-inputs'),
+            ].filter(Boolean).map(r => path.resolve(r).toLowerCase() + path.sep);
+            const inside = roots.some(r => (full.toLowerCase() + path.sep).startsWith(r) && full.toLowerCase() + path.sep !== r);
+            let isFile = false;
+            try { isFile = fs.statSync(full).isFile(); } catch { /* missing */ }
+            if (inside && isFile) return full;
+            console.warn(`[Benchmark]   a ${type} input asks for ${full}, which is ${isFile ? 'outside the folders ComfyQ works with' : 'not there'} — picking a ${type} automatically`);
+            return null;
+        }
         if (typeof value !== 'string' || !value.startsWith('asset:')) return undefined;
         const name = value.slice('asset:'.length).trim();
         const full = this.assetsDir ? path.join(this.assetsDir, name) : '';
@@ -162,8 +182,14 @@ class BenchmarkService {
     // Stage the assets each image/video/audio input needs into ComfyUI/input and
     // return the paramValues map (basenames the Load* nodes will read). Reuses
     // the worker's InputUploader so the copies are namespaced + sweepable.
-    _buildCalibrationParams(entry, benchJobId) {
-        const paramValues = { ...(entry.meta.warmupParams || {}) };
+    /**
+     * @param {object} [overrides]   values a test suite sets for this run, laid
+     *   over warmupParams (a media value may be `asset:` or `file:`)
+     * @param {object} [mediaNotes]  per media key, where a suite input came from —
+     *   shown to a human beside the ingredient ("output of image_…_t2i")
+     */
+    _buildCalibrationParams(entry, benchJobId, overrides = null, mediaNotes = null) {
+        const paramValues = { ...(entry.meta.warmupParams || {}), ...(overrides || {}) };
         // ★ Which file on disk each media input really came from, kept so a sweep
         // report can show a human the ingredients that produced a given result.
         // The value in paramValues is only the namespaced copy inside ComfyUI/input,
@@ -178,8 +204,10 @@ class BenchmarkService {
                     originalName: path.basename(named), source: named
                 });
                 paramValues[p.key] = rec.comfyFilename;
-                this._lastMedia[p.key] = { source: named, staged: rec.comfyFilename, how: 'named in warmupParams' };
-                console.log(`[Benchmark]   ${p.type} input "${p.key}" ← ${path.basename(named)} (named in warmupParams)`);
+                const how = mediaNotes?.[p.key]
+                    || (overrides && Object.prototype.hasOwnProperty.call(overrides, p.key) ? 'named by the test suite' : 'named in warmupParams');
+                this._lastMedia[p.key] = { source: named, staged: rec.comfyFilename, how };
+                console.log(`[Benchmark]   ${p.type} input "${p.key}" ← ${path.basename(named)} (${how})`);
                 continue;
             }
             if (named === null) delete paramValues[p.key];
@@ -408,7 +436,12 @@ class BenchmarkService {
     // always actually executes — even on re-calibration — and we derive the warm
     // cost by subtracting the measured load phase. Inputs (image/video/audio) are
     // auto-supplied from the assets dir, so no upload or warmupParams is required.
-    async calibrate(workflowId) {
+    /**
+     * @param {object} [opts]
+     * @param {object} [opts.params]      a test suite's values for this run
+     * @param {object} [opts.mediaNotes]  where each suite media input came from
+     */
+    async calibrate(workflowId, opts = {}) {
         const entry = this.registry.get(workflowId);
         if (!entry || entry.unavailable) {
             throw new Error(`Cannot calibrate unavailable workflow: ${workflowId}`);
@@ -446,7 +479,7 @@ class BenchmarkService {
 
         const benchJobId = `bench-${workflowId}-${Date.now()}`;
         console.log(`[Benchmark] ${workflowId}: preparing calibration inputs…`);
-        const paramValues = this._buildCalibrationParams(entry, benchJobId);
+        const paramValues = this._buildCalibrationParams(entry, benchJobId, opts.params || null, opts.mediaNotes || null);
         const { wf, seedsRandomized } = this._randomizeSeeds(entry.apiWorkflow);
         // ★ What this run was actually fed, kept on the service for a caller that
         // wants to show it. runtime.json is the wrong home for a prompt and a set of
@@ -456,6 +489,9 @@ class BenchmarkService {
             workflowId,
             paramValues: { ...paramValues },
             media: { ...(this._lastMedia || {}) },
+            // Which values a test suite chose, so the report can say so rather
+            // than calling them "calibration" defaults.
+            suiteKeys: Object.keys(opts.params || {}),
             seedsRandomized,
             startedAt: new Date().toISOString(),
         };

@@ -1,0 +1,854 @@
+{
+  "name": "library",
+  "description": "Every workflow in the library, in dependency order, on one story — Maren the lighthouse keeper. Text-to-image results feed the edits, the edits and pictures feed the videos, and one text-to-video result is the source of every video-to-video card. Cards that do the same job are given the same inputs so they can be compared. Settings are each card's defaults except prompts and inputs, so the measured times are the real ones.",
+  "stages": [
+    {
+      "name": "1 — Text to image, and sound",
+      "runs": [
+        {
+          "workflow": "image_qwen_image_2_1_t2i",
+          "note": "THE scene of the suite: every later lighthouse picture and video starts here.",
+          "params": {
+            "textencodeqwenimage21_prompt_459_452": "A red-and-white striped lighthouse stands on a dark granite cliff in the right third of the frame, above a rough green sea at golden hour. On the left the open sea stretches to the horizon. A small white keeper's cottage with a red door sits at the foot of the tower, and a winding gravel path leads up to it through heather. Waves break white against the rocks, three seagulls glide in the sky, and the low warm sun lights everything from the left. Photographed with a 35mm lens, realistic, crisp detail, natural colours.",
+            "resolutionselector_aspect_ratio_13": "16:9 (Widescreen)"
+          }
+        },
+        {
+          "workflow": "image_qwen_image_2_1_t2i_fix",
+          "note": "Same prompt and size as the plain Qwen 2.1 card: the A/B this bundle exists for.",
+          "params": {
+            "textencodeqwenimage21_prompt_459_452": "A red-and-white striped lighthouse stands on a dark granite cliff in the right third of the frame, above a rough green sea at golden hour. On the left the open sea stretches to the horizon. A small white keeper's cottage with a red door sits at the foot of the tower, and a winding gravel path leads up to it through heather. Waves break white against the rocks, three seagulls glide in the sky, and the low warm sun lights everything from the left. Photographed with a 35mm lens, realistic, crisp detail, natural colours.",
+            "resolutionselector_aspect_ratio_13": "16:9 (Widescreen)"
+          }
+        },
+        {
+          "workflow": "image_minimax_h3_t2i",
+          "note": "Same scene prompt: the video model asked for one frame, against the image models.",
+          "params": {
+            "prompt_112": "A red-and-white striped lighthouse stands on a dark granite cliff in the right third of the frame, above a rough green sea at golden hour. On the left the open sea stretches to the horizon. A small white keeper's cottage with a red door sits at the foot of the tower, and a winding gravel path leads up to it through heather. Waves break white against the rocks, three seagulls glide in the sky, and the low warm sun lights everything from the left. Photographed with a 35mm lens, realistic, crisp detail, natural colours."
+          }
+        },
+        {
+          "workflow": "image_flux2_klein_9b_t2i",
+          "note": "The keeper's portrait: input of every face edit, the talking-head and LivePortrait cards.",
+          "params": {
+            "primitivestringmultiline_value_76": "Close-up portrait photograph of Maren, a lighthouse keeper: a woman in her fifties with short silver-grey hair, a weathered freckled face and bright blue eyes, wearing a bright yellow raincoat over a navy knit sweater, with the hood down. She looks straight into the camera with a calm half-smile, head and shoulders in frame. Soft overcast daylight, a blurred grey sea behind her, shot on an 85mm lens, shallow depth of field, natural skin texture.",
+            "flux2scheduler_steps_75_62": 20
+          }
+        },
+        {
+          "workflow": "image_flux3_klein_t2i",
+          "note": "The keeper full body on grey: input of the character sheet, quadview, angles, animate and 3D. Uses the new box layout.",
+          "params": {
+            "prompt": "Full-body studio photograph of Maren, a lighthouse keeper: a woman in her fifties with short silver-grey hair, a weathered freckled face and bright blue eyes, wearing a bright yellow raincoat over a navy knit sweater <obj_1>, with dark trousers and black rubber boots, standing upright facing the camera with her arms relaxed at her sides, the whole figure from head to boots in frame. Plain light-grey seamless studio background, soft even lighting, sharp focus, realistic.",
+            "layout": "[\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      40,\n      300,\n      975,\n      700\n    ],\n    \"desc\": \"Maren the lighthouse keeper, full body, standing, facing the camera\"\n  }\n]",
+            "aspect_ratio": "2:3 (Portrait Photo)"
+          }
+        },
+        {
+          "workflow": "image_flux3_klein_distilled_t2i",
+          "note": "The prop: a brass lantern on white, for the 3D, relight and reference-edit cards.",
+          "params": {
+            "prompt": "Product photograph of an antique brass ship's lantern with a domed top, a carrying ring and clear glass panes around a lit candle, standing alone on a pure white background, centred, the whole lantern in frame, soft studio light, crisp reflections on the brass, no text."
+          }
+        },
+        {
+          "workflow": "image_krea2_turbo_t2i_lora",
+          "note": "A clear full-body pose: the structure for the depth-control cards and a character for replacement.",
+          "params": {
+            "primitivestringmultiline_value_30_19": "A ballet dancer in a plain black leotard caught mid-leap in a grand jeté, legs split wide, arms extended, her whole body in frame against a plain light-grey studio wall, sharp focus, studio photography.",
+            "resolutionselector_aspect_ratio_49": "3:2 (Photo)"
+          }
+        },
+        {
+          "workflow": "image_ideogram4_t2i",
+          "note": "A poster with exact text: the style reference of the restyle cards.",
+          "params": {
+            "prompt_json_98_24": "{\n  \"high_level_description\": \"A bold vintage screen-printed travel poster for a seaside lighthouse festival: a stylised red-and-white lighthouse on a dark cliff sends a wide cream beam across a deep teal night sea, with large title lettering at the top.\",\n  \"style_description\": {\n    \"aesthetics\": \"Mid-century screen-print travel poster, flat colour shapes, visible paper grain and slight ink misregistration.\",\n    \"lighting\": \"Flat graphic lighting; the beam is a single cream wedge of light.\",\n    \"medium\": \"Screen print\",\n    \"color_palette\": [\n      \"#0F4C5C\",\n      \"#E36414\",\n      \"#FB8B24\",\n      \"#F4E9CD\",\n      \"#9A031E\"\n    ]\n  },\n  \"compositional_deconstruction\": {\n    \"background\": \"A deep teal night sky with small cream stars over a darker teal sea.\",\n    \"elements\": [\n      {\n        \"type\": \"text\",\n        \"bbox\": [\n          40,\n          80,\n          200,\n          920\n        ],\n        \"text\": \"PHARE DU CAP\",\n        \"desc\": \"Huge condensed cream sans-serif title lettering across the top\",\n        \"color_palette\": [\n          \"#F4E9CD\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          230,\n          330,\n          880,\n          640\n        ],\n        \"desc\": \"A stylised red-and-white striped lighthouse standing on a dark cliff, its lamp glowing orange\",\n        \"color_palette\": [\n          \"#9A031E\",\n          \"#F4E9CD\",\n          \"#E36414\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          260,\n          560,\n          560,\n          1000\n        ],\n        \"desc\": \"A wide cream light beam sweeping to the right over the sea\",\n        \"color_palette\": [\n          \"#F4E9CD\"\n        ]\n      },\n      {\n        \"type\": \"text\",\n        \"bbox\": [\n          890,\n          150,\n          970,\n          850\n        ],\n        \"text\": \"FESTIVAL DES LUMIÈRES\",\n        \"desc\": \"Orange sans-serif lettering along the bottom edge\",\n        \"color_palette\": [\n          \"#FB8B24\"\n        ]\n      }\n    ]\n  }\n}",
+            "quality_98_156": "Default"
+          }
+        },
+        {
+          "workflow": "image_moss_image_t2i",
+          "note": "Box layout with a text box and a character box (the MOSS composer's job).",
+          "params": {
+            "prompt_117": "Illustrated book cover in a painterly gouache style: at night a lighthouse keeper in a yellow raincoat stands on dark rocks in the lower left holding up a glowing brass lantern, while a tall red-and-white striped lighthouse rises on the right against a deep blue starry sky with a crescent moon. The title reads \"THE LAST KEEPER\" in large cream serif capitals across the top. Rich textured brushwork, warm lantern glow against cool blues.",
+            "layout_24": "[\n  {\n    \"type\": \"text\",\n    \"bbox\": [\n      40,\n      80,\n      220,\n      920\n    ],\n    \"text\": \"THE LAST KEEPER\",\n    \"desc\": \"large cream serif capitals\"\n  },\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      480,\n      60,\n      980,\n      480\n    ],\n    \"desc\": \"a lighthouse keeper in a yellow raincoat holding up a glowing brass lantern\"\n  },\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      180,\n      560,\n      980,\n      900\n    ],\n    \"desc\": \"a tall red-and-white striped lighthouse with a glowing lamp\"\n  }\n]",
+            "character_boxes_27": "2",
+            "aspect_ratio_19": "2:3 (Portrait Photo)"
+          }
+        },
+        {
+          "workflow": "image_moss_image_base_t2i",
+          "note": "Same prompt and layout as the MOSS SFT card: base against SFT.",
+          "params": {
+            "prompt_117": "Illustrated book cover in a painterly gouache style: at night a lighthouse keeper in a yellow raincoat stands on dark rocks in the lower left holding up a glowing brass lantern, while a tall red-and-white striped lighthouse rises on the right against a deep blue starry sky with a crescent moon. The title reads \"THE LAST KEEPER\" in large cream serif capitals across the top. Rich textured brushwork, warm lantern glow against cool blues.",
+            "layout_24": "[\n  {\n    \"type\": \"text\",\n    \"bbox\": [\n      40,\n      80,\n      220,\n      920\n    ],\n    \"text\": \"THE LAST KEEPER\",\n    \"desc\": \"large cream serif capitals\"\n  },\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      480,\n      60,\n      980,\n      480\n    ],\n    \"desc\": \"a lighthouse keeper in a yellow raincoat holding up a glowing brass lantern\"\n  },\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      180,\n      560,\n      980,\n      900\n    ],\n    \"desc\": \"a tall red-and-white striped lighthouse with a glowing lamp\"\n  }\n]",
+            "character_boxes_27": "2",
+            "aspect_ratio_19": "2:3 (Portrait Photo)"
+          }
+        },
+        {
+          "workflow": "image_qwen_image_2512_360_panorama",
+          "note": "The headland all around the camera, for the 360° viewer.",
+          "params": {
+            "place_2": "a rugged granite headland on the Breton coast with a red-and-white striped lighthouse, a small whitewashed keeper's cottage with a red door, heather and a gravel path, and the open Atlantic all around"
+          }
+        },
+        {
+          "workflow": "audio_stable_audio_3_medium",
+          "note": "A tune with a clear melody: the reference song of the YuE2 cover.",
+          "params": {
+            "description_52_31": "A gentle sea-shanty-inspired folk tune: fingerpicked acoustic guitar, an accordion melody, soft hand drum, distant waves, warm and nostalgic, 92 BPM",
+            "category_52_43": "Music"
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 — Edit, control and upscale the pictures; 3D; the song cover",
+      "runs": [
+        {
+          "workflow": "image_edit_flux2_klein_9b_image_edit",
+          "note": "Day → stormy night: the LAST frame of the three first/last-frame video cards.",
+          "params": {
+            "loadimage_image_76": "output:image_qwen_image_2_1_t2i",
+            "cliptextencode_text_75_74": "Turn this into the same place at night during a storm: a dark sky with heavy rain, the lighthouse lamp lit and its beam visible, the waves crashing higher, the cottage windows glowing. Keep the lighthouse, the cliff, the cottage and the path exactly where they are.",
+            "flux2scheduler_steps_75_62": 20
+          }
+        },
+        {
+          "workflow": "image_edit_flux2_klein_9b_image_edit_ref",
+          "note": "Portrait + the lantern as a reference. Same task as the Qwen 2.1 edit below.",
+          "params": {
+            "loadimage_image_76": "output:image_flux2_klein_9b_t2i",
+            "loadimage_image_81": "output:image_flux3_klein_distilled_t2i",
+            "cliptextencode_text_92_113": "Put the brass lantern from the reference image in her raised right hand, lit, held near her shoulder; keep her face, hair, raincoat, framing and the background unchanged.",
+            "flux2scheduler_steps_92_115": 20
+          }
+        },
+        {
+          "workflow": "image_qwen_image_2_1_image_edit",
+          "note": "The same two pictures and task as the FLUX.2 Klein reference edit.",
+          "params": {
+            "loadimage_image_470": "output:image_flux2_klein_9b_t2i",
+            "loadimage_image_475": "output:image_flux3_klein_distilled_t2i",
+            "textencodeqwenimage21_prompt_459_474": "Keep the woman in <image1> exactly as she is - face, hair, raincoat, framing and background - and put the brass lantern from <image2> in her raised right hand, lit."
+          }
+        },
+        {
+          "workflow": "image_edit_flux3_klein_image_edit",
+          "note": "A box over the coat, cited as <obj_1>: the new FLUX.3 layout on an edit.",
+          "params": {
+            "image": "output:image_flux2_klein_9b_t2i",
+            "prompt": "In <ref_image_0>, change the yellow raincoat <obj_1> into a navy-blue wool peacoat with brass buttons; keep her face, hair, expression, lighting and the background exactly the same.",
+            "layout": "[\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      620,\n      60,\n      1000,\n      940\n    ],\n    \"desc\": \"her yellow raincoat\"\n  }\n]"
+          }
+        },
+        {
+          "workflow": "image_edit_bernini_r_image_editing",
+          "note": "Day → winter: key frame 2 of the Wan 4-key-frame card.",
+          "params": {
+            "source_image_114": "output:image_qwen_image_2_1_t2i",
+            "edit_instruction_76_120": "make it winter: thick snow on the cliff, the path and the cottage roof, a pale grey sky, a dark cold sea"
+          }
+        },
+        {
+          "workflow": "image_edit_bernini_r_image_editing_with_reference",
+          "note": "The scene restyled from the Ideogram poster: key frame 4 of the Wan card.",
+          "params": {
+            "source_image_114": "output:image_qwen_image_2_1_t2i",
+            "reference_image_104": "output:image_ideogram4_t2i",
+            "edit_instruction_76_120": "Restyle the image to match the reference image: flat screen-print colours, a deep teal sky, cream highlights and visible paper grain."
+          }
+        },
+        {
+          "workflow": "image_edit_flux2_klein_inpaint_prompt",
+          "note": "A hole cut in the sea on the left (where the scene prompt put open water).",
+          "params": {
+            "loadimage_image_1": {
+              "from": "image_qwen_image_2_1_t2i",
+              "derive": [
+                {
+                  "op": "transparent",
+                  "shape": "ellipse",
+                  "box": [
+                    0.06,
+                    0.55,
+                    0.36,
+                    0.86
+                  ]
+                }
+              ]
+            },
+            "cliptextencode_text_6": "a small red fishing boat with a white wheelhouse riding the waves"
+          }
+        },
+        {
+          "workflow": "image_edit_flux2_klein_inpaint_reference",
+          "note": "A hole in the foreground rocks, filled with the lantern from its picture.",
+          "params": {
+            "loadimage_image_1": {
+              "from": "image_qwen_image_2_1_t2i",
+              "derive": [
+                {
+                  "op": "transparent",
+                  "shape": "ellipse",
+                  "box": [
+                    0.4,
+                    0.7,
+                    0.62,
+                    0.97
+                  ]
+                }
+              ]
+            },
+            "loadimage_image_22": "output:image_flux3_klein_distilled_t2i",
+            "cliptextencode_text_6": "Add the brass lantern from the reference image standing on the rocks in the masked area, lit, matching the golden-hour light and perspective."
+          }
+        },
+        {
+          "workflow": "image_edit_qwen_2_1_relight_composite",
+          "note": "Background in Image 1, the lantern in Image 2, named in the prompt (the rule CLAUDE.md records).",
+          "params": {
+            "loadimage_image_470": "output:image_qwen_image_2_1_t2i",
+            "loadimage_image_475": "output:image_flux3_klein_distilled_t2i",
+            "loadimage_image_476": null,
+            "textencodeqwenimage21_prompt_474": "pengyu Place the brass lantern from <image2> on the rocks in the foreground of <image1>, apply the golden-hour lighting of <image1> to it, enhance specular highlights, add a natural contact shadow, and blend it seamlessly into the background."
+          }
+        },
+        {
+          "workflow": "image_edit_flux2_klein_ref_control_depth",
+          "note": "The keeper put into the dancer's leap.",
+          "params": {
+            "loadimage_image_81": "output:image_flux3_klein_t2i",
+            "loadimage_image_119": "output:image_krea2_turbo_t2i_lora",
+            "cliptextencode_text_113": "refcontrol, the lighthouse keeper from the reference image in exactly this leaping pose, her yellow raincoat flying, plain light-grey studio background"
+          }
+        },
+        {
+          "workflow": "image_qwen_image_2_1_control_depth",
+          "note": "The scene's depth, re-imagined in ice. Same input and prompt as the canny card.",
+          "params": {
+            "loadimage_image_900": "output:image_qwen_image_2_1_t2i",
+            "resolutionselector_aspect_ratio_13": "16:9 (Widescreen)",
+            "textencodeqwenimage21_prompt_459_452": "A lighthouse on a cliff above the sea, carved entirely from translucent blue glacier ice, the sea frozen into jagged ice floes, pale arctic morning light, photograph"
+          }
+        },
+        {
+          "workflow": "image_qwen_image_2_1_control_canny",
+          "note": "The scene's edges, the same ice prompt: canny against depth.",
+          "params": {
+            "loadimage_image_900": "output:image_qwen_image_2_1_t2i",
+            "resolutionselector_aspect_ratio_13": "16:9 (Widescreen)",
+            "textencodeqwenimage21_prompt_459_452": "A lighthouse on a cliff above the sea, carved entirely from translucent blue glacier ice, the sea frozen into jagged ice floes, pale arctic morning light, photograph"
+          }
+        },
+        {
+          "workflow": "image_moss_image_color_depth_control",
+          "note": "The dancer's depth becomes a bronze statue.",
+          "params": {
+            "photo_55": "output:image_krea2_turbo_t2i_lora",
+            "prompt_5": "A bronze statue of a dancer caught mid-leap, legs split wide, arms extended, polished bronze with a green patina, on a granite plinth in a seaside park at sunset with the sea behind, photograph."
+          }
+        },
+        {
+          "workflow": "image_krea2_turbo_style_reference",
+          "note": "Two of the suite's own pictures as the style.",
+          "params": {
+            "loadimage_image_69": "output:image_ideogram4_t2i",
+            "loadimage_image_77": "output:image_moss_image_t2i",
+            "loadimage_image_78": null,
+            "primitivestringmultiline_value_30_19": "a fox rowing a small wooden boat across a calm sea at night under the stars"
+          }
+        },
+        {
+          "workflow": "image_edit_krea2_dynamic_character_sheet",
+          "note": "The keeper's character sheet.",
+          "params": {
+            "loadimage_image_72": "output:image_flux3_klein_t2i"
+          }
+        },
+        {
+          "workflow": "image_edit_krea2_quadview",
+          "note": "The keeper's four views: cropped into the four inputs of the Pixal3D multi-view card.",
+          "params": {
+            "loadimage_image_72": "output:image_flux3_klein_t2i"
+          }
+        },
+        {
+          "workflow": "image_edit_qwen_2511_multiple_angles",
+          "note": "The keeper seen from her side.",
+          "params": {
+            "loadimage_image_1": "output:image_flux3_klein_t2i",
+            "cameraangle_221": "{\"horizontal\": 90, \"vertical\": 0, \"zoom\": 5}"
+          }
+        },
+        {
+          "workflow": "utility_qwen_2511_unblur_upscale",
+          "note": "The portrait shrunk and blurred, then repaired.",
+          "params": {
+            "loadimage_image_25": {
+              "from": "image_flux2_klein_9b_t2i",
+              "derive": [
+                {
+                  "op": "scale",
+                  "factor": 0.4
+                },
+                {
+                  "op": "blur",
+                  "radius": 2.5
+                }
+              ]
+            }
+          }
+        },
+        {
+          "workflow": "utility_pid_image_upscale",
+          "note": "The scene enlarged 4×.",
+          "params": {
+            "loadimage_image_1": "output:image_qwen_image_2_1_t2i"
+          }
+        },
+        {
+          "workflow": "utility_seedvr2_4k_upscale",
+          "note": "The portrait to 4K.",
+          "params": {
+            "source_image_16": "output:image_flux2_klein_9b_t2i"
+          }
+        },
+        {
+          "workflow": "utility_seedvr2_7b_int8_image_upscale",
+          "note": "The lantern enlarged 4×.",
+          "params": {
+            "loadimage_image_1": "output:image_flux3_klein_distilled_t2i"
+          }
+        },
+        {
+          "workflow": "describe_gemma4_image_description",
+          "note": "Can it read the poster's text back?",
+          "params": {
+            "source_image_2": "output:image_ideogram4_t2i",
+            "instruction_1": "Describe the image in detail, and quote any text in it exactly."
+          }
+        },
+        {
+          "workflow": "3d_pixal3d_trellis2_image_to_model",
+          "note": "The lantern as a textured mesh.",
+          "params": {
+            "loadimage_image_122": "output:image_flux3_klein_distilled_t2i"
+          }
+        },
+        {
+          "workflow": "3d_triposplat_image_to_gaussian_splat",
+          "note": "The keeper as a Gaussian splat.",
+          "params": {
+            "loadimage_image_99": "output:image_flux3_klein_t2i",
+            "ksampler_steps_88_6": 20
+          }
+        },
+        {
+          "workflow": "3d_pixal3d_multi_views",
+          "note": "Four views cropped from the quadview sheet (face | front | side | back, measured on its output: the face panel takes the first third); the side mirrored for the other side. The crops assume that layout — check them if the quadview card changes.",
+          "params": {
+            "loadimage_image_364": {
+              "from": "image_edit_krea2_quadview",
+              "derive": [
+                {
+                  "op": "crop",
+                  "box": [
+                    0.34,
+                    0.0,
+                    0.565,
+                    1.0
+                  ]
+                }
+              ]
+            },
+            "loadimage_image_378": {
+              "from": "image_edit_krea2_quadview",
+              "derive": [
+                {
+                  "op": "crop",
+                  "box": [
+                    0.57,
+                    0.0,
+                    0.755,
+                    1.0
+                  ]
+                }
+              ]
+            },
+            "loadimage_image_380": {
+              "from": "image_edit_krea2_quadview",
+              "derive": [
+                {
+                  "op": "crop",
+                  "box": [
+                    0.76,
+                    0.0,
+                    1.0,
+                    1.0
+                  ]
+                }
+              ]
+            },
+            "loadimage_image_379": {
+              "from": "image_edit_krea2_quadview",
+              "derive": [
+                {
+                  "op": "crop",
+                  "box": [
+                    0.57,
+                    0.0,
+                    0.755,
+                    1.0
+                  ]
+                },
+                {
+                  "op": "flip"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "workflow": "3d_mesh_remesh_decimate",
+          "note": "The lantern mesh, made low-poly.",
+          "params": {
+            "load3dadvanced_model_file_6": "output:3d_pixal3d_trellis2_image_to_model"
+          }
+        },
+        {
+          "workflow": "3d_mesh_uv_unwrap",
+          "note": "The keeper mesh, unwrapped.",
+          "params": {
+            "load3dadvanced_model_file_6": "output:3d_pixal3d_multi_views"
+          }
+        },
+        {
+          "workflow": "audio_yue2_music_cover",
+          "note": "The Stable Audio tune, sung.",
+          "params": {
+            "loadaudio_audio_45": "output:audio_stable_audio_3_medium",
+            "yue2generatemusic_style_33_25": "English, warm folk ballad, gentle female vocal, 92 BPM, fingerpicked acoustic guitar, accordion, soft hand drum",
+            "yue2generatemusic_lyrics_33_25": "[Verse]\nSalt on the window, wind at the door\nI climb the stairs as I did before\nForty years of the same old sea\nAnd still it sings its song to me\n\n[Chorus]\nKeep the light burning, keep the light low\nFor every sailor still far from home\nKeep the light burning through the night\nTill morning comes and the sea turns white\n\n[Verse]\nThe gulls are sleeping, the boats are in\nThe storm is calling me again\nI wind the clock and trim the wick\nThe night is long, the fog is thick\n\n[Chorus]\nKeep the light burning, keep the light low\nFor every sailor still far from home"
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 — Pictures and text to video",
+      "runs": [
+        {
+          "workflow": "video_ltx2_5_t2v",
+          "note": "The four text-to-video cards share one prompt. This one is also the SOURCE video of stage 4.",
+          "params": {
+            "primitivestringmultiline_value_405_376": "A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern. Sound: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle."
+          }
+        },
+        {
+          "workflow": "video_fastvideo_fasth3_t2v",
+          "note": "Same prompt, H3 distilled to 8 steps.",
+          "params": {
+            "minimaxh3imagetovideo_prompt_105_104": "[Shot 1] A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern. We hear waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle.",
+            "resolutionselector_aspect_ratio_143": "16:9 (Widescreen)"
+          }
+        },
+        {
+          "workflow": "video_minimax_h3_t2v_turbo",
+          "note": "Same prompt, H3 with the 4-step turbo LoRA.",
+          "params": {
+            "minimaxh3imagetovideo_prompt_11": "A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern.\nAudio: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle, no music."
+          }
+        },
+        {
+          "workflow": "video_pika_h3_flex_t2v",
+          "note": "Same prompt, Pika's 6-step H3.",
+          "params": {
+            "prompt_231": "integrated_multimodal_description: [Shot 1] A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern.\n\noverall_soundscape: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle.\n\nnon_diegetic_music: N/A"
+          }
+        },
+        {
+          "workflow": "video_ltx2_5_i2v",
+          "note": "The scene comes to life. Same picture and action as the MiniMax 4-step card.",
+          "params": {
+            "loadimage_image_395": "output:image_qwen_image_2_1_t2i",
+            "primitivestringmultiline_value_398_376": "Use the provided start image as the first frame. The camera slowly pushes in toward the lighthouse as waves roll in and break white against the cliff, spray drifting in the golden light; the seagulls glide across the sky and the heather bends in the wind. Sound: crashing waves, wind, gulls crying."
+          }
+        },
+        {
+          "workflow": "video_minimax_h3_i2v_4step",
+          "note": "Same picture and action.",
+          "params": {
+            "loadimage_image_114": "output:image_qwen_image_2_1_t2i",
+            "minimaxh3imagetovideo_prompt_105_104": "The scene from <Picture 1> comes to life. The camera slowly pushes in toward the lighthouse while waves roll in and break white against the cliff, spray drifting in the golden light; the seagulls glide across the sky and the heather bends in the wind.\nAudio: crashing waves, wind, gulls crying, no music."
+          }
+        },
+        {
+          "workflow": "video_ltx2_5_flf2v",
+          "note": "Day → stormy night between two of the suite's pictures. Same pair on the Pika and FastH3 cards.",
+          "params": {
+            "loadimage_image_31": "output:image_qwen_image_2_1_t2i",
+            "loadimage_image_39": "output:image_edit_flux2_klein_9b_image_edit",
+            "primitivestringmultiline_value_251_252": "Use the provided start image as the first frame and the provided end image as the final frame anchor. A locked-off time-lapse of the lighthouse on the cliff, from golden hour into a stormy night: the sun sinks, dark clouds roll in, rain starts to fall, the lighthouse lamp switches on and its beam begins to sweep across the sea, the waves grow higher and crash against the cliff, and the cottage windows light up. Sound: rising wind, rain starting to fall, a rumble of thunder, waves crashing against the rocks."
+          }
+        },
+        {
+          "workflow": "video_pika_h3_flex_fl2va",
+          "note": "The same first and last frame.",
+          "params": {
+            "first_frame_148": "output:image_qwen_image_2_1_t2i",
+            "last_frame_147": "output:image_edit_flux2_klein_9b_image_edit",
+            "prompt_231": "How the reference pictures align with the target video - Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the 5.17-second mark of the target video.\n\nintegrated_multimodal_description: [Shot 1] A locked-off time-lapse of the lighthouse on the cliff, from golden hour into a stormy night: the sun sinks, dark clouds roll in, rain starts to fall, the lighthouse lamp switches on and its beam begins to sweep across the sea, the waves grow higher and crash against the cliff, and the cottage windows light up. The shot settles exactly on Picture 2.\n\noverall_soundscape: rising wind, rain starting to fall, a rumble of thunder, waves crashing against the rocks.\n\nnon_diegetic_music: N/A"
+          }
+        },
+        {
+          "workflow": "video_fastvideo_fasth3_i2v",
+          "note": "The same first and last frame, on the 8-step FastH3.",
+          "params": {
+            "loadimage_image_136": "output:image_qwen_image_2_1_t2i",
+            "loadimage_image_300": "output:image_edit_flux2_klein_9b_image_edit",
+            "resolutionselector_aspect_ratio_143": "16:9 (Widescreen)",
+            "minimaxh3imagetovideo_prompt_105_104": "How the reference pictures align with the target video - Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the 5.00-second mark of the target video.\nintegrated_multimodal_description: [Shot 1] A locked-off time-lapse of the lighthouse on the cliff, from golden hour into a stormy night: the sun sinks, dark clouds roll in, rain starts to fall, the lighthouse lamp switches on and its beam begins to sweep across the sea, the waves grow higher and crash against the cliff, and the cottage windows light up. We hear rising wind, rain starting to fall, a rumble of thunder, waves crashing against the rocks."
+          }
+        },
+        {
+          "workflow": "video_wan22_4_key_frames",
+          "note": "Day → winter → stormy night → poster: four of the suite's pictures as key frames.",
+          "params": {
+            "loadimage_image_62": "output:image_qwen_image_2_1_t2i",
+            "loadimage_image_122": "output:image_edit_bernini_r_image_editing",
+            "loadimage_image_124": "output:image_edit_flux2_klein_9b_image_edit",
+            "loadimage_image_126": "output:image_edit_bernini_r_image_editing_with_reference",
+            "cliptextencode_text_140_6": "The golden-hour cliff turns to winter: snow begins to fall and settles on the cliff, the path and the cottage roof, the light turns pale and grey.",
+            "cliptextencode_text_228_225": "The winter dusk darkens into a stormy night: rain replaces the snow, the lighthouse lamp switches on and its beam starts to sweep, the waves rise.",
+            "cliptextencode_text_245_242": "The stormy night flattens into a screen-printed poster of the same view: the colours simplify into flat teal and cream shapes and paper grain appears.",
+            "primitiveint_value_283": 960,
+            "primitiveint_value_284": 544
+          }
+        },
+        {
+          "workflow": "video_fastvideo_fasth3_omniref_r2v",
+          "note": "The keeper and her lantern as references. Same prompt and pictures as the Pika reference card.",
+          "params": {
+            "ref_image_137": "output:image_flux3_klein_t2i",
+            "ref_image_300": "output:image_flux3_klein_distilled_t2i",
+            "ref_image_301": null,
+            "ref_image_302": null,
+            "prompt_138": "subject_definitions:\n<Subject 1> is the woman in <Picture 1>: Maren, a lighthouse keeper with short silver-grey hair and a weathered face, in a bright yellow raincoat, navy sweater, dark trousers and black boots.\n<Subject 2> is the brass ship's lantern in <Picture 2>: domed top, carrying ring, glass panes around a lit candle.\n\nsummary:\n[reference generation] A 5-second single shot: <Subject 1> climbs the last turn of a spiral iron staircase inside the lighthouse at night, carrying <Subject 2>, lit, and stops at the top to look out of the window at the storm.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - face, grey hair, yellow raincoat, boots.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the brass lantern with its glass panes and lit candle.\n\ndetailed_description:\nMoody cinematic night interior, warm lantern light against cold blue storm light from the windows.\n[Shot 1] A low angle at the foot of the last turn of the staircase: <Subject 1> climbs toward the camera holding <Subject 2> at chest height, its candlelight swinging across the curved white wall. At about three seconds she reaches the top, raises the lantern and turns her head to the rain-streaked window, where lightning flashes once over the sea.\n\noverall_soundscape:\nBoots on iron steps, the lantern handle creaking, rain and wind against the tower, one distant thunder roll.\n\nnon_diegetic_music:\nA soft low cello note that swells at the window."
+          }
+        },
+        {
+          "workflow": "video_pika_h3_flex_ref2va",
+          "note": "The same references and prompt.",
+          "params": {
+            "ref_image_149": "output:image_flux3_klein_t2i",
+            "ref_image_150": "output:image_flux3_klein_distilled_t2i",
+            "ref_image_300": null,
+            "ref_image_301": null,
+            "prompt_138": "subject_definitions:\n<Subject 1> is the woman in <Picture 1>: Maren, a lighthouse keeper with short silver-grey hair and a weathered face, in a bright yellow raincoat, navy sweater, dark trousers and black boots.\n<Subject 2> is the brass ship's lantern in <Picture 2>: domed top, carrying ring, glass panes around a lit candle.\n\nsummary:\n[reference generation] A 5-second single shot: <Subject 1> climbs the last turn of a spiral iron staircase inside the lighthouse at night, carrying <Subject 2>, lit, and stops at the top to look out of the window at the storm.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - face, grey hair, yellow raincoat, boots.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the brass lantern with its glass panes and lit candle.\n\ndetailed_description:\nMoody cinematic night interior, warm lantern light against cold blue storm light from the windows.\n[Shot 1] A low angle at the foot of the last turn of the staircase: <Subject 1> climbs toward the camera holding <Subject 2> at chest height, its candlelight swinging across the curved white wall. At about three seconds she reaches the top, raises the lantern and turns her head to the rain-streaked window, where lightning flashes once over the sea.\n\noverall_soundscape:\nBoots on iron steps, the lantern handle creaking, rain and wind against the tower, one distant thunder roll.\n\nnon_diegetic_music:\nA soft low cello note that swells at the window."
+          }
+        },
+        {
+          "workflow": "video_ltx2_3_ic_lora_ingredients",
+          "note": "The quadview sheet as the reference sheet.",
+          "params": {
+            "loadimage_image_724": "output:image_edit_krea2_quadview",
+            "comfyswitchnode_on_false_129_211": "### Reference Sheet Description **Character:** Maren, a lighthouse keeper - a woman in her fifties with short silver-grey hair and a weathered face, in a bright yellow raincoat over a navy knit sweater, dark trousers and black boots - shown in a face close-up and in front, side and back full-body views on a plain background.\n\n### Target Description A cinematic scene on a windswept cliff at dusk, a red-and-white lighthouse behind her. Maren walks along the gravel path toward the camera, stops, looks into the lens and says calmly: \"The light never goes out.\" The wind moves her hair and the hem of her raincoat, waves break on the rocks below and gulls cry."
+          }
+        },
+        {
+          "workflow": "video_ltx2_3_ia2v_iclora",
+          "note": "The keeper's portrait speaking a recorded voice (the assets' speech clip).",
+          "params": {
+            "loadimage_image_269": "output:image_flux2_klein_9b_t2i",
+            "loadaudio_audio_276": "asset:duflot-2.mp3",
+            "primitivestringmultiline_value_340_319": "The lighthouse keeper talks to the viewer, calm and warm, her head moving slightly as she speaks and one hand rising into frame in a small gesture.\n\nscene: inside the lantern room of a lighthouse at dusk, the sea through the windows\ncharacter: a woman in her fifties with short silver-grey hair in a bright yellow raincoat\naction: talking to the camera with natural expressions\ncamera: static medium close-up"
+          }
+        },
+        {
+          "workflow": "video_liveportrait_image2video",
+          "note": "The keeper's portrait driven by the assets' face clip.",
+          "params": {
+            "loadimage_image_196": "output:image_flux2_klein_9b_t2i",
+            "vhs_loadvideo_video_8": "asset:d6.mp4"
+          }
+        },
+        {
+          "workflow": "video_minimax_h3_seamless_loop",
+          "note": "The stormy night as a loop. Same picture and prompt as the FastH3 loop card.",
+          "params": {
+            "prompt_8": "Locked-off static camera, no pan, no zoom. <Picture 1> is the scene: a red-and-white lighthouse on a dark cliff at night in a storm. Its beam sweeps steadily round in a full circle, lighting the rain as it passes. Rain falls continuously, waves roll in and break against the rocks in a steady rhythm, the cottage windows glow warm. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: steady rain, wind, waves breaking on rocks, a low foghorn far away.\n\nnon_diegetic_music: N/A",
+            "ref_image_7": "output:image_edit_flux2_klein_9b_image_edit"
+          }
+        },
+        {
+          "workflow": "video_minimax_h3_seamless_loop_fasth3",
+          "note": "The FastH3-Omni loop with a reference picture (owner's request).",
+          "params": {
+            "prompt_8": "Locked-off static camera, no pan, no zoom. <Picture 1> is the scene: a red-and-white lighthouse on a dark cliff at night in a storm. Its beam sweeps steadily round in a full circle, lighting the rain as it passes. Rain falls continuously, waves roll in and break against the rocks in a steady rhythm, the cottage windows glow warm. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: steady rain, wind, waves breaking on rocks, a low foghorn far away.\n\nnon_diegetic_music: N/A",
+            "ref_image_7": "output:image_edit_flux2_klein_9b_image_edit"
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 — Video to video",
+      "runs": [
+        {
+          "workflow": "image_edit_flux3_klein_distilled_image_edit",
+          "note": "The source video's first frame repainted: the key frame of both ID-V2V cards.",
+          "params": {
+            "image": {
+              "from": "video_ltx2_5_t2v",
+              "kind": "video",
+              "derive": [
+                {
+                  "op": "frame",
+                  "index": 0
+                }
+              ]
+            },
+            "prompt": "In <ref_image_0>, repaint the whole picture as a loose watercolour illustration with soft washes and visible paper texture; keep every shape, the person, the pier and the lighthouse exactly where they are."
+          }
+        },
+        {
+          "workflow": "video_edit_wan_idv2v_restyle_compare",
+          "note": "The source video, restyled from its painted first frame. Same inputs as the hi-res card.",
+          "params": {
+            "vhs_loadvideo_video_33": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "loadimage_image_189": "output:image_edit_flux3_klein_distilled_image_edit",
+            "cliptextencode_text_3": "A lighthouse keeper in a yellow raincoat walks along a wet stone pier toward the camera at dusk, waves splashing, the lighthouse behind her.",
+            "primitiveint_value_245": 848,
+            "primitiveint_value_246": 480
+          }
+        },
+        {
+          "workflow": "video_edit_wan_idv2v_restyle_hires",
+          "note": "The same inputs at the higher size.",
+          "params": {
+            "vhs_loadvideo_video_33": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "loadimage_image_189": "output:image_edit_flux3_klein_distilled_image_edit",
+            "cliptextencode_text_3": "A lighthouse keeper in a yellow raincoat walks along a wet stone pier toward the camera at dusk, waves splashing, the lighthouse behind her.",
+            "primitiveint_value_245": 1280,
+            "primitiveint_value_246": 720
+          }
+        },
+        {
+          "workflow": "video_edit_bernini_r_video_editing",
+          "note": "Claymation. Every restyle card below is given the same source video and the same look.",
+          "params": {
+            "loadvideo_file_47": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "primitivestringmultiline_value_76_114": "Restyle the video as a hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light."
+          }
+        },
+        {
+          "workflow": "video_edit_ltx2_5_iclora_canny_control",
+          "note": "Claymation from the source's edges.",
+          "params": {
+            "loadvideo_file_5001": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "primitiveboolean_value_5014_5506": false,
+            "loadimage_image_2004": null,
+            "primitivestringmultiline_value_5508": "A hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light. Sound: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle."
+          }
+        },
+        {
+          "workflow": "video_edit_ltx2_5_iclora_union_control",
+          "note": "Claymation from the source's depth.",
+          "params": {
+            "loadvideo_file_5001": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "primitiveboolean_value_5014_5506": false,
+            "loadimage_image_2004": null,
+            "primitivestringmultiline_value_5508": "A hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light. Sound: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle."
+          }
+        },
+        {
+          "workflow": "video_edit_minimax_h3_fun_controlnet_canny",
+          "note": "Claymation from the edges, on H3.",
+          "params": {
+            "loadvideo_file_174": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "primitivestringmultiline_value_138": "Scene: A hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light.\n[0s-5s] She walks toward the camera along the pier, swinging her lantern, clay waves splashing behind her.\nCamera: the camera follows the source video.\nAudio: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle, no music."
+          }
+        },
+        {
+          "workflow": "video_edit_minimax_h3_fun_controlnet_depth",
+          "note": "Claymation from the depth, on H3.",
+          "params": {
+            "loadvideo_file_174": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "primitivestringmultiline_value_138": "Scene: A hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light.\n[0s-5s] She walks toward the camera along the pier, swinging her lantern, clay waves splashing behind her.\nCamera: the camera follows the source video.\nAudio: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle, no music."
+          }
+        },
+        {
+          "workflow": "video_edit_minimax_h3_v2v_video_reference",
+          "note": "Claymation, the source video as a reference.",
+          "params": {
+            "loadvideo_file_147": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "primitivestringmultiline_value_138": "[subject_definitions]\n- Video 1: a lighthouse keeper in a yellow raincoat walking along a wet stone pier at dusk, a lighthouse behind her.\n\n[summary]\nTurn Video 1 into a hand-crafted claymation stop-motion film.\n\n[retention_analysis]\n- Retain her walk, the lantern swing, the camera move and the shot timing from Video 1.\n- Replace every surface with sculpted clay and plasticine.\n\n[detailed_description]\nThe scene is now a hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light.\n\n[audio]\nWaves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle."
+          }
+        },
+        {
+          "workflow": "video_edit_ltx2_5_iclora_pose_control",
+          "note": "The walk, worn by a chrome robot. Same prompt on the H3 union card.",
+          "params": {
+            "loadvideo_file_5001": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "primitiveboolean_value_5014_5506": false,
+            "loadimage_image_2004": null,
+            "primitivestringmultiline_value_5508": "A shiny chrome robot in a yellow raincoat walks along a rainy stone pier at dusk, reflections sliding over its metal face, a lighthouse beam sweeping behind it. Sound: rain, waves, metallic footsteps."
+          }
+        },
+        {
+          "workflow": "video_edit_minimax_h3_fun_controlnet_union",
+          "note": "The walk, worn by a chrome robot, on H3.",
+          "params": {
+            "loadvideo_file_174": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "primitivestringmultiline_value_138": "Scene: A shiny chrome robot in a yellow raincoat walks along a rainy stone pier at dusk, reflections sliding over its metal face, a lighthouse beam sweeping behind it.\n[0s-5s] It walks toward the camera with the same steps as the source video.\nCamera: the camera follows the source video.\nAudio: rain, waves, metallic footsteps, no music."
+          }
+        },
+        {
+          "workflow": "video_edit_bernini_r_video_editing_with_reference",
+          "note": "The source video in the Ideogram poster's style.",
+          "params": {
+            "loadvideo_file_47": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "loadimage_image_104": "output:image_ideogram4_t2i",
+            "primitivestringmultiline_value_76_114": "Restyle the video to match the look of the reference image: flat screen-print colours, a deep teal sky, cream highlights and visible paper grain."
+          }
+        },
+        {
+          "workflow": "video_edit_bernini_r_video_editing_ref_autoprompt",
+          "note": "The source video moved into the ice lighthouse picture; Gemma writes the instruction.",
+          "params": {
+            "loadvideo_file_115": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "loadimage_image_123": "output:image_qwen_image_2_1_control_depth"
+          }
+        },
+        {
+          "workflow": "video_edit_wan21_scail2_character_replacement",
+          "note": "The keeper replaced by the suite's dancer.",
+          "params": {
+            "loadimage_image_30": "output:image_krea2_turbo_t2i_lora",
+            "loadvideo_file_155": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "cliptextencode_text_213_3": "A ballet dancer in a plain black leotard walks along a wet stone pier toward the camera at dusk, a red-and-white lighthouse behind her, waves splashing against the pier.",
+            "cliptextencode_text_213_191": "person"
+          }
+        },
+        {
+          "workflow": "video_edit_wan_animate2",
+          "note": "The keeper, moved by the assets' dancer clip.",
+          "params": {
+            "loadimage_image_189": "output:image_flux3_klein_t2i",
+            "loadvideo_file_240": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
+            "primitivestringmultiline_value_605": "Character appearance description: Maren, a lighthouse keeper - a woman in her fifties with short silver-grey hair, in a bright yellow raincoat over a navy sweater, dark trousers and black rubber boots, full body from head to toe.\nBackground description: a windswept cliff top at golden hour with a red-and-white lighthouse behind her.",
+            "primitivestringmultiline_value_604": "A woman dancing with energetic street-dance moves, body waves and quick spins."
+          }
+        },
+        {
+          "workflow": "video_edit_ltx2_3_3dreal_vid2vid",
+          "note": "Its intended input: the assets' rough 3D render and its reference picture.",
+          "params": {
+            "loadvideo_file_199": "asset:rough3Drender.mp4",
+            "loadimage_image_200": "asset:rough3Drender_reference.png"
+          }
+        },
+        {
+          "workflow": "video_edit_minimax_h3_loop_restyle",
+          "note": "The stormy loop as an oil painting — the result still loops.",
+          "params": {
+            "control_video_34": "output:video_minimax_h3_seamless_loop",
+            "prompt_8": "Locked-off static camera. A red-and-white lighthouse on a dark cliff at night in a storm, its beam sweeping round in a full circle, rain falling and waves breaking on the rocks - painted as a thick impasto oil painting with visible brush strokes, deep blues and warm yellow light. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: steady rain, wind and waves.\n\nnon_diegetic_music: N/A"
+          }
+        },
+        {
+          "workflow": "utility_video_segment_sam3",
+          "note": "The keeper cut out of the source video.",
+          "params": {
+            "source_video_115": {
+              "from": "video_ltx2_5_t2v",
+              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            },
+            "segment_text_114_100": "person"
+          }
+        },
+        {
+          "workflow": "utility_video_frame_interpolation",
+          "note": "The H3 turbo clip at twice the frame rate.",
+          "params": {
+            "source_video_4": "output:video_minimax_h3_t2v_turbo"
+          }
+        },
+        {
+          "workflow": "utility_seedvr2_hd_upscale",
+          "note": "The 480p FastH3 clip to 1080p.",
+          "params": {
+            "source_video_21": "output:video_fastvideo_fasth3_t2v"
+          }
+        },
+        {
+          "workflow": "utility_seedvr2_3b_int8_video_upscale",
+          "note": "The 480p H3 turbo clip at twice the size.",
+          "params": {
+            "loadvideo_file_73": "output:video_minimax_h3_t2v_turbo",
+            "comfyswitchnode_switch_66_81": false
+          }
+        },
+        {
+          "workflow": "utility_ltx2_5_video_deblur_upscale",
+          "note": "The FastH3 first/last-frame clip (it has a sound track), cleaned up.",
+          "params": {
+            "loadvideo_file_5001": "output:video_fastvideo_fasth3_i2v",
+            "primitiveboolean_value_5014_5506": false,
+            "loadimage_image_2004": null,
+            "primitivestringmultiline_value_5508": "Sharp, highly detailed footage of a lighthouse on a cliff turning from golden hour to a stormy night, clean textures, natural colours and crisp edges."
+          }
+        },
+        {
+          "workflow": "describe_gemma4_video_description",
+          "note": "Does the caption match what the Pika clip shows?",
+          "params": {
+            "source_video_6": "output:video_pika_h3_flex_t2v",
+            "instruction_1": "Describe the video: who is in it, what happens from start to end, the camera movement and the setting."
+          }
+        }
+      ]
+    }
+  ]
+}
