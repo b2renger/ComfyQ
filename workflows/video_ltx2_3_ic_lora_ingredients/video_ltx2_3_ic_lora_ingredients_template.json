@@ -274,7 +274,7 @@
         "gemma_3_12B_it_fp4_mixed.safetensors",
         "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
         "ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors",
-        1,
+        1.4,
         true
       ],
       "widgets_values_named": {
@@ -288,7 +288,7 @@
         "text_encoder": "gemma_3_12B_it_fp4_mixed.safetensors",
         "lora_name": "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
         "lora_name_1": "ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors",
-        "strength_model": 1,
+        "strength_model": 1.4,
         "value_2": true
       }
     },
@@ -2554,11 +2554,11 @@
             },
             "widgets_values": [
               "ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors",
-              1
+              1.4
             ],
             "widgets_values_named": {
               "lora_name": "ltx-2.3-22b-ic-lora-ingredients-0.9.safetensors",
-              "strength_model": 1
+              "strength_model": 1.4
             },
             "color": "#323",
             "bgcolor": "#535"
