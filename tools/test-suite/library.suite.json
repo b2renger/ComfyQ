@@ -829,7 +829,7 @@
         },
         {
           "workflow": "video_minimax_h3_seamless_loop_fasth3",
-          "note": "One still picture became a world that moves forever: the creatures bob and breathe, and the clip has no visible start or end. Compare it with the picture — the colours and shapes are the same.",
+          "note": "One still picture became a world that moves forever: the creatures bob and breathe, and the clip has no visible start or end. Compare it with the picture: the moss terraces, the pink bubble creatures and the balloon-like organisms all come from it; the tall blue crystals are the prompt's addition.",
           "params": {
             "prompt_8": "Locked-off static camera, no pan, no zoom. The dreamlike alien valley of <Picture 1>: soft yellow-green moss terraces, tall blue crystal spires and a misty violet horizon under a pale turquoise sky. The large iridescent bubble creatures from <Picture 1> float above the moss, each one bobbing gently up and down in a slow, steady rhythm, their glassy pink-and-silver domes pulsing softly as if breathing and the thin tendrils below them swaying. High above, the tall balloon-like organisms drift in a slow, steady circle around the spires. Tiny glowing specks float slowly upward through soft shafts of light. Steady, unchanging light. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: a soft, steady airy drone, a faint continuous shimmer like distant glass chimes, a gentle constant breeze over the moss.\n\nnon_diegetic_music: N/A",
             "ref_image_7": "asset:a-landscape-of-a-futuristic-land-of-aerial-waves-with-living-organisms-floating-in-the-air-and-incr-159032455.png"
