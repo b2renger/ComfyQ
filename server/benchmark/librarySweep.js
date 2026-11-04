@@ -556,12 +556,18 @@ class LibrarySweep {
                 : graph[p.nodeId]?.inputs?.[p.field];
             const wasSent = Object.prototype.hasOwnProperty.call(sent, p.key);
             const fromSuite = (details?.suiteKeys || []).includes(p.key);
+            // ★ Calibration replaces every exposed seed with a fresh one so the run
+            //   cannot be a cache hit (benchmarkService._buildCalibrationParams), the
+            //   suite's own seed included — say so, or the example names the suite as
+            //   the source of a number it never chose.
+            const k = String(p.key || '').toLowerCase(), f = String(p.field || '').toLowerCase();
+            const isSeed = k === 'seed' || k.endsWith('_seed') || f === 'seed' || f.endsWith('_seed');
             const row = {
                 key: p.key,
                 label: p.label || p.key,
                 type: p.type,
                 node: `${p.nodeId}.${p.field}`,
-                from: fromSuite ? 'the test suite' : wasSent ? 'calibration' : 'the graph default',
+                from: wasSent && isSeed ? 'calibration' : fromSuite ? 'the test suite' : wasSent ? 'calibration' : 'the graph default',
                 value: wasSent ? sent[p.key] : literal,
             };
             if (isMedia && media[p.key]) {

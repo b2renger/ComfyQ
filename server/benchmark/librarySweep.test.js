@@ -316,6 +316,30 @@ console.log('\na failure must still say what it was fed, and why it broke');
     ok('...with the failing node and exception type', r.failedNode === '42 (KSampler)' && r.exceptionType === 'RuntimeError');
 }
 
+console.log('\na seed the suite named but calibration replaced is labelled calibration');
+{
+    // Found in the 2026-11-04 showcase run: every suite seed (42, 0, 56...) was
+    // overwritten by a fresh one, and the example still said "the test suite".
+    const { sweep } = make({ entries: [entry('one')], calibrator: { calibrate: async () => ({}) } });
+    const e = entry('s', {
+        effective: { exposedParameters: [
+            { key: 'ksampler_seed_3', label: 'Seed', type: 'number', nodeId: '3', field: 'seed' },
+            { key: 'prompt_6', label: 'Prompt', type: 'textarea', nodeId: '6', field: 'text' },
+            { key: 'steps_3', label: 'Steps', type: 'number', nodeId: '3', field: 'steps' },
+        ] },
+        apiWorkflow: { 3: { class_type: 'KSampler', inputs: { seed: 1, steps: 20 } }, 6: { class_type: 'CLIPTextEncode', inputs: { text: 'x' } } },
+    });
+    const rows = sweep._ingredients(e, {
+        paramValues: { ksampler_seed_3: 123456, prompt_6: 'a lighthouse' },
+        suiteKeys: ['ksampler_seed_3', 'prompt_6'],
+    });
+    const by = Object.fromEntries(rows.map(r => [r.key, r]));
+    ok('the seed is labelled calibration, not the test suite', by.ksampler_seed_3.from === 'calibration');
+    ok('...and carries the value that actually ran', by.ksampler_seed_3.value === 123456);
+    ok('a prompt the suite named still says the test suite', by.prompt_6.from === 'the test suite');
+    ok('an untouched field still says the graph default', by.steps_3.from === 'the graph default' && by.steps_3.value === 20);
+}
+
 console.log('\nclearing the results, because a half report is worse than none');
 {
     const calibrator = { calibrate: async () => ({ estimatedDurationSec: 5 }) };
