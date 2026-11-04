@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "id": "video_ltx2_3_ia2v_iclora",
-  "name": "LTX 2.3 IC-LoRA — image + audio to video (auto-prompt)",
+  "name": "LTX 2.3 — image + audio to video (auto-prompt)",
   "title": "Make a picture speak a recording",
   "summary": "Give a picture of a character and a voice recording; the character speaks the recording with matching lips and expressions, in a short video. Pick it when the voice must be your own audio.",
-  "description": "Bring a character image to life with a voice clip. Upload an image and a reference audio (speech), describe the shot, and LTX 2.3 generates a talking video synced to the audio. An in-graph Gemma model rewrites your prompt into an LTX-optimized one (toggle \"Enhance prompt with AI\" off to use your text as-is).\n\nThis is the IC-LoRA / creative variant — it uses the distilled model and no identity LoRA, so it follows your prompt freely rather than locking to a real person's face.\n\nSet the duration to roughly match your audio clip.",
+  "description": "Bring a character image to life with a voice clip. Upload an image and a reference audio (speech), describe the shot, and LTX 2.3 generates a talking video synced to the audio. An in-graph Gemma model rewrites your prompt into an LTX-optimized one (toggle \"Enhance prompt with AI\" off to use your text as-is).\n\nIt runs the LTX 2.3 dev model with the distilled LoRA (no IC-LoRA despite the bundle id, and no identity LoRA), so it follows your prompt freely rather than locking to a real person's face. The AI prompt rewrite cannot see your picture — describe what is in it yourself (who, where, the light) so the rewrite keeps it.\n\nSet the duration to roughly match your audio clip.",
   "category": "i2v",
   "tags": [
     "ltx",
