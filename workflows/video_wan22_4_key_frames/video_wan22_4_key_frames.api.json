@@ -85,7 +85,7 @@
   },
   "145": {
     "inputs": {
-      "fps": 24,
+      "fps": 16,
       "bit_depth": 8,
       "images": [
         "135",
@@ -357,7 +357,7 @@
   },
   "140:6": {
     "inputs": {
-      "text": "cat turn around",
+      "text": "Red minimalist line art animation of a man performing a capoeira meia lua de compasso. From a standing leaning stance, the man smoothly bends forward at the waist. His torso rotates downward toward the floor as his hands reach down to plant firmly onto the ground for support. His back begins to arch, and his weight shifts entirely onto his hands and pivoting front foot, preparing to unleash the spinning kick. Fluid transition, clean red lines on a plain white background.",
       "clip": [
         "140:38",
         0
@@ -611,7 +611,7 @@
   },
   "228:225": {
     "inputs": {
-      "text": "",
+      "text": "Red minimalist line art animation of a capoeira spinning kick. With both hands firmly planted on the ground, the man whips his trailing leg upward and outward in a powerful, sweeping horizontal arc. The kicking leg extends fully, cutting through the air in a wide, circular crescent motion. His head looks backward under his arm to track the target. Dynamic motion blur on the sweeping leg, clean red lines on a solid white background.",
       "clip": [
         "228:212",
         0
@@ -865,7 +865,7 @@
   },
   "245:242": {
     "inputs": {
-      "text": "",
+      "text": "Red minimalist line art animation completing a capoeira movement. The sweeping leg completes its wide circular trajectory, slowing down as it approaches the ground. The man pushes off the floor with his hands, lifting his torso and rotating his upper body back upright. He fluidly transitions out of the inverted position, bringing his feet back underneath him to stand firmly in a defensive capoeira ginga stance from behind. Clean red ink style, seamless transition on a plain white background.",
       "clip": [
         "245:229",
         0

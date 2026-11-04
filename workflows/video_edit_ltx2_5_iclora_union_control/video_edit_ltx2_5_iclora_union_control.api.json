@@ -35,7 +35,7 @@
   },
   "5508": {
     "inputs": {
-      "value": ""
+      "value": "A hand-crafted claymation stop-motion film: soft rounded clay characters and props with visible fingerprints, warm pastel colors, soft studio lighting and a shallow depth of field. The motion follows the original shot naturally. Gentle ambient sounds match the scene."
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {
@@ -230,7 +230,7 @@
   "5548:5026": {
     "inputs": {
       "resize_type": "scale shorter dimension",
-      "resize_type.shorter_size": 544,
+      "resize_type.shorter_size": 512,
       "scale_method": "lanczos",
       "input": [
         "5548:5000",

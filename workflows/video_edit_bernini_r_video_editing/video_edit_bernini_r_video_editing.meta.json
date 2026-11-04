@@ -81,7 +81,27 @@
         "Video Editing (Style / Motion)"
       ],
       "required": false,
-      "order": 1
+      "order": 1,
+      "linkedValues": [
+        {
+          "nodeId": "76:54",
+          "field": "index",
+          "map": {
+            "Default": 0,
+            "Text to Image": 1,
+            "Text to Video": 2,
+            "Image Editing": 3,
+            "Subject to Image": 4,
+            "Image to Video": 5,
+            "Video Editing": 6,
+            "Video Editing (Content Propagation)": 7,
+            "Video Editing with Reference": 8,
+            "Ads / Content Insertion": 9,
+            "Video Editing (Action / Position)": 10,
+            "Video Editing (Style / Motion)": 11
+          }
+        }
+      ]
     },
     {
       "key": "primitiveboolean_value_76_70",

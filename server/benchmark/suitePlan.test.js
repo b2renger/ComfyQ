@@ -61,6 +61,23 @@ assert.ok(v.warnings.some(w => /never runs/.test(w)), 'a source outside the suit
 v = validateSuite(suite([{ workflow: 'edit', params: { image: 'a picture' } }]), registry);
 assert.ok(v.errors.some(e => /is a image input/.test(e)), 'a media input must be a reference');
 
+// Derive from an ASSET (a damaged copy for a restorer, a trimmed clip), `ops`
+// accepted for `derive`, and the shape checks on video derives.
+const fromAsset = parseMediaSpec({ from: 'asset:Mariette1.jpg', kind: 'image', ops: [{ op: 'noise' }, { op: 'jpeg' }] });
+assert.deepStrictEqual(fromAsset.from, ['asset:Mariette1.jpg']);
+assert.strictEqual(fromAsset.derive.length, 2, '`ops` is read as `derive`');
+assert.deepStrictEqual(parseMediaSpec({ asset: 'Tree.png', derive: [{ op: 'flip' }] }).from, ['asset:Tree.png'], '{asset, derive} works too');
+library.vedit = { effective: { exposedParameters: [param('clip', 'video')] } };
+v = validateSuite(suite([
+    { workflow: 'edit', params: { image: { from: 'asset:cat.jpg', derive: [{ op: 'noise' }, { op: 'jpeg' }, { op: 'circle', box: [0, 0, 1, 1] }] } } },
+    { workflow: 'vedit', params: { clip: { from: 'asset:dance.mp4', derive: [{ op: 'trim', start: 1, duration: 2 }, { op: 'mute' }] } } },
+]), registry);
+assert.deepStrictEqual(v.errors, [], 'asset-derived inputs and the new ops are valid');
+v = validateSuite(suite([{ workflow: 'edit', params: { image: { from: 'asset:dance.mp4', derive: [{ op: 'trim', duration: 2 }] } } }]), registry);
+assert.ok(v.errors.some(e => /derive makes a video/.test(e)), 'a video derive into a picture input is refused');
+v = validateSuite(suite([{ workflow: 'vedit', params: { clip: { from: 'asset:d.mp4', derive: [{ op: 'frame' }, { op: 'mute' }] } } }]), registry);
+assert.ok(v.errors.some(e => /mixes "frame"/.test(e)), 'frame + video ops is refused');
+
 // --- _resolveSuiteParams --------------------------------------------------
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'suite-test-'));
 const touch = (name) => { const p = path.join(tmp, name); fs.writeFileSync(p, 'x'); return p; };

@@ -93,7 +93,10 @@
   },
   "168": {
     "inputs": {
-      "frame_rate": 16,
+      "frame_rate": [
+        "900",
+        0
+      ],
       "loop_count": 0,
       "filename_prefix": "LivePortrait",
       "format": "video/h264-mp4",
@@ -236,6 +239,18 @@
     "class_type": "LivePortraitLoadMediaPipeCropper",
     "_meta": {
       "title": "LivePortrait Load MediaPipeCropper"
+    }
+  },
+  "900": {
+    "inputs": {
+      "video_info": [
+        "8",
+        3
+      ]
+    },
+    "class_type": "VHS_VideoInfoLoaded",
+    "_meta": {
+      "title": "Frame rate of the driving video (ComfyQ: plays at its real speed)"
     }
   }
 }

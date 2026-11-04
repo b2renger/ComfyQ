@@ -302,8 +302,8 @@
   },
   "76:50": {
     "inputs": {
-      "width": 480,
-      "height": 832,
+      "width": 832,
+      "height": 480,
       "length": [
         "111",
         2

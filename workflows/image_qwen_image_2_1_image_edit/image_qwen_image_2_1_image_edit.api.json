@@ -296,7 +296,7 @@
   },
   "459:474": {
     "inputs": {
-      "prompt": "Keep the character and pose in <image1> unchanged, put this light blue denim shirt from <image2> on the character, preserve the original facial features, hair, body shape and pose, the denim shirt fits naturally on body, realistic denim fabric texture, natural clothing folds, keep the original background and original lighting, high fashion editorial photography, sharp details",
+      "prompt": "Keep the character and pose in <image1> unchanged, put the light blue denim shirt from <image2> on the character, preserve the original facial features, hair, body shape and pose, keep the original background and lighting, realistic fabric texture, sharp details",
       "negative_prompt": "",
       "resolution": 0,
       "clip": [

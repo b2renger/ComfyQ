@@ -147,7 +147,7 @@
   "30:15": {
     "inputs": {
       "lora_name": "krea2_realism_lora.safetensors",
-      "strength_model": 1.03,
+      "strength_model": 1,
       "model": [
         "30:10",
         0
@@ -213,7 +213,7 @@
   },
   "30:19": {
     "inputs": {
-      "value": "A high-resolution, surreal digital illustration showing a human hand holding a martini glass. The image is overlaid with whimsical, expressive ink-style doodles, including a cartoon figure inside the glass, a drawn citrus wedge on the rim, and various abstract sketches and faces surrounding the glass against a clean, white background. The style seamlessly blends a realistic, lit photograph with loose, hand-drawn marker artistry, creating a playful and artistic juxtaposition."
+      "value": "A photorealistic portrait of a person in warm afternoon light, shallow depth of field"
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {

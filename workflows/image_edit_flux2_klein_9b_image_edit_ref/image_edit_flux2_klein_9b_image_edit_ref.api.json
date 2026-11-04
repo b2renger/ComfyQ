@@ -279,7 +279,7 @@
   },
   "92:113": {
     "inputs": {
-      "text": "Apply the yellow \"C\" logo to the center hub of the steering wheel, and change the steering wheel color to royal blue matching the logo background, while maintaining the same interior style, lighting, camera angle, and all other elements unchanged",
+      "text": "Apply the reference style/elements to the source image while keeping the lighting and composition consistent.",
       "clip": [
         "92:111",
         0

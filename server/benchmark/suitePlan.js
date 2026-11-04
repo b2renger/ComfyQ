@@ -36,7 +36,11 @@ const path = require('path');
 
 const SUITE_DIR = path.resolve(__dirname, '..', '..', 'tools', 'test-suite');
 const MEDIA_TYPES = ['image', 'video', 'audio', 'mask', 'model3d'];
-const DERIVE_OPS = ['frame', 'crop', 'flip', 'scale', 'blur', 'transparent'];
+// Image ops (the result is a picture) and video ops (the result is a clip) —
+// see tools/test-suite/derive_input.py for what each does.
+const DERIVE_OPS = ['frame', 'crop', 'flip', 'scale', 'blur', 'transparent', 'circle', 'composite', 'jpeg', 'noise',
+    'trim', 'vscale', 'vblur', 'mute', 'encode'];
+const VIDEO_DERIVE_OPS = ['trim', 'vscale', 'vblur', 'mute', 'encode'];
 
 /** The output kind a media param consumes. */
 function kindForParam(type) {
@@ -56,12 +60,19 @@ function parseMediaSpec(spec) {
         if (m) return { from: [m[1]], pick: m[2] ? Math.max(0, Number(m[2]) - 1) : 0, derive: [], fallback: null };
         return null;
     }
-    if (spec && typeof spec === 'object' && spec.from) {
+    // { from: "<bundle>" | "asset:<file>" | [...], derive|ops: [...] } — a `from`
+    // that starts with asset: shapes a file from the assets folder (a damaged
+    // photo for a restorer, a trimmed clip for frame interpolation).
+    if (spec && typeof spec === 'object' && (spec.from || spec.asset)) {
+        const from = spec.from
+            ? (Array.isArray(spec.from) ? spec.from.map(String) : [String(spec.from)])
+            : [`asset:${String(spec.asset).replace(/^asset:/, '')}`];
+        const derive = Array.isArray(spec.derive) ? spec.derive : (Array.isArray(spec.ops) ? spec.ops : []);
         return {
-            from: Array.isArray(spec.from) ? spec.from.map(String) : [String(spec.from)],
+            from,
             pick: Number.isInteger(spec.pick) ? spec.pick : 0,
             kind: spec.kind || null,
-            derive: Array.isArray(spec.derive) ? spec.derive : [],
+            derive,
             fallback: typeof spec.fallback === 'string' ? spec.fallback : null,
         };
     }
@@ -124,6 +135,7 @@ function validateSuite(suite, registry) {
                 if (!m) { errors.push(`${where}: "${key}" is a ${p.type} input — give asset:, output: or {from}`); continue; }
                 if (m.empty && p.required !== false && !p.whenEmpty) warnings.push(`${where}: "${key}" left empty but it is not optional`);
                 for (const id of (m.from || [])) {
+                    if (id.startsWith('asset:')) continue;            // a file, checked when the run starts
                     if (!registry.get(id)) { errors.push(`${where}: "${key}" reads from "${id}", which is not in the library`); continue; }
                     const j = suite.runs.findIndex(r => r.workflow === id);
                     if (j === -1) warnings.push(`${where}: "${key}" reads from "${id}", which this suite never runs — the last report's output will be used`);
@@ -132,6 +144,9 @@ function validateSuite(suite, registry) {
                 for (const op of (m.derive || [])) {
                     if (!DERIVE_OPS.includes(op?.op)) errors.push(`${where}: "${key}" has an unknown derive op "${op?.op}"`);
                 }
+                const videoOps = (m.derive || []).some(op => VIDEO_DERIVE_OPS.includes(op?.op));
+                if (videoOps && p.type !== 'video') errors.push(`${where}: "${key}" is a ${p.type} input but its derive makes a video`);
+                if (videoOps && (m.derive || []).some(op => op?.op === 'frame')) errors.push(`${where}: "${key}" mixes "frame" with video ops`);
             } else if (p.type === 'select' && Array.isArray(p.options) && spec != null
                 && !p.options.map(String).includes(String(spec))) {
                 errors.push(`${where}: "${key}" = ${JSON.stringify(spec)} is not one of its options`);
@@ -141,4 +156,4 @@ function validateSuite(suite, registry) {
     return { errors, warnings };
 }
 
-module.exports = { loadSuite, validateSuite, parseMediaSpec, kindForParam, suitePath, SUITE_DIR, MEDIA_TYPES, DERIVE_OPS };
+module.exports = { loadSuite, validateSuite, parseMediaSpec, kindForParam, suitePath, SUITE_DIR, MEDIA_TYPES, DERIVE_OPS, VIDEO_DERIVE_OPS };

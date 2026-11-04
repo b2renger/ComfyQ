@@ -586,7 +586,7 @@
   },
   "129:209": {
     "inputs": {
-      "prompt": "",
+      "prompt": "A photorealistic, cinematic rendering of the scene: physically-based materials, realistic lighting and soft shadows, natural textures and subtle depth of field, lifelike detail and smooth natural motion, film-quality.",
       "max_length": 2048,
       "sampling_mode": "on",
       "sampling_mode.temperature": 0.7,
@@ -618,7 +618,7 @@
         "129:212",
         0
       ],
-      "on_false": "",
+      "on_false": "A photorealistic, cinematic rendering of the scene: physically-based materials, realistic lighting and soft shadows, natural textures and subtle depth of field, lifelike detail and smooth natural motion, film-quality.",
       "on_true": [
         "129:209",
         0

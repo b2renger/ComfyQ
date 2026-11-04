@@ -99,7 +99,20 @@
         "Subject to Image"
       ],
       "required": false,
-      "order": 3
+      "order": 3,
+      "linkedValues": [
+        {
+          "nodeId": "76:54",
+          "field": "index",
+          "map": {
+            "Default": 0,
+            "Text to Image": 1,
+            "Text to Video": 2,
+            "Image Editing": 3,
+            "Subject to Image": 4
+          }
+        }
+      ]
     },
     {
       "key": "fast_mode_76_70",

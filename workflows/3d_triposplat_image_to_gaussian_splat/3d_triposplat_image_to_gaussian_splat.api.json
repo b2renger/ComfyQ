@@ -147,7 +147,7 @@
   },
   "88:35": {
     "inputs": {
-      "switch": false,
+      "switch": true,
       "on_false": [
         "88:95",
         0

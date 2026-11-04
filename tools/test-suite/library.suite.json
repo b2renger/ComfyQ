@@ -1,303 +1,474 @@
 {
   "name": "library",
-  "description": "Every workflow in the library, in dependency order, on one story — Maren the lighthouse keeper. Text-to-image results feed the edits, the edits and pictures feed the videos, and one text-to-video result is the source of every video-to-video card. Cards that do the same job are given the same inputs so they can be compared. Settings are each card's defaults except prompts and inputs, so the measured times are the real ones.",
+  "description": "Every workflow in the library, each with an example chosen from research into what its model is actually good at (model cards, papers, official prompting guides, ComfyUI template notes) — a smoke test that doubles as the library's showcase. Pictures made from words feed the edits, the 3D cards, the captioner and the videos; real photos and real footage are used where a card's power only shows on them (restoring damage, copying a dancer's moves). Each run's note says what to look at. Settings are each card's defaults except prompts and inputs, unless the run keeps its calibrated timing (keepRuntime).",
   "stages": [
     {
-      "name": "1 — Text to image, and sound",
+      "name": "1 — Pictures from words",
       "runs": [
         {
           "workflow": "image_qwen_image_2_1_t2i",
-          "note": "THE scene of the suite: every later lighthouse picture and video starts here.",
+          "note": "One sentence per object and every word in quotes: all six labels on this desk are written exactly, and each object sits where the prompt put it. It was drawn at the model's native 2K size, so zoom in on the small print.",
+          "keepRuntime": true,
           "params": {
-            "textencodeqwenimage21_prompt_459_452": "A red-and-white striped lighthouse stands on a dark granite cliff in the right third of the frame, above a rough green sea at golden hour. On the left the open sea stretches to the horizon. A small white keeper's cottage with a red door sits at the foot of the tower, and a winding gravel path leads up to it through heather. Waves break white against the rocks, three seagulls glide in the sky, and the low warm sun lights everything from the left. Photographed with a 35mm lens, realistic, crisp detail, natural colours.",
-            "resolutionselector_aspect_ratio_13": "16:9 (Widescreen)"
+            "textencodeqwenimage21_prompt_459_452": "Overhead flat-lay photograph, shot from directly above, of a tidy design student's desk: a pale birch-plywood tabletop in soft north-window daylight. In the top left corner, a closed black hardback sketchbook whose cover reads \"SKETCHBOOK 2026\" in white sans-serif capitals. In the top right corner, a white ceramic coffee cup on a saucer, wrapped in a kraft-paper sleeve printed \"AGORA CAFÉ\". In the centre, an open A5 notebook showing a pencil sketch of a wooden chair, with the handwritten note \"chair v3 - lower the back 2 cm\" under the drawing. On the left edge, a round metal tin of pencils with a label reading \"HB 2B 4B 6B\". In the bottom right corner, a square red sticky note with the handwritten words \"crit at 10:30\". Along the bottom edge, a steel ruler with centimetre marks numbered 0 to 15. A yellow pencil and two black binder clips lie between the objects. Crisp detail, natural colours, soft gentle shadows, realistic photograph.",
+            "resolutionselector_aspect_ratio_13": "4:3 (Standard)",
+            "resolutionselector_megapixels_13": 4
           }
         },
         {
           "workflow": "image_qwen_image_2_1_t2i_fix",
-          "note": "Same prompt and size as the plain Qwen 2.1 card: the A/B this bundle exists for.",
+          "note": "A close-up is where this card earns its extra time: count the fingers, read the numerals I to XII and the word GENÈVE on the dial. Re-run it with Fix strength at 0 (same seed) to see what the add-on itself changes.",
           "params": {
-            "textencodeqwenimage21_prompt_459_452": "A red-and-white striped lighthouse stands on a dark granite cliff in the right third of the frame, above a rough green sea at golden hour. On the left the open sea stretches to the horizon. A small white keeper's cottage with a red door sits at the foot of the tower, and a winding gravel path leads up to it through heather. Waves break white against the rocks, three seagulls glide in the sky, and the low warm sun lights everything from the left. Photographed with a 35mm lens, realistic, crisp detail, natural colours.",
-            "resolutionselector_aspect_ratio_13": "16:9 (Widescreen)"
-          }
-        },
-        {
-          "workflow": "image_minimax_h3_t2i",
-          "note": "Same scene prompt: the video model asked for one frame, against the image models.",
-          "params": {
-            "prompt_112": "A red-and-white striped lighthouse stands on a dark granite cliff in the right third of the frame, above a rough green sea at golden hour. On the left the open sea stretches to the horizon. A small white keeper's cottage with a red door sits at the foot of the tower, and a winding gravel path leads up to it through heather. Waves break white against the rocks, three seagulls glide in the sky, and the low warm sun lights everything from the left. Photographed with a 35mm lens, realistic, crisp detail, natural colours."
+            "textencodeqwenimage21_prompt_459_452": "Macro photograph of a watchmaker's hands repairing an open gold pocket watch on a dark green leather work mat. The left hand steadies the watch case between thumb and index finger; the right hand holds fine steel tweezers lifting a tiny brass gear out of the movement. The white enamel dial shows black Roman numerals from I to XII and the word \"GENÈVE\" in small capitals under the XII, with blued steel hands at ten past ten. A brass loupe and two tiny screws lie beside the watch. Warm desk-lamp light from the upper left, shallow depth of field, crisp detail, natural skin texture with fine creases on the knuckles."
           }
         },
         {
           "workflow": "image_flux2_klein_9b_t2i",
-          "note": "The keeper's portrait: input of every face edit, the talking-head and LivePortrait cards.",
+          "note": "A photo made from text alone. Look closely at the skin — pores, freckles, fine hairs — and at the sweater, whose colour was given as the code #1F5C4A.",
           "params": {
-            "primitivestringmultiline_value_76": "Close-up portrait photograph of Maren, a lighthouse keeper: a woman in her fifties with short silver-grey hair, a weathered freckled face and bright blue eyes, wearing a bright yellow raincoat over a navy knit sweater, with the hood down. She looks straight into the camera with a calm half-smile, head and shoulders in frame. Soft overcast daylight, a blurred grey sea behind her, shot on an 85mm lens, shallow depth of field, natural skin texture.",
+            "primitivestringmultiline_value_76": "Close-up portrait photograph of a woman in her sixties with a weathered, sun-tanned face, deep laugh lines, freckles across her nose and cheeks, short tousled silver hair and pale green eyes. She wears a chunky hand-knitted turtleneck sweater in color #1F5C4A and small gold hoop earrings, and looks straight into the lens with a calm, closed-mouth expression, head and shoulders in frame. Soft north-facing window light from frame-left, a plain warm-grey plaster wall behind her, shot on an 85mm lens at f/2 on Kodak Portra 400 film, natural skin texture with visible pores and fine facial hair, sharp focus on the eyes.",
+            "cliptextencode_text_75_67": "",
             "flux2scheduler_steps_75_62": 20
           }
         },
         {
           "workflow": "image_flux3_klein_t2i",
-          "note": "The keeper full body on grey: input of the character sheet, quadview, angles, animate and 3D. Uses the new box layout.",
+          "note": "Every object was placed by a box you can see in the layout: open the example's layout over the picture. Notice the three identical cups in a row and the masthead \"LE MATIN\" exactly where its box was drawn.",
           "params": {
-            "prompt": "Full-body studio photograph of Maren, a lighthouse keeper: a woman in her fifties with short silver-grey hair, a weathered freckled face and bright blue eyes, wearing a bright yellow raincoat over a navy knit sweater <obj_1>, with dark trousers and black rubber boots, standing upright facing the camera with her arms relaxed at her sides, the whole figure from head to boots in frame. Plain light-grey seamless studio background, soft even lighting, sharp focus, realistic.",
-            "layout": "[\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      40,\n      300,\n      975,\n      700\n    ],\n    \"desc\": \"Maren the lighthouse keeper, full body, standing, facing the camera\"\n  }\n]",
-            "aspect_ratio": "2:3 (Portrait Photo)"
+            "prompt": "Overhead flat-lay photograph of a breakfast table, shot straight down in soft morning window light from frame-left, with short soft shadows falling to the right of every object. A pale oak tabletop <obj_1> fills the whole frame. In the upper left lies a folded newspaper <obj_2> whose masthead <obj_3> runs across its top edge. In the upper right stands a small glass vase of yellow tulips <obj_4>. Across the middle of the table runs a straight, evenly spaced row of three identical white espresso cups on saucers: one on the left <obj_5>, one in the centre <obj_6> and one on the right <obj_7>. In the lower left sits a croissant on a small white plate <obj_8>, and in the lower right a brass teaspoon <obj_9> lies diagonally.",
+            "layout": "[{\"type\":\"obj\",\"bbox\":[0,0,1000,1000],\"desc\":\"A pale, lightly oiled oak tabletop with fine straight grain running left to right, a few faint water rings and small knife marks.\"},{\"type\":\"obj\",\"bbox\":[40,40,420,400],\"desc\":\"A folded broadsheet newspaper of off-white newsprint, slightly creased, with columns of tiny grey body text and a small black-and-white photograph.\"},{\"type\":\"text\",\"bbox\":[70,60,150,380],\"text\":\"LE MATIN\",\"desc\":\"Bold black condensed serif newspaper masthead in capital letters, printed across the top of the front page, reading\"},{\"type\":\"obj\",\"bbox\":[50,750,390,970],\"desc\":\"A small round clear-glass vase holding seven yellow tulips with green leaves, the tulip heads seen from directly above.\"},{\"type\":\"obj\",\"bbox\":[440,220,680,380],\"desc\":\"A plain glossy white porcelain espresso cup on a matching white saucer, filled with dark coffee under a thin layer of tan crema, handle pointing right.\"},{\"type\":\"obj\",\"bbox\":[440,420,680,580],\"desc\":\"A plain glossy white porcelain espresso cup on a matching white saucer, filled with dark coffee under a thin layer of tan crema, handle pointing right.\"},{\"type\":\"obj\",\"bbox\":[440,620,680,780],\"desc\":\"A plain glossy white porcelain espresso cup on a matching white saucer, filled with dark coffee under a thin layer of tan crema, handle pointing right.\"},{\"type\":\"obj\",\"bbox\":[700,50,980,240],\"desc\":\"A small round white ceramic plate holding one golden, flaky butter croissant with a few crumbs beside it.\"},{\"type\":\"obj\",\"bbox\":[790,760,900,960],\"desc\":\"A small polished brass teaspoon lying diagonally, its bowl catching a bright highlight.\"}]",
+            "improve_prompt": false,
+            "aspect_ratio": "3:2 (Photo)",
+            "megapixels": 1,
+            "steps": 50,
+            "cfg": 3.5
           }
         },
         {
           "workflow": "image_flux3_klein_distilled_t2i",
-          "note": "The prop: a brass lantern on white, for the 3D, relight and reference-edit cards.",
+          "note": "A full-body studio photo made in about 7 seconds from a detailed description: medium first, then the light, then the person head to toe. The same character is turned around and posed by other example cards.",
           "params": {
-            "prompt": "Product photograph of an antique brass ship's lantern with a domed top, a carrying ring and clear glass panes around a lit candle, standing alone on a pure white background, centred, the whole lantern in frame, soft studio light, crisp reflections on the brass, no text."
+            "prompt": "Studio photograph, full-length shot at eye level against a seamless light-grey paper backdrop, under soft, even light from a large softbox at frame-left with a gentle fill from the right. A young West African woman in her twenties with dark brown skin and short natural coily black hair dyed copper at the tips stands upright in the centre of the frame, facing the camera, her arms relaxed slightly away from her body and her feet a little apart, the whole figure from head to sneakers in frame with space above and below. She wears round tortoiseshell glasses, a mustard-yellow cotton utility jumpsuit with rolled sleeves, a zipped chest pocket and a row of small brass snaps, a teal canvas tool belt with three pouches across her hips, and white high-top canvas sneakers with red laces. A small coral-red backpack with two padded straps sits on her shoulders. Her expression is calm, with a slight closed-mouth smile. A soft contact shadow pools on the grey floor around her feet, and the background is an even, featureless light grey.",
+            "layout": "",
+            "improve_prompt": false,
+            "aspect_ratio": "2:3 (Portrait Photo)",
+            "megapixels": 1,
+            "steps": 16
           }
         },
         {
           "workflow": "image_krea2_turbo_t2i_lora",
-          "note": "A clear full-body pose: the structure for the depth-control cards and a character for replacement.",
+          "note": "The prompt only describes a cable car over a valley; the \"embroidered textile diorama\" style was picked from the list, and the card added its words by itself. Look for stitches, felt and thread everywhere.",
           "params": {
-            "primitivestringmultiline_value_30_19": "A ballet dancer in a plain black leotard caught mid-leap in a grand jeté, legs split wide, arms extended, her whole body in frame against a plain light-grey studio wall, sharp focus, studio photography.",
-            "resolutionselector_aspect_ratio_49": "3:2 (Photo)"
+            "primitivestringmultiline_value_30_19": "A small red cable car crossing a deep alpine valley on a single cable stretched between two snowy peaks. Far below, a village of chalets with glowing windows sits beside a winding blue river, pine forests climb the slopes, and a few soft clouds wrap the summits.",
+            "primitiveboolean_value_30_24": true,
+            "textgenerate_thinking_30_16": true,
+            "resolutionselector_aspect_ratio_49": "3:2 (Photo)",
+            "primitiveboolean_value_30_23": true,
+            "loraloadermodelonly_lora_name_30_15": "krea2_embroidered-textile-diorama-comfy.safetensors",
+            "loraloadermodelonly_strength_model_30_15": 1
           }
         },
         {
-          "workflow": "image_ideogram4_t2i",
-          "note": "A poster with exact text: the style reference of the restyle cards.",
+          "workflow": "image_minimax_h3_t2i",
+          "note": "One frame from a video model: the tram is a streak of motion blur while the cyclist stays sharp, spray hangs in the air, and the widescreen flare and grain make it look like a scene from a film.",
           "params": {
-            "prompt_json_98_24": "{\n  \"high_level_description\": \"A bold vintage screen-printed travel poster for a seaside lighthouse festival: a stylised red-and-white lighthouse on a dark cliff sends a wide cream beam across a deep teal night sea, with large title lettering at the top.\",\n  \"style_description\": {\n    \"aesthetics\": \"Mid-century screen-print travel poster, flat colour shapes, visible paper grain and slight ink misregistration.\",\n    \"lighting\": \"Flat graphic lighting; the beam is a single cream wedge of light.\",\n    \"medium\": \"Screen print\",\n    \"color_palette\": [\n      \"#0F4C5C\",\n      \"#E36414\",\n      \"#FB8B24\",\n      \"#F4E9CD\",\n      \"#9A031E\"\n    ]\n  },\n  \"compositional_deconstruction\": {\n    \"background\": \"A deep teal night sky with small cream stars over a darker teal sea.\",\n    \"elements\": [\n      {\n        \"type\": \"text\",\n        \"bbox\": [\n          40,\n          80,\n          200,\n          920\n        ],\n        \"text\": \"PHARE DU CAP\",\n        \"desc\": \"Huge condensed cream sans-serif title lettering across the top\",\n        \"color_palette\": [\n          \"#F4E9CD\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          230,\n          330,\n          880,\n          640\n        ],\n        \"desc\": \"A stylised red-and-white striped lighthouse standing on a dark cliff, its lamp glowing orange\",\n        \"color_palette\": [\n          \"#9A031E\",\n          \"#F4E9CD\",\n          \"#E36414\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          260,\n          560,\n          560,\n          1000\n        ],\n        \"desc\": \"A wide cream light beam sweeping to the right over the sea\",\n        \"color_palette\": [\n          \"#F4E9CD\"\n        ]\n      },\n      {\n        \"type\": \"text\",\n        \"bbox\": [\n          890,\n          150,\n          970,\n          850\n        ],\n        \"text\": \"FESTIVAL DES LUMIÈRES\",\n        \"desc\": \"Orange sans-serif lettering along the bottom edge\",\n        \"color_palette\": [\n          \"#FB8B24\"\n        ]\n      }\n    ]\n  }\n}",
-            "quality_98_156": "Default"
+            "prompt_112": "Live-action, cinematic film still in anamorphic widescreen. A low wide shot at night on a rain-soaked tram street in an old European city: in the foreground a cyclist courier in a bright yellow rain cape pedals hard through a deep puddle, an arc of water droplets frozen mid-air off her front wheel, while behind her a passing tram is a long horizontal streak of motion-blurred warm window light. Neon shop signs in red and teal, showing only shapes and no words, reflect in the wet cobblestones; fine rain falls in diagonal streaks lit by a streetlamp at frame-right. The camera sits at puddle level with a 40mm anamorphic lens, shallow depth of field softening the buildings, a thin blue horizontal lens flare across the frame, Kodak Vision3 500T film grain, teal-and-amber colour grade.",
+            "fast_mode_200": true,
+            "aspect_ratio_79": "21:9 (Ultrawide)",
+            "megapixels_79": 1
           }
         },
         {
           "workflow": "image_moss_image_t2i",
-          "note": "Box layout with a text box and a character box (the MOSS composer's job).",
+          "note": "Three boxes on a 3:2 canvas: the Chinese title, a two-line English tagline that breaks exactly where the line break was typed, and the cup on the right. Read both languages, then check each lands in its box.",
           "params": {
-            "prompt_117": "Illustrated book cover in a painterly gouache style: at night a lighthouse keeper in a yellow raincoat stands on dark rocks in the lower left holding up a glowing brass lantern, while a tall red-and-white striped lighthouse rises on the right against a deep blue starry sky with a crescent moon. The title reads \"THE LAST KEEPER\" in large cream serif capitals across the top. Rich textured brushwork, warm lantern glow against cool blues.",
-            "layout_24": "[\n  {\n    \"type\": \"text\",\n    \"bbox\": [\n      40,\n      80,\n      220,\n      920\n    ],\n    \"text\": \"THE LAST KEEPER\",\n    \"desc\": \"large cream serif capitals\"\n  },\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      480,\n      60,\n      980,\n      480\n    ],\n    \"desc\": \"a lighthouse keeper in a yellow raincoat holding up a glowing brass lantern\"\n  },\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      180,\n      560,\n      980,\n      900\n    ],\n    \"desc\": \"a tall red-and-white striped lighthouse with a glowing lamp\"\n  }\n]",
-            "character_boxes_27": "2",
-            "aspect_ratio_19": "2:3 (Portrait Photo)"
+            "prompt_117": "Minimalist product campaign photograph for a tea brand. On the right half, a hand-thrown ivory ceramic tea cup with a faint celadon glaze stands on a pale oak board, a wisp of steam rising from it and a few dry tea leaves scattered beside it, soft window light from the left casting a long gentle shadow. The left half is calm warm-grey negative space holding the copy: at the top a large elegant Chinese title \"一盏清茶\" in ink-black brush-style characters, and beneath it two lines of small dark-grey English text in a thin modern serif, \"SLOW TEA\" on the first line and \"brewed by hand since 1926\" on the second. Quiet, premium, wabi-sabi mood, muted earthy colours, fine detail, 50 mm lens.",
+            "layout_24": "[\n  {\n    \"type\": \"text\",\n    \"bbox\": [\n      200,\n      70,\n      420,\n      470\n    ],\n    \"text\": \"一盏清茶\",\n    \"desc\": \"a large elegant Chinese title in ink-black brush-style characters\"\n  },\n  {\n    \"type\": \"text\",\n    \"bbox\": [\n      470,\n      70,\n      600,\n      470\n    ],\n    \"text\": \"SLOW TEA\\nbrewed by hand since 1926\",\n    \"desc\": \"two lines of small dark-grey English text in a thin modern serif\"\n  },\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      180,\n      540,\n      880,\n      940\n    ],\n    \"desc\": \"a hand-thrown ivory ceramic tea cup with a faint celadon glaze on a pale oak board, a wisp of steam rising, a few dry tea leaves beside it\"\n  }\n]",
+            "character_boxes_27": "",
+            "aspect_ratio_19": "3:2 (Photo)"
           }
         },
         {
           "workflow": "image_moss_image_base_t2i",
-          "note": "Same prompt and layout as the MOSS SFT card: base against SFT.",
+          "note": "Five panels placed with boxes — a face, a pocket watch, the same man from the front and from behind, his workshop — on black with no words: a character reference sheet, ready for the card that turns a sheet into a video.",
           "params": {
-            "prompt_117": "Illustrated book cover in a painterly gouache style: at night a lighthouse keeper in a yellow raincoat stands on dark rocks in the lower left holding up a glowing brass lantern, while a tall red-and-white striped lighthouse rises on the right against a deep blue starry sky with a crescent moon. The title reads \"THE LAST KEEPER\" in large cream serif capitals across the top. Rich textured brushwork, warm lantern glow against cool blues.",
-            "layout_24": "[\n  {\n    \"type\": \"text\",\n    \"bbox\": [\n      40,\n      80,\n      220,\n      920\n    ],\n    \"text\": \"THE LAST KEEPER\",\n    \"desc\": \"large cream serif capitals\"\n  },\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      480,\n      60,\n      980,\n      480\n    ],\n    \"desc\": \"a lighthouse keeper in a yellow raincoat holding up a glowing brass lantern\"\n  },\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      180,\n      560,\n      980,\n      900\n    ],\n    \"desc\": \"a tall red-and-white striped lighthouse with a glowing lamp\"\n  }\n]",
-            "character_boxes_27": "2",
-            "aspect_ratio_19": "2:3 (Portrait Photo)"
+            "prompt_117": "Character design reference sheet on a pure black background, studio photography style, five clean separate panels with black gaps between them and absolutely no text, no labels, no numbers and no captions. Top-left panel: a head-and-shoulders close-up portrait of an elderly clockmaker, a man in his seventies with a bald head, a bushy white moustache and warm brown eyes behind round gold-rimmed spectacles, wearing a white shirt with rolled sleeves under a dark green leather apron, facing the camera in soft key light. Bottom-left panel: a catalogue product photograph of an ornate brass pocket watch with its engraved lid open, a plain white enamel dial with thin black hands and a short brass chain. Two tall middle panels: the same clockmaker standing full-body, seen from the front and from the back, in the same white shirt, dark green leather apron, brown trousers and brown leather shoes, arms relaxed at his sides. Right panel: a wide shot of his clock-repair workshop — a wooden workbench under a green-shaded brass lamp, a wall covered with dozens of wooden pendulum clocks, shelves of tools and brass gears, warm afternoon light through a dusty window.",
+            "layout_24": "[\n {\n  \"type\": \"obj\",\n  \"bbox\": [\n   30,\n   15,\n   480,\n   230\n  ],\n  \"desc\": \"close-up portrait of the elderly bald clockmaker with a white moustache and round gold spectacles, dark green apron\"\n },\n {\n  \"type\": \"obj\",\n  \"bbox\": [\n   520,\n   15,\n   970,\n   230\n  ],\n  \"desc\": \"product photo of an ornate brass pocket watch with an engraved open lid and a plain white dial\"\n },\n {\n  \"type\": \"obj\",\n  \"bbox\": [\n   30,\n   250,\n   970,\n   420\n  ],\n  \"desc\": \"the same clockmaker standing full-body, front view, white shirt, dark green leather apron, brown trousers\"\n },\n {\n  \"type\": \"obj\",\n  \"bbox\": [\n   30,\n   440,\n   970,\n   610\n  ],\n  \"desc\": \"the same clockmaker standing full-body, back view, dark green apron straps, brown trousers\"\n },\n {\n  \"type\": \"obj\",\n  \"bbox\": [\n   250,\n   630,\n   750,\n   985\n  ],\n  \"desc\": \"wide shot of a clock-repair workshop with a wooden workbench, a green-shaded lamp and a wall of pendulum clocks\"\n }\n]",
+            "character_boxes_27": "1, 3, 4",
+            "aspect_ratio_19": "16:9 (Widescreen)"
           }
         },
         {
           "workflow": "image_qwen_image_2512_360_panorama",
-          "note": "The headland all around the camera, for the 360° viewer.",
+          "note": "Press View in 360° and turn around: the farmhouse, the cypresses, the olive tree and the hills are all around you, lit by the same low golden sun, and the left and right edges join without a seam.",
           "params": {
-            "place_2": "a rugged granite headland on the Breton coast with a red-and-white striped lighthouse, a small whitewashed keeper's cottage with a red door, heather and a gravel path, and the open Atlantic all around"
+            "place_2": "the middle of a blooming lavender field in Provence: long straight rows of purple lavender run away from the camera on every side, a stone farmhouse with pale blue shutters and a terracotta roof stands on one side, a line of tall dark cypress trees rises behind it, an old olive tree with a weathered wooden bench beneath it grows nearby, and the soft blue Luberon hills circle the horizon, shot on a full-frame mirrorless camera, sharp realistic photograph",
+            "time_of_day_3": "6",
+            "season_4": "1",
+            "clouds_5": "1",
+            "camera_height_6": "0"
           }
         },
         {
-          "workflow": "audio_stable_audio_3_medium",
-          "note": "A tune with a clear melody: the reference song of the YuE2 cover.",
+          "workflow": "image_qwen_image_2_1_control_canny",
+          "note": "A child's flat colour drawing went in; out came a photographed felt doll with the same huge pigtails, outstretched arms, hill and two clouds, line for line. Compare the outline of the hair with the drawing.",
           "params": {
-            "description_52_31": "A gentle sea-shanty-inspired folk tune: fingerpicked acoustic guitar, an accordion melody, soft hand drum, distant waves, warm and nostalgic, 92 BPM",
-            "category_52_43": "Music"
+            "textencodeqwenimage21_prompt_459_452": "Photograph of a handmade felt doll of a little girl standing on a rolling hill of bright green felt under a sky-blue felt backdrop with two white cotton-wool clouds. She has two enormous puffy pigtails of golden yarn sticking out sideways like wings, round blue button eyes, a small stitched black smile, a pink cotton dress, and her arms stretched straight out to the sides. Soft natural daylight, visible felt fibres and neat stitching, shallow depth of field, craft photography.",
+            "resolutionselector_aspect_ratio_13": "1:1 (Square)",
+            "loadimage_image_900": "asset:naive_drawing.png"
+          }
+        },
+        {
+          "workflow": "image_qwen_image_2_1_control_depth",
+          "note": "A phone photo of a student's park maquette (cardboard, figurines, flock grass) became a real open-air concert: the crowd, the little stage, the cube seats and the pine tree are where the model put them. This is how a maquette can be previewed as the real place.",
+          "params": {
+            "textencodeqwenimage21_prompt_459_452": "Photograph of an open-air summer concert in a city park in warm late-afternoon sun. A crowd of about twenty people stands on a green lawn with their backs to the camera, watching a singer with a guitar on a small raised white concrete stage on the left. Low wooden cube seats are scattered across the grass, and a woman in a red dress and a man in a navy jacket sit on two of them. A tall dark-green pine tree stands at the right edge, a low shrub sits in the foreground, and behind the lawn rises a steel-and-timber pavilion with balconies in front of a pale industrial hall. Realistic photograph, natural colours, crisp detail.",
+            "resolutionselector_aspect_ratio_13": "4:3 (Standard)",
+            "loadimage_image_900": {
+              "from": "asset:PXL_20240628_084847386.jpg",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "scale",
+                  "factor": 0.35
+                }
+              ]
+            }
+          }
+        },
+        {
+          "workflow": "image_moss_image_color_depth_control",
+          "note": "A young dancer in a grey studio became an old gentleman dancing in a Paris street at night - the raised fist, the arm swinging down and the bent knees are exactly the photo's. Everything else came from the prompt.",
+          "params": {
+            "prompt_5": "Cinematic night street photograph of a cheerful old man in his seventies with short white hair and a neat white beard, wearing a charcoal tweed three-piece suit and polished brown brogues, dancing alone on a wet cobbled street: his right fist raised beside his head, his left arm swinging down and out, knees bent, up on the balls of his feet, head tipped down with a grin. Behind him a row of closed Parisian shopfronts with warm lit windows and a glowing streetlamp, puddles reflecting the lights, light drizzle, shallow depth of field, 35 mm film grain, the whole figure in frame.",
+            "photo_55": "asset:controlNet_demo_image.jpg"
+          }
+        },
+        {
+          "workflow": "image_krea2_turbo_style_reference",
+          "note": "The reference was an orange watercolour stain on paper; the prompt asked for a heron. You get a heron, painted in that watercolour — the look moved over, the leaf shape didn't.",
+          "params": {
+            "primitivestringmultiline_value_30_19": "a grey heron taking off from a misty lake at dawn, wings spread wide, long legs trailing over the water, a few reeds in the foreground",
+            "loraloadermodelonly_strength_model_30_15": 1,
+            "primitiveboolean_value_30_24": false,
+            "resolutionselector_aspect_ratio_71": "3:2 (Photo)",
+            "resolutionselector_megapixels_71": 1,
+            "basicscheduler_steps_30_60": 8,
+            "loadimage_image_69": {
+              "from": "asset:QmaGtZfK1wyXb4KXodUSF9uibqY9JwxnPQ6Tnt122ahVoN.png",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "scale",
+                  "factor": 0.26
+                }
+              ]
+            },
+            "loadimage_image_77": null,
+            "loadimage_image_78": null
+          }
+        },
+        {
+          "workflow": "image_ideogram4_t2i",
+          "note": "Five boxes, five colours: every word, accents included (DIPLÔMES, ENTRÉE), is spelled exactly and sits in its box, and only the chosen colours appear. Open the prompt in Compose visually to see the layout that made it.",
+          "params": {
+            "prompt_json_98_24": "{\n  \"high_level_description\": \"A bold Swiss-style typographic poster for a design school's graduation exhibition: the word DESIGN in enormous red capitals across the top, an abstract chair built from flat geometric shapes in the middle, and crisp black and red information lines in a strict grid along the bottom, on warm off-white paper.\",\n  \"style_description\": {\n    \"aesthetics\": \"International Typographic Style poster: strict grid, generous white space, flat solid colours, razor-sharp edges, subtle offset-print paper grain.\",\n    \"lighting\": \"Flat, even graphic lighting with no shadows.\",\n    \"medium\": \"graphic_design\",\n    \"art_style\": \"Swiss modernist graphic design with heavy grotesque sans-serif typography and flat vector shapes\",\n    \"color_palette\": [\n      \"#F2EEE3\",\n      \"#E63323\",\n      \"#1A1A1A\",\n      \"#2F5DA8\",\n      \"#F2C230\"\n    ]\n  },\n  \"compositional_deconstruction\": {\n    \"background\": \"Plain warm off-white paper with a faint print grain, no pattern.\",\n    \"elements\": [\n      {\n        \"type\": \"text\",\n        \"bbox\": [\n          40,\n          60,\n          250,\n          940\n        ],\n        \"text\": \"DESIGN\",\n        \"desc\": \"Enormous heavy red grotesque sans-serif capitals spanning the full width at the top\",\n        \"color_palette\": [\n          \"#E63323\"\n        ]\n      },\n      {\n        \"type\": \"obj\",\n        \"bbox\": [\n          270,\n          250,\n          690,\n          750\n        ],\n        \"desc\": \"An abstract chair made of flat geometric shapes: a blue rectangle seat, a yellow circle backrest and four thin black straight legs\",\n        \"color_palette\": [\n          \"#2F5DA8\",\n          \"#F2C230\",\n          \"#1A1A1A\"\n        ]\n      },\n      {\n        \"type\": \"text\",\n        \"bbox\": [\n          710,\n          60,\n          800,\n          940\n        ],\n        \"text\": \"EXPOSITION DES DIPLÔMES\",\n        \"desc\": \"Bold black condensed sans-serif capitals on one line\",\n        \"color_palette\": [\n          \"#1A1A1A\"\n        ]\n      },\n      {\n        \"type\": \"text\",\n        \"bbox\": [\n          820,\n          60,\n          900,\n          520\n        ],\n        \"text\": \"12–21 JUIN 2026\",\n        \"desc\": \"Medium-weight black sans-serif, left aligned\",\n        \"color_palette\": [\n          \"#1A1A1A\"\n        ]\n      },\n      {\n        \"type\": \"text\",\n        \"bbox\": [\n          820,\n          560,\n          900,\n          940\n        ],\n        \"text\": \"ENTRÉE LIBRE\",\n        \"desc\": \"Medium-weight red sans-serif capitals, right aligned\",\n        \"color_palette\": [\n          \"#E63323\"\n        ]\n      }\n    ]\n  }\n}",
+            "aspect_ratio_37": "2:3 (Portrait Photo)",
+            "quality_98_156": "Default"
           }
         }
       ]
     },
     {
-      "name": "2 — Edit, control and upscale the pictures; 3D; the song cover",
+      "name": "2 — Editing a picture",
       "runs": [
         {
-          "workflow": "image_edit_flux2_klein_9b_image_edit",
-          "note": "Day → stormy night: the LAST frame of the three first/last-frame video cards.",
+          "workflow": "image_edit_flux3_klein_image_edit",
+          "note": "Three identical cups, but the box picked one: only the centre cup turned cobalt blue. The words could match every cup — the box says which.",
           "params": {
-            "loadimage_image_76": "output:image_qwen_image_2_1_t2i",
-            "cliptextencode_text_75_74": "Turn this into the same place at night during a storm: a dark sky with heavy rain, the lighthouse lamp lit and its beam visible, the waves crashing higher, the cottage windows glowing. Keep the lighthouse, the cliff, the cottage and the path exactly where they are.",
-            "flux2scheduler_steps_75_62": 20
+            "prompt": "In <ref_image_0>, change the centre espresso cup and its saucer <obj_1> into glossy cobalt-blue porcelain with a thin gold rim, still filled with dark coffee under a thin layer of crema. The left and right cups and saucers stay plain white, and everything else — the newspaper and its masthead, the tulips, the croissant, the teaspoon, the oak table, the light and the shadows — stays identical to the source.",
+            "layout": "[{\"type\":\"obj\",\"bbox\":[440,420,680,580],\"desc\":\"A glossy cobalt-blue porcelain espresso cup with a thin gold rim on a matching cobalt-blue saucer, filled with dark coffee under a thin layer of tan crema.\"}]",
+            "improve_prompt": false,
+            "megapixels": 1,
+            "steps": 50,
+            "cfg": 3.5,
+            "image": "output:image_flux3_klein_t2i"
+          }
+        },
+        {
+          "workflow": "image_edit_flux3_klein_distilled_image_edit",
+          "note": "The first frame of a video, repainted as a watercolour in about 12 seconds. Every shape stayed where it was — which is why two video cards use it as their style guide.",
+          "params": {
+            "prompt": "Convert the entire image <ref_image_0> into a loose watercolour painting on textured cold-press paper: soft transparent washes, pigment pooling along the edges of shapes, visible paper grain and a few unpainted white highlights. Keep every person, object and building in exactly the same position, size and pose, keep the camera angle and the composition, and keep the original colours as watercolour tints.",
+            "layout": "",
+            "improve_prompt": false,
+            "megapixels": 1,
+            "steps": 16,
+            "image": {
+              "from": "asset:3044160-uhd_3840_2160_24fps_5_1.mp4",
+              "kind": "video",
+              "derive": [
+                {
+                  "op": "frame",
+                  "index": 0
+                }
+              ]
+            }
+          }
+        },
+        {
+          "workflow": "image_edit_flux2_klein_9b_image_edit",
+          "note": "A photo of a student's scale model became a photo of the real place. Compare the two: every figurine is now a real person standing in the same spot, in the same colours.",
+          "params": {
+            "cliptextencode_text_75_74": "Turn this photograph of an architectural scale model into a realistic photograph of the real place at the same moment, seen from the same low camera position. The felt lawn becomes a real grass lawn, the small painted figurines become real people in the same clothes, colours, poses and positions — the crowd standing in front of the white stage, the speaker on the stage, the people seated on the wooden crates — the wooden blocks become real wooden crate stools, the tuft of moss becomes a real shrub, the timber and steel model structures become a real timber pavilion and a real steel footbridge, and the blurred white background becomes real buildings and an overcast sky. Soft natural daylight, accurate shadows, real materials such as wood, concrete, steel and grass. Keep the composition, the camera angle, the shallow depth of field and every person and object exactly where they are.",
+            "cliptextencode_text_75_67": "",
+            "flux2scheduler_steps_75_62": 20,
+            "loadimage_image_76": {
+              "from": "asset:PXL_20240628_084847386.jpg",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "scale",
+                  "factor": 0.35
+                }
+              ]
+            }
           }
         },
         {
           "workflow": "image_edit_flux2_klein_9b_image_edit_ref",
-          "note": "Portrait + the lantern as a reference. Same task as the Qwen 2.1 edit below.",
+          "note": "The whale painting (picture 2) was painted as a mural onto the pink building (picture 1). Check that the building, its windows and the taxi stayed as they were.",
           "params": {
-            "loadimage_image_76": "output:image_flux2_klein_9b_t2i",
-            "loadimage_image_81": "output:image_flux3_klein_distilled_t2i",
-            "cliptextencode_text_92_113": "Put the brass lantern from the reference image in her raised right hand, lit, held near her shoulder; keep her face, hair, raincoat, framing and the background unchanged.",
-            "flux2scheduler_steps_92_115": 20
-          }
-        },
-        {
-          "workflow": "image_qwen_image_2_1_image_edit",
-          "note": "The same two pictures and task as the FLUX.2 Klein reference edit.",
-          "params": {
-            "loadimage_image_470": "output:image_flux2_klein_9b_t2i",
-            "loadimage_image_475": "output:image_flux3_klein_distilled_t2i",
-            "textencodeqwenimage21_prompt_459_474": "Keep the woman in <image1> exactly as she is - face, hair, raincoat, framing and background - and put the brass lantern from <image2> in her raised right hand, lit."
-          }
-        },
-        {
-          "workflow": "image_edit_flux3_klein_image_edit",
-          "note": "A box over the coat, cited as <obj_1>: the new FLUX.3 layout on an edit.",
-          "params": {
-            "image": "output:image_flux2_klein_9b_t2i",
-            "prompt": "In <ref_image_0>, change the yellow raincoat <obj_1> into a navy-blue wool peacoat with brass buttons; keep her face, hair, expression, lighting and the background exactly the same.",
-            "layout": "[\n  {\n    \"type\": \"obj\",\n    \"bbox\": [\n      620,\n      60,\n      1000,\n      940\n    ],\n    \"desc\": \"her yellow raincoat\"\n  }\n]"
-          }
-        },
-        {
-          "workflow": "image_edit_bernini_r_image_editing",
-          "note": "Day → winter: key frame 2 of the Wan 4-key-frame card.",
-          "params": {
-            "source_image_114": "output:image_qwen_image_2_1_t2i",
-            "edit_instruction_76_120": "make it winter: thick snow on the cliff, the path and the cottage roof, a pale grey sky, a dark cold sea"
-          }
-        },
-        {
-          "workflow": "image_edit_bernini_r_image_editing_with_reference",
-          "note": "The scene restyled from the Ideogram poster: key frame 4 of the Wan card.",
-          "params": {
-            "source_image_114": "output:image_qwen_image_2_1_t2i",
-            "reference_image_104": "output:image_ideogram4_t2i",
-            "edit_instruction_76_120": "Restyle the image to match the reference image: flat screen-print colours, a deep teal sky, cream highlights and visible paper grain."
+            "cliptextencode_text_92_113": "Paint the whale artwork from image 2 as a large hand-painted mural directly onto the wide blank pink band at the top of the building in image 1, running along the front of the overhang from its left end towards the corner and following the angle of the wall. The mural shows the blue-grey whale with its pale belly swimming over the speckled blue sea, with the soft painterly texture and colours of image 2, as flat paint on the rendered wall. Keep the building's shape, its windows, the yellow taxi, the street, the power lines, the mountains, the clouds and the blue sky of image 1 exactly as they are.",
+            "cliptextencode_text_92_87": "",
+            "flux2scheduler_steps_92_115": 20,
+            "loadimage_image_76": "asset:Screenshot 2025-03-06 105726.png",
+            "loadimage_image_81": {
+              "from": "asset:bafybeibniohzuqfm3c7fdrvmyrdowcqfctto6j6x2drrkqqf5qwkwztk7q.jpg",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "scale",
+                  "factor": 0.25
+                }
+              ]
+            }
           }
         },
         {
           "workflow": "image_edit_flux2_klein_inpaint_prompt",
-          "note": "A hole cut in the sea on the left (where the scene prompt put open water).",
+          "note": "The grey sofa in a photo of the school's atrium was painted over and described as a mustard velvet sofa. Everything outside the painted area is untouched, down to the pixel.",
           "params": {
+            "cliptextencode_text_6": "a curved mid-century sofa upholstered in mustard-yellow velvet with three round seat cushions and thin dark wooden legs, standing on the pale grey concrete floor, seen from above at the same angle as the room, lit by soft daylight from the glass roof and casting a soft shadow on the floor",
+            "cliptextencode_text_7": "",
             "loadimage_image_1": {
-              "from": "image_qwen_image_2_1_t2i",
+              "from": "asset:agora_ecole_de_design1.jpg",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "transparent",
+                  "shape": "rect",
+                  "box": [
+                    0.645,
+                    0.865,
+                    0.81,
+                    1.0
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "workflow": "image_edit_flux2_klein_inpaint_reference",
+          "note": "A dragonfly brooch (the second picture) was pinned onto her lapel, only inside the painted spot. Her face and pearls are exactly the original pixels.",
+          "params": {
+            "cliptextencode_text_6": "Pin the jewelled dragonfly brooch from the reference image onto the lapel of her black-and-cream tweed jacket in the painted area: a gold body, green enamel wings with fine gold veins and blue-green jewels at the wing tips, sized like a real brooch, sitting flat on the fabric, lit by the same soft studio light with a small shadow on the tweed.",
+            "cliptextencode_text_7": "",
+            "loadimage_image_1": {
+              "from": "asset:0 (1).png",
+              "kind": "image",
               "derive": [
                 {
                   "op": "transparent",
                   "shape": "ellipse",
                   "box": [
-                    0.06,
-                    0.55,
-                    0.36,
+                    0.03,
+                    0.7,
+                    0.24,
                     0.86
                   ]
                 }
               ]
             },
-            "cliptextencode_text_6": "a small red fishing boat with a white wheelhouse riding the waves"
-          }
-        },
-        {
-          "workflow": "image_edit_flux2_klein_inpaint_reference",
-          "note": "A hole in the foreground rocks, filled with the lantern from its picture.",
-          "params": {
-            "loadimage_image_1": {
-              "from": "image_qwen_image_2_1_t2i",
-              "derive": [
-                {
-                  "op": "transparent",
-                  "shape": "ellipse",
-                  "box": [
-                    0.4,
-                    0.7,
-                    0.62,
-                    0.97
-                  ]
-                }
-              ]
-            },
-            "loadimage_image_22": "output:image_flux3_klein_distilled_t2i",
-            "cliptextencode_text_6": "Add the brass lantern from the reference image standing on the rocks in the masked area, lit, matching the golden-hour light and perspective."
-          }
-        },
-        {
-          "workflow": "image_edit_qwen_2_1_relight_composite",
-          "note": "Background in Image 1, the lantern in Image 2, named in the prompt (the rule CLAUDE.md records).",
-          "params": {
-            "loadimage_image_470": "output:image_qwen_image_2_1_t2i",
-            "loadimage_image_475": "output:image_flux3_klein_distilled_t2i",
-            "loadimage_image_476": null,
-            "textencodeqwenimage21_prompt_474": "pengyu Place the brass lantern from <image2> on the rocks in the foreground of <image1>, apply the golden-hour lighting of <image1> to it, enhance specular highlights, add a natural contact shadow, and blend it seamlessly into the background."
+            "loadimage_image_22": "asset:nv.1197-trat.-fundo-CAzev.jpg"
           }
         },
         {
           "workflow": "image_edit_flux2_klein_ref_control_depth",
-          "note": "The keeper put into the dancer's leap.",
+          "note": "Same young woman, same outfit — but in the pose of a real dancer from a second photo. Compare her arms and legs with the dancer's.",
           "params": {
-            "loadimage_image_81": "output:image_flux3_klein_t2i",
-            "loadimage_image_119": "output:image_krea2_turbo_t2i_lora",
-            "cliptextencode_text_113": "refcontrol, the lighthouse keeper from the reference image in exactly this leaping pose, her yellow raincoat flying, plain light-grey studio background"
-          }
-        },
-        {
-          "workflow": "image_qwen_image_2_1_control_depth",
-          "note": "The scene's depth, re-imagined in ice. Same input and prompt as the canny card.",
-          "params": {
-            "loadimage_image_900": "output:image_qwen_image_2_1_t2i",
-            "resolutionselector_aspect_ratio_13": "16:9 (Widescreen)",
-            "textencodeqwenimage21_prompt_459_452": "A lighthouse on a cliff above the sea, carved entirely from translucent blue glacier ice, the sea frozen into jagged ice floes, pale arctic morning light, photograph"
-          }
-        },
-        {
-          "workflow": "image_qwen_image_2_1_control_canny",
-          "note": "The scene's edges, the same ice prompt: canny against depth.",
-          "params": {
-            "loadimage_image_900": "output:image_qwen_image_2_1_t2i",
-            "resolutionselector_aspect_ratio_13": "16:9 (Widescreen)",
-            "textencodeqwenimage21_prompt_459_452": "A lighthouse on a cliff above the sea, carved entirely from translucent blue glacier ice, the sea frozen into jagged ice floes, pale arctic morning light, photograph"
-          }
-        },
-        {
-          "workflow": "image_moss_image_color_depth_control",
-          "note": "The dancer's depth becomes a bronze statue.",
-          "params": {
-            "photo_55": "output:image_krea2_turbo_t2i_lora",
-            "prompt_5": "A bronze statue of a dancer caught mid-leap, legs split wide, arms extended, polished bronze with a green patina, on a granite plinth in a seaside park at sunset with the sea behind, photograph."
-          }
-        },
-        {
-          "workflow": "image_krea2_turbo_style_reference",
-          "note": "Two of the suite's own pictures as the style.",
-          "params": {
-            "loadimage_image_69": "output:image_ideogram4_t2i",
-            "loadimage_image_77": "output:image_moss_image_t2i",
-            "loadimage_image_78": null,
-            "primitivestringmultiline_value_30_19": "a fox rowing a small wooden boat across a calm sea at night under the stars"
+            "cliptextencode_text_113": "refcontrol, the young woman from the reference image dancing in exactly this pose, with her round tortoiseshell glasses, short copper-tipped coily hair, mustard-yellow utility jumpsuit, teal canvas tool belt, coral-red backpack and white high-top sneakers with red laces, on a plain light-grey studio floor with soft even light",
+            "cliptextencode_text_114": "",
+            "loadimage_image_81": "output:image_flux3_klein_distilled_t2i",
+            "loadimage_image_119": "asset:controlNet_demo_image.jpg"
           }
         },
         {
           "workflow": "image_edit_krea2_dynamic_character_sheet",
-          "note": "The keeper's character sheet.",
+          "note": "One photo in, a full design page out: turnaround, action poses, silhouettes, expressions and close-ups of her glasses, tool belt and laces. The name and labels are made up by the model — expect misspellings.",
           "params": {
-            "loadimage_image_72": "output:image_flux3_klein_t2i"
+            "krea2editmodelpatch_ref_boost_120": 1,
+            "ksampler_steps_53": 10,
+            "ksampler_seed_53": 43,
+            "loadimage_image_72": "output:image_flux3_klein_distilled_t2i"
           }
         },
         {
           "workflow": "image_edit_krea2_quadview",
-          "note": "The keeper's four views: cropped into the four inputs of the Pixal3D multi-view card.",
+          "note": "From one front photo, the character seen from the side and from behind — the model had to invent the back of her backpack and tool belt, and kept her colours in every panel.",
           "params": {
-            "loadimage_image_72": "output:image_flux3_klein_t2i"
+            "krea2editgroundedencode_prompt_119": "Convert the character in the image to a Character Sheet showing a face close-up, front full body, side full body and back full body views",
+            "krea2editmodelpatch_ref_boost_120": 1,
+            "ksampler_steps_53": 10,
+            "ksampler_seed_53": 42,
+            "loadimage_image_72": "output:image_flux3_klein_distilled_t2i"
+          }
+        },
+        {
+          "workflow": "image_qwen_image_2_1_image_edit",
+          "note": "Coloured circles say WHERE, the extra pictures say WHAT: the ski goggles from picture 2 replaced the glasses in the red circle, the dragonfly brooch from picture 3 is pinned in the blue one, and the green one was changed from words alone. Her face, hair and the background are untouched.",
+          "params": {
+            "textencodeqwenimage21_prompt_459_474": "In <image1>, replace the round orange glasses inside the red circle with the ski goggles from <image2>, worn over her eyes; pin the dragonfly brooch from <image3> on her leather vest inside the blue circle; and replace the copper gear inside the green circle with a round brass ship's porthole. Remove the red, blue and green circle outlines. Keep her face, smile, blue-and-orange hair, the brass goggles on top of her head, her earrings, her clothes, the framing and the rest of the background exactly as they are.",
+            "loadimage_image_470": {
+              "from": "asset:woman_mechanic.png",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "circle",
+                  "box": [
+                    0.25,
+                    0.25,
+                    0.69,
+                    0.48
+                  ],
+                  "color": "#FF0000"
+                },
+                {
+                  "op": "circle",
+                  "box": [
+                    0.6,
+                    0.72,
+                    0.78,
+                    0.9
+                  ],
+                  "color": "#0057FF"
+                },
+                {
+                  "op": "circle",
+                  "box": [
+                    0.81,
+                    0.37,
+                    0.995,
+                    0.6
+                  ],
+                  "color": "#00C000"
+                }
+              ]
+            },
+            "loadimage_image_475": "asset:2f42ec649db902ccf63918f16293bd963dc4d65b_original.jpg",
+            "loadimage_image_476": "asset:nv.1197-trat.-fundo-CAzev.jpg"
+          }
+        },
+        {
+          "workflow": "image_edit_qwen_2_1_relight_composite",
+          "note": "The input was a studio photo of a chair crudely pasted under an oak, white blobs at its feet; the result puts it in the tree's backlit shade with a real shadow on the grass. Compare the chair's lighting and its feet before and after.",
+          "params": {
+            "textencodeqwenimage21_prompt_474": "pengyu Apply consistent lighting to the product or object, enhance specular highlights，front-back spatial relationship，add natural contact shadow, and blend it seamlessly into the background。 The chair stands on the grass in the shade of the oak, lit from behind by the sun beyond the tree.",
+            "loadimage_image_470": {
+              "from": "asset:Tree.png",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "composite",
+                  "overlay": "asset:6504516c0115ed9b83b2d82e1d94c4ec.webp",
+                  "box": [
+                    0.07,
+                    0.64,
+                    0.33,
+                    0.97
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "workflow": "image_edit_bernini_r_image_editing",
+          "note": "One instruction removed a giant bouquet of daisies from a roof and rebuilt the sky and roofline behind it; the building, the taxi and the street did not move. Write it like this: what to delete, what to fill the gap with, and what must not change.",
+          "params": {
+            "edit_instruction_76_120": "Delete the giant cluster of puffy white daisies sitting on top of the pink building. Fill in the area with the continuation of the building's flat pink roof and parapet and the clear blue sky behind it, matching the existing perspective, the hard sunlight and the shadow softness so the removal is seamless. The pink building, its windows and door, the yellow car, the street, the telegraph poles and wires, the mountains and the clouds remain completely unchanged.",
+            "task_type_76_54": "Image Editing",
+            "source_image_114": "asset:Screenshot 2025-03-06 105700.png"
+          }
+        },
+        {
+          "workflow": "image_edit_bernini_r_image_editing_with_reference",
+          "note": "The yellow taxi was swapped for the red sports car from the reference picture, parked in the same spot under the same sun; the pink building and the street are unchanged. Ask it to replace something - asked to copy a style, this card makes collages.",
+          "params": {
+            "edit_instruction_76_120": "Replace the small yellow car parked in front of the pink building with the red sports car from the reference image, parked in exactly the same spot, at the same size and facing the same direction along the kerb, with a soft shadow on the asphalt beneath it, while keeping the pink building, its windows and doors, the telegraph poles and wires, the road markings, the mountains, the clouds and the blue sky exactly as they are. The car is now a low glossy red two-door sports coupé with slim LED headlights, black alloy wheels and a dark tinted windscreen, lit by the same hard sunlight as the building, and all other scene elements remain unchanged.",
+            "task_type_76_54": "Image Editing",
+            "source_image_114": "asset:Screenshot 2025-03-06 105726.png",
+            "reference_image_104": "asset:sports_car.png"
           }
         },
         {
           "workflow": "image_edit_qwen_2511_multiple_angles",
-          "note": "The keeper seen from her side.",
+          "note": "Only the front of this clay figurine was photographed; the camera was moved behind it. Notice the back of the tunic and belt, the heels of the boots and the sword strapped across his back - none of it was in the photo, all of it matches the clay.",
           "params": {
-            "loadimage_image_1": "output:image_flux3_klein_t2i",
-            "cameraangle_221": "{\"horizontal\": 90, \"vertical\": 0, \"zoom\": 5}"
-          }
-        },
-        {
-          "workflow": "utility_qwen_2511_unblur_upscale",
-          "note": "The portrait shrunk and blurred, then repaired.",
-          "params": {
-            "loadimage_image_25": {
-              "from": "image_flux2_klein_9b_t2i",
+            "cameraangle_221": "{\"horizontal\": 180, \"vertical\": 0, \"zoom\": 5}",
+            "loadimage_image_1": {
+              "from": "asset:e0c02414604575.563121c5934f5.JPG",
+              "kind": "image",
               "derive": [
                 {
                   "op": "scale",
-                  "factor": 0.4
+                  "factor": 0.9
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 — Enlarging, 3D, sound and captions",
+      "runs": [
+        {
+          "workflow": "utility_qwen_2511_unblur_upscale",
+          "note": "A small, soft scan of an old black-and-white portrait comes back crisp. Compare the face with the original picture (Woman.png): it should still be the same person, because that is what this card is trained to keep.",
+          "params": {
+            "textencodeqwenimageeditplus_prompt_427_221_151": "unblur and upscale",
+            "loraloadermodelonly_lora_name_427_221_220": "Qwen-Image-Edit-Unblur-Upscale_20.safetensors",
+            "loraloadermodelonly_strength_model_427_221_220": 1,
+            "primitiveboolean_value_427_221_168": true,
+            "ksampler_seed_427_221_169": 345666571704709,
+            "loadimage_image_25": {
+              "from": "asset:Woman.png",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "scale",
+                  "factor": 0.3
                 },
                 {
                   "op": "blur",
-                  "radius": 2.5
+                  "radius": 1.2
+                },
+                {
+                  "op": "jpeg",
+                  "quality": 40
                 }
               ]
             }
@@ -305,104 +476,199 @@
         },
         {
           "workflow": "utility_pid_image_upscale",
-          "note": "The scene enlarged 4×.",
+          "note": "A clean 1376×768 picture from the Qwen text-to-image card made 4 times wider and taller without changing it. Zoom to 100% on small details and edges: they stay faithful instead of being re-invented.",
+          "keepRuntime": true,
           "params": {
-            "loadimage_image_1": "output:image_qwen_image_2_1_t2i"
+            "latenttiledpiddecode_seed_7": 42,
+            "loadimage_image_1": {
+              "from": "image_qwen_image_2_1_t2i",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "scale",
+                  "factor": 0.5
+                }
+              ]
+            }
           }
         },
         {
           "workflow": "utility_seedvr2_4k_upscale",
-          "note": "The portrait to 4K.",
+          "note": "A noisy, blocky 1024-pixel phone photo of a cat rebuilt at 4096 pixels. Zoom into the fur, the whiskers and the eyes and compare with the input; the faster SeedVR2 card got exactly the same picture.",
           "params": {
-            "source_image_16": "output:image_flux2_klein_9b_t2i"
+            "resolution_10": 4096,
+            "max_resolution_10": 4096,
+            "seed_10": 42,
+            "source_image_16": {
+              "from": "asset:Mariette1.jpg",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "scale",
+                  "factor": 0.296296
+                },
+                {
+                  "op": "blur",
+                  "radius": 1
+                },
+                {
+                  "op": "noise",
+                  "sigma": 8,
+                  "seed": 1
+                },
+                {
+                  "op": "jpeg",
+                  "quality": 30
+                }
+              ]
+            }
           }
         },
         {
           "workflow": "utility_seedvr2_7b_int8_image_upscale",
-          "note": "The lantern enlarged 4×.",
+          "note": "The same damaged cat photo as the 4K card, rebuilt 4 times bigger in about half the time. Compare the fur and whiskers of both results with the input to see what the speed costs.",
           "params": {
-            "loadimage_image_1": "output:image_flux3_klein_distilled_t2i"
-          }
-        },
-        {
-          "workflow": "describe_gemma4_image_description",
-          "note": "Can it read the poster's text back?",
-          "params": {
-            "source_image_2": "output:image_ideogram4_t2i",
-            "instruction_1": "Describe the image in detail, and quote any text in it exactly."
+            "resizeimagemasknode_resize_type_multiplier_66_57": 4,
+            "seedvr2postprocessing_color_correction_method_66_59": "lab",
+            "ksampler_seed_66_54": 42,
+            "loadimage_image_1": {
+              "from": "asset:Mariette1.jpg",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "scale",
+                  "factor": 0.296296
+                },
+                {
+                  "op": "blur",
+                  "radius": 1
+                },
+                {
+                  "op": "noise",
+                  "sigma": 8,
+                  "seed": 1
+                },
+                {
+                  "op": "jpeg",
+                  "quality": 30
+                }
+              ]
+            }
           }
         },
         {
           "workflow": "3d_pixal3d_trellis2_image_to_model",
-          "note": "The lantern as a textured mesh.",
+          "note": "One product photo of a design-classic cane chair turned into a textured 3D model. Spin it and check the four legs, the A-shaped side frames and the woven cane on the seat and back.",
           "params": {
-            "loadimage_image_122": "output:image_flux3_klein_distilled_t2i"
+            "primitiveboolean_value_316": false,
+            "comfyswitchnode_switch_248": true,
+            "trellis2upsamplestage_target_resolution_94": 1536,
+            "decimatemesh_target_face_count_186": 700000,
+            "primitiveint_value_288": 4096,
+            "ksampler_seed_3": 56,
+            "loadimage_image_122": "asset:6504516c0115ed9b83b2d82e1d94c4ec.webp"
+          }
+        },
+        {
+          "workflow": "3d_mesh_remesh_decimate",
+          "note": "The 700,000-triangle chair from the picture-to-3D card rebuilt as a clean, closed 10,000-triangle model. Read the BEFORE and AFTER panels, then spin it to see what the reduction kept.",
+          "keepRuntime": true,
+          "params": {
+            "primitiveint_value_2": 10000,
+            "primitiveboolean_value_3": true,
+            "primitiveint_value_4": 2,
+            "primitivefloat_value_5": 45,
+            "load3dadvanced_model_file_6": "output:3d_pixal3d_trellis2_image_to_model"
+          }
+        },
+        {
+          "workflow": "3d_mesh_uv_unwrap",
+          "note": "The low-poly chair unwrapped. The colourful image shows how its surface was cut into flat pieces; the grey map shows the soft shadows baked into its joints, ready for texturing.",
+          "keepRuntime": true,
+          "params": {
+            "primitiveint_value_2": 2048,
+            "unwrapmesh_segmenter_8": "pec",
+            "primitiveint_value_3": 4,
+            "primitiveint_value_4": 128,
+            "primitivefloat_value_5": 1,
+            "load3dadvanced_model_file_6": "output:3d_mesh_remesh_decimate"
           }
         },
         {
           "workflow": "3d_triposplat_image_to_gaussian_splat",
-          "note": "The keeper as a Gaussian splat.",
+          "note": "A paper-craft tree turned into a 3D 'splat' in seconds: as you spin it, the soft see-through paper leaves keep their colours. Switch to the mesh to see what a solid surface loses.",
           "params": {
-            "loadimage_image_99": "output:image_flux3_klein_t2i",
-            "ksampler_steps_88_6": 20
+            "switch_mask_source_88_35": true,
+            "ksampler_steps_88_6": 20,
+            "ksampler_seed_88_6": 0,
+            "vaedecodetriposplat_num_gaussians_88_55": 1048576,
+            "loadimage_image_99": "asset:ComfyUI_00013_.png"
           }
         },
         {
           "workflow": "3d_pixal3d_multi_views",
-          "note": "Four views cropped from the quadview sheet (face | front | side | back, measured on its output: the face panel takes the first third); the side mirrored for the other side. The crops assume that layout — check them if the quadview card changes.",
+          "note": "Four views of one character (front, two sides, back), made by the quadview card from a single picture, built into one textured 3D model. Spin it round: the back matches the back view it was given.",
           "params": {
+            "trellis2upsamplestage_target_resolution_94": 1536,
+            "decimatemesh_target_face_count_186": 700000,
+            "primitiveint_value_288": 4096,
+            "ksampler_seed_3": 56,
             "loadimage_image_364": {
               "from": "image_edit_krea2_quadview",
+              "kind": "image",
               "derive": [
                 {
                   "op": "crop",
                   "box": [
                     0.34,
-                    0.0,
+                    0,
                     0.565,
-                    1.0
+                    1
                   ]
                 }
               ]
             },
             "loadimage_image_378": {
               "from": "image_edit_krea2_quadview",
+              "kind": "image",
               "derive": [
                 {
                   "op": "crop",
                   "box": [
                     0.57,
-                    0.0,
+                    0,
                     0.755,
-                    1.0
+                    1
                   ]
                 }
               ]
             },
             "loadimage_image_380": {
               "from": "image_edit_krea2_quadview",
+              "kind": "image",
               "derive": [
                 {
                   "op": "crop",
                   "box": [
                     0.76,
-                    0.0,
-                    1.0,
-                    1.0
+                    0,
+                    1,
+                    1
                   ]
                 }
               ]
             },
             "loadimage_image_379": {
               "from": "image_edit_krea2_quadview",
+              "kind": "image",
               "derive": [
                 {
                   "op": "crop",
                   "box": [
                     0.57,
-                    0.0,
+                    0,
                     0.755,
-                    1.0
+                    1
                   ]
                 },
                 {
@@ -413,439 +679,650 @@
           }
         },
         {
-          "workflow": "3d_mesh_remesh_decimate",
-          "note": "The lantern mesh, made low-poly.",
+          "workflow": "audio_stable_audio_3_medium",
+          "note": "A full 2½-minute gypsy-jazz instrumental from one written description. Listen for the instruments the prompt asks for: the soloing guitar, the chugging rhythm guitar, the violin and the double bass.",
           "params": {
-            "load3dadvanced_model_file_6": "output:3d_pixal3d_trellis2_image_to_model"
-          }
-        },
-        {
-          "workflow": "3d_mesh_uv_unwrap",
-          "note": "The keeper mesh, unwrapped.",
-          "params": {
-            "load3dadvanced_model_file_6": "output:3d_pixal3d_multi_views"
+            "description_52_31": "TrackType: Music, VocalType: Instrumental. Gypsy jazz instrumental in the spirit of a 1930s Paris hot-club band, with a virtuosic lead acoustic guitar playing fast swinging runs, a second acoustic guitar keeping the percussive la pompe rhythm on every beat, a violin trading melodies with the guitar and a walking upright bass, joyful, lively and warm, recorded close-up in a small wooden room with a natural acoustic sound, 200 BPM",
+            "category_52_43": "Music",
+            "enhance_prompt_52_35": false,
+            "duration_seconds_52_36": 150,
+            "steps_52_3": 8,
+            "seed_52_3": 0
           }
         },
         {
           "workflow": "audio_yue2_music_cover",
-          "note": "The Stable Audio tune, sung.",
+          "note": "ComfyUI's own example song (upbeat indie pop, female voice) sung again as bluegrass by a male voice, with the same words and the same tune. Play both one after the other and hum along.",
           "params": {
-            "loadaudio_audio_45": "output:audio_stable_audio_3_medium",
-            "yue2generatemusic_style_33_25": "English, warm folk ballad, gentle female vocal, 92 BPM, fingerpicked acoustic guitar, accordion, soft hand drum",
-            "yue2generatemusic_lyrics_33_25": "[Verse]\nSalt on the window, wind at the door\nI climb the stairs as I did before\nForty years of the same old sea\nAnd still it sings its song to me\n\n[Chorus]\nKeep the light burning, keep the light low\nFor every sailor still far from home\nKeep the light burning through the night\nTill morning comes and the sea turns white\n\n[Verse]\nThe gulls are sleeping, the boats are in\nThe storm is calling me again\nI wind the clock and trim the wick\nThe night is long, the fog is thick\n\n[Chorus]\nKeep the light burning, keep the light low\nFor every sailor still far from home"
+            "yue2generatemusic_style_33_25": "English, bluegrass, warm male lead vocal with close two-part harmony on the chorus, fast banjo rolls, fiddle, mandolin, upright bass, acoustic guitar, lively front-porch atmosphere, live acoustic recording",
+            "yue2generatemusic_lyrics_33_25": "[Verse]\nMorning light across the window\nCity waking down below\nI can hear the streets are calling\nFeels like somewhere we should go\n\n[Chorus]\nRun with me into the sunlight\nLeave the shadows far behind\nWe don't need to know tomorrow\nTonight the whole world feels alive\n\n[Verse]\nRadio playing through the open door\nLaughing like we did before\nEvery mile becomes a memory\nAnd I just want a little more\n\n[Chorus]\nRun with me into the sunlight\nLeave the shadows far behind\nWe don't need to know tomorrow\nTonight the whole world feels alive",
+            "sheetsage2audiotoabc_mode_33_41": "melody",
+            "yue2generatemusic_max_duration_33_25": 360,
+            "yue2generatemusic_temperature_33_25": 1,
+            "seednode_seed_33_34": 0,
+            "loadaudio_audio_45": "asset:yue2_reference_song.flac"
+          }
+        },
+        {
+          "workflow": "describe_gemma4_image_description",
+          "note": "Gemma reads the poster made by the Ideogram card. It copies every line of text exactly, translates it, describes the design and writes a prompt to recreate it. Check its spelling against the poster.",
+          "params": {
+            "instruction_1": "Look carefully at this image and answer in five numbered sections.\n1. What it is, in one sentence.\n2. Text: copy every piece of text you can see exactly as written (same spelling, capitals and accents), one item per line, each followed by where it is (top, centre, bottom, left, right). If there is no text, say so.\n3. Translation: translate any text that is not in English into English.\n4. Design: three or four short bullet points on the layout, the colour palette, the typography and the illustration style.\n5. Prompt: one paragraph that could be given to an image generator to recreate this image.\nDescribe only what you can see; do not invent details.",
+            "seed_1": 0,
+            "source_image_2": {
+              "from": "image_ideogram4_t2i",
+              "fallback": "asset:agora_ecole_de_design1.jpg"
+            }
           }
         }
       ]
     },
     {
-      "name": "3 — Pictures and text to video",
+      "name": "4 — Making a video",
       "runs": [
         {
-          "workflow": "video_ltx2_5_t2v",
-          "note": "The four text-to-video cards share one prompt. This one is also the SOURCE video of stage 4.",
+          "workflow": "video_minimax_h3_t2v_turbo",
+          "note": "One paragraph of text became both the picture and the drumming, at the same time. Listen with the sound on: every boom and clang should land on a stick hit you can see.",
           "params": {
-            "primitivestringmultiline_value_405_376": "A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern. Sound: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle."
+            "minimaxh3imagetovideo_prompt_11": "integrated_multimodal_description: [Shot 1] Live-action, cinematic, a medium shot in a white-tiled subway corridor at rush hour. A young street drummer in a red beanie and a faded denim jacket sits on a low wooden crate behind three upturned white plastic buckets and a dented metal pot lid, a drumstick in each hand. He plays a fast, tight beat: the right stick strikes the big centre bucket on every beat with a deep hollow boom, the left stick snaps against the bucket rims with sharp plastic clicks and hits the pot lid with a bright metallic clang on the off-beat, his shoulders bouncing in time. At about two seconds he twirls the left stick between his fingers without missing a beat and then hits the pot lid twice, hard. Commuters in coats stream past behind him, slightly out of focus, and one of them tosses a coin into the open instrument case at his feet. The camera pushes in with small amplitude at slow speed from waist height, ending on his hands and the buckets.\n\noverall_soundscape: The drum hits echo off the tiled walls over a steady murmur of the crowd and hurried footsteps; a coin clinks into the case, and a train rumbles through the station in the distance.\n\nnon_diegetic_music: N/A"
           }
         },
         {
           "workflow": "video_fastvideo_fasth3_t2v",
-          "note": "Same prompt, H3 distilled to 8 steps.",
+          "note": "Ten seconds, three shots and a narrator, all from one prompt. Notice where the cuts fall (about 4 and 7.5 seconds, as written) and that the voice-over and the music were generated with the pictures.",
+          "keepRuntime": true,
           "params": {
-            "minimaxh3imagetovideo_prompt_105_104": "[Shot 1] A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern. We hear waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle.",
+            "minimaxh3imagetovideo_prompt_105_104": "integrated_multimodal_description: [Shot 1] Live-action nature documentary, cinematic, soft blue dawn light. A wide aerial shot glides slowly forward over a misty pine forest in a deep valley; low clouds drift between the treetops and a silver river winds along the valley floor. The camera pushes in with small amplitude at slow speed. A calm, deep male narrator (S1) says in an off-screen voiceover: <d>[English] Every morning, the valley wakes up slowly.</d> [Shot 2] At 00:04.000, the camera cuts to a close-up of a red fox stepping out of the ferns onto a mossy fallen log, its breath steaming in the cold air; it stops and lifts its head toward the light. The camera holds a static shot. [Shot 3] At 00:07.500, the camera cuts to a low wide shot over the river, where mist rolls across the water and the first golden sunbeams break through the pines. The narrator (S1) continues in the same off-screen voiceover: <d>[English] And then, the light arrives.</d> The camera tilts up with small amplitude at slow speed toward the rising sun.\n\noverall_soundscape: Soft forest dawn ambience with distant birdsong, a light breeze in the pines, the crunch of moss and twigs under the fox's paws, and the gentle rush of the river.\n\nnon_diegetic_music: A slow, warm orchestral score with sustained strings and a soft French horn, swelling gently in the final shot.",
+            "primitivefloat_value_105_111": 10,
             "resolutionselector_aspect_ratio_143": "16:9 (Widescreen)"
           }
         },
         {
-          "workflow": "video_minimax_h3_t2v_turbo",
-          "note": "Same prompt, H3 with the 4-step turbo LoRA.",
+          "workflow": "video_ltx2_5_t2v",
+          "note": "One prompt, two shots: a wide shot of the food truck, then a hard cut to a close-up as she orders. Notice that the same woman and jacket carry across the cut, the neon word \"TACOS\", and her spoken line in the soundtrack.",
           "params": {
-            "minimaxh3imagetovideo_prompt_11": "A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern.\nAudio: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle, no music."
+            "primitivestringmultiline_value_405_376": "A wide shot frames a narrow, rain-soaked street at night, cobblestones shining under the glow of a small food truck parked at the curb, a red neon sign on its roof spelling \"TACOS\" in bold capital letters, steam drifting from its lit service window. A young woman with a short black bob and a teal rain jacket hurries toward the truck under a clear umbrella, her boots splashing through puddles. Rain drums on the umbrella and a cheerful accordion tune plays from the truck's radio. A hard cut transitions to a medium close-up of the same woman at the counter, red neon light on her face and raindrops beading on the umbrella above her; the accordion tune continues across the cut, softer now. She lowers the umbrella, smiles at the cook and says, \"Two, please — extra lime!\" Steam rises between them as the rain keeps falling."
           }
         },
         {
           "workflow": "video_pika_h3_flex_t2v",
-          "note": "Same prompt, Pika's 6-step H3.",
+          "note": "Three shots, two characters, two lines of dialogue and a little accordion tune, all from one prompt. Watch the cuts land where the prompt asked (about 2 and 3.5 seconds) and read the chalkboard.",
           "params": {
-            "prompt_231": "integrated_multimodal_description: [Shot 1] A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern.\n\noverall_soundscape: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle.\n\nnon_diegetic_music: N/A"
-          }
-        },
-        {
-          "workflow": "video_ltx2_5_i2v",
-          "note": "The scene comes to life. Same picture and action as the MiniMax 4-step card.",
-          "params": {
-            "loadimage_image_395": "output:image_qwen_image_2_1_t2i",
-            "primitivestringmultiline_value_398_376": "Use the provided start image as the first frame. The camera slowly pushes in toward the lighthouse as waves roll in and break white against the cliff, spray drifting in the golden light; the seagulls glide across the sky and the heather bends in the wind. Sound: crashing waves, wind, gulls crying."
+            "prompt_231": "integrated_multimodal_description: [Shot 1] Live-action, warm cinematic 35mm look with fine grain, normal real-time speed with no slow motion. A medium-wide shot inside a tiny Parisian bakery in the morning: a young baker with flour on her navy apron stands behind a wooden counter piled with golden croissants, a small chalkboard on the counter reading \"CROISSANTS\", and an elderly man in a tweed cap and a long grey coat stands in front of the counter holding a single coin. The elderly man with a slow, gravelly voice (S1) taps the coin on the counter and says: <d>[English] One croissant. The best one.</d> [Shot 2] At 00:02.000, the camera cuts to a close-up of the baker's hands lifting the largest, glossiest croissant with silver tongs; flakes of pastry fall onto the counter. [Shot 3] At 00:03.500, the camera cuts to a medium close-up of the baker, who winks as she slides it into a paper bag, and the young baker with a bright, cheerful voice (S2) says: <d>[English] They're all the best.</d> The camera remains fixed.\n\noverall_soundscape: Small bakery ambience: the shop-door bell, the clink of the coin on wood, the crackle of the paper bag, pastry flakes pattering on the counter and the low hum of the oven.\n\nnon_diegetic_music: A light accordion waltz at a moderate tempo, quiet under the dialogue, ending on a single bright note."
           }
         },
         {
           "workflow": "video_minimax_h3_i2v_4step",
-          "note": "Same picture and action.",
+          "note": "A still photo from the 1950s turns to you and speaks French: the voice, the lip movements and the laugh were all made from one line of text. Notice that the earring, the jacket and the black-and-white look never change.",
           "params": {
-            "loadimage_image_114": "output:image_qwen_image_2_1_t2i",
-            "minimaxh3imagetovideo_prompt_105_104": "The scene from <Picture 1> comes to life. The camera slowly pushes in toward the lighthouse while waves roll in and break white against the cliff, spray drifting in the golden light; the seagulls glide across the sky and the heather bends in the wind.\nAudio: crashing waves, wind, gulls crying, no music."
+            "minimaxh3imagetovideo_prompt_105_104": "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\n\nintegrated_multimodal_description: [Shot 1] Black-and-white 1950s studio portrait photography with fine film grain, the young woman shown in <Picture 1> keeps her short swept dark hair, pearl stud earring, houndstooth jacket, soft key light and plain grey backdrop. She holds her smile for a moment, then her eyes widen slightly as if she has just noticed the viewer, she tilts her head and leans a little toward the lens. The young woman with a warm, bright voice (S1) says: <d>[French] Oh! Vous êtes enfin là. Je vous attendais.</d> She lets out a short, soft laugh, glances to the side and back, and settles into her original smile. The camera pushes in with small amplitude at slow speed, ending on a close-up of her face. The image stays black-and-white throughout.\n\noverall_soundscape: Quiet studio room tone with the faint crackle of an old film soundtrack, the soft rustle of her jacket as she leans forward, and her short breathy laugh.\n\nnon_diegetic_music: A gentle 1950s jazz piano with brushed snare at a slow tempo, very quiet under her voice.",
+            "loadimage_image_114": "asset:Woman.png"
           }
         },
         {
-          "workflow": "video_ltx2_5_flf2v",
-          "note": "Day → stormy night between two of the suite's pictures. Same pair on the Pika and FastH3 cards.",
+          "workflow": "video_ltx2_5_i2v",
+          "note": "A still claymation portrait wakes up: she opens her eyes and speaks a line, and the clay look holds in every frame. Everything you hear — the voice, the birds, the breeze — was made from the prompt.",
           "params": {
-            "loadimage_image_31": "output:image_qwen_image_2_1_t2i",
-            "loadimage_image_39": "output:image_edit_flux2_klein_9b_image_edit",
-            "primitivestringmultiline_value_251_252": "Use the provided start image as the first frame and the provided end image as the final frame anchor. A locked-off time-lapse of the lighthouse on the cliff, from golden hour into a stormy night: the sun sinks, dark clouds roll in, rain starts to fall, the lighthouse lamp switches on and its beam begins to sweep across the sea, the waves grow higher and crash against the cliff, and the cottage windows light up. Sound: rising wind, rain starting to fall, a rumble of thunder, waves crashing against the rocks."
-          }
-        },
-        {
-          "workflow": "video_pika_h3_flex_fl2va",
-          "note": "The same first and last frame.",
-          "params": {
-            "first_frame_148": "output:image_qwen_image_2_1_t2i",
-            "last_frame_147": "output:image_edit_flux2_klein_9b_image_edit",
-            "prompt_231": "How the reference pictures align with the target video - Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the 5.17-second mark of the target video.\n\nintegrated_multimodal_description: [Shot 1] A locked-off time-lapse of the lighthouse on the cliff, from golden hour into a stormy night: the sun sinks, dark clouds roll in, rain starts to fall, the lighthouse lamp switches on and its beam begins to sweep across the sea, the waves grow higher and crash against the cliff, and the cottage windows light up. The shot settles exactly on Picture 2.\n\noverall_soundscape: rising wind, rain starting to fall, a rumble of thunder, waves crashing against the rocks.\n\nnon_diegetic_music: N/A"
+            "primitivestringmultiline_value_398_376": "Use the provided start image as the first frame. One continuous close-up: the clay girl slowly opens her eyes, blinks twice and lifts her head toward the camera, her sculpted lips parting into a sleepy smile. She says softly, in a warm, sleepy voice, \"Is it morning already?\" A light breeze lifts a few strands of her orange and yellow clay hair, and the clay hills behind her stay softly out of focus. The camera pushes in very slowly on her face. The whole scene stays handmade plasticine stop-motion, with fingerprints in the clay and slightly jittery stop-motion movement. Sound: birdsong, a soft breeze and the faint squish of clay as she moves.",
+            "loadimage_image_395": "asset:01-portrait_remix.png"
           }
         },
         {
           "workflow": "video_fastvideo_fasth3_i2v",
-          "note": "The same first and last frame, on the 8-step FastH3.",
+          "note": "Only the finished poster was given, as the LAST frame: the model invented the build-up and lands exactly on the design. Pause on the final frame — the title is the original, letter for letter.",
           "params": {
-            "loadimage_image_136": "output:image_qwen_image_2_1_t2i",
-            "loadimage_image_300": "output:image_edit_flux2_klein_9b_image_edit",
-            "resolutionselector_aspect_ratio_143": "16:9 (Widescreen)",
-            "minimaxh3imagetovideo_prompt_105_104": "How the reference pictures align with the target video - Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the 5.00-second mark of the target video.\nintegrated_multimodal_description: [Shot 1] A locked-off time-lapse of the lighthouse on the cliff, from golden hour into a stormy night: the sun sinks, dark clouds roll in, rain starts to fall, the lighthouse lamp switches on and its beam begins to sweep across the sea, the waves grow higher and crash against the cliff, and the cottage windows light up. We hear rising wind, rain starting to fall, a rumble of thunder, waves crashing against the rocks."
+            "minimaxh3imagetovideo_prompt_105_104": "How the reference pictures align with the target video — <Picture 1> (from [Shot 1]) aligns with the 5.17-second mark of the target video.\n\nintegrated_multimodal_description: [Shot 1] Animated graphic-design reveal, one continuous shot, the camera remains fixed and frontal. The video opens on a blank sheet of off-white paper filling the frame. At about one second, large flat shapes of coloured paper slide in from the edges of the frame and snap into place one after another, each casting a small soft shadow, and the main picture of the poster assembles in the middle from cut and torn pieces. At about three seconds the title letters drop in from the top one by one, bouncing slightly as they land, and the smaller lines of text slide in underneath. In the last second every piece settles and the composition locks exactly into the finished poster of <Picture 1>, which holds still to the end.\n\noverall_soundscape: Crisp paper sounds throughout: a quick whoosh and a soft slap as each cut-paper shape lands, a light rustle of paper, and a small cardboard thump for every falling letter, in a quiet room.\n\nnon_diegetic_music: A punchy, minimal electronic beat at a moderate tempo whose kicks land on the falling letters, ending on a single held chord on the finished poster.",
+            "resolutionselector_aspect_ratio_143": "9:16 (Portrait Widescreen)",
+            "loadimage_image_300": {
+              "from": "image_ideogram4_t2i",
+              "fallback": "asset:Screenshot 2025-03-06 105700.png"
+            },
+            "loadimage_image_136": null
           }
         },
         {
-          "workflow": "video_wan22_4_key_frames",
-          "note": "Day → winter → stormy night → poster: four of the suite's pictures as key frames.",
+          "workflow": "video_ltx2_5_flf2v",
+          "note": "Both ends are fixed pictures — the real rooftop photo and a sunset-cliff version of the very same frame — and the model invents the gust of wind that carries him from one to the other.",
           "params": {
-            "loadimage_image_62": "output:image_qwen_image_2_1_t2i",
-            "loadimage_image_122": "output:image_edit_bernini_r_image_editing",
-            "loadimage_image_124": "output:image_edit_flux2_klein_9b_image_edit",
-            "loadimage_image_126": "output:image_edit_bernini_r_image_editing_with_reference",
-            "cliptextencode_text_140_6": "The golden-hour cliff turns to winter: snow begins to fall and settles on the cliff, the path and the cottage roof, the light turns pale and grey.",
-            "cliptextencode_text_228_225": "The winter dusk darkens into a stormy night: rain replaces the snow, the lighthouse lamp switches on and its beam starts to sweep, the waves rise.",
-            "cliptextencode_text_245_242": "The stormy night flattens into a screen-printed poster of the same view: the colours simplify into flat teal and cream shapes and paper grain appears.",
-            "primitiveint_value_283": 960,
-            "primitiveint_value_284": 544
-          }
-        },
-        {
-          "workflow": "video_fastvideo_fasth3_omniref_r2v",
-          "note": "The keeper and her lantern as references. Same prompt and pictures as the Pika reference card.",
-          "params": {
-            "ref_image_137": "output:image_flux3_klein_t2i",
-            "ref_image_300": "output:image_flux3_klein_distilled_t2i",
-            "ref_image_301": null,
-            "ref_image_302": null,
-            "prompt_138": "subject_definitions:\n<Subject 1> is the woman in <Picture 1>: Maren, a lighthouse keeper with short silver-grey hair and a weathered face, in a bright yellow raincoat, navy sweater, dark trousers and black boots.\n<Subject 2> is the brass ship's lantern in <Picture 2>: domed top, carrying ring, glass panes around a lit candle.\n\nsummary:\n[reference generation] A 5-second single shot: <Subject 1> climbs the last turn of a spiral iron staircase inside the lighthouse at night, carrying <Subject 2>, lit, and stops at the top to look out of the window at the storm.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - face, grey hair, yellow raincoat, boots.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the brass lantern with its glass panes and lit candle.\n\ndetailed_description:\nMoody cinematic night interior, warm lantern light against cold blue storm light from the windows.\n[Shot 1] A low angle at the foot of the last turn of the staircase: <Subject 1> climbs toward the camera holding <Subject 2> at chest height, its candlelight swinging across the curved white wall. At about three seconds she reaches the top, raises the lantern and turns her head to the rain-streaked window, where lightning flashes once over the sea.\n\noverall_soundscape:\nBoots on iron steps, the lantern handle creaking, rain and wind against the tower, one distant thunder roll.\n\nnon_diegetic_music:\nA soft low cello note that swells at the window."
-          }
-        },
-        {
-          "workflow": "video_pika_h3_flex_ref2va",
-          "note": "The same references and prompt.",
-          "params": {
-            "ref_image_149": "output:image_flux3_klein_t2i",
-            "ref_image_150": "output:image_flux3_klein_distilled_t2i",
-            "ref_image_300": null,
-            "ref_image_301": null,
-            "prompt_138": "subject_definitions:\n<Subject 1> is the woman in <Picture 1>: Maren, a lighthouse keeper with short silver-grey hair and a weathered face, in a bright yellow raincoat, navy sweater, dark trousers and black boots.\n<Subject 2> is the brass ship's lantern in <Picture 2>: domed top, carrying ring, glass panes around a lit candle.\n\nsummary:\n[reference generation] A 5-second single shot: <Subject 1> climbs the last turn of a spiral iron staircase inside the lighthouse at night, carrying <Subject 2>, lit, and stops at the top to look out of the window at the storm.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - face, grey hair, yellow raincoat, boots.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the brass lantern with its glass panes and lit candle.\n\ndetailed_description:\nMoody cinematic night interior, warm lantern light against cold blue storm light from the windows.\n[Shot 1] A low angle at the foot of the last turn of the staircase: <Subject 1> climbs toward the camera holding <Subject 2> at chest height, its candlelight swinging across the curved white wall. At about three seconds she reaches the top, raises the lantern and turns her head to the rain-streaked window, where lightning flashes once over the sea.\n\noverall_soundscape:\nBoots on iron steps, the lantern handle creaking, rain and wind against the tower, one distant thunder roll.\n\nnon_diegetic_music:\nA soft low cello note that swells at the window."
-          }
-        },
-        {
-          "workflow": "video_ltx2_3_ic_lora_ingredients",
-          "note": "The quadview sheet as the reference sheet.",
-          "params": {
-            "loadimage_image_724": "output:image_edit_krea2_quadview",
-            "comfyswitchnode_on_false_129_211": "### Reference Sheet Description **Character:** Maren, a lighthouse keeper - a woman in her fifties with short silver-grey hair and a weathered face, in a bright yellow raincoat over a navy knit sweater, dark trousers and black boots - shown in a face close-up and in front, side and back full-body views on a plain background.\n\n### Target Description A cinematic scene on a windswept cliff at dusk, a red-and-white lighthouse behind her. Maren walks along the gravel path toward the camera, stops, looks into the lens and says calmly: \"The light never goes out.\" The wind moves her hair and the hem of her raincoat, waves break on the rocks below and gulls cry."
-          }
-        },
-        {
-          "workflow": "video_ltx2_3_ia2v_iclora",
-          "note": "The keeper's portrait speaking a recorded voice (the assets' speech clip).",
-          "params": {
-            "loadimage_image_269": "output:image_flux2_klein_9b_t2i",
-            "loadaudio_audio_276": "asset:duflot-2.mp3",
-            "primitivestringmultiline_value_340_319": "The lighthouse keeper talks to the viewer, calm and warm, her head moving slightly as she speaks and one hand rising into frame in a small gesture.\n\nscene: inside the lantern room of a lighthouse at dusk, the sea through the windows\ncharacter: a woman in her fifties with short silver-grey hair in a bright yellow raincoat\naction: talking to the camera with natural expressions\ncamera: static medium close-up"
-          }
-        },
-        {
-          "workflow": "video_liveportrait_image2video",
-          "note": "The keeper's portrait driven by the assets' face clip.",
-          "params": {
-            "loadimage_image_196": "output:image_flux2_klein_9b_t2i",
-            "vhs_loadvideo_video_8": "asset:d6.mp4"
-          }
-        },
-        {
-          "workflow": "video_minimax_h3_seamless_loop",
-          "note": "The stormy night as a loop. Same picture and prompt as the FastH3 loop card.",
-          "params": {
-            "prompt_8": "Locked-off static camera, no pan, no zoom. <Picture 1> is the scene: a red-and-white lighthouse on a dark cliff at night in a storm. Its beam sweeps steadily round in a full circle, lighting the rain as it passes. Rain falls continuously, waves roll in and break against the rocks in a steady rhythm, the cottage windows glow warm. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: steady rain, wind, waves breaking on rocks, a low foghorn far away.\n\nnon_diegetic_music: N/A",
-            "ref_image_7": "output:image_edit_flux2_klein_9b_image_edit"
-          }
-        },
-        {
-          "workflow": "video_minimax_h3_seamless_loop_fasth3",
-          "note": "The FastH3-Omni loop with a reference picture (owner's request).",
-          "params": {
-            "prompt_8": "Locked-off static camera, no pan, no zoom. <Picture 1> is the scene: a red-and-white lighthouse on a dark cliff at night in a storm. Its beam sweeps steadily round in a full circle, lighting the rain as it passes. Rain falls continuously, waves roll in and break against the rocks in a steady rhythm, the cottage windows glow warm. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: steady rain, wind, waves breaking on rocks, a low foghorn far away.\n\nnon_diegetic_music: N/A",
-            "ref_image_7": "output:image_edit_flux2_klein_9b_image_edit"
-          }
-        }
-      ]
-    },
-    {
-      "name": "4 — Video to video",
-      "runs": [
-        {
-          "workflow": "image_edit_flux3_klein_distilled_image_edit",
-          "note": "The source video's first frame repainted: the key frame of both ID-V2V cards.",
-          "params": {
-            "image": {
-              "from": "video_ltx2_5_t2v",
+            "primitivestringmultiline_value_251_252": "Use the provided start image as the first frame and the provided end image as the final frame anchor. The camera stays locked off on the man as he keeps dancing on the spot, swaying his shoulders and turning his hips to the beat. Halfway through, a sudden gust of wind sweeps a swirl of dust and dry grass across the frame; as it clears, the grey city rooftop has become a windswept grassy sea cliff at sunset, the ocean glowing orange behind him. He settles back into his wide dance stance facing the camera as the warm light falls on his face. Sound: a steady hip-hop beat, a rushing gust of wind at the transition, then waves breaking below the cliff and gulls calling.",
+            "primitiveint_value_251_215": 960,
+            "primitiveint_value_251_216": 960,
+            "loadimage_image_31": {
+              "from": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
               "kind": "video",
               "derive": [
                 {
                   "op": "frame",
                   "index": 0
                 }
+              ],
+              "fallback": "asset:Flux2-Klein_00002_.png"
+            },
+            "loadimage_image_39": "asset:Flux2-Klein_00001_.png"
+          }
+        },
+        {
+          "workflow": "video_pika_h3_flex_fl2va",
+          "note": "Two still pictures — before and after — and the model filmed the transformation in between: the roof bursts into giant daisies while the taxi and the street stay exactly where they were.",
+          "params": {
+            "prompt_231": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the 5.17-second mark of the target video.\n\nintegrated_multimodal_description: [Shot 1] Sunlit, softly faded 1970s film photography with gentle grain, one continuous shot, normal real-time speed, the camera remains fixed. Begin aligned with <Picture 1>: a two-storey pink stucco building with a heavy overhanging flat roof stands on a quiet street corner under a deep teal sky, a yellow taxi parked at the kerb in front of it, telephone poles on the left and a mountain on the right. At about one second the flat roof starts to tremble and bulge, its seams split, and soft white fabric balloons out of the cracks. At about two seconds huge rounded white petals push up and unfold one after another, inflating with a whoosh until each blossom shows a round knitted yellow centre. At about three and a half seconds the last daisies swell into a towering bouquet that completely replaces the roof, the petals bobbing gently and settling, while the taxi, the street and the poles never move. End aligned with <Picture 2>.\n\noverall_soundscape: Quiet sunny street ambience with a car passing far away, then a creak and a crack as the roof splits, a series of deep, soft airy whooshes and fabric rustles as each daisy inflates, and a gentle rubbery squeak as the petals settle; a single bird chirps at the end.\n\nnon_diegetic_music: A playful pizzicato string figure at a moderate tempo that climbs with the inflating flowers and lands on one bright chord on the final frame.",
+            "first_frame_148": "asset:Screenshot 2025-03-06 105726.png",
+            "last_frame_147": "asset:Screenshot 2025-03-06 105700.png"
+          }
+        },
+        {
+          "workflow": "video_fastvideo_fasth3_omniref_r2v",
+          "note": "The inventor and the jewelled dragonfly come from two separate pictures; the model kept both looks and invented the scene, the flight, her line and every sound. Compare her hair and goggles, and the dragonfly's wings, with the two pictures.",
+          "params": {
+            "prompt_138": "subject_definitions:\n<Subject 1> is the inventor in <Picture 1>: an older woman with curly bright blue and orange hair, round orange-lensed brass goggles on her nose and a second pair of gear-rimmed goggles pushed up on her head, silver hoop earrings, a grey neck scarf, a blue shirt and a riveted brown leather waistcoat, in a workshop of copper pipes and brass gears.\n<Subject 2> is the jewelled dragonfly in <Picture 2>: a gold art-nouveau dragonfly with long pale-green enamelled wings veined in gold, blue-green opal eyespots ringed with tiny diamonds, and a long segmented gold-and-blue tail. The white background of <Picture 2> is not used.\n\nsummary:\n[reference generation] A five-second single shot in the workshop of <Subject 1>: she winds a tiny key on the back of <Subject 2>, the dragonfly comes to life, lifts off her palm and circles her head, and she laughs and speaks one line.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1]): fully_preserved - her blue and orange hair, both pairs of goggles, earrings, scarf, blue shirt and leather waistcoat, and the copper-pipe workshop are kept.\n<Subject 2> (appears in [Shot 1]): fully_preserved - the gold body, the pale-green veined wings, the opal eyespots and the long segmented tail are kept; it is now a small working machine about the size of her hand.\n\ndetailed_description:\nWarm, richly detailed steampunk film look, golden lamplight, drifting steam, normal real-time speed.\n[Shot 1] A medium close-up in front of copper pipes and slowly turning brass gears: <Subject 1> holds <Subject 2> flat on her open left palm at chest height and turns a tiny brass key on its back three times with her right fingers, each turn clicking. At about one and a half seconds the dragonfly's pale-green wings shiver, then beat into a shimmering blur, and it lifts off her palm. It rises past her goggles and circles once around her head, its long gold tail catching the light, while a puff of steam escapes from a valve behind her. <Subject 1> (S1) tips her head back, laughing, and says in a bright, raspy voice, <d>[English] Ha! She flies!</d> The camera tilts up with small amplitude at slow speed to follow the dragonfly, then settles on her delighted face.\n\noverall_soundscape:\nWorkshop ambience with the slow ticking of turning gears and a soft hiss of steam, three crisp clockwork clicks as the key turns, then the rising metallic buzz of wings as the dragonfly takes off and circles.\n\nnon_diegetic_music:\nA light, playful pizzicato and glockenspiel figure at a moderate tempo that lifts when the dragonfly takes off.",
+            "ref_image_137": "asset:woman_mechanic.png",
+            "ref_image_300": "asset:nv.1197-trat.-fundo-CAzev.jpg"
+          }
+        },
+        {
+          "workflow": "video_pika_h3_flex_ref2va",
+          "note": "A product photo of a chair and a photo of the school atrium became a three-shot furniture commercial. Check that it is the same chair from every angle, and that the cuts fall on the beat.",
+          "params": {
+            "prompt_138": "subject_definitions:\n<Subject 1> is the armchair in <Picture 1>. Reference role: product identity anchor. Features to follow exactly: a solid teak frame with square-section legs forming an inverted V on each side, wide flat armrests, finger-jointed corners, and a seat and backrest woven from pale natural cane in an open mesh. It is the only product in the film. The white studio background of <Picture 1> is not used.\n<Subject 2> is the atrium in <Picture 2>. Reference role: location anchor. Features to follow: a tall multi-storey hall lined with light-wood panelling and balconies with thin steel railings, steel staircases, a glass roof letting in daylight, and a pale concrete floor.\n\nsummary:\n[reference generation] A five-second premium furniture film with three hard cuts on the beat: <Subject 1> stands alone on the floor of <Subject 2> in morning sunlight, then the film cuts to a macro of its cane weave and to a low hero angle.\n\nretention_analysis:\n<Subject 1> (appears in [Shot 1], [Shot 2], [Shot 3]): fully_preserved - the teak frame, the V-shaped legs, the flat armrests, the finger joints and the cane mesh are kept exactly.\n<Subject 2> (appears in [Shot 1], [Shot 3]): partially_preserved - the wooden balconies, steel railings, glass roof and daylight are kept; the floor is cleared so the chair stands alone, with no people and no other furniture.\n\ndetailed_description:\nRefined design-magazine cinematography, soft natural daylight from the glass roof, warm teak tones against pale concrete, subtle 35mm grain, normal real-time speed.\n[Shot 1] A wide shot shows <Subject 1> standing alone in the middle of the empty concrete floor of <Subject 2>, small in the frame, the wooden balconies rising behind it and a shaft of sunlight falling across the cane seat. The camera pushes in with small amplitude at slow speed toward the chair and stops on a full view of it.\n[Shot 2] At 00:02.000, the shot cuts to an extreme close-up gliding slowly sideways across the cane mesh of the backrest, the light catching each woven strand and the edge of the teak frame.\n[Shot 3] At 00:03.500, the shot cuts to a low angle at floor level: <Subject 1> stands tall against the glass roof and the balconies of <Subject 2>; the camera remains fixed and holds this hero shot to the end.\n\noverall_soundscape:\nThe airy hush of a large hall with faint, distant footsteps, a soft creak of cane and wood, and a light tap of wood on concrete at each cut.\n\nnon_diegetic_music:\nA minimal, warm electronic track at a moderate tempo with a soft kick on each cut, ending on a held chord.",
+            "ref_image_149": "asset:6504516c0115ed9b83b2d82e1d94c4ec.webp",
+            "ref_image_150": "asset:agora_ecole_de_design1.jpg"
+          }
+        },
+        {
+          "workflow": "video_minimax_h3_seamless_loop",
+          "note": "Set this clip to repeat and try to spot where it restarts: the breathing, the dust and the purr carry straight on. That is what this card is for — a loop with no visible seam, made from one paragraph of text.",
+          "params": {
+            "prompt_8": "Locked-off static camera, no pan, no zoom. A sunny windowsill in a quiet room in the late afternoon, warm golden light falling through a white lace curtain. A fluffy ginger cat lies curled up asleep on a folded wool blanket in the center of frame, its flank rising and falling in a slow, steady breathing rhythm and its whiskers trembling softly with each breath. The lace curtain sways very gently in a constant breeze, and specks of dust drift slowly through the sunbeam. Steady, unchanging light. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: a soft, steady, continuous purr, quiet room tone, a faint constant breeze at the window.\n\nnon_diegetic_music: N/A",
+            "ref_image_7": null
+          }
+        },
+        {
+          "workflow": "video_minimax_h3_seamless_loop_fasth3",
+          "note": "One still picture became a world that moves forever: the creatures bob and breathe, and the clip has no visible start or end. Compare it with the picture — the colours and shapes are the same.",
+          "params": {
+            "prompt_8": "Locked-off static camera, no pan, no zoom. The dreamlike alien valley of <Picture 1>: soft yellow-green moss terraces, tall blue crystal spires and a misty violet horizon under a pale turquoise sky. The large iridescent bubble creatures from <Picture 1> float above the moss, each one bobbing gently up and down in a slow, steady rhythm, their glassy pink-and-silver domes pulsing softly as if breathing and the thin tendrils below them swaying. High above, the tall balloon-like organisms drift in a slow, steady circle around the spires. Tiny glowing specks float slowly upward through soft shafts of light. Steady, unchanging light. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: a soft, steady airy drone, a faint continuous shimmer like distant glass chimes, a gentle constant breeze over the moss.\n\nnon_diegetic_music: N/A",
+            "ref_image_7": "asset:a-landscape-of-a-futuristic-land-of-aerial-waves-with-living-organisms-floating-in-the-air-and-incr-159032455.png"
+          }
+        },
+        {
+          "workflow": "video_wan22_4_key_frames",
+          "note": "Four quick marker sketches of a capoeira kick, photographed on paper, became the key frames; the card drew every pose in between. Watch the leg sweep out between drawings 2 and 3 — that motion was never drawn, only described.",
+          "params": {
+            "cliptextencode_text_140_6": "Red minimalist line art animation of a man performing a capoeira meia lua de compasso. From a standing leaning stance, the man smoothly bends forward at the waist. His torso rotates downward toward the floor as his hands reach down to plant firmly onto the ground for support. His back begins to arch, and his weight shifts entirely onto his hands and pivoting front foot, preparing to unleash the spinning kick. Fluid transition, clean red lines on a plain white background.",
+            "cliptextencode_text_228_225": "Red minimalist line art animation of a capoeira spinning kick. With both hands firmly planted on the ground, the man whips his trailing leg upward and outward in a powerful, sweeping horizontal arc. The kicking leg extends fully, cutting through the air in a wide, circular crescent motion. His head looks backward under his arm to track the target. Dynamic motion blur on the sweeping leg, clean red lines on a solid white background.",
+            "cliptextencode_text_245_242": "Red minimalist line art animation completing a capoeira movement. The sweeping leg completes its wide circular trajectory, slowing down as it approaches the ground. The man pushes off the floor with his hands, lifting his torso and rotating his upper body back upright. He fluidly transitions out of the inverted position, bringing his feet back underneath him to stand firmly in a defensive capoeira ginga stance from behind. Clean red ink style, seamless transition on a plain white background.",
+            "primitiveint_value_283": 624,
+            "primitiveint_value_284": 832,
+            "loadimage_image_62": {
+              "from": "asset:Keyframes/IMG_2026-06-23-11-34-04-060.jpg",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "crop",
+                  "box": [
+                    0,
+                    0.16,
+                    1,
+                    0.91
+                  ]
+                },
+                {
+                  "op": "scale",
+                  "factor": 0.34
+                }
               ]
             },
-            "prompt": "In <ref_image_0>, repaint the whole picture as a loose watercolour illustration with soft washes and visible paper texture; keep every shape, the person, the pier and the lighthouse exactly where they are."
+            "loadimage_image_122": {
+              "from": "asset:Keyframes/IMG_2026-06-23-11-34-08-465.jpg",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "crop",
+                  "box": [
+                    0,
+                    0.16,
+                    1,
+                    0.91
+                  ]
+                },
+                {
+                  "op": "scale",
+                  "factor": 0.34
+                }
+              ]
+            },
+            "loadimage_image_124": {
+              "from": "asset:Keyframes/IMG_2026-06-23-11-34-13-198.jpg",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "crop",
+                  "box": [
+                    0,
+                    0.16,
+                    1,
+                    0.91
+                  ]
+                },
+                {
+                  "op": "scale",
+                  "factor": 0.34
+                }
+              ]
+            },
+            "loadimage_image_126": {
+              "from": "asset:Keyframes/IMG_2026-06-23-11-34-16-318.jpg",
+              "kind": "image",
+              "derive": [
+                {
+                  "op": "crop",
+                  "box": [
+                    0,
+                    0.16,
+                    1,
+                    0.91
+                  ]
+                },
+                {
+                  "op": "scale",
+                  "factor": 0.34
+                }
+              ]
+            }
           }
         },
         {
-          "workflow": "video_edit_wan_idv2v_restyle_compare",
-          "note": "The source video, restyled from its painted first frame. Same inputs as the hi-res card.",
+          "workflow": "video_ltx2_3_ia2v_iclora",
+          "note": "A recorded voice drives a steampunk character: her lips, eyebrows and head follow the speech for nine seconds, and the workshop behind her stays put because the prompt describes the picture's own setting.",
           "params": {
-            "vhs_loadvideo_video_33": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "loadimage_image_189": "output:image_edit_flux3_klein_distilled_image_edit",
-            "cliptextencode_text_3": "A lighthouse keeper in a yellow raincoat walks along a wet stone pier toward the camera at dusk, waves splashing, the lighthouse behind her.",
-            "primitiveint_value_245": 848,
-            "primitiveint_value_246": 480
+            "primitivestringmultiline_value_340_319": "The woman talks warmly to the camera in her steampunk workshop, her eyebrows rising and her smile widening between sentences, her head tilting as she makes a point and one hand rising into frame in a small gesture. The orange lenses of her round spectacles catch the light. Behind her the big brass gears turn slowly and a copper pipe lets out a thin wisp of steam. Static medium close-up, the camera fixed on her face.\n\nscene: a cluttered steampunk workshop of rusty copper pipes, riveted boilers and big brass gears, warm amber light\ncharacter: a cheerful woman in her sixties with wild blue and orange curls, brass goggles pushed up on her head, round orange-tinted spectacles, a leather vest over a blue shirt\naction: talking to the camera with clear lip movements and lively expressions\ncamera: static medium close-up, fixed on her face",
+            "primitiveint_value_340_330": 960,
+            "primitiveint_value_340_324": 960,
+            "loadimage_image_269": "asset:woman_mechanic.png",
+            "loadaudio_audio_276": "asset:duflot-2.mp3"
           }
         },
         {
-          "workflow": "video_edit_wan_idv2v_restyle_hires",
-          "note": "The same inputs at the higher size.",
+          "workflow": "video_ltx2_3_ic_lora_ingredients",
+          "note": "One sheet — the clockmaker, his watch and his workshop on black — and a scene description. Notice that his face, apron and spectacles, the watch and the wall of clocks all match the sheet.",
           "params": {
-            "vhs_loadvideo_video_33": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "loadimage_image_189": "output:image_edit_flux3_klein_distilled_image_edit",
-            "cliptextencode_text_3": "A lighthouse keeper in a yellow raincoat walks along a wet stone pier toward the camera at dusk, waves splashing, the lighthouse behind her.",
-            "primitiveint_value_245": 1280,
-            "primitiveint_value_246": 720
+            "comfyswitchnode_on_false_129_211": "Reference sheet: Five panels on a black background. Top left, a close-up portrait of an elderly clockmaker — a man in his seventies with a bald head, a bushy white moustache and round gold-rimmed spectacles, in a white shirt with rolled sleeves and a dark green leather apron. Bottom left, a product view of an ornate brass pocket watch with an engraved lid and a plain white enamel dial. In the middle, the same clockmaker standing full-body seen from the front and from the back, in his white shirt, dark green leather apron, brown trousers and brown leather shoes. On the right, a wide shot of his clock-repair workshop: a wooden workbench under a green-shaded brass lamp and a wall covered with wooden pendulum clocks.\n\nGenerated video: A cinematic medium shot inside the clock-repair workshop. The clockmaker sits at the wooden workbench under the green-shaded lamp, the wall of pendulum clocks swinging behind him. He picks up the brass pocket watch, flips its engraved lid open with his thumb, raises it to his ear and listens, then breaks into a satisfied smile and gently snaps it shut. The camera slowly pushes in from the medium shot to a close-up of his face and the watch in his hand. Warm afternoon light falls through a dusty window. Sound: dozens of clocks ticking out of step, a soft click as the lid opens, and one wall clock striking three deep chimes.",
+            "loadimage_image_724": {
+              "from": "image_moss_image_base_t2i",
+              "fallback": "asset:Pose_sheet_v02.png"
+            }
           }
         },
         {
-          "workflow": "video_edit_bernini_r_video_editing",
-          "note": "Claymation. Every restyle card below is given the same source video and the same look.",
+          "workflow": "video_liveportrait_image2video",
+          "note": "A photo made by \"Make a true-to-life photo\", driven by a video of someone pulling faces: every eye dart, frown and grimace is copied onto her, while her face, light and background stay her own.",
           "params": {
-            "loadvideo_file_47": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+            "vhs_loadvideo_frame_load_cap_8": 128,
+            "loadimage_image_196": {
+              "from": "image_flux2_klein_9b_t2i",
+              "fallback": "asset:0 (1).png"
             },
-            "primitivestringmultiline_value_76_114": "Restyle the video as a hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light."
+            "vhs_loadvideo_video_8": "asset:d6.mp4"
           }
-        },
-        {
-          "workflow": "video_edit_ltx2_5_iclora_canny_control",
-          "note": "Claymation from the source's edges.",
-          "params": {
-            "loadvideo_file_5001": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "primitiveboolean_value_5014_5506": false,
-            "loadimage_image_2004": null,
-            "primitivestringmultiline_value_5508": "A hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light. Sound: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle."
-          }
-        },
-        {
-          "workflow": "video_edit_ltx2_5_iclora_union_control",
-          "note": "Claymation from the source's depth.",
-          "params": {
-            "loadvideo_file_5001": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "primitiveboolean_value_5014_5506": false,
-            "loadimage_image_2004": null,
-            "primitivestringmultiline_value_5508": "A hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light. Sound: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle."
-          }
-        },
+        }
+      ]
+    },
+    {
+      "name": "5 — Editing a video",
+      "runs": [
         {
           "workflow": "video_edit_minimax_h3_fun_controlnet_canny",
-          "note": "Claymation from the edges, on H3.",
+          "note": "Every check on her dress, every stripe on her tights and every square in the wall is still where it was in the real footage — now sculpted in clay. That precision comes from following the clip's outlines.",
           "params": {
-            "loadvideo_file_174": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "primitivestringmultiline_value_138": "Scene: A hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light.\n[0s-5s] She walks toward the camera along the pier, swinging her lantern, clay waves splashing behind her.\nCamera: the camera follows the source video.\nAudio: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle, no music."
+            "resolutionselector_aspect_ratio_115": "1:1 (Square)",
+            "primitivestringmultiline_value_138": "A hand-crafted claymation stop-motion film: everything is sculpted from soft matte plasticine with visible thumbprints and tool marks, lit by warm soft studio lights. A clay woman with a bright orange head wrap, a shiny black clay jacket, a yellow-and-orange checked clay dress and orange-and-black striped clay tights dances on a plaza of grey clay tiles, in front of a huge slanted clay wall pierced by rows of small square windows, with puffy green clay trees on the right and a slope of rough clay pebbles on the left. She sways her hips, swings her arms, points and claps, and every check of her dress and every stripe of her tights stays sculpted exactly in place as she moves. The camera stays at a fixed medium-wide angle.\n\noverall_soundscape: Soft squishy clay footsteps on the clay tiles in time with her steps, the light pat of her clay hands clapping, and a quiet studio room tone.\n\nnon_diegetic_music: A cheerful marimba and ukulele tune at an upbeat tempo with a light hand-clap rhythm.",
+            "loadvideo_file_174": "asset:3044160-uhd_3840_2160_24fps_5_1.mp4"
           }
         },
         {
           "workflow": "video_edit_minimax_h3_fun_controlnet_depth",
-          "note": "Claymation from the depth, on H3.",
+          "note": "A grey, untextured 3D render of a cargo ship became a knitted toy ship on a sea of yarn. The shapes and the camera move are the render's; every surface, colour and sound is new.",
           "params": {
-            "loadvideo_file_174": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "primitivestringmultiline_value_138": "Scene: A hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light.\n[0s-5s] She walks toward the camera along the pier, swinging her lantern, clay waves splashing behind her.\nCamera: the camera follows the source video.\nAudio: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle, no music."
-          }
-        },
-        {
-          "workflow": "video_edit_minimax_h3_v2v_video_reference",
-          "note": "Claymation, the source video as a reference.",
-          "params": {
-            "loadvideo_file_147": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "primitivestringmultiline_value_138": "[subject_definitions]\n- Video 1: a lighthouse keeper in a yellow raincoat walking along a wet stone pier at dusk, a lighthouse behind her.\n\n[summary]\nTurn Video 1 into a hand-crafted claymation stop-motion film.\n\n[retention_analysis]\n- Retain her walk, the lantern swing, the camera move and the shot timing from Video 1.\n- Replace every surface with sculpted clay and plasticine.\n\n[detailed_description]\nThe scene is now a hand-crafted claymation stop-motion film: a clay lighthouse keeper in a yellow raincoat walks along a clay pier, sculpted clay waves and a clay lighthouse behind her, visible fingerprints and plasticine texture, soft studio light.\n\n[audio]\nWaves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle."
-          }
-        },
-        {
-          "workflow": "video_edit_ltx2_5_iclora_pose_control",
-          "note": "The walk, worn by a chrome robot. Same prompt on the H3 union card.",
-          "params": {
-            "loadvideo_file_5001": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "primitiveboolean_value_5014_5506": false,
-            "loadimage_image_2004": null,
-            "primitivestringmultiline_value_5508": "A shiny chrome robot in a yellow raincoat walks along a rainy stone pier at dusk, reflections sliding over its metal face, a lighthouse beam sweeping behind it. Sound: rain, waves, metallic footsteps."
+            "primitivestringmultiline_value_138": "A cosy handmade textile miniature: everything is knitted and crocheted from soft wool yarn, filmed like a macro stop-motion film with warm soft light and a shallow depth of field. A large cargo ship knitted from chunky red and navy wool sails through a sea of rippling blue yarn, its deck stacked high with rows of shipping containers knitted in mustard, teal, coral and cream stripes, each container showing little knitted ridges and cable stitches. The bridge tower at the stern is crocheted in white wool with tiny button windows. Gentle waves of loose blue yarn and fluffy white wool foam roll along the hull. The camera glides along the side of the ship and pushes in toward the stacked containers.\n\noverall_soundscape: A soft, muffled woolly sea: gentle fuzzy waves, a slow wooden creak of the hull, the faint clicking of knitting needles, and one deep, friendly ship's horn.\n\nnon_diegetic_music: A gentle music-box version of a sea shanty at a slow tempo.",
+            "loadvideo_file_174": "asset:rough3Drender.mp4"
           }
         },
         {
           "workflow": "video_edit_minimax_h3_fun_controlnet_union",
-          "note": "The walk, worn by a chrome robot, on H3.",
+          "note": "The moves are the rooftop dancer's — everything else is new: an astronaut dancing on the Moon. Compare with the 'change one thing' card, which kept his rooftop and swapped only the dancer.",
           "params": {
-            "loadvideo_file_174": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "primitivestringmultiline_value_138": "Scene: A shiny chrome robot in a yellow raincoat walks along a rainy stone pier at dusk, reflections sliding over its metal face, a lighthouse beam sweeping behind it.\n[0s-5s] It walks toward the camera with the same steps as the source video.\nCamera: the camera follows the source video.\nAudio: rain, waves, metallic footsteps, no music."
+            "resolutionselector_aspect_ratio_115": "1:1 (Square)",
+            "primitivestringmultiline_value_138": "Live-action, cinematic science-fiction look, hard white sunlight and deep black shadows. On the grey, dusty surface of the Moon, with craters stretching to a black starry horizon and the blue Earth hanging low in the sky, an astronaut in a bulky white spacesuit with a gold mirrored visor and a small backpack dances with big, bouncy moves: he sweeps his arms out wide, pops his chest, raises one gloved hand high, drops into a wide squat and steps from side to side, and every footstep kicks up a slow puff of moon dust that hangs in the low gravity. His visor reflects the Earth as he turns. The camera follows him from a slightly low angle with a gentle handheld sway.\n\noverall_soundscape: The muffled sound of his own breathing inside the helmet, the soft hiss of the suit's air supply, dull crunchy footsteps in the dust, and short bursts of radio static.\n\nnon_diegetic_music: A funky electric-bass and drum-machine groove at a moderate tempo, slightly filtered as if heard through a helmet radio.",
+            "loadvideo_file_174": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
           }
         },
         {
-          "workflow": "video_edit_bernini_r_video_editing_with_reference",
-          "note": "The source video in the Ideogram poster's style.",
+          "workflow": "video_edit_minimax_h3_loop_restyle",
+          "note": "The input was a plain grey depth animation of a corridor; the result is an endless flight through a torch-lit stone temple. Set it to repeat: you fly forward forever, because the motion came from a loop.",
           "params": {
-            "loadvideo_file_47": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "loadimage_image_104": "output:image_ideogram4_t2i",
-            "primitivestringmultiline_value_76_114": "Restyle the video to match the look of the reference image: flat screen-print colours, a deep teal sky, cream highlights and visible paper grain."
+            "prompt_8": "Smooth camera gliding forward at a slow, perfectly constant speed down an endless square corridor lined with identical square archways spaced at exactly even intervals, centered and level, the far end fading into darkness. Every archway is carved from ancient mossy stone, its edges overgrown with ferns and tiny glowing blue mushrooms, and a torch burns steadily on each side of every arch so that pools of warm firelight repeat in a steady rhythm along the stone walls. A thin mist hangs between the arches and catches the light. The camera stays centered and level: no turns, no change in speed. Nothing appears, opens or changes. Continuous, smooth, unbroken forward motion throughout.\n\noverall_soundscape: a deep steady cave ambience, a soft continuous crackle of torches, a constant low wind breathing through the arches, a faint steady trickle of water.\n\nnon_diegetic_music: N/A",
+            "control_video_34": {
+              "from": "asset:tunnel_depth_loop.mp4",
+              "kind": "video",
+              "derive": [],
+              "fallback": "asset:tunnel_depth_loop.mp4"
+            }
           }
         },
         {
-          "workflow": "video_edit_bernini_r_video_editing_ref_autoprompt",
-          "note": "The source video moved into the ice lighthouse picture; Gemma writes the instruction.",
+          "workflow": "video_edit_minimax_h3_v2v_video_reference",
+          "note": "Same rooftop, same handheld camera, same dance — only the dancer changed, into a knight whose armour clanks on every move. Compare with the pose card's example from the same clip, which keeps only the moves.",
           "params": {
-            "loadvideo_file_115": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "loadimage_image_123": "output:image_qwen_image_2_1_control_depth"
+            "resolutionselector_aspect_ratio_115": "1:1 (Square)",
+            "primitivestringmultiline_value_138": "subject_definitions:\n<Video 1> is the source video for the edit: one continuous handheld shot of a man dancing on a flat grey rooftop under an overcast sky, with brick factory buildings, a tall brick chimney and a city skyline behind him.\n<Subject 1> is the dancer in <Video 1>: a bearded man in a black tracksuit with red stripes on the sleeves and black sneakers, selected for replacement.\n<Subject 2> is a knight in full polished steel plate armour with a closed visor helmet topped by a red plume and a red cloth tabard over the breastplate, replacing <Subject 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 2> replaces <Subject 1> and performs exactly the same dance on the same rooftop, while the rooftop, the brick buildings, the chimney, the cloudy sky, the handheld camera and the timing of <Video 1> are kept.\n\nretention_analysis:\n<Video 1> (rooftop setting, camera movement and timing): partially_preserved - keep the rooftop, the background buildings, the chimney, the overcast light, the framing, the handheld camera movement and the exact timing of every move; change only the dancer.\n<Subject 1>: removed - the man in the black tracksuit does not appear in any frame of the target video.\n<Subject 2> (appears in [Shot 1]): attribute_transfer - the knight takes over every step, arm wave, body pop, squat and pose of the dance of <Subject 1>, in the same positions and at the same moments.\n\ndetailed_description:\nThe target video keeps the live-action, overcast, slightly desaturated look of <Video 1>.\n[Shot 1] Follow the framing, the handheld camera movement and the action timing of <Video 1>. On the grey rooftop, in front of the brick factory buildings and the tall chimney, <Subject 2> dances in place of <Subject 1>: the knight in polished steel plate armour, closed visor and red-plumed helmet sweeps his armoured arms out wide, pops his chest, raises one gauntlet high, drops into a wide squat and steps from side to side exactly as the original dancer does, the red tabard swinging with each move and the cloudy daylight sliding across the steel. Only the knight is visible, from the first frame to the last.\n\noverall_soundscape:\nMetal plates clank and scrape in time with every step and arm movement, steel boots ring on the rooftop, and a steady city wind blows over the roof with distant traffic far below.\n\nnon_diegetic_music:\nAn upbeat hip-hop drum beat at a moderate tempo with a deep kick and a crisp snare that hits on the sharpest moves.",
+            "loadvideo_file_147": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
           }
         },
         {
-          "workflow": "video_edit_wan21_scail2_character_replacement",
-          "note": "The keeper replaced by the suite's dancer.",
+          "workflow": "video_edit_ltx2_5_iclora_canny_control",
+          "note": "The grey 3D render's outlines are traced and kept, so every container in the stack becomes a toy brick in exactly the same place, and the camera move is unchanged.",
           "params": {
-            "loadimage_image_30": "output:image_krea2_turbo_t2i_lora",
-            "loadvideo_file_155": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "cliptextencode_text_213_3": "A ballet dancer in a plain black leotard walks along a wet stone pier toward the camera at dusk, a red-and-white lighthouse behind her, waves splashing against the pier.",
-            "cliptextencode_text_213_191": "person"
+            "primitiveboolean_value_5014_5506": false,
+            "primitivestringmultiline_value_5508": "A glossy plastic toy cargo ship built from interlocking toy bricks: its stacked containers are bright red, yellow, blue and green bricks with little round studs on top, the hull is navy-blue plastic and the bridge tower is white plastic with tiny yellow windows. It sits on a smooth light-grey tabletop in a sunny kids' playroom, soft window light and a shallow macro-lens depth of field, like a toy photograph. Sound: a child humming nearby, the soft clatter of plastic bricks and a tiny toy ship horn that toots twice.",
+            "loadvideo_file_5001": "asset:rough3Drender.mp4",
+            "loadimage_image_2004": null
           }
         },
         {
-          "workflow": "video_edit_wan_animate2",
-          "note": "The keeper, moved by the assets' dancer clip.",
+          "workflow": "video_edit_ltx2_5_iclora_pose_control",
+          "note": "Only the dancer's skeleton is kept: a knight in a castle hall performs the same moves. Compare with the depth card's example on the same clip, where the rooftop survives.",
+          "keepRuntime": true,
           "params": {
-            "loadimage_image_189": "output:image_flux3_klein_t2i",
-            "loadvideo_file_240": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
-            "primitivestringmultiline_value_605": "Character appearance description: Maren, a lighthouse keeper - a woman in her fifties with short silver-grey hair, in a bright yellow raincoat over a navy sweater, dark trousers and black rubber boots, full body from head to toe.\nBackground description: a windswept cliff top at golden hour with a red-and-white lighthouse behind her.",
-            "primitivestringmultiline_value_604": "A woman dancing with energetic street-dance moves, body waves and quick spins."
+            "primitiveboolean_value_5014_5506": false,
+            "primitivestringmultiline_value_5508": "A knight in polished silver plate armour with a flowing crimson cape and an open-faced helmet dances in a grand stone castle hall at night, tall red banners and flickering wall torches behind him, warm firelight glinting on the steel, cinematic lighting and a shallow depth of field. Sound: a lively medieval dance tune of drums and lute echoing through the hall, and the clank of armour plates with every step.",
+            "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
+            "loadimage_image_2004": null
+          }
+        },
+        {
+          "workflow": "video_edit_ltx2_5_iclora_union_control",
+          "note": "The dancer's video plus one clay-restyled first frame: the whole rooftop turns into claymation, keeping its depth, its positions and every move.",
+          "keepRuntime": true,
+          "params": {
+            "primitiveboolean_value_5014_5506": true,
+            "primitivestringmultiline_value_5508": "A hand-crafted claymation stop-motion film: a bearded clay man with sculpted brown hair, a black plasticine hoodie with red sleeve bands and black clay trousers dances on a sage-green clay rooftop. Behind him puffy white clay clouds hang over a miniature clay town with red roofs, round green clay trees, a clay chimney and sagging clay wires. Visible fingerprints and plasticine texture on every surface, soft warm studio lighting, slightly jittery stop-motion movement. Sound: a playful bass-and-drums dance groove and soft squishy clay footsteps.",
+            "resizeimagemasknode_resize_type_shorter_size_5548_5026": 512,
+            "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
+            "loadimage_image_2004": "asset:Flux2-Klein_00003_.png"
           }
         },
         {
           "workflow": "video_edit_ltx2_3_3dreal_vid2vid",
-          "note": "Its intended input: the assets' rough 3D render and its reference picture.",
+          "note": "A grey blockout render and one photoreal still of its first frame become a ship ploughing through a storm, with the render's exact camera move and cut.",
           "params": {
+            "comfyswitchnode_on_false_129_211": "3DREAL. Make it photorealistic. A weathered cargo ship stacked with rusty red, blue and grey shipping containers ploughs through a stormy grey sea under low, heavy clouds. The camera glides close along the wall of containers, then the view cuts back to a wide shot of the whole ship as cold spray bursts over the bow and rain streaks across the frame. Sound: howling wind, heavy waves slamming the steel hull, rain drumming on metal and the long low blast of the ship's horn.",
             "loadvideo_file_199": "asset:rough3Drender.mp4",
             "loadimage_image_200": "asset:rough3Drender_reference.png"
           }
         },
         {
-          "workflow": "video_edit_minimax_h3_loop_restyle",
-          "note": "The stormy loop as an oil painting — the result still loops.",
+          "workflow": "video_edit_bernini_r_video_editing",
+          "note": "One sentence turned the cream sweater bright red. Compare with the original: the face, the hair, the grass, the sky and every movement are the same — only the sweater changed.",
+          "keepRuntime": true,
           "params": {
-            "control_video_34": "output:video_minimax_h3_seamless_loop",
-            "prompt_8": "Locked-off static camera. A red-and-white lighthouse on a dark cliff at night in a storm, its beam sweeping round in a full circle, rain falling and waves breaking on the rocks - painted as a thick impasto oil painting with visible brush strokes, deep blues and warm yellow light. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: steady rain, wind and waves.\n\nnon_diegetic_music: N/A"
+            "customcombo_choice_76_54": "Video Editing",
+            "primitiveboolean_value_76_70": true,
+            "primitivestringmultiline_value_76_114": "Replace the person's cream cable-knit cropped sweater with a bright red knit sweater of the same chunky texture, cut and loose fit, its sleeves, folds and frayed edges moving exactly as the original does while the person sways and stretches their arms in the wind. A person with long dark wavy hair stands in tall dry grass under an overcast grey sky, seen from a low angle, wearing the bright red knit sweater over a dark floral shirt with black sleeves and a few thin necklaces. Keep the person's face, long hair, the floral shirt, the necklaces, the grass, the sky, the lighting, the camera framing and all motion exactly unchanged.",
+            "video_slice_duration_109": 5,
+            "berniniconditioning_width_76_50": 832,
+            "berniniconditioning_height_76_50": 832,
+            "loadvideo_file_47": "asset:original.mp4"
           }
         },
         {
-          "workflow": "utility_video_segment_sam3",
-          "note": "The keeper cut out of the source video.",
+          "workflow": "video_edit_bernini_r_video_editing_with_reference",
+          "note": "Same clip as the 'change one thing' card, but this time the new clothes come from a photo: the jacket and plaid shirt of another dancer. The face, hair, grass and sky stay the same — only the outfit is swapped.",
+          "keepRuntime": true,
           "params": {
-            "source_video_115": {
-              "from": "video_ltx2_5_t2v",
-              "fallback": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-            },
-            "segment_text_114_100": "person"
+            "primitiveboolean_value_76_70": true,
+            "customcombo_choice_76_54": "Video Editing with Reference",
+            "primitivestringmultiline_value_76_114": "Replace the person's cream knit sweater and dark floral shirt with the outfit from the reference image: a black leather biker jacket worn open over a yellow-and-black plaid shirt, appearing naturally worn on the body with realistic leather creases and fabric drape that follow every arm movement. A person with long dark wavy hair sways and stretches their arms in tall dry grass under an overcast grey sky, seen from a low angle, now wearing the black leather biker jacket with silver zips over the yellow plaid shirt. Keep the person's face, long hair, the grass, the sky, the lighting, the camera framing and all motion exactly unchanged.",
+            "video_slice_duration_109": 5,
+            "berniniconditioning_width_76_50": 832,
+            "berniniconditioning_height_76_50": 832,
+            "loadvideo_file_47": "asset:original.mp4",
+            "loadimage_image_104": {
+              "from": "asset:3044160-uhd_3840_2160_24fps_5_1.mp4",
+              "kind": "video",
+              "derive": [
+                {
+                  "op": "frame",
+                  "index": 0
+                },
+                {
+                  "op": "crop",
+                  "box": [
+                    0.12,
+                    0.25,
+                    0.8,
+                    0.62
+                  ]
+                }
+              ]
+            }
           }
         },
         {
-          "workflow": "utility_video_frame_interpolation",
-          "note": "The H3 turbo clip at twice the frame rate.",
+          "workflow": "video_edit_bernini_r_video_editing_ref_autoprompt",
+          "note": "The dance comes from the video, the dancer and the glass-flower field come from one picture, and nobody typed a prompt: an assistant looked at both and wrote the instruction (you can read it in the parameters).",
+          "keepRuntime": true,
           "params": {
-            "source_video_4": "output:video_minimax_h3_t2v_turbo"
+            "primitiveboolean_value_117_70": true,
+            "customcombo_choice_117_54": "Video Editing with Reference",
+            "video_slice_duration_124": 3,
+            "berniniconditioning_width_117_50": 832,
+            "berniniconditioning_height_117_50": 832,
+            "loadvideo_file_115": "asset:3044160-uhd_3840_2160_24fps_5_1.mp4",
+            "loadimage_image_123": "asset:input.jpg"
           }
         },
         {
-          "workflow": "utility_seedvr2_hd_upscale",
-          "note": "The 480p FastH3 clip to 1080p.",
+          "workflow": "video_edit_wan21_scail2_character_replacement",
+          "note": "The rooftop, the chimney, the sky and every dance move come from the video; the dancer now is the woman from the picture. Compare with the 'give a character a video's moves' card, which got the same two inputs but invents a new place.",
+          "keepRuntime": true,
           "params": {
-            "source_video_21": "output:video_fastvideo_fasth3_t2v"
+            "cliptextencode_text_213_3": "A young Black woman with a red-and-orange patterned headwrap, a black leather biker jacket worn open over a long yellow-and-black plaid shirt dress, orange-and-black tiger-striped leggings and black-and-white sneakers dances energetically on a flat grey concrete rooftop: she sways, squats with bent knees, throws both hands up, swings her arms and kicks. Behind her are old red-brick industrial buildings, a tall brick chimney, a low parapet wall and a distant city skyline under a heavy overcast sky; soft diffuse daylight, a handheld camera slowly circling around her.",
+            "cliptextencode_text_213_191": "person",
+            "primitiveboolean_value_213_203": true,
+            "primitiveboolean_value_213_172": true,
+            "primitiveint_value_213_178": 704,
+            "primitiveint_value_213_179": 704,
+            "loadimage_image_30": "asset:idv2v_demo_frame0.png",
+            "loadvideo_file_155": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
           }
         },
         {
-          "workflow": "utility_seedvr2_3b_int8_video_upscale",
-          "note": "The 480p H3 turbo clip at twice the size.",
+          "workflow": "video_edit_wan_animate2",
+          "note": "Same picture and same dance as the 'replace a person' card — but here only the moves are kept: the dancer from the picture performs them on a beach that exists in neither input, written in the prompt.",
           "params": {
-            "loadvideo_file_73": "output:video_minimax_h3_t2v_turbo",
-            "comfyswitchnode_switch_66_81": false
+            "primitivestringmultiline_value_605": "Character appearance description: a young Black woman with a red-and-orange patterned headwrap, a black leather biker jacket worn open over a long yellow-and-black plaid shirt dress, orange-and-black tiger-striped leggings and black-and-white sneakers, full body from head to toe.\nBackground description: a wide sandy beach at golden hour, turquoise waves breaking behind her, tall palm trees on the left, warm low sunlight and long soft shadows on the sand, cinematic travel photography.",
+            "primitivestringmultiline_value_604": "A person doing an energetic street dance: swaying, squatting with bent knees, throwing both hands up and swinging the arms.",
+            "resizeimagemasknode_resize_type_width_261_243": 640,
+            "resizeimagemasknode_resize_type_height_261_243": 640,
+            "wananimate2tovideo_length_261_247": 81,
+            "loadimage_image_189": "asset:idv2v_demo_frame0.png",
+            "loadvideo_file_240": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
+          }
+        },
+        {
+          "workflow": "video_edit_wan_idv2v_restyle_compare",
+          "note": "The first frame was repainted as watercolour by the \"Edit a picture in seconds\" card; this card carries that look through the whole dance and shows the result beside the original.",
+          "params": {
+            "cliptextencode_text_3": "A loose watercolour painting of a young woman in a red patterned headwrap, a black leather jacket, a yellow plaid shirt dress and orange tiger-striped leggings, dancing happily on a sunlit plaza in front of a tall painted concrete wall with rows of square light openings, trees on the right, warm ochre afternoon light, flat painted shapes and visible brush texture.",
+            "primitiveint_value_245": 640,
+            "primitiveint_value_246": 640,
+            "vhs_loadvideo_video_33": "asset:3044160-uhd_3840_2160_24fps_5_1.mp4",
+            "loadimage_image_189": {
+              "from": "image_edit_flux3_klein_distilled_image_edit",
+              "fallback": "asset:idv2v_demo_style.png"
+            }
+          }
+        },
+        {
+          "workflow": "video_edit_wan_idv2v_restyle_hires",
+          "note": "The same clip and the same painted frame as the side-by-side card, rendered clean and larger: look at the brush texture on the wall and on her plaid — that is what the extra size buys.",
+          "params": {
+            "cliptextencode_text_3": "A gouache illustration of a young woman in a red patterned headwrap, a black leather jacket, a yellow plaid shirt dress and orange tiger-striped leggings, dancing happily on a sunlit plaza in front of a tall painted concrete wall with rows of square light openings, trees on the right, warm ochre afternoon light, flat painted shapes and visible brush texture.",
+            "primitiveint_value_245": 960,
+            "primitiveint_value_246": 960,
+            "vhs_loadvideo_video_33": "asset:3044160-uhd_3840_2160_24fps_5_1.mp4",
+            "loadimage_image_189": "asset:idv2v_demo_style.png"
           }
         },
         {
           "workflow": "utility_ltx2_5_video_deblur_upscale",
-          "note": "The FastH3 first/last-frame clip (it has a sound track), cleaned up.",
+          "note": "The 480p clip from the fast text-to-video card, redrawn at 960p: compare edges, faces and textures at the same size, and notice that the soundtrack is the original one.",
+          "keepRuntime": true,
           "params": {
-            "loadvideo_file_5001": "output:video_fastvideo_fasth3_i2v",
             "primitiveboolean_value_5014_5506": false,
-            "loadimage_image_2004": null,
-            "primitivestringmultiline_value_5508": "Sharp, highly detailed footage of a lighthouse on a cliff turning from golden hour to a stormy night, clean textures, natural colours and crisp edges."
+            "primitivestringmultiline_value_5508": "Sharp, highly detailed footage with clean textures, natural colours and crisp edges.",
+            "resizeimagemasknode_resize_type_shorter_size_5548_5026": 960,
+            "loadvideo_file_5001": {
+              "from": [
+                "video_minimax_h3_t2v_turbo",
+                "video_fastvideo_fasth3_t2v"
+              ],
+              "kind": "video",
+              "fallback": "asset:d6.mp4"
+            },
+            "loadimage_image_2004": null
+          }
+        },
+        {
+          "workflow": "utility_seedvr2_hd_upscale",
+          "note": "A soft, blocky 540p clip of a dancer in tall grass rebuilt at 1080p. Watch the knit of the sweater, the hair and the grass stalks; the ×2 video card got exactly the same clip.",
+          "keepRuntime": true,
+          "params": {
+            "resolution_10": 1080,
+            "seed_10": 42,
+            "source_video_21": {
+              "from": "asset:original.mp4",
+              "kind": "video",
+              "derive": [
+                {
+                  "op": "trim",
+                  "start": 0,
+                  "duration": 4
+                },
+                {
+                  "op": "vscale",
+                  "factor": 0.375
+                },
+                {
+                  "op": "vscale",
+                  "factor": 2
+                },
+                {
+                  "op": "encode",
+                  "crf": 35
+                }
+              ]
+            }
+          }
+        },
+        {
+          "workflow": "utility_seedvr2_3b_int8_video_upscale",
+          "note": "The same damaged 540p clip as the 1080p card, enlarged twice with colour matching on. Compare the two results side by side: same job, two builds of the same model.",
+          "keepRuntime": true,
+          "params": {
+            "resizeimagemasknode_resize_type_multiplier_66_57": 2,
+            "comfyswitchnode_switch_66_81": false,
+            "primitiveboolean_value_66_105": false,
+            "seedvr2postprocessing_color_correction_method_66_59": "lab",
+            "ksampler_seed_66_54": 42,
+            "loadvideo_file_73": {
+              "from": "asset:original.mp4",
+              "kind": "video",
+              "derive": [
+                {
+                  "op": "trim",
+                  "start": 0,
+                  "duration": 4
+                },
+                {
+                  "op": "vscale",
+                  "factor": 0.375
+                },
+                {
+                  "op": "vscale",
+                  "factor": 2
+                },
+                {
+                  "op": "encode",
+                  "crf": 35
+                }
+              ]
+            }
+          }
+        },
+        {
+          "workflow": "utility_video_frame_interpolation",
+          "note": "Two seconds of a fast rooftop dance turned into eight seconds of smooth slow motion. The card invents three new frames between every pair, so the arm swings glide instead of jumping.",
+          "keepRuntime": true,
+          "params": {
+            "multiplier_16_9": 4,
+            "keep_realtime_speed_16_13": false,
+            "source_video_4": {
+              "from": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
+              "kind": "video",
+              "derive": [
+                {
+                  "op": "trim",
+                  "start": 3,
+                  "duration": 2
+                },
+                {
+                  "op": "mute"
+                },
+                {
+                  "op": "encode",
+                  "crf": 16
+                }
+              ]
+            }
+          }
+        },
+        {
+          "workflow": "utility_video_segment_sam3",
+          "note": "Typing only 'black leather jacket' cuts that one garment out of five seconds of dancing. The jacket is white; everything else (her face, the plaid shirt under it, the striped leggings, the building) is black.",
+          "params": {
+            "segment_text_114_100": "black leather jacket",
+            "threshold_114_101": 0.5,
+            "source_video_115": {
+              "from": "asset:3044160-uhd_3840_2160_24fps_5_1.mp4",
+              "kind": "video",
+              "derive": [
+                {
+                  "op": "trim",
+                  "start": 7,
+                  "duration": 5
+                },
+                {
+                  "op": "encode",
+                  "crf": 16
+                }
+              ]
+            }
           }
         },
         {
           "workflow": "describe_gemma4_video_description",
-          "note": "Does the caption match what the Pika clip shows?",
+          "note": "Gemma watches the key-frame video one frame per second and writes a second-by-second log. Compare its timeline with the four pictures the video was made from.",
           "params": {
-            "source_video_6": "output:video_pika_h3_flex_t2v",
-            "instruction_1": "Describe the video: who is in it, what happens from start to end, the camera movement and the setting."
+            "instruction_1": "Watch this video from start to end.\n1. Timeline: write one line per second, starting with the time (00:00, 00:01, ...), saying what you can see at that moment and what has changed since the previous second: the subject, any action and its direction relative to the camera, the camera, the light, the weather and the style of the picture.\n2. Summary: describe the whole clip in two sentences.\nDescribe only what is visible in the frames. If something is unclear, write 'unclear' instead of guessing. Do not describe sound.",
+            "seed_1": 0,
+            "source_video_6": {
+              "from": [
+                "video_wan22_4_key_frames",
+                "video_ltx2_5_t2v"
+              ],
+              "kind": "video"
+            }
           }
         }
       ]

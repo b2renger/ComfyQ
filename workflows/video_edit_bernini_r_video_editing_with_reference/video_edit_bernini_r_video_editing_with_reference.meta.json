@@ -100,7 +100,27 @@
         "Ads / Content Insertion"
       ],
       "required": false,
-      "order": 3
+      "order": 3,
+      "linkedValues": [
+        {
+          "nodeId": "76:54",
+          "field": "index",
+          "map": {
+            "Default": 0,
+            "Text to Image": 1,
+            "Text to Video": 2,
+            "Image Editing": 3,
+            "Subject to Image": 4,
+            "Image to Video": 5,
+            "Video Editing": 6,
+            "Video Editing (Content Propagation)": 7,
+            "Video Editing with Reference": 8,
+            "Ads / Content Insertion": 9,
+            "Video Editing (Action / Position)": 10,
+            "Video Editing (Style / Motion)": 11
+          }
+        }
+      ]
     },
     {
       "key": "primitivestringmultiline_value_76_114",

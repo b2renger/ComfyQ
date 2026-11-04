@@ -88,7 +88,20 @@
         "Default"
       ],
       "required": false,
-      "order": 2
+      "order": 2,
+      "linkedValues": [
+        {
+          "nodeId": "76:54",
+          "field": "index",
+          "map": {
+            "Default": 0,
+            "Text to Image": 1,
+            "Text to Video": 2,
+            "Image Editing": 3,
+            "Subject to Image": 4
+          }
+        }
+      ]
     },
     {
       "key": "fast_mode_76_70",

@@ -173,7 +173,11 @@ class BenchmarkService {
         if (typeof value !== 'string' || !value.startsWith('asset:')) return undefined;
         const name = value.slice('asset:'.length).trim();
         const full = this.assetsDir ? path.join(this.assetsDir, name) : '';
-        const ok = full && path.dirname(path.resolve(full)) === path.resolve(this.assetsDir) && fs.existsSync(full);
+        // Inside the assets folder — a sub-folder is fine (Keyframes/…), an
+        // escape (../) is not.
+        const rootDir = this.assetsDir ? path.resolve(this.assetsDir).toLowerCase() + path.sep : null;
+        const ok = full && rootDir && path.resolve(full).toLowerCase().startsWith(rootDir)
+            && fs.existsSync(full) && fs.statSync(full).isFile();
         if (ok) return full;
         console.warn(`[Benchmark]   warmupParams asks for asset "${name}" but it isn't in ${this.assetsDir || '(no assets dir)'} — picking a ${type} automatically`);
         return null;
