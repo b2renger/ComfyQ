@@ -428,6 +428,10 @@ async function main() {
     // student tab keeps reconnecting to a server that no longer schedules — so
     // LaneManager retries before giving up. Only a repeated failure (bad paths,
     // broken install) flips the mode.
+    // Read the extra lanes to restore BEFORE the main lane opens: opening it
+    // records what is served, and must not forget the lanes still to come.
+    const savedExtras = lanes.rememberedExtras();
+    lanes.holdForRestore(savedExtras);
     try {
         await lanes.open(config.workflows.activeWorkflowId, { primary: true });
     } catch (e) {
@@ -439,14 +443,24 @@ async function main() {
     // so a nodemon reload or a crash doesn't quietly drop a class to one model.
     // Done after the primary lane so the first workflow is servable as early as
     // possible; failures are logged and forgotten rather than fatal.
-    lanes.restoreRemembered().catch(e => console.warn('[ComfyQ] lane restore failed:', e.message));
+    lanes.restoreRemembered(savedExtras).catch(e => console.warn('[ComfyQ] lane restore failed:', e.message));
 
     const primaryLane = lanes.get(config.workflows.activeWorkflowId);
-    // The primary lane's worker/executor stand in wherever the rest of the
-    // server still expects exactly one of each (calibration, emergency stop,
-    // the fleet snapshot).
-    const worker = primaryLane.worker;
-    const executor = primaryLane.executor;
+    // The MAIN lane's worker/executor stand in wherever the rest of the server
+    // still expects exactly one of each (calibration, emergency stop, the fleet
+    // snapshot). ★ Live handles, not the boot-time objects: any lane can now be
+    // closed on its own, the main one included, and "main" then moves to the
+    // next lane — a reference captured here would point at a stopped lane.
+    const live = (pick) => new Proxy({}, {
+        get(_t, key) {
+            const target = pick();
+            if (!target) return undefined;
+            const v = target[key];
+            return typeof v === 'function' ? v.bind(target) : v;
+        },
+    });
+    const worker = live(() => lanes.mainLane()?.worker || primaryLane.worker);
+    const executor = live(() => lanes.mainLane()?.executor || primaryLane.executor);
     console.log('[ComfyQ] executor loop started');
 
     const benchmarkService = new BenchmarkService({ worker, registry, comfyConfig: config.comfy_ui, assetsDir: config.assets?.dir || '', lanes });
@@ -506,14 +520,20 @@ async function main() {
     });
 
     // Graceful shutdown
-    process.on('SIGINT', async () => {
-        console.log('[ComfyQ] shutting down…');
+    // ComfyUI is left running on purpose (see workers/comfyLauncher.js): the
+    // next ComfyQ start adopts it instead of cold-starting it. Say so, with the
+    // PIDs, so a ComfyUI still holding the card is never a mystery.
+    const shutdown = (why) => {
+        console.log(`[ComfyQ] shutting down (${why})…`);
         try { beacon.stop(); } catch { /* ignore */ }
-        executor.stop();
-        await worker.shutdown();
-        queue.close();
+        const left = lanes.list().filter(l => l.owned).map(l => `port ${l.port}`);
+        lanes.detachAll();
+        if (left.length) console.log(`[ComfyQ] ComfyUI left running (${left.join(', ')}) — the next ComfyQ start reuses it. Stop it from the admin panel if the card is needed for something else.`);
+        try { queue.close(); } catch { /* ignore */ }
         process.exit(0);
-    });
+    };
+    process.on('SIGINT', () => shutdown('Ctrl+C'));
+    process.on('SIGHUP', () => shutdown('terminal closed'));
 }
 
 main().catch(e => {

@@ -6,14 +6,23 @@ const EventEmitter = require('events');
 const axios = require('axios');
 
 const execFileAsync = promisify(execFile);
+const launcher = require('./comfyLauncher');
 
 // How long to give a ComfyUI that holds the port but isn't answering yet (see
 // start()). A cold ComfyUI on this class of machine needs 30–90 s.
 const PORT_SETTLE_MS = 90000;
 
-// Owns the ComfyUI child process lifecycle. v2 design: spawn once, keep alive.
+// Owns the ComfyUI process lifecycle. v2 design: spawn once, keep alive.
 // If ComfyUI exits, we emit 'exited' and let the LocalComfyUIWorker decide
 // whether to respawn (default: yes, with backoff).
+//
+// ★ ComfyUI is started so that it OUTLIVES ComfyQ (see comfyLauncher.js for
+// the measurements behind this): a ComfyQ restart — switching workflow,
+// stopping serving, a crash, a code reload — no longer costs a cold ComfyUI
+// boot and a model reload. The next ComfyQ finds its own ComfyUI in
+// .comfyq-lanes/processes.json and ADOPTS it: `owned` stays true, so it can
+// still be stopped, flag-masked and respawned. A ComfyUI nobody recorded (one
+// launched from the .bat) is still treated as external and left alone.
 class ComfyProcess extends EventEmitter {
     constructor({ rootPath, pythonExecutable, host, bindHost, port, installationType, onMilestone,
         useSageAttention = false, fp16Accumulation = false,
@@ -42,6 +51,16 @@ class ComfyProcess extends EventEmitter {
         // Keep ComfyUI-Manager from fetching from the internet at start (see spawn).
         this.managerOffline = managerOffline !== false;
         this.proc = null;
+        // The PID of the ComfyUI we own — spawned by this ComfyQ or adopted
+        // from a previous one. Null for an external instance.
+        this.pid = null;
+        this._tails = [];
+        this._watch = null;
+        // Why the next start() happens, for the restart history the admin
+        // panel shows ("crashed", "perf-flags", "sage-incompatible", …).
+        this.nextStartReason = 'start';
+        // Extra arguments for main.py (tests use --cpu on a throwaway port).
+        this.extraArgs = [];
         // Boot-milestone callback (see LocalComfyUIWorker). Used here to
         // reprint the LAN URL banner the moment ComfyUI's comfyregistry
         // fetch finishes — that's the natural "everything is ready" point
@@ -64,6 +83,70 @@ class ComfyProcess extends EventEmitter {
         if (!fs.existsSync(path.join(this.rootPath, 'main.py'))) {
             throw new Error(`ComfyUI main.py not found in ${this.rootPath}`);
         }
+    }
+
+    /** True when this ComfyUI is ours to stop, mask and respawn. */
+    get owned() { return !!this.pid && launcher.pidAlive(this.pid); }
+
+    _flags() {
+        return { use_sage_attention: this.useSageAttention, fp16_accumulation: this.fp16Accumulation };
+    }
+
+    // Is the ComfyUI answering on our port one a ComfyQ started — the PID we
+    // recorded for this port is alive, is the process LISTENING there, and was
+    // started for the same user directory (a lane's ComfyUI is never adopted
+    // as the install's, or the other way round)? Then take it back.
+    async _tryAdopt() {
+        const rec = launcher.recordFor(this.port);
+        if (!rec || !launcher.pidAlive(rec.pid)) return false;
+        if (launcher.norm(rec.userDir) !== launcher.norm(this.userDir)) return false;
+        const listening = await launcher.pidsOnPort(this.port);
+        if (!listening.includes(rec.pid)) return false;
+        this.pid = rec.pid;
+        this.adoptedFlags = rec.flags || null;
+        this._follow(true);
+        this._watchPid();
+        launcher.recordEvent({ port: this.port, pid: rec.pid, event: 'adopt', reason: 'ComfyQ restarted; the ComfyUI it had started was still running' });
+        console.log(`[ComfyProcess] Adopted the ComfyUI this machine's ComfyQ started earlier (PID ${rec.pid}, port ${this.port}) — no restart needed.`);
+        return true;
+    }
+
+    // Follow the log files and pass them through to ComfyQ's own terminal,
+    // with the milestone scan, the way the stdout pipe used to be.
+    _follow(fromEnd) {
+        this._unfollow();
+        const base = launcher.logBaseFor(this.port);
+        this._tails = [
+            new launcher.LogTail(`${base}.out.log`, d => this._handleStdoutChunk(d), { fromEnd }),
+            new launcher.LogTail(`${base}.err.log`, d => process.stderr.write(`[ComfyUI!] ${d}`), { fromEnd }),
+        ];
+    }
+
+    _unfollow() {
+        for (const t of this._tails) { try { t.stop(); } catch { /* ignore */ } }
+        this._tails = [];
+    }
+
+    // There is no child handle to emit 'exit' (the process is not our child),
+    // so poll the PID. 'exited' means the same as before.
+    _watchPid() {
+        if (this._watch) clearInterval(this._watch);
+        const pid = this.pid;
+        this._watch = setInterval(() => {
+            if (launcher.pidAlive(pid)) return;
+            clearInterval(this._watch);
+            this._watch = null;
+            if (this.pid !== pid) return;
+            this.pid = null;
+            this.proc = null;
+            this._unfollow();
+            const intentional = !!this._stopping;
+            this._stopping = false;
+            launcher.recordEvent({ port: this.port, pid, event: 'exit', reason: intentional ? 'stopped by ComfyQ' : 'exited on its own' });
+            console.log(`[ComfyProcess] ComfyUI (PID ${pid}) exited${intentional ? '' : ' unexpectedly'}`);
+            this.emit('exited', { code: null, signal: null, intentional });
+        }, 2000);
+        if (this._watch.unref) this._watch.unref();
     }
 
     async isApiResponsive() {
@@ -94,8 +177,9 @@ class ComfyProcess extends EventEmitter {
         // If something is already responding on the port, assume an external
         // ComfyUI is running and don't try to spawn our own.
         if (await this.isApiResponsive()) {
-            console.log('[ComfyProcess] External ComfyUI already responding; using it.');
             this.proc = null;
+            if (await this._tryAdopt()) return { external: false, adopted: true };
+            console.log('[ComfyProcess] External ComfyUI already responding; using it.');
             return { external: true };
         }
         // Nothing answered, but the port may still be held — by a ComfyUI that
@@ -110,8 +194,9 @@ class ComfyProcess extends EventEmitter {
             const deadline = Date.now() + PORT_SETTLE_MS;
             while (Date.now() < deadline) {
                 if (await this.isApiResponsive()) {
-                    console.log('[ComfyProcess] The ComfyUI already on the port came up; using it.');
                     this.proc = null;
+                    if (await this._tryAdopt()) return { external: false, adopted: true };
+                    console.log('[ComfyProcess] The ComfyUI already on the port came up; using it.');
                     return { external: true };
                 }
                 if (!await this.isPortBound()) {
@@ -212,6 +297,7 @@ class ComfyProcess extends EventEmitter {
         // reads actual free memory via NVML, so it already sees the other
         // process; this is the politeness margin on top.
         if (this.vramHeadroomGb) comfyArgs.push('--vram-headroom', String(this.vramHeadroomGb));
+        if (this.extraArgs.length) comfyArgs.push(...this.extraArgs);
         const args = [...pyArgs, mainPy, ...comfyArgs];
         // Sanitize the env so an active conda/venv in the parent shell can't
         // leak Python paths into the spawned interpreter. Without this, the
@@ -238,22 +324,26 @@ class ComfyProcess extends EventEmitter {
                 env[pathKey] = after.join(path.delimiter);
             }
         }
+        // Its output now goes to a FILE, so: UTF-8 (ComfyUI prints ✓ and other
+        // non-cp1252 characters, which crash a cp1252 stream with
+        // UnicodeEncodeError) and unbuffered (a file is block-buffered, and the
+        // milestone scan and the operator's terminal want each line as it comes).
+        env.PYTHONIOENCODING = 'utf-8';
+        env.PYTHONUNBUFFERED = '1';
         console.log(`[ComfyProcess] Spawning: ${this.pythonExecutable} ${args.join(' ')}`);
-        this.proc = spawn(this.pythonExecutable, args, {
-            cwd: this.rootPath,
-            env
+        const { pid } = await launcher.launchDetached({
+            exe: this.pythonExecutable, args, cwd: this.rootPath, env,
+            logBase: launcher.logBaseFor(this.port),
         });
-        this.proc.stdout.on('data', d => this._handleStdoutChunk(d));
-        this.proc.stderr.on('data', d => process.stderr.write(`[ComfyUI!] ${d}`));
-        this.proc.on('exit', (code, signal) => {
-            console.log(`[ComfyProcess] Exited code=${code} signal=${signal}`);
-            this.proc = null;
-            // Distinguish "we killed it" (stop/restart/take-over) from "it died".
-            // Only the latter should trigger an automatic respawn.
-            const intentional = !!this._stopping;
-            this._stopping = false;
-            this.emit('exited', { code, signal, intentional });
-        });
+        this.pid = pid;
+        this.proc = { pid };      // truthy for older call sites that ask "did we spawn it?"
+        this._registryMilestoneFired = false;
+        this._stdoutBuf = '';
+        launcher.recordStart({ port: this.port, pid, userDir: this.userDir, flags: this._flags(), reason: this.nextStartReason });
+        this.nextStartReason = 'start';
+        console.log(`[ComfyProcess] ComfyUI started (PID ${pid}); output in ${launcher.logBaseFor(this.port)}.out.log — it keeps running if ComfyQ restarts.`);
+        this._follow(false);
+        this._watchPid();
         return { external: false };
     }
 
@@ -311,11 +401,24 @@ class ComfyProcess extends EventEmitter {
 
     async stop() {
         this._stopping = true;
-        if (this.proc) {
-            this.proc.kill();
-            await new Promise(r => setTimeout(r, 500));
-            this.proc = null;
-        }
+        const pid = this.pid;
+        if (!pid) { this._stopping = false; return; }
+        if (this._watch) { clearInterval(this._watch); this._watch = null; }
+        await launcher.killPid(pid);
+        // Let the OS release the port before anyone spawns on it again.
+        for (let i = 0; i < 20 && launcher.pidAlive(pid); i++) await new Promise(r => setTimeout(r, 250));
+        launcher.recordEvent({ port: this.port, pid, event: 'stop', reason: 'stopped by ComfyQ' });
+        this.pid = null;
+        this.proc = null;
+        this._unfollow();
+        this._stopping = false;
+        this.emit('exited', { code: null, signal: null, intentional: true });
+    }
+
+    /** Let go of a ComfyUI without stopping it (ComfyQ is shutting down or restarting). */
+    detach() {
+        if (this._watch) { clearInterval(this._watch); this._watch = null; }
+        this._unfollow();
     }
 }
 

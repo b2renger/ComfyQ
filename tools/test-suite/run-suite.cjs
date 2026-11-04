@@ -22,8 +22,10 @@
  * is in admin mode (not serving), exactly as the panel does.
  *
  * The ComfyUI already running is used as it is. If a workflow needs a flag off
- * that it runs with, it is replaced by one this process starts — and that one is
- * stopped at the end, because its console is this process and would be cut off.
+ * that it runs with, it is replaced by one this process starts. That one is
+ * left running at the end: ComfyUI outlives the process that started it (see
+ * server/workers/comfyLauncher.js), and ComfyQ adopts it on its next start
+ * instead of cold-booting another.
  */
 const fs = require('fs');
 const path = require('path');
@@ -127,11 +129,8 @@ process.on('SIGINT', () => {
         + `${s.withFlaggedOutput} with suspect output, ${s.noOutput} produced nothing`);
     for (const r of (st?.results || []).filter(x => !x.ok)) console.log(`  FAIL ${r.id} — ${r.error}`);
     console.log(`[Suite] report: ${path.join(dataDir || path.join(REPO, 'server', 'data'), 'library-sweep-latest.json')}`);
-    if (!cal._external && cal.worker) {
-        console.log('[Suite] stopping the ComfyUI this run started (its console is this process)');
-        try { await cal.stopBackend(); } catch { /* already gone */ }
-    } else {
-        try { await cal.shutdown(); } catch { /* closing a websocket */ }
-    }
+    // Leave ComfyUI up: ComfyQ adopts it on its next start (no cold boot).
+    if (!cal._external && cal.worker) console.log('[Suite] the ComfyUI this run started is left running — ComfyQ reuses it');
+    try { await cal.shutdown(); } catch { /* closing a websocket */ }
     process.exit(s.failed ? 2 : 0);
 })().catch(e => { console.error(`[Suite] ${e.stack || e.message}`); process.exit(1); });

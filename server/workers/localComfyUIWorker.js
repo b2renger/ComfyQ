@@ -37,6 +37,11 @@ function clampParamValue(v, p) {
 // interface so the executor doesn't depend on locality. Owns one ComfyUI
 // child process (or attaches to an external one), one REST client, one WS
 // client (auto-reconnecting), one InputUploader, one ModelLifecycle.
+// Crash-loop breaker (see _crashCoolOffMs).
+const CRASH_LIMIT = 5;
+const CRASH_WINDOW_MS = 15 * 60 * 1000;
+const CRASH_COOLOFF_MS = 10 * 60 * 1000;
+
 class LocalComfyUIWorker extends Worker {
     constructor({ comfyConfig, queueConfig, onMilestone, autoRespawn = false, onRespawn = null }) {
         super();
@@ -78,6 +83,9 @@ class LocalComfyUIWorker extends Worker {
             tempDir: comfyConfig.temp_dir || null,
             vramHeadroomGb: comfyConfig.vram_headroom_gb || null
         });
+        // Extra main.py arguments — only the lane integration test uses this
+        // (--cpu on throwaway ports); a rig's config never sets it.
+        if (Array.isArray(comfyConfig.extra_args)) this.process.extraArgs = comfyConfig.extra_args.map(String);
         this.rest = new ComfyRestClient({ host: this.host, port: this.port });
         this.uploader = new InputUploader({
             comfyInputDir: require('path').resolve(comfyConfig.root_path, 'input'),
@@ -114,6 +122,19 @@ class LocalComfyUIWorker extends Worker {
         return ladder[Math.min(attempt, ladder.length - 1)];
     }
 
+    // ★ A crash-loop breaker. Each respawn is a cold ComfyUI boot plus a model
+    // reload, so a ComfyUI that dies on every job (a broken node, an OOM that
+    // recurs) would thrash the card every thirty seconds for as long as nobody
+    // looked. After CRASH_LIMIT unexpected exits inside CRASH_WINDOW_MS the
+    // worker waits CRASH_COOLOFF_MS before trying again — still self-healing,
+    // as a classroom rig must be, but at a pace that leaves the GPU alone and
+    // the log readable.
+    _crashCoolOffMs() {
+        const now = Date.now();
+        this._crashTimes = (this._crashTimes || []).filter(t => now - t < CRASH_WINDOW_MS);
+        return this._crashTimes.length >= CRASH_LIMIT ? CRASH_COOLOFF_MS : 0;
+    }
+
     _onProcessExit({ intentional } = {}) {
         console.warn('[Worker] ComfyUI process exited');
         this._setState('down');
@@ -124,6 +145,7 @@ class LocalComfyUIWorker extends Worker {
             this.emit('failed', { jobId, promptId, errorReason: 'comfyui-process-exited', errorPhase: 'executing' });
         }
         if (intentional || this._shuttingDown || !this._autoRespawn) return;
+        (this._crashTimes = this._crashTimes || []).push(Date.now());
         this._respawnLoop();
     }
 
@@ -132,11 +154,19 @@ class LocalComfyUIWorker extends Worker {
         this._respawning = true;
         console.warn('[Worker] ComfyUI died unexpectedly — restarting it automatically');
         for (let attempt = 0; !this._shuttingDown; attempt++) {
-            const delay = this._respawnDelayMs(attempt);
+            const coolOff = this._crashCoolOffMs();
+            if (coolOff) {
+                const n = this._crashTimes.length;
+                console.error(`[Worker] ComfyUI has exited ${n} times in ${CRASH_WINDOW_MS / 60000} min — waiting ${CRASH_COOLOFF_MS / 60000} min before the next restart. Check its log in .comfyq-lanes/logs/.`);
+                this._setState('down', `crash-loop: ${n} exits in ${CRASH_WINDOW_MS / 60000} min, next restart in ${CRASH_COOLOFF_MS / 60000} min`);
+                this._crashTimes = [];
+            }
+            const delay = Math.max(this._respawnDelayMs(attempt), coolOff);
             await new Promise(r => setTimeout(r, delay));
             if (this._shuttingDown) break;
             try {
                 console.log(`[Worker] respawn attempt ${attempt + 1}…`);
+                this.process.nextStartReason = 'crashed — restarted automatically';
                 await this.start();
                 console.log('[Worker] ComfyUI is back up — resuming the queue');
                 this._respawning = false;
@@ -223,7 +253,7 @@ class LocalComfyUIWorker extends Worker {
     // this is an external ComfyUI whose arguments we do not control.
     async restartWithoutSageAttention() {
         if (!this.process.useSageAttention) return false;
-        if (!this.process.proc) {
+        if (!this.process.owned) {
             // Attached to a ComfyUI someone else launched; its flags are theirs.
             console.warn('[Worker] sage attention is incompatible with this model, but ComfyUI is EXTERNAL — ' +
                 'relaunch it without --use-sage-attention.');
@@ -233,6 +263,7 @@ class LocalComfyUIWorker extends Worker {
         this.process.useSageAttention = false;
         try {
             await this.process.stop();
+            this.process.nextStartReason = 'sage attention incompatible with a model';
             // stop() returns as soon as the kill is issued; start() would see the
             // dying instance still answering and "attach" to it instead of
             // spawning a fresh one with the new arguments.
@@ -264,10 +295,11 @@ class LocalComfyUIWorker extends Worker {
         const labels = blockers.map(k => PERF_FLAG_LABELS[k]).join(' + ');
         console.warn(`[Worker] the running ComfyUI was started with ${labels}, which this workflow cannot use — relaunching it without`);
         try {
-            if (this.process.proc) await this.process.stop();
+            if (this.process.owned) await this.process.stop();
             else await killProcessOnPort(this.port);
             await this._waitForPortFree(20000);
             this.process._stopping = false;
+            this.process.nextStartReason = `relaunched without ${labels} for this workflow`;
             await this.start();
             return { replaced: true, blockers };
         } catch (e) {
@@ -529,6 +561,8 @@ class LocalComfyUIWorker extends Worker {
     async shutdown() {
         this._shuttingDown = true;
         if (this.ws) this.ws.close();
+        // Stop following its log and polling its PID; the process itself stays.
+        try { this.process.detach(); } catch { /* nothing to detach */ }
         // Note: we do NOT kill the ComfyUI process on shutdown; the user may
         // be running their own ComfyUI we attached to. ComfyProcess only kills
         // on explicit stop().

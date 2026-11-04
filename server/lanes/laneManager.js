@@ -4,6 +4,7 @@ const { LocalComfyUIWorker } = require('../workers/localComfyUIWorker');
 const { JobExecutor } = require('../executor/jobExecutor');
 const { effectiveComfyConfig } = require('../workers/perfFlags');
 const { estimateWorkflowVram } = require('../workflows/vramEstimate');
+const launcher = require('../workers/comfyLauncher');
 
 // LaneManager — one machine, several workflows served at once.
 //
@@ -22,6 +23,16 @@ const { estimateWorkflowVram } = require('../workflows/vramEstimate');
 // One lane per workflow, always. That invariant is what lets each executor
 // claim work with a plain `findReady(now, [workflowId])` and no lease: two
 // lanes can never see the same job.
+//
+// Two ideas that used to be one (2026-11-04):
+//   - the BASE lane is the one on the configured port with the install's own
+//     directories — "the install's ComfyUI";
+//   - the MAIN lane is the one whose workflow is `workflows.activeWorkflowId`,
+//     what an older client shows as "the" workflow.
+// They start out the same. Any lane can now be closed on its own: closing the
+// main lane hands "main" to the next one, and closing the base lane keeps the
+// install's ComfyUI running (its VRAM given back), so the next lane opened
+// reuses that warm process instead of cold-starting another one.
 
 // Per-lane ComfyUI state. At the repo root, deliberately NOT under server/:
 // nodemon watches that tree, and a lane's ComfyUI writes settings and manager
@@ -86,7 +97,9 @@ class LaneManager {
             workflowId: lane.workflowId,
             name: this.registry.get(lane.workflowId)?.summary?.name || lane.workflowId,
             port: lane.port,
-            primary: lane.primary,
+            primary: this.mainLane() === lane,
+            base: lane.base,
+            owned: !!lane.worker?.process?.owned,
             state: status.state || 'unknown',
             busy: !!lane.executor?._currentJobId,
             vramGb: lane.vramGb,
@@ -95,6 +108,15 @@ class LaneManager {
     }
 
     servedWorkflowIds() { return [...this.lanes.keys()]; }
+
+    /** The lane an older client calls "the" workflow: activeWorkflowId's, else the oldest. */
+    mainLane() {
+        const active = this._config().workflows?.activeWorkflowId;
+        return this.lanes.get(active) || [...this.lanes.values()][0] || null;
+    }
+
+    /** The lane running on the install's own ComfyUI, if any. */
+    baseLane() { return [...this.lanes.values()].find(l => l.base) || null; }
     get(workflowId) { return this.lanes.get(workflowId) || null; }
     /** The lane a job belongs to, or the only lane when there is just one. */
     laneForWorkflow(workflowId) {
@@ -138,19 +160,43 @@ class LaneManager {
     _nextPort() {
         const base = this._config().comfy_ui?.api_port || 8188;
         const taken = new Set([...this.lanes.values()].map(l => l.port));
-        for (let p = base; p < base + 32; p++) if (!taken.has(p)) return p;
+        taken.add(base);                       // the base port belongs to the base lane
+        // A port another lane's ComfyUI still holds (recorded, alive, not yet
+        // reopened after a restart) is taken too — opening there would find a
+        // ComfyUI this lane does not own.
+        for (const [port, rec] of Object.entries(launcher.readRegistry().procs)) {
+            if (launcher.pidAlive(rec.pid)) taken.add(Number(port));
+        }
+        for (let p = base + 1; p < base + 32; p++) if (!taken.has(p)) return p;
         throw new Error('no free ComfyUI port for another lane');
+    }
+
+    _laneHome(workflowId) { return path.join(LANES_DIR, laneSlug(workflowId)); }
+
+    /**
+     * Where a lane for `workflowId` should run: back on the lane ComfyUI a
+     * previous ComfyQ started for it (still running — no restart), else on the
+     * install's own ComfyUI when no lane uses it (often already up and warm),
+     * else on a fresh port with its own directories.
+     */
+    _placement(workflowId) {
+        const taken = new Set([...this.lanes.values()].map(l => l.port));
+        const prior = launcher.recordsForUserDir(path.join(this._laneHome(workflowId), 'user'))
+            .find(r => launcher.pidAlive(r.pid) && !taken.has(r.port));
+        if (prior) return { base: false, port: prior.port, reason: 'its own ComfyUI is still running' };
+        if (!this.baseLane()) return { base: true, port: this._config().comfy_ui?.api_port || 8188, reason: "the install's ComfyUI is free" };
+        return { base: false, port: this._nextPort(), reason: 'a new lane' };
     }
 
     // The ComfyUI config for one lane: the machine's settings, with this
     // workflow's incompatible speed-ups masked, its own port, and — for every
     // lane after the first — its own state directories.
-    _laneComfyConfig(workflowId, port, primary) {
+    _laneComfyConfig(workflowId, port, onBase) {
         const base = this._config().comfy_ui;
         const meta = this.registry.get(workflowId)?.meta || null;
         const cfg = { ...effectiveComfyConfig(base, meta), api_port: port };
-        if (!primary) {
-            const home = path.join(LANES_DIR, laneSlug(workflowId));
+        if (!onBase) {
+            const home = this._laneHome(workflowId);
             cfg.user_dir = path.join(home, 'user');
             cfg.temp_dir = home;                 // ComfyUI appends "temp"
             cfg.vram_headroom_gb = LANE_HEADROOM_GB;
@@ -165,7 +211,8 @@ class LaneManager {
     /**
      * Start serving `workflowId` in its own lane.
      * @param {object} opts
-     *   primary  — first lane: keeps the install's own dirs and the base port
+     *   primary  — the machine's main workflow: skips the VRAM check and
+     *              becomes activeWorkflowId (where it RUNS is _placement's call)
      *   force    — start even when the VRAM check says no
      *   attempts — start retries (a restart can race a dying ComfyUI)
      */
@@ -186,9 +233,12 @@ class LaneManager {
             }
         }
 
-        const port = primary ? (this._config().comfy_ui?.api_port || 8188) : this._nextPort();
-        const comfyConfig = this._laneComfyConfig(workflowId, port, primary);
+        const place = this._placement(workflowId);
+        const { port } = place;
+        const onBase = place.base;
+        const comfyConfig = this._laneComfyConfig(workflowId, port, onBase);
         const label = `${laneSlug(workflowId).slice(0, 18)}:${port}`;
+        console.log(`[Lane ${label}] opening "${workflowId}" on port ${port} (${place.reason})`);
 
         const worker = new LocalComfyUIWorker({
             comfyConfig,
@@ -207,11 +257,11 @@ class LaneManager {
         for (let attempt = 1; attempt <= attempts; attempt++) {
             try {
                 started = await worker.start();
-                if (started?.external && primary) {
-                    // Only the primary lane may adopt (and re-flag) a ComfyUI it
-                    // did not spawn. An extra lane attaching to someone else's
-                    // process would mean two lanes sharing one ComfyUI, where a
-                    // cancel or a VRAM free in one hits the other.
+                // A ComfyUI that was already running — the install's own, or
+                // one a previous ComfyQ started and this one adopted — may have
+                // been launched with a speed-up this workflow cannot run with.
+                // Replace it only then; otherwise reuse it as it is.
+                if ((started?.external && onBase) || started?.adopted) {
                     const { replaced } = await worker.ensureNoBlockingPerfFlags();
                     if (replaced) started = { external: false };
                 }
@@ -222,7 +272,7 @@ class LaneManager {
                 await new Promise(r => setTimeout(r, retryMs));
             }
         }
-        if (!primary && started?.external) {
+        if (!onBase && started?.external) {
             // Something already answers on this port. That is normal after a
             // ComfyQ restart — the lane's own ComfyUI usually outlives it — and
             // adopting it saves the minute and a half a cold start costs. But
@@ -249,14 +299,19 @@ class LaneManager {
                 ? () => this.onSageIncompatible(worker) : null,
         });
         executor.start();
+        // Every lane's progress reaches the students' screens, not only the
+        // main lane's: the bus used to subscribe to the first lane alone, so a
+        // second lane's jobs only moved on the periodic resend.
+        try { executor.onChange(() => this.onChange()); } catch { /* older executor */ }
+        try { worker.on('status', () => this.onChange()); } catch { /* not an emitter */ }
 
         const lane = {
-            id: label, workflowId, port, primary, worker, executor, comfyConfig,
+            id: label, workflowId, port, base: onBase, worker, executor, comfyConfig,
             vramGb: this.vramFor(workflowId) || 0,
             startedAt: Date.now(),
         };
         this.lanes.set(workflowId, lane);
-        if (!primary) this._remember(workflowId, true);
+        this._syncConfig(primary ? workflowId : null);
         console.log(`[Lane ${label}] serving "${workflowId}" on port ${port}` +
             (lane.vramGb ? ` (~${lane.vramGb} GB of models)` : ''));
         this.onChange();
@@ -285,24 +340,59 @@ class LaneManager {
             `(${v.usedGb} GB in use by other lanes, ${CARD_HEADROOM_GB} GB kept for the system, ${v.cardGb} GB card).`;
     }
 
-    /** Stop a lane. Its ComfyUI is killed for extra lanes so the VRAM comes back. */
+    /**
+     * Stop one lane; every other lane keeps serving.
+     *
+     * A lane on its own ComfyUI has that process stopped, so the VRAM comes
+     * back. The base lane runs on the install's ComfyUI, which stays up — an
+     * admin may be using it, and the next lane opened reuses it warm instead of
+     * cold-starting another — but its models are unloaded so the VRAM comes
+     * back all the same. Closing the main lane makes the next lane main.
+     */
     async close(workflowId) {
         const lane = this.lanes.get(workflowId);
         if (!lane) return false;
         this.lanes.delete(workflowId);
-        if (!lane.primary) this._remember(workflowId, false);
         try { lane.executor.stop(); } catch { /* not running */ }
         try { await lane.worker.shutdown(); } catch { /* already down */ }
-        // The primary lane leaves ComfyUI up (an admin may be using it, and the
-        // next boot attaches to it). An extra lane exists only for itself, so
-        // its process goes — that is the point of closing it.
-        if (!lane.primary) {
+        if (lane.base) {
+            try { await lane.worker.rest.free({ unloadModels: true, freeMemory: true }); }
+            catch (e) { console.warn(`[Lane ${lane.id}] could not unload its models: ${e.message}`); }
+        } else {
             try { await lane.worker.process.stop(); }
             catch (e) { console.warn(`[Lane ${lane.id}] could not stop ComfyUI: ${e.message}`); }
         }
-        console.log(`[Lane ${lane.id}] stopped serving "${workflowId}"`);
+        this._syncConfig();
+        console.log(`[Lane ${lane.id}] stopped serving "${workflowId}"` +
+            (lane.base ? " — the install's ComfyUI stays up, models unloaded" : ' — its ComfyUI stopped'));
         this.onChange();
         return true;
+    }
+
+    /**
+     * Write what is being served into config so a restart restores it:
+     * activeWorkflowId = the main lane (kept when it is still served, else the
+     * oldest lane), extraLaneWorkflowIds = the rest. `makeMain` forces one.
+     * With no lane left, the config is left alone — stopping the last lane is
+     * "Stop serving", which the route handles.
+     */
+    _syncConfig(makeMain = null) {
+        if (this.lanes.size === 0) return;
+        try {
+            this.configManager.update(c => {
+                const ids = [...this.lanes.keys()];
+                const main = makeMain && this.lanes.has(makeMain) ? makeMain
+                    : (this.lanes.has(c.workflows.activeWorkflowId) ? c.workflows.activeWorkflowId : ids[0]);
+                c.workflows.activeWorkflowId = main;
+                // Lanes still waiting to be restored after a restart are kept,
+                // or a restart during the restore would forget them.
+                const pending = [...(this._pendingRestore || [])].filter(id => !this.lanes.has(id) && id !== main);
+                c.workflows.extraLaneWorkflowIds = [...ids.filter(id => id !== main), ...pending];
+                return c;
+            });
+        } catch (e) {
+            console.warn(`[Lane] could not record the served workflows: ${e.message}`);
+        }
     }
 
     // Extra lanes are remembered in config so a restart restores them. The
@@ -325,22 +415,53 @@ class LaneManager {
      * are logged and dropped — one lane that will not come back must not stop
      * the machine from serving the rest.
      */
-    async restoreRemembered() {
-        const saved = this._config().workflows?.extraLaneWorkflowIds || [];
-        for (const workflowId of saved) {
-            if (this.lanes.has(workflowId)) continue;
-            try {
-                console.log(`[Lane] restoring "${workflowId}" from before the restart…`);
-                await this.open(workflowId, { force: true });
-            } catch (e) {
-                console.warn(`[Lane] could not restore "${workflowId}": ${e.message}`);
-                this._remember(workflowId, false);
+    /** Keep these in config while the main lane opens (see _syncConfig). */
+    holdForRestore(ids) { this._pendingRestore = new Set(ids || []); }
+
+    /** What to restore after a restart. Read it BEFORE opening the main lane. */
+    rememberedExtras() { return [...(this._config().workflows?.extraLaneWorkflowIds || [])]; }
+
+    async restoreRemembered(saved = this.rememberedExtras()) {
+        this._pendingRestore = new Set(saved);
+        try {
+            for (const workflowId of saved) {
+                if (this.lanes.has(workflowId)) { this._pendingRestore.delete(workflowId); continue; }
+                try {
+                    console.log(`[Lane] restoring "${workflowId}" from before the restart…`);
+                    await this.open(workflowId, { force: true });
+                } catch (e) {
+                    console.warn(`[Lane] could not restore "${workflowId}": ${e.message}`);
+                    this._pendingRestore.delete(workflowId);
+                    this._remember(workflowId, false);
+                }
+                this._pendingRestore.delete(workflowId);
             }
-        }
+        } finally { this._pendingRestore = null; }
     }
 
+    /**
+     * Stop every lane: "Stop serving". Lanes on their own ComfyUI are stopped;
+     * the install's ComfyUI stays up with its models unloaded, so admin mode
+     * (and the next "Activate & serve") attaches to it without a cold boot.
+     * The extra lanes are forgotten — a deliberate stop is not something a
+     * restart should undo.
+     */
     async closeAll() {
         for (const id of [...this.lanes.keys()]) await this.close(id);
+        try {
+            this.configManager.update(c => { c.workflows.extraLaneWorkflowIds = []; return c; });
+        } catch { /* config read-only — nothing to forget */ }
+    }
+
+    /**
+     * ComfyQ is shutting down (Ctrl+C, the terminal closing): let go of every
+     * lane without stopping its ComfyUI, so the next start adopts them.
+     */
+    detachAll() {
+        for (const lane of this.lanes.values()) {
+            try { lane.executor.stop(); } catch { /* not running */ }
+            try { lane.worker.shutdown(); } catch { /* already down */ }
+        }
     }
 }
 

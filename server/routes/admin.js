@@ -1143,6 +1143,36 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                     }
                 } catch { /* non-critical */ }
             }
+            // ★ Already serving: switch the main lane in place. The old way
+            // restarted the whole server, which dropped every open student tab
+            // and — before ComfyUI outlived ComfyQ — cold-started ComfyUI and
+            // reloaded the model too. Now the old main lane closes (the
+            // install's ComfyUI stays up, its models unloaded), the new one
+            // opens on that same warm ComfyUI, and the other lanes are not
+            // touched. Only a switch from admin mode still needs a restart,
+            // because the student routes are mounted at boot.
+            const lanes = runtime?.lanes;
+            if (lanes && prevMode === 'student') {
+                res.json({ ok: true, mode: 'student', workflowId, live: true });
+                (async () => {
+                    if (lanes.get(workflowId)) {
+                        // Already served in a lane: just make it the main one.
+                        lanes._syncConfig(workflowId);
+                        lanes.onChange();
+                        console.log(`[Admin] "${workflowId}" was already served — it is now the main workflow`);
+                        return;
+                    }
+                    const old = lanes.mainLane();
+                    if (old) await lanes.close(old.workflowId);
+                    await lanes.open(workflowId, { primary: true });
+                    console.log(`[Admin] now serving "${workflowId}" — switched without a restart`);
+                })().catch(e => {
+                    console.error(`[Admin] live switch to "${workflowId}" failed (${e.message}) — restarting to recover`);
+                    configManager.update(c => { c.workflows.activeWorkflowId = workflowId; c.mode = 'student'; return c; });
+                    if (exitForRestart) exitForRestart('student');
+                });
+                return;
+            }
             configManager.update(c => {
                 c.workflows.activeWorkflowId = workflowId;
                 c.mode = 'student';
@@ -1181,8 +1211,18 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             if (s.unavailable) continue;
             fit[s.id] = lanes.fit(s.id);
         }
-        res.json({ available: true, lanes: lanes.list(), card: { vramGb: cardGb, usedGb }, fit });
+        res.json({ available: true, lanes: lanes.list(), card: { vramGb: cardGb, usedGb }, fit, restarts: comfyRestarts() });
     });
+
+    // How often ComfyUI has been (re)started, and why — the history the
+    // launcher keeps in .comfyq-lanes/processes.json. Both modes.
+    const comfyRestarts = () => {
+        const launcher = require('../workers/comfyLauncher');
+        const day = launcher.recentStarts(24 * 3600e3);
+        const history = launcher.readRegistry().history.slice(-25).reverse();
+        return { last24h: day.length, history };
+    };
+    router.get('/comfyui/restarts', (req, res) => res.json(comfyRestarts()));
 
     router.post('/lanes', adminGate, express.json(), async (req, res) => {
         const lanes = runtime?.lanes;
@@ -1204,11 +1244,15 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         if (!lanes) return res.status(409).json({ error: 'lanes are only available while serving' });
         const lane = lanes.get(req.params.workflowId);
         if (!lane) return res.status(404).json({ error: 'no such lane' });
-        if (lane.primary) {
-            return res.status(409).json({ error: 'This is the machine\'s main lane — use "Stop serving" to close it.' });
+        // Any lane can close on its own now, the main one included — the next
+        // lane becomes main. Only the LAST lane is refused: with nothing left
+        // to serve, that is "Stop serving", which switches the machine back to
+        // admin mode.
+        if (lanes.list().length === 1) {
+            return res.status(409).json({ error: 'This is the only lane left — use "Stop serving" to close it.' });
         }
         await lanes.close(req.params.workflowId);
-        res.json({ ok: true });
+        res.json({ ok: true, main: lanes.mainLane()?.workflowId || null });
     });
 
     // Clean every output file referenced by any completed job, then clear
@@ -1287,7 +1331,13 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         }
     });
 
-    router.post('/reset-to-admin', adminGate, (req, res) => {
+    router.post('/reset-to-admin', adminGate, async (req, res) => {
+        // Close the lanes first: a lane on its own ComfyUI is stopped (its VRAM
+        // comes back), the install's ComfyUI stays up with its models unloaded
+        // — so admin mode attaches to it instead of cold-starting one. Before,
+        // the extra lanes' ComfyUIs were simply left holding the card.
+        try { await runtime?.lanes?.closeAll(); }
+        catch (e) { console.warn('[Admin] closing the lanes before stopping:', e.message); }
         configManager.update(c => { c.mode = 'admin'; return c; });
         res.json({ ok: true, mode: 'admin' });
         // 'admin' = stop serving on purpose, so later restarts stay in admin.
@@ -1338,13 +1388,18 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             // Best-effort interrupt, then kill the spawned ComfyUI. If we're
             // attached to an external ComfyUI (process.proc === null) the
             // stop() is a no-op and we leave that process alone.
-            try { await runtime.worker.rest.interrupt(); } catch { /* ignore */ }
-            try {
-                const hadSpawned = !!runtime.worker.process?.proc;
-                await runtime.worker.process?.stop();
-                result.killedComfy = hadSpawned;
-            } catch (e) {
-                console.warn('[admin] emergency-stop kill err:', e.message);
+            // Every lane, not only the main one.
+            const laneWorkers = runtime.lanes?.lanes ? [...runtime.lanes.lanes.values()].map(l => l.worker) : [runtime.worker];
+            result.killedComfy = false;
+            for (const w of laneWorkers) {
+                try { await w.rest.interrupt(); } catch { /* ignore */ }
+                try {
+                    const owned = !!w.process?.owned;
+                    await w.process?.stop();
+                    result.killedComfy = result.killedComfy || owned;
+                } catch (e) {
+                    console.warn('[admin] emergency-stop kill err:', e.message);
+                }
             }
             // Flip to admin mode and restart so we don't auto-relaunch ComfyUI.
             configManager.update(c => { c.mode = 'admin'; return c; });

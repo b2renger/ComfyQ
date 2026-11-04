@@ -135,6 +135,22 @@ class AdminCalibrator {
                 this._spawnSig = this._pathSig(cfg);
                 this._spawnFlagSig = this._flagSig(cfg);
                 this._spawnMasked = cfg !== base;
+                if (res?.adopted) {
+                    // A ComfyUI a previous ComfyQ started (see comfyLauncher): it
+                    // is ours again, but it runs with the flags and the bind it
+                    // was STARTED with, not today's settings — describe it by
+                    // those, so a later launch or calibration restarts it only
+                    // when it really differs.
+                    const flags = worker.process.adoptedFlags || {};
+                    this._spawnFlagSig = this._flagSig(flags);
+                    this._spawnMasked = this._spawnFlagSig !== this._flagSig(base);
+                    try {
+                        const argv = ((await worker.rest.ping())?.system?.argv || []).map(String);
+                        const i = argv.indexOf('--listen');
+                        this._workerNetwork = i > -1 && argv[i + 1] === '0.0.0.0';
+                    } catch { /* keep the guess */ }
+                    console.log('[AdminCalibrator] reusing the ComfyUI started before ComfyQ restarted');
+                }
                 // We spawned it with the opener installed (an attached external
                 // instance we don't own may not have it).
                 this._openerLoaded = !this._external;

@@ -1,4 +1,5 @@
 const fs = require('fs');
+const os = require('os');
 const { Server } = require('socket.io');
 const sm = require('../queue/jobStateMachine');
 const { isAuthorizedForJob, isAccessLocked, verifyAccessToken } = require('../auth/authGate');
@@ -255,7 +256,7 @@ class RealtimeBus {
                     }
                     if (sm.isInFlight(job.status) || job.status === sm.STATES.SCHEDULED) {
                         // Try cancelling first if executing; otherwise just remove.
-                        if (sm.isInFlight(job.status)) this.executor.cancelJob(jobId);
+                        if (sm.isInFlight(job.status)) this._executorFor(job).cancelJob(jobId);
                         else this.queue.transitionStatus(jobId, sm.STATES.CANCELLED);
                     }
                     this._deleteOutputFiles(job);
@@ -277,7 +278,7 @@ class RealtimeBus {
                         job, configManager: this.configManager
                     });
                     if (!auth.allowed) return socket.emit('error', { message: auth.reason });
-                    this.executor.cancelJob(jobId);
+                    this._executorFor(job).cancelJob(jobId);
                 } catch (e) {
                     socket.emit('error', { message: e.message });
                 }
@@ -324,6 +325,15 @@ class RealtimeBus {
                 console.warn(`[RealtimeBus] Could not delete output ${o.filename}:`, e.message);
             }
         }
+    }
+
+    // ★ The executor that RUNS a job is its lane's, not the main lane's. Cancel
+    // used to go to the main lane's executor whatever the job, so cancelling a
+    // job running on a second lane only worked while it was still waiting —
+    // once it was generating, the main executor did not know it and the second
+    // lane's ComfyUI carried on to the end.
+    _executorFor(job) {
+        return this.lanes?.get?.(job?.workflowId)?.executor || this.executor;
     }
 
     _toWireJob(job) {
@@ -472,9 +482,17 @@ class RealtimeBus {
                     : {},
             };
         });
+        // Which machine this is, for the scheduling page's header and the
+        // browser tab: a class often has several rigs open side by side.
+        const machine = {
+            name: cfg.instance?.name || os.hostname(),
+            hostname: cfg.instance?.hostname || os.hostname(),
+            gpu: cfg.instance?.gpu || '',
+        };
         return {
             system_status: systemStatus,
             benchmark_ms: benchmarkMs,
+            machine,
             connected_users: Array.from(this.connectedUsers.values()),
             jobs,
             workflow: { parameter_map },
