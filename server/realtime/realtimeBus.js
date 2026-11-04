@@ -447,6 +447,8 @@ class RealtimeBus {
         const workflow_info = entry && !entry.unavailable ? {
             id: entry.id,
             name: entry.summary.name,
+            title: entry.summary.title,
+            summary: entry.summary.summary,
             description: entry.summary.description,
             category: entry.summary.category,
             promptGuides: entry.summary.promptGuides || [],
@@ -472,6 +474,8 @@ class RealtimeBus {
                 state: l.state,
                 busy: l.busy,
                 vram_gb: l.vramGb,
+                title: usable ? entry.summary.title : l.name,
+                summary: usable ? entry.summary.summary : '',
                 description: usable ? entry.summary.description : '',
                 category: usable ? entry.summary.category : 'other',
                 promptGuides: usable ? (entry.summary.promptGuides || []) : [],

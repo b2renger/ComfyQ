@@ -1756,6 +1756,13 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                     experimental = current.experimental === true;
                 } catch { experimental = false; }
             }
+            // Likewise the plain title and summary: an older editor that does not
+            // know them must not wipe them by saving.
+            let stored = {};
+            try { stored = JSON.parse(fs.readFileSync(path.join(folder, `${id}.meta.json`), 'utf8')); } catch { /* new */ }
+            for (const k of ['title', 'summary']) {
+                if (incoming[k] === undefined && typeof stored[k] === 'string') incoming[k] = stored[k];
+            }
             const meta = WorkflowMeta.parse({
                 ...incoming,
                 experimental,

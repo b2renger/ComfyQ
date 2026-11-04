@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_edit_flux2_klein_9b_image_edit",
   "name": "Flux2 Klein 9B — image edit",
+  "title": "Restyle a picture, keep its layout",
+  "summary": "Upload a picture and say what should change — the style, the light, the materials — and what must stay. Everything keeps its place, so it is ideal for turning a sketch, a scale model or a daytime photo into something new.",
   "description": "Upload an image and ask for changes. Works with photos, drawings, or screenshots.",
   "category": "image-edit",
   "tags": [

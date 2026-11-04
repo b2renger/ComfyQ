@@ -176,6 +176,8 @@ class WorkflowRegistry {
                 // Whether "Open in ComfyUI" can hand over the full editable graph.
                 hasTemplate,
                 name: merged.name,
+                title: merged.title || merged.name,
+                summary: merged.summary || '',
                 description: merged.description,
                 category: merged.category,
                 tags: merged.tags,

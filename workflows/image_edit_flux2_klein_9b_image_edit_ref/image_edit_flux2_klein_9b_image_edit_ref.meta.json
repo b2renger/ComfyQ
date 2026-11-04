@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_edit_flux2_klein_9b_image_edit_ref",
   "name": "Flux2 Klein 9B — image edit (with reference)",
+  "title": "Edit using a second picture",
+  "summary": "Give it a picture to change and a second picture to take something from — an artwork, a logo, a pattern, an object — and say how to combine them. Works best on objects, walls and products; people's faces may drift.",
   "description": "Edit a source image using a second reference image. Useful for transferring style, composition, or specific elements.",
   "category": "image-edit",
   "tags": [

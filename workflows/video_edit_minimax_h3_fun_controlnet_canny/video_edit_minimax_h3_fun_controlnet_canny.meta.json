@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_edit_minimax_h3_fun_controlnet_canny",
   "name": "MiniMax H3 ControlNet (canny) — restyle a video from its outlines + audio",
+  "title": "Redraw a video over its outlines",
+  "summary": "Upload a clip and describe a new look; every outline of the original — clothing patterns, buildings, edges — is followed exactly, while colours, materials and sound are all new.",
   "description": "Upload a video and describe a new look. The clip is turned into an edge map (Canny) and MiniMax H3 generates a brand-new video that follows those outlines — new characters, materials, setting and lighting — with a matching audio track made from your prompt. The original colours and sound are not kept.\n\nDescribe the scene, what happens over time, the camera and the sounds (the default prompt shows a good structure with time ranges). \"Control strength\" sets how tightly the result sticks to the edges. The two edge thresholds decide how much detail is traced: lower keeps faint edges (more detail, but grainy footage gets noisy and flickers), higher keeps only strong contours.\n\nOnly the first seconds of your clip are used (\"Duration\", default 5 s), and the video is centre-cropped to the aspect ratio you pick, so choose the one closest to your clip. Time grows with duration and size; the default 20-step render takes a few minutes, \"Fast mode\" (4-step turbo LoRA) is several times faster at some cost in quality.",
   "category": "video-edit",
   "tags": [

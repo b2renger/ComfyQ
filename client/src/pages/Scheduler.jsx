@@ -20,6 +20,7 @@ import { getUserColor } from '../utils/userColor';
 import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
 import { computeEtaSeconds } from '../utils/jobEta';
 import PromptGuideLinks from '../components/PromptGuideLinks';
+import WorkflowInfoCard from '../components/WorkflowInfoCard';
 
 /**
  * Scheduler Page Component
@@ -188,7 +189,7 @@ const SchedulerPage = () => {
     const servedModels = useMemo(() => {
         const lanes = state.lanes || [];
         const asModel = l => ({
-            id: l.workflow_id, name: l.name, description: l.description,
+            id: l.workflow_id, name: l.name, title: l.title, summary: l.summary, description: l.description,
             category: l.category, promptGuides: l.promptGuides, busy: l.busy,
         });
         if (lanes.length) {
@@ -500,25 +501,7 @@ const SchedulerPage = () => {
                             all, not just the first, or the others are invisible until
                             the booking form is opened. */}
                         {servedModels.map((wf, i) => (
-                            <div key={wf.id || i} className="mt-2 rounded-lg bg-primary/5 border border-primary/20 p-3 max-w-2xl space-y-1.5">
-                                <div className="flex items-center gap-2 flex-wrap">
-                                    <Sparkles size={12} className="text-primary" />
-                                    <span className="text-[10px] uppercase tracking-wider text-muted font-semibold">Active workflow</span>
-                                    <span className="text-xs font-medium text-primary">{wf.name}</span>
-                                    {wf.category && wf.category !== 'other' && (
-                                        <Badge variant="primary" className="text-[9px] py-0 h-4 uppercase">{wf.category}</Badge>
-                                    )}
-                                    {wf.busy && (
-                                        <span className="text-[10px] text-success">generating now</span>
-                                    )}
-                                </div>
-                                <PromptGuideLinks guides={wf.promptGuides} />
-                                {wf.description && (
-                                    <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                        {wf.description}
-                                    </p>
-                                )}
-                            </div>
+                            <WorkflowInfoCard key={wf.id || i} wf={wf} className="mt-2 max-w-2xl" />
                         ))}
                     </div>
                     <div className="flex items-center space-x-2 sm:space-x-4">

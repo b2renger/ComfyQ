@@ -224,14 +224,14 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
     // library reads predictably; group filter + search derive from this order.
     const usable = workflows
         .filter(w => !w.unavailable)
-        .sort((a, b) => (a.name || a.id).localeCompare(b.name || b.id, undefined, { sensitivity: 'base', numeric: true }));
+        .sort((a, b) => (a.title || a.name || a.id).localeCompare(b.title || b.name || b.id, undefined, { sensitivity: 'base', numeric: true }));
     // Keyword search: every whitespace-separated term must appear somewhere in
     // the name / description / tags / category / id (AND match). Runs before the
     // group filter so the chip counts reflect the current search.
     const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
     const matchesQuery = (w) => {
         if (terms.length === 0) return true;
-        const hay = [w.name, w.description, w.category, w.id, ...(w.tags || [])]
+        const hay = [w.title, w.name, w.summary, w.description, w.category, w.id, ...(w.tags || [])]
             .filter(Boolean).join(' ').toLowerCase();
         return terms.every(t => hay.includes(t));
     };
@@ -443,7 +443,10 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
                             </div>
                             <div className={viewMode === 'list' ? 'flex-1 min-w-0' : ''}>
                                 <div className="flex items-start justify-between gap-2">
-                                    <h4 className={`font-medium truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>{w.name}</h4>
+                                    <div className="min-w-0">
+                                        <h4 className={`font-medium truncate ${isSelected ? 'text-primary' : 'text-foreground'}`} title={w.title || w.name}>{w.title || w.name}</h4>
+                                        {w.title && w.title !== w.name && <p className="text-[11px] text-muted truncate" title={w.name}>{w.name}</p>}
+                                    </div>
                                     {isSelected && <ChevronRight size={16} className="text-primary flex-shrink-0" />}
                                 </div>
                                 {w.experimental && (
@@ -454,7 +457,7 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
                                         <FlaskConical size={11} /> Experimental
                                     </span>
                                 )}
-                                <p className="text-sm text-muted mt-1 line-clamp-2">{w.description}</p>
+                                <p className="text-sm text-muted mt-1 line-clamp-2" title={w.description}>{w.summary || w.description}</p>
                                 <PromptGuideLinks guides={w.promptGuides} compact />
                                 <div className="flex items-center gap-3 mt-2 text-xs text-muted flex-wrap">
                                     <span className="flex items-center gap-1" title={w.hasCalibration && w.calibration?.calibratedAt

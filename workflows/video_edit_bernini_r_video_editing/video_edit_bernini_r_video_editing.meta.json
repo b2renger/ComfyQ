@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_edit_bernini_r_video_editing",
   "name": "Wan 2.2 Bernini-R — AI video editing",
+  "title": "Change one thing in a video",
+  "summary": "Upload a short clip and say in words what to change — a colour, an object, the sky — and the clip comes back with only that changed, the people, their moves and the scene left as they were. Keep clips to a few seconds; it takes several minutes.",
   "description": "Edit or restyle a short video by describing the change in words. Upload a clip and type an instruction — the Bernini-R model (Wan 2.2) regenerates the clip following your prompt while keeping its motion and timing. The original audio is carried through.\n\n• Pick an **edit type** to steer the model (Style / Motion, Action / Position, Content Propagation, or general Video Editing).\n• **Fast mode** (Turbo LoRA) is on by default — ~6 steps, quick and light. Turn it off for slower, higher-quality 40-step runs.\n• Only the first few seconds are processed (set the clip length) — keep clips short, video editing is heavy.\n* Use small resolutions then upscale : 480 x 832 px in portrait and 832x480 px in landscape.\n\nFor editing guided by a reference image, use the \"with reference\" version instead.",
   "category": "video-edit",
   "tags": [

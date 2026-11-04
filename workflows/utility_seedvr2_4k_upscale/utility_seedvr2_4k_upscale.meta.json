@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "utility_seedvr2_4k_upscale",
   "name": "SeedVR2 — image upscale to 4K",
+  "title": "Rebuild a photo's detail at 4K",
+  "summary": "Give it a photo, even a noisy or slightly blurry one, and get it back up to 4K with real detail rebuilt: fur, skin, fabric, foliage. The most detailed of the photo enlargers.",
   "description": "Upscale and restore a picture with SeedVR2, a diffusion super-resolution model that rebuilds real detail - skin, hair, fabric, grain - rather than just sharpening what is already there. It is the closest thing on this machine to a \"creative\" upscaler.\n\nHow the output size is worked out, because it surprises people. The first setting is the target for the SHORTEST edge, and the aspect ratio is always preserved exactly. The second is a hard cap on the LONGEST edge, and it wins: if the two disagree, the picture comes out smaller than you asked.\n\nWorked example on a wide 1234x567 photograph. Ask for 2048 with the cap at 4096 and the long edge would be 4457, over the cap, so you get 4096x1882 - and asking for 4096 instead gives the very same picture, because the cap decides. Raise the cap to 8192 and you get the 4456x2048 you actually asked for. So on anything far from square, set the cap first.\n\nOdd sizes are fine. Any width and height work, including numbers that are not round or divisible by 8, and the aspect ratio is kept to within a pixel of rounding.\n\nIt is a heavy model and a slow run, more so at high settings. If the invented detail looks wrong, change the seed and run it again - the model makes up plausible texture, so a different seed makes up different texture.",
   "category": "i2i",
   "tags": [

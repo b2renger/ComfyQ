@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_qwen_image_2_1_control_depth",
   "name": "Qwen Image 2.1 - draw from depth (ControlNet depth)",
+  "title": "Re-imagine a photo, keeping its space",
+  "summary": "Upload a photo — of a scale model, a room, a landscape — and describe a new picture; what is near and far and the shape of everything stays, while your words decide what it all is. Better than the outline version for soft photos and real places.",
   "description": "Upload a picture and the model draws something NEW that keeps its SHAPE and depth - what is near, what is far, how the space is arranged - while the prompt decides what everything actually is.\n\nDepth holds on to volume and composition rather than outlines, so it copes with soft or busy photographs where edge control struggles, and it is the better choice for landscapes, portraits and anything where the silhouette matters more than the fine lines.\n\nA depth map is worked out from your picture automatically - you upload an ordinary photograph. If the result follows the original too literally, lower the control strength.\n\nThe structure picture is scaled to the output size you choose, so pick an aspect ratio close to it or it will be cropped to fit.\n\nLicence note: the ControlNet weights are Qwen Research License - research and evaluation only, no commercial use.",
   "category": "t2i",
   "tags": [

@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_edit_flux2_klein_inpaint_reference",
   "name": "Flux2 Klein 9B — inpaint with reference (paint & insert)",
+  "title": "Insert an object from a photo",
+  "summary": "Paint where something should go and upload a picture of that thing — a product, a piece of furniture, a jewel. It appears in the painted spot, matched to the light, and the rest of your picture is untouched.",
   "description": "Upload a scene, paint where new content should go, and upload a reference image of what to insert (an object, subject, or style). Flux.2 Klein brings the reference into the painted area — 'put this product on that shelf', 'replace the sofa with this one'. The prompt steers how the reference is used.",
   "category": "image-edit",
   "tags": [

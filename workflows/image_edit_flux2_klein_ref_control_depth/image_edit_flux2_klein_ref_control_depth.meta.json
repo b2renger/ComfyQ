@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_edit_flux2_klein_ref_control_depth",
   "name": "Flux2 Klein 9B — reference + depth control (pose transfer)",
+  "title": "Pose a character like a photo",
+  "summary": "Upload your character and a photo of anyone in the pose you want. You get your character — same face, clothes and style — in exactly that pose. Works best when both pictures show a whole body, framed the same way.",
   "description": "Combine two images: a Reference image (the subject, character, or style you want) and a Structure image (any photo whose composition you want to reuse). Flux.2 Klein extracts a depth map from the Structure image and renders the Reference's appearance into that layout — pose a character, restage a product, or re-render a scene's composition with new content. Add an optional prompt to steer the result. The output size follows the Structure image.",
   "category": "image-edit",
   "tags": [

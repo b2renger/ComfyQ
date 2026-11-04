@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "utility_video_frame_interpolation",
   "name": "Frame interpolation (FILM) — smoother or slow-motion video",
+  "title": "Make a video smoother or slow-motion",
+  "summary": "Give it a video and get it back with new in-between frames: smoother at the same speed, or turned into slow motion. Works best on fast movement.",
   "description": "Make a video smoother — or turn it into slow motion. FILM generates in-between frames, multiplying the frame count by your chosen factor (2× = twice as many frames).\n\n• **Keep real-time speed** checked → the clip plays at the same speed but looks smoother (higher frame rate).\n• Unchecked → the extra frames stretch the clip into **slow motion** at the original frame rate.\n\nThe original audio is carried through — best with 'keep real-time speed' on; in slow-motion mode the audio won't match the longer video.",
   "category": "preprocessor",
   "tags": [

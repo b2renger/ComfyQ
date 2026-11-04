@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_edit_minimax_h3_loop_restyle",
   "name": "MiniMax H3 — restyle a seamless loop (ControlNet) with sound",
+  "title": "Repaint a loop, keep it seamless",
+  "summary": "Upload a video that already loops — a simple 3D or depth animation works best — and describe a new look; the motion is kept, everything is repainted with new sound, and it still loops.",
   "description": "Restyle a video that ALREADY loops seamlessly — a Blender render, a depth pass, an edge pass — with MiniMax H3. Your loop fixes the geometry and timing, H3 paints the look and invents a soundtrack, and the result loops just as cleanly. The author finds this gives the cleanest joints, and it is the way to get camera travel (tunnels, corridors) that a text prompt struggles with.\n\nThe upload must loop by itself: its frame after the last must be its first. Its frame rate is read from the file. The loop is fitted to the chosen length by repeating it a whole number of times (\"Times the control loop plays\", 0 = closest to its own speed) and resampling, which blends neighbouring frames; for an exact fit render the control at 24 fps with a cycle that divides the loop (a 34-frame cycle fits 107 frames 3 times).\n\nThe Fun ControlNet is a union model: a depth or edge render works best. Prompt the geometry the control shows first, then the look. 8 steps with the turbo LoRA v1.0, as in the author's example; clean-sound mode is off because it cannot be combined with the ControlNet.",
   "category": "video-edit",
   "experimental": true,

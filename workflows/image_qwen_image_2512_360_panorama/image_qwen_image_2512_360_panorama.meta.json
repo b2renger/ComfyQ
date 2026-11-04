@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_qwen_image_2512_360_panorama",
   "name": "Qwen-Image 2512 — 360° panorama / HDRI from a description",
+  "title": "Make a 360° look-around panorama",
+  "summary": "Describe a place and pick the time of day, season, sky and camera height; you get a full 360° picture to look around in the viewer, or to use as the sky and lighting of a 3D scene in Blender, Unity or Unreal.",
   "description": "A 360° panorama of a place you describe, generated with Qwen-Image 2512 and the qwen-360-diffusion LoRA — usable as an HDRI/skybox in Blender, Unreal, Unity or a VR viewer.\n\nDescribe only the PLACE and the camera (\"a quiet mountain pasture above an alpine village … sharp realistic photograph\"). Time of day, season, sky and camera height are chosen from the lists and added to your words for you, together with the 360° instructions, so leave lighting and weather out of the prompt.\n\nYou get a 4096×2048 equirectangular picture as a 16-bit PNG, plus a 32-bit float EXR under the download buttons. Open the picture and press **View in 360°** to look around inside it.\n\n★ The EXR is the same picture stored as linear float, not a true high-dynamic-range capture: the sun is not brighter than white, so it lights a 3D scene evenly rather than with hard sun shadows.\n\nThe seam repair re-paints a band across the left/right join so the panorama wraps without a visible line. Outdoor scenes work best; the poles (straight up and down) can stay soft. Quality mode drops the 8-step Lightning LoRA for a slower 30-step render.",
   "category": "t2i",
   "experimental": true,

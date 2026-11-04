@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_flux3_klein_t2i",
   "name": "FLUX.3 Klein — text to image",
+  "title": "Make a picture, slower but finer",
+  "summary": "Write a detailed description — and, if you like, draw boxes where things go — and get a photo-quality picture. Its twin, \"Make a picture in seconds\", does the same much faster; pick this slower one for a little more detail and variety.",
   "description": "Generate an image from a text prompt with Black Forest Labs' FLUX.3 Image Klein base model (50 steps at guidance 3.5, the higher-quality and slower one). Write full sentences: subject, action, setting, light, style; put any text to render in \"quotes\". FLUX.3 likes a detailed caption — if you would rather write a short idea, tick \"Improve the prompt with AI\" and a Qwen 3.5 model expands it first, but on this machine that adds about 3 minutes. Experimental.",
   "category": "t2i",
   "experimental": true,

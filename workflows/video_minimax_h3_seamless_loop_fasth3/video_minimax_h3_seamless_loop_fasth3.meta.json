@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_minimax_h3_seamless_loop_fasth3",
   "name": "FastH3-Omni — seamless looping video with sound (8 steps)",
+  "title": "Loop a picture into endless motion",
+  "summary": "Upload a picture and describe gentle, repeating motion; you get a seamless looping clip with sound that keeps the picture's world and look — like a living poster or a website background.",
   "description": "The same seamless loop as the MiniMax H3 loop card, made with FastVideo's FastH3-Omni, a version of H3 distilled to 8 steps. The last frame flows straight back into the first, sound included, and the whole loop is smoothed with frame interpolation.\n\nThe author finds it close to the 25-step look WITH a reference picture (a bit punchier), while text-only prompts give a different shot. It can judder slightly on fast motion; slow flows stay smooth. Good for drafts.\n\nWrite the prompt as a state that keeps going: a locked-off camera, one large subject doing one cyclic thing, steady light and a steady overall_soundscape — no timelines, no one-off events, nothing that piles up. Upload a picture and call it <Picture 1> to hold the subject and look. Try several seeds.",
   "category": "i2v",
   "experimental": true,

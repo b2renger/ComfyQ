@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_edit_minimax_h3_fun_controlnet_depth",
   "name": "MiniMax H3 ControlNet (depth) — restyle a video from its 3D layout + audio",
+  "title": "Restyle a video, keep its shapes",
+  "summary": "Upload a clip and describe a new world; the 3D shapes, distances and camera move are kept while every surface and material can change — good for 3D renders and noisy footage.",
   "description": "Upload a video and describe a new look. A temporally stable depth map (Video Depth Anything) is extracted from every frame and MiniMax H3 generates a brand-new video that keeps the 3D layout and motion — shapes, distances, camera move — while surfaces, materials, characters and lighting follow your prompt. A matching audio track is generated too; the original colours and sound are not kept.\n\nDepth is looser than edges: fine textures and small details are free to change, which makes it the better choice for noisy or grainy footage. \"Control strength\" sets how tightly the result follows the depth (1 = closely, lower = looser). Describe the scene, what happens over time, the camera and the sounds.\n\nOnly the first seconds of your clip are used (\"Duration\", default 5 s), and the video is centre-cropped to the aspect ratio you pick. Time grows with duration and size; the default 20-step render takes a few minutes, \"Fast mode\" (4-step turbo LoRA) is several times faster at some cost in quality.",
   "category": "video-edit",
   "tags": [

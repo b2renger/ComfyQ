@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_ltx2_5_t2v",
   "name": "LTX 2.5 — text to video + audio",
+  "title": "Film a multi-shot scene from text",
+  "summary": "Write a short scene — what happens, where the camera is, the sounds and any spoken lines — and get a video of up to 10 seconds with matching sound, even with cuts between shots. Pick it for a bigger, more cinematic picture than the fast video cards.",
   "description": "Type a prompt and LTX 2.5 generates a short video from scratch, with a matching audio track — no input image needed. Describe the scene, the action as it unfolds over time, the camera move, and any sounds or dialogue.\n\nChoose an aspect ratio and a resolution in megapixels (0.9 is about 1280×736 in 16:9). Resolution, duration and frame rate drive the generation time far more than anything else, so keep clips short.\n\n\"Enhance prompt with AI\" (off by default) lets a small built-in language model expand a short prompt into a detailed cinematic one — handy for one-line ideas, but it adds a minute or two.",
   "category": "i2v",
   "tags": [

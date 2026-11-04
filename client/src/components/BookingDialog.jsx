@@ -7,6 +7,7 @@ import { SERVER_URL, getInputUrl } from '../utils/api';
 import { accessHeaders } from '../utils/access';
 import DynamicParamFields, { isSeedParam, randomSeed, isMediaNeeded } from './DynamicParamFields';
 import PromptGuideLinks from './PromptGuideLinks';
+import WorkflowInfoCard from './WorkflowInfoCard';
 import { acquireIdleHold } from '../utils/idleHold';
 
 // Param types whose value is an uploaded file (handled via mediaFiles + /upload
@@ -103,6 +104,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
     const wfInfo = selectedLane
         ? {
             id: selectedLane.workflow_id, name: selectedLane.name,
+            title: selectedLane.title, summary: selectedLane.summary,
             description: selectedLane.description, category: selectedLane.category,
             promptGuides: selectedLane.promptGuides,
         }
@@ -436,24 +438,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         <Modal isOpen={isOpen} onClose={onClose} title="Book Generation Slot" maxWidth="max-w-2xl">
             <form onSubmit={handleSubmit} className="space-y-6">
                 {wfInfo?.id && (wfInfo.description || wfInfo.name) && (
-                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-3 space-y-2">
-                        <div className="flex items-center gap-2">
-                            <Info size={14} className="text-primary shrink-0" />
-                            <span className="text-[10px] uppercase tracking-widest font-bold text-muted">Active workflow</span>
-                            <span className="text-sm font-semibold text-foreground">{wfInfo.name}</span>
-                            {wfInfo.category && wfInfo.category !== 'other' && (
-                                <span className="text-[9px] uppercase tracking-wider font-bold px-1.5 py-0.5 rounded bg-primary/10 text-primary">
-                                    {wfInfo.category}
-                                </span>
-                            )}
-                        </div>
-                        <PromptGuideLinks guides={wfInfo.promptGuides} />
-                        {wfInfo.description && (
-                            <p className="text-xs text-slate-300 leading-relaxed whitespace-pre-wrap">
-                                {wfInfo.description}
-                            </p>
-                        )}
-                    </div>
+                    <WorkflowInfoCard wf={wfInfo} compact />
                 )}
                 <div className="space-y-4 border-b border-border pb-6">
                     <div className="flex flex-col space-y-3">

@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "3d_pixal3d_multi_views",
   "name": "Pixal3D Multi-View — 4 views to PBR-textured 3D model",
+  "title": "Turn four views into 3D",
+  "summary": "Give it four pictures of the same thing (front, both sides and back) and get one 3D model with materials. Pick it when the back and sides must be right, not guessed.",
   "description": "Upload four pictures of the same character or object — front, left side, back and right side — and Pixal3D rebuilds it as one 3D model (.glb) with PBR materials (colour, metallic, roughness, normal and ambient-occlusion maps) that you can spin in the viewer. Because the model sees the subject from every side, the back and sides come out far more faithfully than from a single picture.\n\nThe four views should look like a turnaround sheet: the same subject at the same size, straight-on views (as flat and orthographic as possible), on a plain background. Renders and AI-generated turnaround views work best; casual phone photos much less so. If you have one sheet with all four poses side by side, cut it into four separate images first. The background is removed and each view is framed automatically.\n\n'Shape detail' sets how finely the geometry is sampled (higher = more detail, more memory and time). 'Target face count' is the polygon budget of the final mesh — lower is lighter to view and share. 'Texture resolution' is the size of the baked texture maps (4096 is crisp, 2048 gives a much smaller file). Expect a few minutes per model.",
   "category": "3d",
   "tags": [

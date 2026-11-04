@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "3d_mesh_uv_unwrap",
   "name": "UV unwrap & bake AO - prepare a model for texturing",
+  "title": "Prepare a 3D model for texturing",
+  "summary": "Give it a 3D model and get the same model back ready for painting or texturing, with an image of how its surface was flattened and a map of its soft shadows.",
   "description": "Upload a 3D model and get back the same model with a clean UV layout, plus the two maps that layout makes possible. This is what lets you paint or bake textures onto a mesh that arrived without usable UVs - which most generated and scanned meshes do.\n\nIt cuts the surface into islands, packs them into one square atlas, and bakes an ambient-occlusion map from the ORIGINAL geometry: the soft contact shadows in creases and crevices that make a model read as solid rather than flat.\n\nRESULTS: the .glb carrying the new UVs, a UV layout PNG (each island in its own colour, so you can see how the surface was cut and packed), and the AO map PNG.\n\nAtlas resolution drives all three stages at once - the unwrap, the layout render and the AO bake. Rays per texel trades AO quality against time. Island splitting: 'pec' is the general-purpose cut, 'adaptive' sizes islands by how much detail the surface carries there.\n\nTime scales with how dense the model is, not with the atlas size: about 15 s for a few thousand triangles, about 45 s for half a million. Unlike the remesh bundle this one is not fussy about the model's scale - it was checked on the same mesh at 50x difference and produced the same atlas and the same AO.",
   "category": "3d",
   "tags": [

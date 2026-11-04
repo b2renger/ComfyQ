@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_minimax_h3_t2i",
   "name": "MiniMax H3 — text to image",
+  "title": "Make a cinematic film still",
+  "summary": "Describe a shot like a film director — lens, light, movement, weather — and get a single frame from a model trained on films: strong at motion blur, rain, flares and mood. It needs the whole graphics card, so it is slow to start.",
   "description": "A still picture from MiniMax H3 — the video-and-sound model, asked for a single frame.\n\nBecause it was trained on film, it is strong at cinematic framing, light and atmosphere: write the picture the way a director of photography would describe a shot — subject, setting, lens and angle, light, colour palette, medium.\n\nFast mode (on) uses the 8-step turbo LoRA. Turn it off for the base model at the steps below (30 by default, up to 50 for the most detail) — about four times slower.\n\nIt loads a 20 GB model plus a 15 GB text encoder, so the first picture after a model change takes a while; it owns the card on a 32 GB GPU.",
   "category": "t2i",
   "experimental": true,

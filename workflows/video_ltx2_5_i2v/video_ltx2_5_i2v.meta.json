@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_ltx2_5_i2v",
   "name": "LTX 2.5 — image to video + audio",
+  "title": "Bring a picture to life",
+  "summary": "Give it one picture and say what happens next; it turns the picture into a short video with movement, sound effects and even speech, keeping the picture's look. Pick it when you want a large, faithful result.",
   "description": "Upload a starting image and describe what happens next — LTX 2.5 animates it into a short video with a matching audio track. In the prompt, describe the action as it unfolds over time, the camera move, and the sounds or dialogue you want to hear (e.g. \"She slowly turns her head toward the window as the camera pushes in; rain taps on the glass\").\n\nSet the width and height of the video in pixels (multiples of 64) — 1280×704 is a good 16:9 default, 704×1280 a vertical one. Your image is center-cropped to that shape, so match its orientation. Resolution, duration and frame rate drive the generation time far more than anything else, so keep clips short.\n\n\"Enhance prompt with AI\" (off by default) lets a small built-in language model look at your image and expand a short prompt into a detailed cinematic one — handy for one-line prompts, but it adds a minute or two.",
   "category": "i2v",
   "tags": [

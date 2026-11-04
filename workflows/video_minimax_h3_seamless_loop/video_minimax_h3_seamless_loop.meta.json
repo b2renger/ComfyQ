@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_minimax_h3_seamless_loop",
   "name": "MiniMax H3 — seamless looping video with sound",
+  "title": "Make a video that loops forever",
+  "summary": "Describe something that keeps going — breathing, swaying, spinning — and get a clip with sound whose end flows straight back into its start, so it can play endlessly. Takes several minutes.",
   "description": "A video with its own soundtrack whose last frame flows straight back into its first, so it can play forever. No first/last frame, no crossfade: the pack makes the model join the end of the clip to its start while it samples, then smooths the whole loop with frame interpolation (the joint included).\n\nWhether the joint is invisible depends mostly on the PROMPT. Describe a state that keeps going, not events: a locked-off camera (\"Locked-off static camera, no pan, no zoom.\"), one large subject doing one cyclic thing (pulsing, rotating, swaying, drifting), steady light, and a steady overall_soundscape. Avoid timelines, \"then\" and \"finally\", one-off events (a bite, a blink) and anything that piles up (spills, footprints) — it resets at the joint.\n\nA reference picture is optional: upload one and call it <Picture 1> in the prompt to hold the subject and look.\n\nFast mode uses the 8-step turbo LoRA v1.1; turn it off for 25 steps, which the author finds smoothest on fast motion (about 3× slower). The seed decides a lot — try several before blaming the prompt. Expect several minutes per loop.",
   "category": "i2v",
   "experimental": true,

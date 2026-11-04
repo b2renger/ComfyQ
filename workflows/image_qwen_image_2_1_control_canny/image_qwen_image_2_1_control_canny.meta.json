@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_qwen_image_2_1_control_canny",
   "name": "Qwen Image 2.1 - draw from edges (ControlNet canny)",
+  "title": "Turn a drawing into a photo",
+  "summary": "Give it a drawing, a line sketch or a photo with clear outlines and describe what it should become; every line stays exactly where it was drawn and everything else comes from your words. Best for drawings, buildings and objects with crisp edges.",
   "description": "Upload a picture and the model draws something NEW that keeps its outlines - the shapes and the layout stay, everything else comes from your prompt.\n\nIt works from the edges of your picture, so it is at its best where structure is made of clear lines: buildings, objects, vehicles, interiors, a strong silhouette. A hazy or very soft photograph gives it little to hold on to.\n\nTwo edge controls decide how much of the picture it traces. Lower \"edge detail\" finds more lines, including texture you may not want; raise \"edge strength\" to keep only the confident ones. If the result feels like a tracing, lower the control strength.\n\nThe structure picture is scaled to the output size you choose, so pick an aspect ratio close to it or it will be cropped to fit.\n\nLicence note: the ControlNet weights are Qwen Research License - research and evaluation only, no commercial use.",
   "category": "t2i",
   "tags": [

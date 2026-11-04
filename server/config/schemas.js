@@ -137,7 +137,15 @@ const ExposedParameter = z.object({
 const WorkflowMeta = z.object({
     schemaVersion: z.literal(1),
     id: z.string().min(1),
+    // The technical, full name ("Flux2 Klein 9B — image edit").
     name: z.string().min(1),
+    // ★ What a student reads first (owner, 2026-11-04: "students just don't get
+    // the cards"): `title` is a plain name saying what the card DOES ("Repaint
+    // a marked area from words") and `summary` one or two sentences, no jargon,
+    // on what you give it, what you get back and when to pick it. `description`
+    // stays the technical text, shown folded away under "How it works".
+    title: z.string().optional(),
+    summary: z.string().optional(),
     description: z.string().default(''),
     category: z.enum([
         't2i', 'image-edit', 'i2v', 'video-edit', 'i2i',

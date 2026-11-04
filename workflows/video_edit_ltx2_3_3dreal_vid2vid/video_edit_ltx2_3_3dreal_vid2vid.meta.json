@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_edit_ltx2_3_3dreal_vid2vid",
   "name": "LTX 2.3 3DReal — rough 3D render to photoreal (depth + audio)",
+  "title": "Turn a rough 3D render photoreal",
+  "summary": "Upload a rough grey 3D animation plus one finished-looking picture of its first frame; it turns the animation into realistic footage with the same camera move, and adds sound. Pick it to preview a 3D scene as if it had been filmed.",
   "description": "Turn a rough 3D render into a photorealistic clip. Upload a rough 3D render as the source video and a reference image that sets the look; depth is extracted (MoGe) and used as an IC-LoRA control while the 3DREAL LoRA restyles the clip into a photoreal result with a matching audio track — keeping the render's motion and camera. The source is sliced to ~5s.\n\nTwo prompt boxes: with \"Enhance prompt with AI\" OFF, the \"Prompt (used as-is)\" box drives generation. With it ON, the \"Prompt (AI-enhanced)\" box is rewritten by an in-graph LLM using your reference image. The inactive box is greyed out.",
   "category": "video-edit",
   "tags": [

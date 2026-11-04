@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_edit_wan_animate2",
   "name": "Wan Animate 2 — make a character perform a video's motion",
+  "title": "Give a character a video's moves",
+  "summary": "Upload a full-body picture of a character and a video of someone moving, then describe a place in words; your character performs the same moves there. Pick it when you want a new background — and use full-body pictures for both.",
   "description": "Give your character someone else's moves. Upload a picture of your character (who) and a driving video of a person moving (what motion) — Wan Animate 2 makes your character perform that motion. The motion is read straight from the video frames; no skeleton or pose extraction is needed.\n\nThere are two prompts. The Character & background prompt describes how the character looks and where the scene takes place — looks only, no motion words; the background comes from this text, not from your image or the video. The Motion prompt briefly says what the person in the video is doing (e.g. \"a man doing an energetic street dance\").\n\nKeep the framing similar in both inputs (full body with full body, close-up with close-up) — a framing mismatch is the #1 cause of bad results. Only the first 81 frames of the video are used by default (about 3 s); both inputs are center-cropped to width × height (portrait 480×848 by default — swap the numbers for a landscape clip). Bigger sizes and more frames take longer.",
   "category": "video-edit",
   "tags": [

@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_ltx2_3_ic_lora_ingredients",
   "name": "LTX 2.3 IC-LoRA — reference sheet to video (ingredients + audio)",
+  "title": "Turn a reference sheet into video",
+  "summary": "Upload one sheet showing your character, a prop and a place on a black background, then describe a scene; the video keeps all three looking just like the sheet, with sound. Pick it to keep a character consistent from shot to shot.",
   "description": "Generate a new video whose characters, props and location match a reference sheet.  The one from Dynamic Charactersheet krea2 for instance or one made by hand.\n\nUpload ONE composite image on a black background with no text, with a clean panel for each element — a face close-up and full-body turnaround for each character, a product-style view of each prop, and one wide shot of the location — then describe what happens. LTX 2.3 with the Ingredients IC-LoRA keeps those elements consistent through the clip and generates matching audio (dialogue written in quotes is spoken).\n\nWrite the prompt in two parts, the way the model was trained: first describe the panels on the sheet (\"Reference sheet: …\"), then the shot, action and sound (\"Generated video: …\"). Bigger panels carry over better, and anything that isn't on the sheet won't stay consistent.\n\nDuration must be at least 5 seconds (the model needs 121+ frames). The model was trained at 768×448; the 1280×720 default looks sharper but takes longer, and the sheet is letterboxed with black to fit. \"Reference strength\" controls how strongly the sheet is followed (the model card suggests trying up to 1.4).",
   "category": "i2v",
   "tags": [

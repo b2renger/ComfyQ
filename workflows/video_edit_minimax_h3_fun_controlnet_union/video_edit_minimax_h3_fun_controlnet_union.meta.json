@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_edit_minimax_h3_fun_controlnet_union",
   "name": "MiniMax H3 ControlNet (pose) — transfer a person's movement + audio",
+  "title": "Copy someone's moves onto anyone",
+  "summary": "Upload a video of a person moving and describe who should move like that, and where; you get a new character doing exactly the same moves, with new sound.",
   "description": "Upload a video of someone moving (a dance, gestures, a sports move) and describe who should perform it and where. The people in the clip are detected and a full-body skeleton (body, hands, face, feet) is tracked on every frame; MiniMax H3 then generates a brand-new video where your described character performs exactly those movements, with a matching audio track. Clothing, face, background and lighting all come from your prompt.\n\nThe people must be clearly visible — ideally the whole body, not too small in the frame. Without a detectable person the pose is guessed and the movement is not followed. \"Max people to track\" sets how many dancers are followed; \"Control strength\" sets how strictly the pose is copied (1 = exactly, lower = looser).\n\nOnly the first seconds of your clip are used (\"Duration\", default 5 s), and the video is centre-cropped to the aspect ratio you pick. Pose tracking adds a little time on top of the render; \"Fast mode\" (4-step turbo LoRA) is several times faster at some cost in quality.",
   "category": "video-edit",
   "tags": [

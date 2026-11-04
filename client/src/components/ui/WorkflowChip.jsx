@@ -9,11 +9,11 @@ import { Wand2 } from 'lucide-react';
 const WorkflowChip = ({ workflowId, workflowsById, className = '' }) => {
     if (!workflowId) return null;
     const wf = workflowsById?.[workflowId];
-    const name = wf?.name || workflowId;
+    const name = wf?.title || wf?.name || workflowId;
     return (
         <span
             className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-primary/10 border border-primary/20 text-[9px] uppercase tracking-wider text-primary max-w-[160px] ${className}`}
-            title={`Workflow: ${name}${wf ? '' : ' (no longer in library)'}`}
+            title={`Workflow: ${name}${wf?.title && wf?.name && wf.name !== wf.title ? ` (${wf.name})` : ''}${wf ? '' : ' (no longer in library)'}`}
         >
             <Wand2 size={9} className="shrink-0" />
             <span className="truncate">{name}</span>

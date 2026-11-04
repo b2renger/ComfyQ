@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_edit_minimax_h3_v2v_video_reference",
   "name": "MiniMax H3 — transform a video by reference + audio",
+  "title": "Edit a video, sound and all",
+  "summary": "Upload a clip and say what to swap — the person, a costume, an object, the setting — and what to keep; you get the same shot, the same moves and timing, with your change and a new soundtrack. Slow (several minutes).",
   "description": "Upload a source clip and describe how to transform it. MiniMax H3 watches your clip as a reference (call it \"Video 1\" in the prompt) and generates a new video that keeps what you ask it to keep — choreography, timing, camera move — and replaces what you describe: character, costume, setting, lighting, style. A new audio track is generated from your prompt.\n\nNothing is traced frame by frame (unlike the ControlNet versions), so the wording matters a lot: say explicitly what to retain from Video 1 and what to change. The default prompt shows a structure that works well — subject definitions, summary, what to retain, a detailed description and the audio.\n\nThis is the slowest MiniMax workflow: the whole reference clip rides along every sampling step. Keep clips short (\"Duration\", default 5 s; only the start of your clip is used) and use \"Fast mode\" (4-step turbo LoRA) when you are exploring ideas.",
   "category": "video-edit",
   "tags": [

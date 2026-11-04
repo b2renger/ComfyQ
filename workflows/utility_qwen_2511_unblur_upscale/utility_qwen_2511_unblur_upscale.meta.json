@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "utility_qwen_2511_unblur_upscale",
   "name": "Unblur & upscale a photo (Qwen Image Edit 2511)",
+  "title": "Sharpen a blurry portrait",
+  "summary": "Give it a small or blurry photo of a person and get a sharper version (about 1 megapixel) that keeps the same face. Pick it for portraits; use the other enlargers for everything else.",
   "category": "i2i",
   "tags": [
     "qwen",

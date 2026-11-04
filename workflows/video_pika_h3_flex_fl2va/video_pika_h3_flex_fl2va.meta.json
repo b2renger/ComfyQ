@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_pika_h3_flex_fl2va",
   "name": "Pika H3 Flex — first / last frame to video with sound (6 steps)",
+  "title": "Animate between two pictures, polished",
+  "summary": "Give a first picture and, if you like, a last one, and describe what happens in between; you get a large, smooth video with sound that starts on the first and ends exactly on the second.",
   "description": "A picture becomes the opening shot of a video WITH sound — and optionally a second picture becomes where it ends. Six sampling steps (Pika H3 Flex on MiniMax H3).\n\nThe video takes the shape of the first picture. Describe how it moves from the first frame to the last: what happens and when (\"at about two seconds…\"), the camera move, and the sound. It generates the soundtrack with the picture — say what is heard (dialogue in quotes, effects, ambience, music) or you get whatever it invents.\n\nWith a last picture, say in the prompt that the shot ends on it. Leave it empty for a plain image-to-video. Durations from 5 to 15 seconds.",
   "category": "i2v",
   "experimental": true,

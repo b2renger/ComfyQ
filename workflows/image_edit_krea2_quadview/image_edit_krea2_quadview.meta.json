@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_edit_krea2_quadview",
   "name": "Krea 2 Turbo — QuadView character turnaround (4 panels)",
+  "title": "Show a character from four sides",
+  "summary": "Upload a picture of one character and get a single sheet with a face close-up and front, side and back views — a quick turnaround for concept art, comics or 3D modelling.",
   "description": "Upload a picture of a character and get back one landscape image (1536x1024) split into four panels of that same character: a face close-up, a front full-body view, a side full-body view and a back full-body view. It's a quick turnaround sheet for concept art, 3D-modelling reference, or keeping a character consistent across other images.\n\nThe instruction box is pre-filled with the sentence the QuadView LoRA was trained on — you can add details (\"in a watercolour style\", \"wearing a red scarf\"), but keep the core sentence. 'Likeness strength' controls how hard the model copies your picture: 1 is the normal setting, 3–4 gives a closer match of face and clothing, and much higher values make the result stiff. 'Steps': around 8 sticks more strictly to the four-panel layout, 12 adds face detail, 10 is a good balance. A single sheet takes well under a minute.",
   "category": "image-edit",
   "tags": [

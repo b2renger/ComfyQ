@@ -52,6 +52,10 @@ function activeWorkflow({ config, registry }) {
             return {
                 id,
                 name: entry.summary?.name || id,
+                // Plain-language name and summary (meta `title` / `summary`); an
+                // older Discovery app ignores them and keeps showing `name`.
+                title: entry.summary?.title || entry.summary?.name || id,
+                summary: entry.summary?.summary || '',
                 description,
                 category: entry.summary?.category || entry.meta?.category || null,
                 estimatedDurationSec: entry.summary?.estimatedDurationSec || null
@@ -80,6 +84,8 @@ function servedWorkflows({ config, registry, runtime }) {
         return {
             id: l.workflowId,
             name: l.name,
+            title: usable ? (entry.summary?.title || l.name) : l.name,
+            summary: usable ? (entry.summary?.summary || '') : '',
             description: usable ? (entry.summary?.description || entry.meta?.description || '') : '',
             category: usable ? (entry.summary?.category || null) : null,
             estimatedDurationSec: usable ? (entry.summary?.estimatedDurationSec || null) : null,

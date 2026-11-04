@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_edit_flux3_klein_distilled_image_edit",
   "name": "FLUX.3 Klein distilled — fast picture edit",
+  "title": "Edit a picture in seconds",
+  "summary": "Describe a change — a new style, colour, object or light — and get the edited picture. The result keeps your picture's shape and layout; a box can point at exactly what to change.",
   "description": "Edit a picture by describing the change, with Black Forest Labs' FLUX.3 Image Klein distilled build (16 steps, about 14 s). Refer to your picture as <ref_image_0>, and say what must stay the same as well as what changes — or, as Black Forest Labs recommend, describe the finished picture in full with the edit folded in. Ticking \"Improve the instruction with AI\" lets a Qwen 3.5 model look at the picture and write that caption for you, but on this machine it adds about 2–3 minutes. The result keeps the shape of your picture. Placing the change with boxes (FLUX.3 layout prompts) is not offered on this card yet. Experimental.",
   "category": "image-edit",
   "experimental": true,

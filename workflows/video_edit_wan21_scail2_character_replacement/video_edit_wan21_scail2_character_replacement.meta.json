@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_edit_wan21_scail2_character_replacement",
   "name": "SCAIL-2 (Wan 2.1) — character replacement in video",
+  "title": "Replace a person in a video",
+  "summary": "Upload a full-body picture of a character and a video of someone moving; the person in the video becomes your character, doing exactly the same moves in the same place. Pick it when the video's background must stay.",
   "description": "Swap the person in a video for your own character. Upload a picture of the character you want to see and a video of someone moving — SCAIL-2 replaces that person with your character, copying their motion while the rest of the scene stays. The built-in segmenter (SAM 3) finds who to replace from the short text you type (\"person\" works for most clips; be more specific in a crowded scene). The prompt describes the final video: the character's looks, what they do and the setting.\n\nTurn \"Replace mode\" off to animate your character instead — they perform the video's motion in a scene you describe in the prompt. \"Fast mode\" (on by default) uses a 6-step distilled LoRA; turning it off runs the full 40-step path, which is many times slower.\n\nThe video is generated in two overlapping 81-frame chunks, so only about the first 157 frames (≈6.5 s at 24 fps) are used. It is center-cropped to width × height (896×512 landscape by default — swap the numbers for a portrait clip). Works best with one clearly visible person, framed like the character image.",
   "category": "video-edit",
   "tags": [

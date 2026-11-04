@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "utility_pid_image_upscale",
   "name": "PiD — image upscale ×4 (up to 33 MP)",
+  "title": "Make a picture poster-sized, exactly 4×",
+  "summary": "Give it a clean, sharp picture and get it back exactly 4 times wider and taller (up to 33 megapixels) with the same colours and content. Pick it for printing or zooming in, not for damaged photos.",
   "description": "Upload an image and NVIDIA's PiD pixel decoder rebuilds it 4× wider and 4× taller: a 1920×1080 picture becomes 7680×4320 (33 MP), a 1024×1024 one becomes 4096×4096. It adds real fine detail (fabric, foliage, stone, skin) instead of just enlarging the pixels, and keeps the original colours. The image is processed in overlapping tiles, so there are no visible seams.\n\nBig photos are first shrunk to fit 1920×1080 by the upload form, so the largest result is 7680×4320.\n\nClean, sharp images give the best results. Tiny, blurry or heavily compressed pictures (for example ones saved from a messaging app) can come back with invented texture or odd-looking small faces. The result files are very large (tens of MB), so opening and downloading them takes a moment. Change the seed to re-roll the fine detail.",
   "category": "i2i",
   "tags": [

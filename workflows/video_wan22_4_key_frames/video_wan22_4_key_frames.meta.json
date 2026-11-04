@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_wan22_4_key_frames",
   "name": "Wan 2.2 — key-frame animation (4 frames to video)",
+  "title": "Animate through four key frames",
+  "summary": "Give it four pictures in order and a sentence on how to move from each one to the next; it draws the motion in between and returns one smooth silent clip. Pick it when two pictures (a start and an end) are not enough.",
   "description": "Turn four still key frames into one continuous video. Wan 2.2 generates a smooth animated transition between each consecutive pair of frames (frame 1→2, 2→3, 3→4) and stitches the three segments into a single clip.\n\nIf you are targetting an animation you need to provide a detailled prompt, with context (see the default prompts); leave a box empty to just morph between those two frames. \n\n Runs the fast 4-step Lightning path at 720×720.\n\nTip: use frames that share the same subject and framing so the transitions stay coherent.",
   "category": "i2v",
   "tags": [

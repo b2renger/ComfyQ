@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "describe_gemma4_video_description",
   "name": "Gemma 4 — describe a video (caption)",
+  "title": "Describe a video in words",
+  "summary": "Give it a short video and it writes what happens, second by second. It looks at about one frame per second and does not hear the sound.",
   "description": "Ask Gemma 4 (a vision-language model running in ComfyUI) to describe a video in words. Upload a clip and the model writes a description / caption as text — useful on its own, or to turn a video into a prompt for another workflow.\n\nEdit the instruction to steer the output, e.g. \"Describe the video.\" / \"List what happens, step by step.\" / \"Write a short caption.\" / \"Describe the mood, motion and lighting.\" Change the seed to re-roll the wording.\n\nTip: keep clips short — every frame is read by the model, so long or high-resolution videos are slower and use more memory.",
   "category": "description",
   "tags": [

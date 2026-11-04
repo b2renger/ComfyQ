@@ -237,7 +237,8 @@ function cardHtml(p, selfIps, wf) {
             <span class="wf-icon" title="${esc(GROUP_LABEL[groupOfWf(wf)] || 'Workflow')}">${catIconSvg(wf)}</span>
             <div class="serving-text">
                 <div class="wf-label">Now serving</div>
-                <div class="wf-name">${esc(wf.name || 'a workflow')}</div>
+                <div class="wf-name">${esc(wf.title || wf.name || 'a workflow')}</div>
+                ${wf.title && wf.name && wf.title !== wf.name ? `<div class="wf-tech">${esc(wf.name)}</div>` : ''}
             </div>
         </div>` : '';
 
@@ -249,7 +250,7 @@ function cardHtml(p, selfIps, wf) {
         if (jobs.running) parts.push(jobRow(jobs.running, true));
         for (const j of (jobs.scheduled || [])) parts.push(jobRow(j, false));
         workHtml = `
-            ${wf.description ? `<div class="wf-desc">${esc(wf.description)}</div>` : ''}
+            ${(wf.summary || wf.description) ? `<div class="wf-desc">${esc(wf.summary || wf.description)}</div>` : ''}
             <div class="jobs">
                 <div class="jobs-label">Queue${jobs.scheduled && jobs.scheduled.length ? ` · ${jobs.scheduled.length} waiting` : ''}</div>
                 ${parts.length ? parts.join('') : '<div class="no-jobs">Nothing queued</div>'}
@@ -281,7 +282,7 @@ function cardHtml(p, selfIps, wf) {
     return `
         <div class="card ${kind === 'stale' ? 'stale' : ''}${isSelf ? ' self' : ''}${isServing && url ? ' clickable' : ''}"
              data-id="${esc(cardKey(p, wf))}" data-peer="${esc(p._key || p.id || '')}"
-             ${isServing && url ? `data-url="${esc(url)}" data-name="${esc(wf.name || 'a workflow')}" data-machine="${esc(p.name || 'Machine')}"` : ''}>
+             ${isServing && url ? `data-url="${esc(url)}" data-name="${esc(wf.title || wf.name || 'a workflow')}" data-machine="${esc(p.name || 'Machine')}"` : ''}>
             <div class="card-head">
                 <div class="head-main">
                     <div class="machine-name">${esc(p.name || 'Unknown machine')}${isSelf ? '<span class="self-tag">This machine</span>' : ''}</div>
@@ -362,8 +363,8 @@ function cardsSignature(peers, selfIps) {
     return JSON.stringify(peers.map(p => [
         p._key, p.id, p.name, p.hostname, p._idClash, (p.ips || []).join(','), p.gpu, p.vramGb, p.ramGb, p.mode,
         !!(p.comfy && p.comfy.running),
-        p.activeWorkflow && [p.activeWorkflow.id, p.activeWorkflow.name, p.activeWorkflow.description, p.activeWorkflow.category],
-        servedOf(p).map(w => [w.id, w.name, w.description, w.category, w.busy]),
+        p.activeWorkflow && [p.activeWorkflow.id, p.activeWorkflow.name, p.activeWorkflow.title, p.activeWorkflow.summary, p.activeWorkflow.description, p.activeWorkflow.category],
+        servedOf(p).map(w => [w.id, w.name, w.title, w.summary, w.description, w.category, w.busy]),
         p.usage && p.usage.usersConnected, !!p.accessLocked,
         Math.floor(((p.usage && p.usage.idleSec) || 0) / 30),
         p._stale, p._source,

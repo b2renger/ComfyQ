@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_liveportrait_image2video",
   "name": "LivePortrait — animate a portrait from a driving video",
+  "title": "Copy facial expressions onto a portrait",
+  "summary": "Give it a front-facing portrait — a photo, a painting or a 3D render — and a video of a face moving; the portrait copies the head turns, eye and mouth movements. Very fast; no sound.",
   "description": "Bring a still portrait to life. Upload a clear, front-facing portrait photo and a short driving video of a face that moves and talks — LivePortrait transfers the video's head motion plus eye and lip movement onto your portrait, producing an animated (silent) video.\n\nWorks best when both the portrait and the driving face are centred, well-lit, and roughly head-and-shoulders. \"Max frames from driving video\" caps how much of the driving clip is used — higher means a longer result but a longer render.",
   "category": "i2v",
   "tags": [

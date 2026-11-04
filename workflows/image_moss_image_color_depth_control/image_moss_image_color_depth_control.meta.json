@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_moss_image_color_depth_control",
   "name": "MOSS-Image — new picture from a photo's pose and depth",
+  "title": "Reinvent a photo, keep its pose",
+  "summary": "Upload a photo of someone (or something) and describe a completely new picture; only the pose and framing come from the photo — the person, clothes, place and style all come from your words.",
   "description": "Drop in a photo and get a NEW picture with the same pose and framing. The photo's 3D shape is estimated (MoGe 3) and turned into a depth map; MOSS-Image then paints whatever the prompt says onto that shape. Nothing else of the photo is kept — identity, clothes, material, light and style all come from the text.\n\nDescribe the whole picture as if from scratch, including the parts the photo already shows (\"a woman framed from the chest up…\"). If the photo has a feature the shape will keep — pointed ears, a hat — either describe it or say how to hide it.\n\nGeometry: \"depth\" holds the pose, the face profile and the background falloff; \"mask\" keeps only the silhouette and leaves the prompt more room. Control ends at 60% of the steps by default so the last steps can render freely — raise it to pin the shape harder.\n\nThe output takes the photo's shape, at about 1 megapixel.",
   "category": "t2i",
   "experimental": true,

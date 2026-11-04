@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_edit_ltx2_5_iclora_union_control",
   "name": "LTX 2.5 IC-LoRA — video to video (depth control + audio)",
+  "title": "Restyle a video, keep its layout",
+  "summary": "Upload a video and a restyled picture of its first frame (or just describe a look); it remakes the whole scene in that style while keeping where everything is and how it moves, with a new soundtrack. Pick it for landscapes, rooms and scenes with depth.",
   "description": "Restyle a video while keeping its motion and 3D layout. Upload a source video (and, optionally, a start image): a depth map is extracted from every frame (Video Depth Anything) and used as a guide, so LTX 2.5 generates a new video that moves like the original — in the style of your prompt and start image — with a freshly generated soundtrack (the original audio is not kept).\n\nThe start image becomes the opening frame; a restyled still of your video's first frame works best. Untick \"Use a start image\" to let the prompt alone set the look — then no image is needed. \"Enhance prompt with AI\" lets a small Gemma model rewrite your prompt into a fuller description first. Lower \"Control strength\" to let the result drift further from the source's structure.\n\nOnly the start of your clip is used (\"Clip length used\", default 5 s), at its own frame rate and aspect ratio. The video is rendered in two passes, a fast 8-step pass at the working resolution and then a 2× upscale pass, so a working resolution of 512 gives a 1024p result. Clip length and resolution drive the time.",
   "category": "video-edit",
   "tags": [

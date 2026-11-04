@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_flux2_klein_9b_t2i",
   "name": "Flux2 Klein 9B — text to image",
+  "title": "Make a true-to-life photo",
+  "summary": "Describe a photo in full sentences and get a realistic picture. It is especially good at faces, skin and exact colours — you can even give a colour as a code like #1F5C4A. Pick it when the result must look like a real photograph.",
   "description": "Generate an image from a text prompt with Flux2 Klein 9B.",
   "category": "t2i",
   "tags": [

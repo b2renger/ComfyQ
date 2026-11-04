@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "audio_stable_audio_3_medium",
   "name": "Stable Audio 3 Medium — text to audio",
+  "title": "Make music or sound effects",
+  "summary": "Describe the music, loop or sound effect you want and get it in seconds, up to five minutes long. Instrumental only: it does not sing.",
   "description": "Generate music, instrument loops, sound effects, or one-shots from a short text description. Pick a Category, type what you want (e.g. \"lofi hip-hop chill beat with mellow Rhodes and vinyl crackle\"), set a duration, and play the result.\n\nLeave 'Enhance prompt with AI' on: a local model rewrites your short description into a detailed, model-friendly prompt for the chosen category (more reliable results). Turn it off to send your exact words verbatim.",
   "category": "audio",
   "tags": [

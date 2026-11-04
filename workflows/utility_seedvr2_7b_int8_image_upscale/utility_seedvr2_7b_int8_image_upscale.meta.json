@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "utility_seedvr2_7b_int8_image_upscale",
   "name": "SeedVR2 7B (int8) — image upscale & restore (up to 4K)",
+  "title": "Rebuild a photo's detail, fast",
+  "summary": "Give it a photo and get it back up to 4 times bigger with lost detail rebuilt. About twice as fast as the 4K version, and it can match the original colours.",
   "description": "Upload a photo or render and SeedVR2 rebuilds it up to 4× larger, adding realistic detail (skin, hair, fabric, foliage) rather than just sharpening. This is the int8 build of the 7B model, running on ComfyUI's built-in SeedVR2 support.\n\nYour image is first shrunk so its longest side is at most 1024 px, then multiplied by the upscale factor — ×4 gives about 4K (4096 px on the long side). Lower factors are faster.\n\nIf the colours shift compared with the original, pick a colour correction (\"lab\" is the most faithful). Change the seed to re-roll the generated detail.",
   "category": "i2i",
   "tags": [

@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "utility_ltx2_5_video_deblur_upscale",
   "name": "LTX 2.5 — video deblur & detail upscale (keeps original audio)",
+  "title": "Enlarge a video 2×, adding detail",
+  "summary": "Upload a small video that has sound; it redraws it at up to twice the size with new fine detail, keeping the original sound. Pick it to finish a quick draft — it invents detail, so it is not for exact restoration.",
   "description": "Clean up a soft, blurry or low-resolution video. Upload a clip and LTX 2.5 re-renders every frame with sharp, fresh detail using the Deblur (2× pixel-upscaler) IC-LoRA, keeping the original motion and the original soundtrack untouched. Your clip must have a sound track — silent videos fail.\n\n\"Output size\" is the short side of the result (576 ≈ 1024×576 for a 16:9 clip). The model reads your video at half that size and rebuilds the detail, so raise it to 704 or 1088 for a bigger, sharper result — it gets slower. The prompt is optional: a short description of what's in the clip, or just the look you want, can help.\n\nYou can also tick \"Use a start image\" and upload a sharp still of the first frame to anchor the result to it; leave it unticked to skip it. Only the start of your clip is used (\"Clip length used\", default 5 s). This is a fast single 8-step pass.",
   "category": "preprocessor",
   "tags": [

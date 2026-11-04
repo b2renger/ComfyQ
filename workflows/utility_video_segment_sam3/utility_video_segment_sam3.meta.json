@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "utility_video_segment_sam3",
   "name": "SAM3 — text-prompted video segmentation",
+  "title": "Isolate a named object in video",
+  "summary": "Give it a video and type the name of something in it; you get a black-and-white video where only that thing is white, ready for cutting out in editing. Write 'person:5' to catch up to five of them.",
   "description": "Isolate an object in a video just by naming it. Upload a video and type what to track (e.g. \"person\", \"dog\", \"red car\") — SAM3 finds that object in every frame and outputs a black-and-white **mask video** (white = the object, black = everything else), ready to use as a matte / luma key in compositing.\n\nTip: use a short, concrete noun or noun phrase. Lower the detection threshold to catch more (looser), raise it to be stricter. Output frames line up 1:1 with the source.",
   "category": "preprocessor",
   "tags": [

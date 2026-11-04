@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_qwen_image_2_1_image_edit",
   "name": "Qwen Image 2.1 — image edit with references",
+  "title": "Edit a photo using reference pictures",
+  "summary": "Upload the photo to change plus up to nine pictures of things to bring in (an object, a garment, a face), and write what goes where; you can even draw coloured circles on the photo and name them in the prompt. Whatever you don't mention stays as it was.",
   "description": "Edit a picture with Qwen Image 2.1 — or, with no picture at all, just generate one from the prompt.\n\nUpload up to 16 pictures and refer to them in the prompt as <image1>, <image2> and so on. Image 1 is the one being edited; the rest are references the model can borrow from — a garment, a face, a style, a background. Everything you leave empty is removed from the graph, so an unused slot cannot influence the result.\n\nUpload nothing and it becomes a plain text-to-image generator, and the aspect ratio and size fields decide the output. Upload Image 1 and those two fields are ignored: the result keeps Image 1's size, because any other size shifts the edit.\n\nSay what should STAY as well as what should change — \"keep the pose, the face and the background, replace only the jacket\" — vague instructions let the model redraw more than you wanted.\n\nLicence note: Qwen Research License — research and evaluation only, no commercial use.",
   "category": "image-edit",
   "tags": [

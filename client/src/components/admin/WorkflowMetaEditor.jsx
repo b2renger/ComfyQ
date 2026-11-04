@@ -299,8 +299,26 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                                 </label>
                             </div>
                         </div>
+                        {/* What a student reads first: a plain title saying what the
+                            card does, and a jargon-free summary. "Name" above stays
+                            the technical name; "Description" the technical text,
+                            shown folded under "How it works". */}
+                        <Field label="Title — what it does, in plain words (students see this first)"
+                            value={meta.title || ''} onChange={v => updateMeta({ title: v })} />
                         <div className="space-y-1.5">
-                            <label className="text-xs uppercase tracking-wider text-muted font-semibold">Description</label>
+                            <label className="text-xs uppercase tracking-wider text-muted font-semibold">
+                                Summary <span className="normal-case tracking-normal font-normal">— one or two sentences, no jargon: what you give it, what you get, when to pick it</span>
+                            </label>
+                            <textarea
+                                value={meta.summary || ''}
+                                onChange={(e) => updateMeta({ summary: e.target.value })}
+                                className="w-full bg-background border border-border rounded-lg p-2.5 text-white text-sm min-h-[50px]"
+                            />
+                        </div>
+                        <div className="space-y-1.5">
+                            <label className="text-xs uppercase tracking-wider text-muted font-semibold">
+                                Description <span className="normal-case tracking-normal font-normal">— technical; students see it under “How it works”</span>
+                            </label>
                             <textarea
                                 value={meta.description || ''}
                                 onChange={(e) => updateMeta({ description: e.target.value })}

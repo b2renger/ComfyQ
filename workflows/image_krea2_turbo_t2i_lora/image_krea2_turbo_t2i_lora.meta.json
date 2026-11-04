@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "image_krea2_turbo_t2i_lora",
   "name": "Krea-2 Turbo — text to image (+ style LoRA)",
+  "title": "Pick a style, make a picture",
+  "summary": "Pick a ready-made look from the list — embroidery, ink wash, retro anime, watercolour, tarot card… — and describe your scene; the card adds the words that switch the style on.",
   "description": "Fast text-to-image with Krea 2 Turbo (8 steps). Type a prompt, pick an aspect ratio and, if you like, a style LoRA.\n\n\"Enhance prompt with AI\" lets a small language model rewrite your prompt into a richer description before the image is made; untick it to use your words exactly as written. Keep \"Thinking mode\" on: with it off, the rewrite sometimes comes back as the AI's working notes, an empty answer or a refusal instead of a description (when ComfyQ can tell, it uses your own words instead).\n\n\"Use a style LoRA\" applies a trained look (realism is the default). Each style's trigger words are added to the prompt automatically, and while a style LoRA is on the AI rewrite leaves style words out so the LoRA's look is not mixed with another one. Around 1.0 is a good strength; some styles look best near 0.8.",
   "category": "t2i",
   "tags": [

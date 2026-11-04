@@ -2,6 +2,8 @@
   "schemaVersion": 1,
   "id": "video_ltx2_5_flf2v",
   "name": "LTX 2.5 — first & last frame to video + audio",
+  "title": "Make a video between two pictures",
+  "summary": "Give a first and a last picture and describe what happens in between; it makes the video that travels from one to the other, with sound. Pick it when a shot must end exactly on a picture you chose.",
   "description": "Give a START image and an END image and LTX 2.5 generates a short video that travels from the first frame to the last, with a matching audio track. In the prompt, describe what happens in between — the motion, the camera move, and the sounds (e.g. \"The hand slowly opens and a glowing crystal appears above the palm; a low hum rises\").\n\nBoth images are resized and center-cropped to the width × height you choose (1280×720 by default), so use two pictures with the same framing and aspect ratio. Resolution, duration and frame rate drive the generation time far more than anything else.\n\n\"Enhance prompt with AI\" (off by default) lets a small built-in language model look at the first frame and expand a short prompt into a detailed cinematic one — useful for one-line prompts, but it adds a minute or two.",
   "category": "i2v",
   "tags": [
