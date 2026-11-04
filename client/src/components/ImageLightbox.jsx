@@ -238,6 +238,15 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
                             </div>
                         </div>
 
+                        {/* An example from the library's test suite says what it is
+                            meant to show — the point of looking at it. */}
+                        {job.user_id === 'examples' && job.batch_label && (
+                            <div className="p-3 rounded-xl border border-primary/30 bg-primary/10 space-y-1">
+                                <label className="text-[10px] text-primary uppercase font-bold tracking-wider">What this example shows</label>
+                                <p className="text-sm text-foreground leading-relaxed">{job.batch_label}</p>
+                            </div>
+                        )}
+
                         <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
                             <div className="space-y-1">
                                 <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Prompt</label>

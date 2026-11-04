@@ -171,5 +171,12 @@
     }
   ],
   "warmupParams": {},
-  "presets": {}
+  "presets": {},
+  "promptGuides": [
+    {
+      "label": "Bernini — official example edits",
+      "url": "https://github.com/bytedance/Bernini/tree/main/assets/testcases",
+      "tip": "One clear instruction: say what changes and what must stay the same. Match the clip's shape — the video is centre-cropped to width × height."
+    }
+  ]
 }

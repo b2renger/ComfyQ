@@ -68,5 +68,11 @@
     }
   ],
   "warmupParams": {},
-  "presets": {}
+  "presets": {},
+  "promptGuides": [
+    {
+      "label": "Gemma — understanding video (Google)",
+      "url": "https://ai.google.dev/gemma/docs/capabilities/vision/video"
+    }
+  ]
 }

@@ -55,7 +55,7 @@
       "nodeId": "10",
       "field": "resolution",
       "type": "number",
-      "label": "Target resolution (px, longest edge)",
+      "label": "Target resolution (px, SHORTEST edge)",
       "default": 1080,
       "min": 480,
       "max": 2160,

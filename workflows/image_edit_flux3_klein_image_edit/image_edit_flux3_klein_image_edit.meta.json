@@ -4,7 +4,7 @@
   "name": "FLUX.3 Klein — edit a picture",
   "title": "Edit a picture, slower but finer",
   "summary": "Describe a change and, if you like, draw a box around the exact thing to change; the rest of the picture stays the same. The most precise edit in the library, and slower than its twin \"Edit a picture in seconds\", which does the same job much faster.",
-  "description": "Edit a picture by describing the change, with Black Forest Labs' FLUX.3 Image Klein base model (50 steps at guidance 3.5). Refer to your picture as <ref_image_0>, and say what must stay the same as well as what changes — or, as Black Forest Labs recommend, describe the finished picture in full with the edit folded in. Ticking \"Improve the instruction with AI\" lets a Qwen 3.5 model look at the picture and write that caption for you, but on this machine it adds about 2–3 minutes. The result keeps the shape of your picture. Placing the change with boxes (FLUX.3 layout prompts) is not offered on this card yet. Experimental.",
+  "description": "Edit a picture by describing the change, with Black Forest Labs' FLUX.3 Image Klein base model (50 steps at guidance 3.5). Refer to your picture as <ref_image_0>, and say what must stay the same as well as what changes — or, as Black Forest Labs recommend, describe the finished picture in full with the edit folded in. The AI improver (\"Improve the instruction with AI\") fails on this ComfyUI build, so leave it off and write the instruction in full. The result keeps the shape of your picture. To change one exact thing, draw a box around it over your picture and cite it as <obj_1> in the instruction; say in words what must stay. Experimental.",
   "category": "image-edit",
   "experimental": true,
   "tags": [
@@ -45,8 +45,8 @@
       {
         "type": "vae",
         "file": "flux2-vae.safetensors",
-        "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/flux2-vae.safetensors",
-        "source": "https://huggingface.co/VAST-AI/TripoSplat"
+        "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/flux2-dev"
       }
     ]
   },
@@ -138,6 +138,17 @@
       "label": "Seed",
       "default": 42,
       "order": 7
+    }
+  ],
+  "promptGuides": [
+    {
+      "label": "FLUX.3 prompting basics (Black Forest Labs)",
+      "url": "https://docs.bfl.ai/guides/prompting_unified_basics",
+      "tip": "Write the caption in full — the AI improver fails on this ComfyUI build: medium first, then the scene, the light, the camera and where each subject sits."
+    },
+    {
+      "label": "FLUX.3 layout prompts — placing things with boxes",
+      "url": "https://docs.bfl.ai/guides/prompting_layout"
     }
   ]
 }

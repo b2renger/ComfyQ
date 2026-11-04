@@ -46,8 +46,9 @@
       {
         "type": "lora",
         "file": "flux2_klein_9b_refcontrol_depth.safetensors",
-        "source": "https://huggingface.co/Comfy-Org/Flux-2-Klein-9B",
-        "note": "Comfy-Org's Klein repack. The exact path inside the repo is not recorded; the constructed split_files/loras/ guess 404s."
+        "source": "https://huggingface.co/thedeoxen/refcontrol-FLUX.2-klein-9B-reference-depth-lora",
+        "note": "Comfy-Org's Klein repack. The exact path inside the repo is not recorded; the constructed split_files/loras/ guess 404s.",
+        "url": "https://huggingface.co/thedeoxen/refcontrol-FLUX.2-klein-9B-reference-depth-lora/resolve/main/flux2_klein_9b_refcontrol_depth.safetensors"
       },
       {
         "type": "clip",
@@ -58,8 +59,8 @@
       {
         "type": "vae",
         "file": "flux2-vae.safetensors",
-        "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/flux2-vae.safetensors",
-        "source": "https://huggingface.co/VAST-AI/TripoSplat"
+        "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/flux2-dev"
       },
       {
         "type": "other",
@@ -95,7 +96,7 @@
       "nodeId": "113",
       "field": "text",
       "type": "textarea",
-      "label": "Prompt (optional — describe the desired result)",
+      "label": "Prompt — keep the word refcontrol at the start (it switches the reference-pose adapter on), then describe your character",
       "default": "refcontrol",
       "required": false,
       "order": 2

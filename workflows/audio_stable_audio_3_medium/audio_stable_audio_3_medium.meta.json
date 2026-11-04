@@ -4,7 +4,7 @@
   "name": "Stable Audio 3 Medium — text to audio",
   "title": "Make music or sound effects",
   "summary": "Describe the music, loop or sound effect you want and get it in seconds, up to five minutes long. Instrumental only: it does not sing.",
-  "description": "Generate music, instrument loops, sound effects, or one-shots from a short text description. Pick a Category, type what you want (e.g. \"lofi hip-hop chill beat with mellow Rhodes and vinyl crackle\"), set a duration, and play the result.\n\nLeave 'Enhance prompt with AI' on: a local model rewrites your short description into a detailed, model-friendly prompt for the chosen category (more reliable results). Turn it off to send your exact words verbatim.",
+  "description": "Generate music, instrument loops, sound effects, or one-shots from a short text description. Pick a Category, type what you want (e.g. \"lofi hip-hop chill beat with mellow Rhodes and vinyl crackle\"), set a duration, and play the result.\n\n'Enhance prompt with AI' is off, and should stay off on this ComfyUI build: its Qwen 3.5 rewrite fails with \"Unsupported Flash Attention tensor strides\". Write the full description yourself, the way Stability's guide recommends: genre first, then instruments, mood, production and tempo (BPM) — or a plain description of one sound effect. The Category menu only steers that AI rewrite, so it has no effect while the enhancer is off. It does not sing.",
   "category": "audio",
   "tags": [
     "stable-audio",
@@ -120,5 +120,12 @@
     }
   ],
   "warmupParams": {},
-  "presets": {}
+  "presets": {},
+  "promptGuides": [
+    {
+      "label": "Stable Audio 3 prompt guide (Stability AI)",
+      "url": "https://stability.ai/guides/stable-audio-3-prompt-guide",
+      "tip": "Genre first, then instruments, mood, production and tempo (BPM) — or describe one sound effect plainly. It does not sing."
+    }
+  ]
 }

@@ -28,7 +28,9 @@
     "models": [
       {
         "type": "unet",
-        "file": "wan_2.1_idv2v_int8_convrot.safetensors"
+        "file": "wan_2.1_idv2v_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Kijai/Wan_ID_V2V_comfy/resolve/main/wan_2.1_idv2v_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Kijai/Wan_ID_V2V_comfy"
       },
       {
         "type": "vae",
@@ -134,5 +136,11 @@
     "vhs_loadvideo_video_33": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
     "loadimage_image_189": "asset:Flux2-Klein_00003_.png"
   },
-  "presets": {}
+  "presets": {},
+  "promptGuides": [
+    {
+      "label": "ID-V2V — restyle a video from one frame",
+      "url": "https://github.com/Eyeline-Labs/ID-V2V"
+    }
+  ]
 }

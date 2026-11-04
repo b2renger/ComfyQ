@@ -22,6 +22,10 @@
     {
       "label": "FLUX.2 prompting guide",
       "url": "https://docs.bfl.ai/guides/prompting_guide_flux2"
+    },
+    {
+      "label": "FLUX.2 — image editing",
+      "url": "https://docs.bfl.ai/flux_2/flux2_image_editing"
     }
   ],
   "thumbnail": null,
@@ -42,8 +46,8 @@
       {
         "type": "vae",
         "file": "flux2-vae.safetensors",
-        "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/flux2-vae.safetensors",
-        "source": "https://huggingface.co/VAST-AI/TripoSplat"
+        "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/flux2-dev"
       },
       {
         "type": "clip",

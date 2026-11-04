@@ -201,5 +201,11 @@
     }
   ],
   "warmupParams": {},
-  "presets": {}
+  "presets": {},
+  "promptGuides": [
+    {
+      "label": "Wan 2.2 in ComfyUI — first/last frame",
+      "url": "https://docs.comfy.org/tutorials/video/wan/wan2_2"
+    }
+  ]
 }

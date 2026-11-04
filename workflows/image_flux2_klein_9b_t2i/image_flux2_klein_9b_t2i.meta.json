@@ -17,6 +17,10 @@
       "label": "FLUX.2 prompting guide — Black Forest Labs",
       "url": "https://docs.bfl.ai/guides/prompting_guide_flux2",
       "tip": "Write full sentences, not keyword lists: subject first, then action, style and setting (30–80 words). Describe what you want rather than what to avoid, and put any text to render in \"quotes\". Klein doesn't expand short prompts — what you write is what you get."
+    },
+    {
+      "label": "FLUX.2 — colours as hex codes",
+      "url": "https://docs.bfl.ai/guides/usecases_t2i_hex_color_prompting"
     }
   ],
   "thumbnail": null,
@@ -37,8 +41,8 @@
       {
         "type": "vae",
         "file": "flux2-vae.safetensors",
-        "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/flux2-vae.safetensors",
-        "source": "https://huggingface.co/VAST-AI/TripoSplat"
+        "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/flux2-dev"
       },
       {
         "type": "clip",

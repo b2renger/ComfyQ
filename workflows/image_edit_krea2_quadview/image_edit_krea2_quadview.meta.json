@@ -34,11 +34,14 @@
       {
         "type": "unet",
         "file": "Krea2_Turbo_convrot_int8mixed.safetensors",
-        "source": "https://huggingface.co/Comfy-Org/Krea-2"
+        "source": "https://huggingface.co/Winnougan/Krea-2-Base-Turbo-NVFP4-FP8-INT8",
+        "url": "https://huggingface.co/Winnougan/Krea-2-Base-Turbo-NVFP4-FP8-INT8/resolve/main/Krea2_Turbo_convrot_int8mixed.safetensors"
       },
       {
         "type": "lora",
-        "file": "QuadView_krea2_v1.safetensors"
+        "file": "QuadView_krea2_v1.safetensors",
+        "url": "https://huggingface.co/Alissonerdx/CharacterSheet/resolve/main/QuadView_krea2_v1.safetensors",
+        "source": "https://huggingface.co/Alissonerdx/CharacterSheet"
       },
       {
         "type": "clip",

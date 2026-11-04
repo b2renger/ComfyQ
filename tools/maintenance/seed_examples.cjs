@@ -96,9 +96,9 @@ const db = DRY ? null : new Database(DB);
 const insert = db && db.prepare(
     'INSERT INTO jobs (id,user_id,workflow_id,workflow_version,status,scheduled_at,'
     + 'started_at,finished_at,prompt_id,prompt,param_values,input_files,outputs,progress,'
-    + 'current_node,error_reason,error_phase,created_by,created_at) '
+    + 'current_node,error_reason,error_phase,created_by,created_at,batch_label) '
     + "VALUES (@id,@user_id,@workflow_id,NULL,'completed',@at,@at,@fin,NULL,@prompt,"
-    + "@param_values,'[]',@outputs,@progress,NULL,NULL,NULL,'library-sweep',@at)");
+    + "@param_values,'[]',@outputs,@progress,NULL,NULL,NULL,'library-sweep',@at,@caption)");
 
 let made = 0, noOutput = 0, failedRow = 0, replaced = 0;
 const lostInputs = [];
@@ -179,6 +179,10 @@ for (const r of rows) {
             param_values: JSON.stringify(params),
             outputs: JSON.stringify(outputs),
             progress: JSON.stringify({ stepsDone: steps, stepsTotal: steps }),
+            // What this example shows — the test suite's note for the run, so a
+            // student opening it learns what to look at (shown in the lightbox
+            // and on the card's "See an example").
+            caption: r.suite?.note || null,
         });
     }
     made++;

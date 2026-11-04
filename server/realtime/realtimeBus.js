@@ -459,7 +459,14 @@ class RealtimeBus {
             ? (entry.summary.estimatedDurationSec * 1000) : 60000;
         const workerStatus = this.worker.getStatus();
         const systemStatus = workerStatus.state === 'idle' || workerStatus.state === 'busy' ? 'ready' : workerStatus.state;
-        const jobs = this.queue.listRecent(BROADCAST_JOB_LIMIT).map(j => this._toWireJob(j));
+        // The library's examples (user "examples", one per card, seeded from the
+        // test suite) always travel, however many jobs a class has booked since:
+        // the cards' "See an example" and the All jobs → examples filter read
+        // them from here, and they are few (one per workflow).
+        const recent = this.queue.listRecent(BROADCAST_JOB_LIMIT);
+        const have = new Set(recent.map(j => j.id));
+        const examples = this.queue.list({ userId: 'examples', limit: 400 }).filter(j => !have.has(j.id));
+        const jobs = [...examples, ...recent].map(j => this._toWireJob(j));
         // One entry per workflow the machine is serving in parallel. Each
         // carries everything a booking form needs, so a student can choose
         // which model to book without the machine switching over.

@@ -201,6 +201,10 @@ const SchedulerPage = () => {
         return state.workflow_info?.id ? [state.workflow_info] : [];
     }, [state.lanes, state.workflow_info, scopedWorkflowId]);
 
+    // The card's example job (user "examples", seeded from the test suite).
+    const exampleFor = useCallback((workflowId) => (state.jobs || []).find(j =>
+        j.user_id === 'examples' && j.workflow_id === workflowId && j.status === 'completed') || null, [state.jobs]);
+
     const openJob = useCallback((job) => {
         setSelectedJob(job);
         if (job.status === 'completed') setLightboxJob(job);
@@ -501,7 +505,8 @@ const SchedulerPage = () => {
                             all, not just the first, or the others are invisible until
                             the booking form is opened. */}
                         {servedModels.map((wf, i) => (
-                            <WorkflowInfoCard key={wf.id || i} wf={wf} className="mt-2 max-w-2xl" />
+                            <WorkflowInfoCard key={wf.id || i} wf={wf} className="mt-2 max-w-2xl"
+                                example={exampleFor(wf.id)} onOpenExample={setLightboxJob} />
                         ))}
                     </div>
                     <div className="flex items-center space-x-2 sm:space-x-4">

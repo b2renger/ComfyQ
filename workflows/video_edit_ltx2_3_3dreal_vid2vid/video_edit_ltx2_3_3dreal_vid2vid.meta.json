@@ -26,6 +26,11 @@
     {
       "label": "LTX-2.3 prompt guide — Lightricks blog",
       "url": "https://ltx.io/blog/ltx-2-3-prompt-guide"
+    },
+    {
+      "label": "3DREAL LoRA (fal) — trigger word and settings",
+      "url": "https://huggingface.co/fal/LTX-2.3-3DREAL-LoRA",
+      "tip": "Start the prompt with the trigger word 3DREAL, then describe the real materials and light you want."
     }
   ],
   "thumbnail": null,
@@ -50,7 +55,9 @@
       },
       {
         "type": "lora",
-        "file": "3DREAL-strong.safetensors"
+        "file": "3DREAL-strong.safetensors",
+        "url": "https://huggingface.co/fal/LTX-2.3-3DREAL-LoRA/resolve/main/3DREAL-strong.safetensors",
+        "source": "https://huggingface.co/fal/LTX-2.3-3DREAL-LoRA"
       },
       {
         "type": "lora",

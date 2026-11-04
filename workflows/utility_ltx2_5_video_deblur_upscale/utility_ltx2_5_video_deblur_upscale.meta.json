@@ -4,7 +4,7 @@
   "name": "LTX 2.5 — video deblur & detail upscale (keeps original audio)",
   "title": "Enlarge a video 2×, adding detail",
   "summary": "Upload a small video that has sound; it redraws it at up to twice the size with new fine detail, keeping the original sound. Pick it to finish a quick draft — it invents detail, so it is not for exact restoration.",
-  "description": "Clean up a soft, blurry or low-resolution video. Upload a clip and LTX 2.5 re-renders every frame with sharp, fresh detail using the Deblur (2× pixel-upscaler) IC-LoRA, keeping the original motion and the original soundtrack untouched. Your clip must have a sound track — silent videos fail.\n\n\"Output size\" is the short side of the result (576 ≈ 1024×576 for a 16:9 clip). The model reads your video at half that size and rebuilds the detail, so raise it to 704 or 1088 for a bigger, sharper result — it gets slower. The prompt is optional: a short description of what's in the clip, or just the look you want, can help.\n\nYou can also tick \"Use a start image\" and upload a sharp still of the first frame to anchor the result to it; leave it unticked to skip it. Only the start of your clip is used (\"Clip length used\", default 5 s). This is a fast single 8-step pass.",
+  "description": "Enlarge a small video up to 2× with new, sharp detail. Upload a clip and LTX 2.5 re-renders every frame with Lightricks' Pixel Spatial Upscaler IC-LoRA (a generative 2× upscaler — it invents detail, it is not a deblur or restoration model), keeping the original motion and the original soundtrack untouched. For heavy blur or compression damage, the SeedVR2 video cards are the faithful choice. Your clip must have a sound track — silent videos fail.\n\n\"Output size\" is the short side of the result (576 ≈ 1024×576 for a 16:9 clip). The model reads your video at half that size and rebuilds the detail, so raise it to 704 or 1088 for a bigger, sharper result — it gets slower. The prompt is optional: a short description of what's in the clip, or just the look you want, can help.\n\nYou can also tick \"Use a start image\" and upload a sharp still of the first frame to anchor the result to it; leave it unticked to skip it. Only the start of your clip is used (\"Clip length used\", default 5 s). This is a fast single 8-step pass.",
   "category": "preprocessor",
   "tags": [
     "ltx",
@@ -73,8 +73,10 @@
       {
         "type": "lora",
         "file": "ltx-2.5-22b-ic-lora-pixel-spatial-upscaler-x2-1.0.safetensors",
-        "source": "https://huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-Pixel-Spatial-Upscaler",
-        "note": "Lightricks' Pixel Spatial Upscaler adapter, and NOT the DEBLUR-trigger LoRA its template's note links to: that repo (LTX-2.3-22b-IC-LoRA-Deblur) only holds ltx-2.3-22b-ic-lora-deblur-0.9. Gated, so a token is needed."
+        "source": "https://huggingface.co/Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler",
+        "note": "Lightricks' Pixel Spatial Upscaler adapter, and NOT the DEBLUR-trigger LoRA its template's note links to: that repo (LTX-2.3-22b-IC-LoRA-Deblur) only holds ltx-2.3-22b-ic-lora-deblur-0.9. Gated, so a token is needed.",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler/resolve/main/ltx-2.5-22b-ic-lora-pixel-spatial-upscaler-x2-1.0.safetensors",
+        "gated": true
       }
     ]
   },

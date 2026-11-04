@@ -26,7 +26,8 @@
       {
         "type": "unet",
         "file": "wan_animate_2_distill_int8_convrot.safetensors",
-        "source": "https://huggingface.co/Comfy-Org/Wan-Animate-2"
+        "source": "https://huggingface.co/Comfy-Org/Wan-Animate-2",
+        "url": "https://huggingface.co/Comfy-Org/Wan-Animate-2/resolve/main/diffusion_models/wan_animate_2_distill_int8_convrot.safetensors"
       },
       {
         "type": "vae",
@@ -151,5 +152,11 @@
     "loadvideo_file_240": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
     "loadimage_image_189": "asset:Flux2-Klein_00003_.png"
   },
-  "presets": {}
+  "presets": {},
+  "promptGuides": [
+    {
+      "label": "Wan Animate 2 in ComfyUI",
+      "url": "https://docs.comfy.org/tutorials/video/wan/wan-animate-2"
+    }
+  ]
 }

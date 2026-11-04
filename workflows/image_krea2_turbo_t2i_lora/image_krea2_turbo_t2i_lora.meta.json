@@ -55,7 +55,8 @@
       {
         "type": "lora",
         "file": "krea2_realism_lora.safetensors",
-        "source": "https://huggingface.co/Comfy-Org/Krea-2"
+        "source": "https://huggingface.co/gokaygokay/Krea-2-Realism-LoRA",
+        "url": "https://huggingface.co/gokaygokay/Krea-2-Realism-LoRA/resolve/main/krea2_realism_lora.safetensors"
       }
     ]
   },

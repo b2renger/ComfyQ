@@ -4,7 +4,7 @@
   "name": "FLUX.3 Klein — text to image",
   "title": "Make a picture, slower but finer",
   "summary": "Write a detailed description — and, if you like, draw boxes where things go — and get a photo-quality picture. Its twin, \"Make a picture in seconds\", does the same much faster; pick this slower one for a little more detail and variety.",
-  "description": "Generate an image from a text prompt with Black Forest Labs' FLUX.3 Image Klein base model (50 steps at guidance 3.5, the higher-quality and slower one). Write full sentences: subject, action, setting, light, style; put any text to render in \"quotes\". FLUX.3 likes a detailed caption — if you would rather write a short idea, tick \"Improve the prompt with AI\" and a Qwen 3.5 model expands it first, but on this machine that adds about 3 minutes. Experimental.",
+  "description": "Generate an image from a text prompt with Black Forest Labs' FLUX.3 Image Klein base model (50 steps at guidance 3.5 — slower than the distilled card, for a little more detail and variety; Black Forest Labs position the base build for fine-tuning and recommend the distilled one for everyday generation). Write full sentences: subject, action, setting, light, style; put any text to render in \"quotes\". FLUX.3 is trained on long, detailed captions. Its AI improver (a Qwen 3.5 model that writes that caption for you) fails on this ComfyUI build with \"Unsupported Flash Attention tensor strides\", so leave it off and write the caption yourself: the medium first, then the scene, the light, the camera, and where each subject sits. To place things, draw boxes in the layout and cite them as <obj_1>, <obj_2>… in the prompt. Experimental.",
   "category": "t2i",
   "experimental": true,
   "tags": [
@@ -45,8 +45,8 @@
       {
         "type": "vae",
         "file": "flux2-vae.safetensors",
-        "url": "https://huggingface.co/VAST-AI/TripoSplat/resolve/main/vae/flux2-vae.safetensors",
-        "source": "https://huggingface.co/VAST-AI/TripoSplat"
+        "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/flux2-dev"
       }
     ]
   },
@@ -146,6 +146,17 @@
       "label": "Seed",
       "default": 42,
       "order": 7
+    }
+  ],
+  "promptGuides": [
+    {
+      "label": "FLUX.3 prompting basics (Black Forest Labs)",
+      "url": "https://docs.bfl.ai/guides/prompting_unified_basics",
+      "tip": "Write the caption in full — the AI improver fails on this ComfyUI build: medium first, then the scene, the light, the camera and where each subject sits."
+    },
+    {
+      "label": "FLUX.3 layout prompts — placing things with boxes",
+      "url": "https://docs.bfl.ai/guides/prompting_layout"
     }
   ]
 }

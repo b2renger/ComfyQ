@@ -67,5 +67,12 @@
     }
   ],
   "warmupParams": {},
-  "presets": {}
+  "presets": {},
+  "promptGuides": [
+    {
+      "label": "Gemma — understanding pictures (Google)",
+      "url": "https://ai.google.dev/gemma/docs/capabilities/vision",
+      "tip": "Ask for exactly what you want back: a description, the text it can read, a list, or a prompt to make a similar picture."
+    }
+  ]
 }

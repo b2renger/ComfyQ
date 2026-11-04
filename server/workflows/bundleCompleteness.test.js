@@ -133,12 +133,11 @@ test('every api.json node class appears in its template', () => {
 // genuinely is not recorded anywhere, and a guessed URL would be worse than the
 // gap (it would download the wrong weights). Shrink this list, never grow it
 // without knowing why.
+// 2026-11-04: 3DREAL (fal/LTX-2.3-3DREAL-LoRA), both Krea 2 sheet LoRAs
+// (Alissonerdx/CharacterSheet) and the ID-V2V int8 build (Kijai/Wan_ID_V2V_comfy)
+// were traced to their repos and verified, and left the list.
 const UNSOURCED_OK = new Set([
-    '3DREAL-strong.safetensors',                            // community LTX IC-LoRA
-    'DynamicCharacterSheet_krea2_v1.safetensors',           // community Krea 2 LoRA
-    'QuadView_krea2_v1.safetensors',                        // community Krea 2 LoRA
     'qwen-image-edit-2511-multiple-angles-lora.safetensors',
-    'wan_2.1_idv2v_int8_convrot.safetensors',               // int8_convrot line
 ]);
 
 test('every declared model says where it comes from', () => {
