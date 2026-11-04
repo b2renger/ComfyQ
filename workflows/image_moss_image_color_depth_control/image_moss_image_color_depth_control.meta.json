@@ -1,0 +1,197 @@
+{
+  "schemaVersion": 1,
+  "id": "image_moss_image_color_depth_control",
+  "name": "MOSS-Image — new picture from a photo's pose and depth",
+  "description": "Drop in a photo and get a NEW picture with the same pose and framing. The photo's 3D shape is estimated (MoGe 3) and turned into a depth map; MOSS-Image then paints whatever the prompt says onto that shape. Nothing else of the photo is kept — identity, clothes, material, light and style all come from the text.\n\nDescribe the whole picture as if from scratch, including the parts the photo already shows (\"a woman framed from the chest up…\"). If the photo has a feature the shape will keep — pointed ears, a hat — either describe it or say how to hide it.\n\nGeometry: \"depth\" holds the pose, the face profile and the background falloff; \"mask\" keeps only the silhouette and leaves the prompt more room. Control ends at 60% of the steps by default so the last steps can render freely — raise it to pin the shape harder.\n\nThe output takes the photo's shape, at about 1 megapixel.",
+  "category": "t2i",
+  "experimental": true,
+  "tags": [
+    "moss",
+    "controlnet",
+    "depth",
+    "moge",
+    "structure"
+  ],
+  "promptGuides": [
+    {
+      "label": "MOSS-Image — official user guide",
+      "url": "https://github.com/OpenMOSS/MOSS-Image/blob/main/USERGUIDE.md",
+      "tip": "Describe the whole picture from scratch: subject, clothes, material, setting, framing, light and style. The photo only gives the shape."
+    },
+    {
+      "label": "MOSS-Image colour/depth control adapter",
+      "url": "https://huggingface.co/darask0/MOSS-Image-color-depth-control"
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_moss_image_color_depth_control.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 20,
+    "models": [
+      {
+        "type": "unet",
+        "file": "moss_image_sft_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/diffusion_models/moss_image_sft_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MOSS-Image"
+      },
+      {
+        "type": "lora",
+        "file": "moss_image_color_depth_control.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors",
+        "source": "https://huggingface.co/darask0/MOSS-Image-color-depth-control"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3.5_9b_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/text_encoders/qwen3.5_9b_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MOSS-Image"
+      },
+      {
+        "type": "vae",
+        "file": "flux2-vae_small.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/vae/flux2-vae_small.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MOSS-Image"
+      },
+      {
+        "type": "other",
+        "file": "moge_3_vitg_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MoGe/resolve/main/geometry_estimation/moge_3_vitg_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MoGe"
+      }
+    ]
+  },
+  "estimatedDurationSec": 30,
+  "exposedParameters": [
+    {
+      "key": "photo_55",
+      "nodeId": "55",
+      "field": "image",
+      "type": "image",
+      "label": "Photo — its pose and framing are kept",
+      "required": true,
+      "maxInputEdge": 2048,
+      "order": 0
+    },
+    {
+      "key": "prompt_5",
+      "nodeId": "5",
+      "field": "text",
+      "type": "textarea",
+      "label": "Prompt — the whole new picture",
+      "default": "Candid street-style portrait of a young woman, framed from the chest up and centred, dark hair in two messy buns, chunky gold hoop earrings, oversized padded bomber jacket over a crop top. Direct on-camera flash against a night street, hard shadows on the wall behind, slightly blown highlights, raw editorial look.",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "negative_6",
+      "nodeId": "6",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt",
+      "default": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact",
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "geometry_175",
+      "nodeId": "175",
+      "field": "output",
+      "type": "select",
+      "label": "Geometry taken from the photo",
+      "default": "depth",
+      "options": [
+        "depth",
+        "mask"
+      ],
+      "optionLabels": [
+        "depth — pose, profile and background falloff",
+        "mask — silhouette only, more freedom"
+      ],
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "strength_53",
+      "nodeId": "53",
+      "field": "strength",
+      "type": "number",
+      "label": "Control strength (1.0 is what the adapter was trained at)",
+      "default": 1,
+      "min": 0,
+      "max": 2,
+      "step": 0.05,
+      "required": true,
+      "order": 4
+    },
+    {
+      "key": "end_percent_53",
+      "nodeId": "53",
+      "field": "end_percent",
+      "type": "number",
+      "label": "Control ends at (fraction of the steps — 1.0 pins the shape to the end)",
+      "default": 0.6,
+      "min": 0.1,
+      "max": 1,
+      "step": 0.05,
+      "required": true,
+      "order": 5
+    },
+    {
+      "key": "megapixels_77",
+      "nodeId": "77",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (the photo's shape is kept)",
+      "default": 1,
+      "min": 0.25,
+      "max": 2,
+      "step": 0.05,
+      "required": true,
+      "order": 6
+    },
+    {
+      "key": "steps_22",
+      "nodeId": "22",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps",
+      "default": 25,
+      "min": 10,
+      "max": 50,
+      "step": 1,
+      "required": true,
+      "order": 7
+    },
+    {
+      "key": "cfg_20",
+      "nodeId": "20",
+      "field": "cfg",
+      "type": "number",
+      "label": "CFG",
+      "default": 3,
+      "min": 1,
+      "max": 8,
+      "step": 0.5,
+      "required": true,
+      "order": 8
+    },
+    {
+      "key": "seed_20",
+      "nodeId": "20",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 730608533992019,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 9
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

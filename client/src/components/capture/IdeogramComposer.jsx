@@ -2,13 +2,16 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom';
 import {
     X, Check, Plus, Type, Box, Trash2, ChevronUp, ChevronDown, LayoutTemplate,
-    AlertTriangle, CheckCircle2, Camera, Palette, Maximize, Minimize,
+    AlertTriangle, CheckCircle2, Camera, Palette, Maximize, Minimize, User,
 } from 'lucide-react';
 import {
     readPrompt, checkCaption, captionToModel, modelToCaption, formatCaption, emptyModel,
     newElement, aspectFromOption, normalizeHex, flattenToText, looksLikeCaption,
     MAX_STYLE_COLORS, MAX_ELEMENT_COLORS, MEDIUM_SUGGESTIONS,
 } from '../../utils/ideogramCaption';
+import {
+    readLayout, layoutToElements, elementsToLayout, formatLayout, checkLayout, describeLayout,
+} from '../../utils/mossLayout';
 
 // Visual composer for Ideogram 4's structured JSON prompt.
 //
@@ -17,6 +20,12 @@ import {
 // in the style and background. Apply writes a caption in Ideogram's exact
 // schema and key order back into the prompt box. Rendered by DynamicParamFields
 // for any textarea param whose meta says `"format": "ideogram4-caption"`.
+//
+// `variant="moss"` reuses the canvas for MOSS-Image's layout field
+// (`"format": "moss-layout"`): the same boxes, but only the boxes — the overall
+// caption is the card's ordinary prompt — every box keeps a position (the node
+// rejects one without), and an object box can be marked as a character. See
+// utils/mossLayout.js.
 
 const MIN_BOX = 20;                     // smallest box edge, in 0–1000 units
 const clamp = (n) => Math.max(0, Math.min(1000, Math.round(n)));
@@ -151,10 +160,29 @@ const loadPrompt = (value) => {
     return { model, notice: '' };
 };
 
+// The layout field's text (+ the character numbers) → the starting model.
+const loadLayout = (value, characters) => {
+    const r = readLayout(value);
+    const model = emptyModel();
+    if (r.kind === 'list') {
+        model.elements = layoutToElements(r.elements, characters);
+        return { model, notice: '' };
+    }
+    if (r.kind === 'broken' || r.kind === 'other') {
+        return { model, notice: `The layout field doesn’t hold a list of boxes (${r.error}), so the composer starts empty. The field stays unchanged until you press Apply.` };
+    }
+    return { model, notice: '' };
+};
+
 // Mounted only while open, so every opening starts from the prompt box's
 // current text (no frame of the previous session).
-const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
-    const [initial] = useState(() => loadPrompt(value));
+const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose, variant = 'ideogram', characters = '', backgroundUrl = null }) => {
+    // 'moss' and 'flux3' are the boxes-only form. FLUX.3's layout node cites box
+    // N as <obj_N> and reads neither a character flag nor colour palettes, so
+    // the flux3 form drops both and labels boxes the way the prompt cites them.
+    const flux3 = variant === 'flux3';
+    const moss = variant === 'moss' || flux3;
+    const [initial] = useState(() => (moss ? loadLayout(value, characters) : loadPrompt(value)));
     const [model, setModel] = useState(initial.model);
     const [selectedId, setSelectedId] = useState(initial.model.elements[0]?.id ?? null);
     const [notice, setNotice] = useState(initial.notice);
@@ -164,7 +192,18 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
     const areaRef = useRef(null);
     const stageRef = useRef(null);
     const drag = useRef(null);
-    const aspect = aspectFromOption(aspectOption);
+    // On an edit card the boxes sit on the uploaded picture, so the canvas takes
+    // ITS shape; the node normalises boxes to the frame, whatever its size.
+    const [bgAspect, setBgAspect] = useState(null);
+    useEffect(() => {
+        if (!backgroundUrl) { setBgAspect(null); return undefined; }
+        let live = true;
+        const img = new Image();
+        img.onload = () => { if (live && img.naturalWidth && img.naturalHeight) setBgAspect(img.naturalWidth / img.naturalHeight); };
+        img.src = backgroundUrl;
+        return () => { live = false; };
+    }, [backgroundUrl]);
+    const aspect = bgAspect || aspectFromOption(aspectOption);
 
     const update = useCallback((patch) => setModel(m => ({ ...m, ...patch })), []);
     const updateElement = useCallback((id, patch) => setModel(m => ({
@@ -282,11 +321,17 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
     };
 
     // ---- output -----------------------------------------------------------
-    const caption = useMemo(() => modelToCaption(model), [model]);
-    const warnings = useMemo(() => checkCaption(caption), [caption]);
+    const caption = useMemo(() => (moss ? null : modelToCaption(model)), [model, moss]);
+    const layout = useMemo(() => (moss ? elementsToLayout(model.elements) : null), [model, moss]);
+    const warnings = useMemo(() => (moss ? checkLayout(layout.list) : checkCaption(caption)), [moss, layout, caption]);
+    const outputText = moss ? (formatLayout(layout.list) || '(empty — no layout)') : formatCaption(caption);
     const selected = model.elements.find(el => el.id === selectedId) || null;
 
-    const apply = () => { onApply(formatCaption(caption)); onClose(); };
+    const apply = () => {
+        if (moss) onApply(formatLayout(layout.list), layout.characters);
+        else onApply(formatCaption(caption));
+        onClose();
+    };
 
     const boxStyle = ([y1, x1, y2, x2]) => ({
         top: `${y1 / 10}%`, left: `${x1 / 10}%`, height: `${(y2 - y1) / 10}%`, width: `${(x2 - x1) / 10}%`,
@@ -301,7 +346,7 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
                     <span className="truncate">Compose — {label}</span>
                 </div>
                 <span className="text-[11px] text-muted hidden md:inline">
-                    Canvas {aspectOption || '1:1'} · drag on the canvas to add an element · Delete removes the selected one
+                    Canvas {backgroundUrl ? 'shaped like your picture' : (aspectOption || '1:1')} · drag on the canvas to add an element · Delete removes the selected one
                 </span>
                 <div className="ml-auto flex items-center gap-2">
                     <button
@@ -363,6 +408,9 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
                                 backgroundSize: '10% 10%',
                             }}
                         >
+                            {backgroundUrl && (
+                                <img src={backgroundUrl} alt="" draggable={false} className="absolute inset-0 w-full h-full object-fill pointer-events-none opacity-80" />
+                            )}
                             {model.palette.length > 0 && (
                                 <div className="absolute bottom-0 left-0 right-0 h-1.5 flex pointer-events-none opacity-80">
                                     {model.palette.map(c => <div key={c} className="flex-1" style={{ backgroundColor: c }} />)}
@@ -381,7 +429,7 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
                                     }}
                                 >
                                     <span className="absolute top-0 left-0 max-w-full truncate px-1 py-0.5 text-[10px] font-semibold leading-none rounded-br text-black" style={{ backgroundColor: colorAt(i) }}>
-                                        {i + 1} · {el.type === 'text' ? (el.text ? `T “${el.text}”` : 'T text') : (el.desc ? el.desc.slice(0, 40) : 'object')}
+                                        {flux3 ? `<obj_${i + 1}>` : i + 1} · {el.type === 'text' ? (el.text ? `T “${el.text}”` : 'T text') : (el.desc ? el.desc.slice(0, 40) : 'object')}
                                     </span>
                                     <span
                                         data-handle={el.id}
@@ -399,15 +447,29 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
                         </div>
                     </div>
                     {/* Both learned by rendering test layouts on the rig. */}
-                    <p className="shrink-0 text-[11px] text-muted leading-relaxed">
-                        Draw each box the shape the thing should be — Ideogram follows box shape closely.
-                        Boxes that sit apart in empty corners can make it split the frame into separate panels;
-                        keeping them adjacent, or adding boxes for the floor and walls, keeps one scene.
-                    </p>
+                    {flux3 ? (
+                        <p className="shrink-0 text-[11px] text-muted leading-relaxed">
+                            Box N is <span className="font-mono">&lt;obj_N&gt;</span>: name it in the prompt to tie words to the box
+                            (“change the coat <span className="font-mono">&lt;obj_1&gt;</span> to red”). Colours are not read from the
+                            boxes — say them in the description.
+                        </p>
+                    ) : moss ? (
+                        <p className="shrink-0 text-[11px] text-muted leading-relaxed">
+                            Add the background first and the foreground last — the list order is the order the model reads them.
+                            Boxes may overlap. Draw text boxes the shape the words should take.
+                        </p>
+                    ) : (
+                        <p className="shrink-0 text-[11px] text-muted leading-relaxed">
+                            Draw each box the shape the thing should be — Ideogram follows box shape closely.
+                            Boxes that sit apart in empty corners can make it split the frame into separate panels;
+                            keeping them adjacent, or adding boxes for the floor and walls, keeps one scene.
+                        </p>
+                    )}
                 </div>
 
                 {/* Side panel */}
                 <div className={`${wideCanvas ? 'lg:flex-[2]' : 'lg:flex-[3]'} lg:max-w-2xl min-h-0 overflow-y-auto custom-scrollbar border-t lg:border-t-0 lg:border-l border-border p-3 sm:p-4 space-y-4`}>
+                    {!moss && (<>
                     <Section icon={LayoutTemplate} title="Picture">
                         <Field label="High-level description" hint="One or two sentences summing up the whole image.">
                             <TextArea value={model.highLevel} onChange={v => update({ highLevel: v })} rows={3} placeholder="A medium-shot photograph of a barista pouring latte art in a cozy café." />
@@ -468,13 +530,21 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
                             </>
                         )}
                     </Section>
+                    </>)}
 
-                    <Section icon={Box} title={`Elements (${model.elements.length})`}>
+                    <Section icon={Box} title={`${moss ? 'Boxes' : 'Elements'} (${model.elements.length})`}>
                         {model.elements.length === 0 ? (
-                            <p className="text-xs text-muted">
-                                Draw a box on the canvas, or use Add object / Add text. Put every word to render in its own text element.
-                                <span className="block mt-1 text-amber-500">Give every element a box: prompts whose elements have no box are the ones Ideogram blocks with its gray “safety filter” picture.</span>
-                            </p>
+                            moss ? (
+                                <p className="text-xs text-muted">
+                                    Draw a box on the canvas, or use Add object / Add text. The card’s prompt still describes the whole picture;
+                                    each box says what goes where. Apply with no boxes to remove the layout.
+                                </p>
+                            ) : (
+                                <p className="text-xs text-muted">
+                                    Draw a box on the canvas, or use Add object / Add text. Put every word to render in its own text element.
+                                    <span className="block mt-1 text-amber-500">Give every element a box: prompts whose elements have no box are the ones Ideogram blocks with its gray “safety filter” picture.</span>
+                                </p>
+                            )
                         ) : (
                             <div className="space-y-1">
                                 {model.elements.map((el, i) => (
@@ -487,6 +557,7 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
                                         {el.type === 'text' ? <Type size={12} className="shrink-0" style={{ color: colorAt(i) }} /> : <Box size={12} className="shrink-0" style={{ color: colorAt(i) }} />}
                                         <span className="font-mono text-muted">{i + 1}</span>
                                         <span className="truncate flex-1">{el.type === 'text' ? (el.text ? `“${el.text}”` : <em className="text-muted">no text yet</em>) : (el.desc || <em className="text-muted">no description yet</em>)}</span>
+                                        {moss && el.character && <User size={11} className="shrink-0 text-primary" />}
                                         {!el.bbox && <span className="text-[9px] uppercase tracking-wider text-muted">no box</span>}
                                     </button>
                                 ))}
@@ -517,23 +588,38 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
                                         <input className={inputCls} value={selected.text} onChange={e => updateElement(selected.id, { text: e.target.value })} />
                                     </Field>
                                 )}
+                                {moss && !flux3 && selected.type === 'obj' && (
+                                    <label className="flex items-center gap-2 text-xs cursor-pointer select-none">
+                                        <input
+                                            type="checkbox"
+                                            checked={!!selected.character}
+                                            onChange={e => updateElement(selected.id, { character: e.target.checked })}
+                                        />
+                                        <User size={12} className="text-primary" /> Character — a person or creature, not a thing
+                                    </label>
+                                )}
                                 <Field label="Description" hint={selected.type === 'text' ? 'How the text looks: font, size, color, where it sits.' : 'What it is, what it looks like, its pose or material.'}>
                                     <TextArea value={selected.desc} onChange={v => updateElement(selected.id, { desc: v })} rows={3} />
                                 </Field>
-                                <Field label="Colors" hint="Optional, up to 5.">
-                                    <PaletteEditor colors={selected.palette} max={MAX_ELEMENT_COLORS} onChange={v => updateElement(selected.id, { palette: v })} />
-                                </Field>
+                                {!flux3 && (
+                                    <Field label="Colors" hint="Optional, up to 5.">
+                                        <PaletteEditor colors={selected.palette} max={MAX_ELEMENT_COLORS} onChange={v => updateElement(selected.id, { palette: v })} />
+                                    </Field>
+                                )}
                                 {/* Measured on the rig: a text element in a tall,
                                     narrow box comes out rotated 90° (sometimes
                                     upside down), because the box shape sets the
                                     orientation of the words. */}
-                                {selected.type === 'text' && selected.bbox
+                                {!moss && selected.type === 'text' && selected.bbox
                                     && (selected.bbox[2] - selected.bbox[0]) > 1.6 * (selected.bbox[3] - selected.bbox[1]) && (
                                         <p className="text-[11px] text-amber-500 flex items-start gap-1.5">
                                             <AlertTriangle size={12} className="shrink-0 mt-0.5" />
                                             This box is much taller than it is wide, so Ideogram will set the words vertically. Draw a wide box for horizontal text.
                                         </p>
                                     )}
+                                {moss ? (
+                                    <div className="text-[11px] text-muted font-mono">box [{selected.bbox.join(', ')}]</div>
+                                ) : (
                                 <div className="flex items-center gap-2 text-[11px] text-muted">
                                     {selected.bbox ? (
                                         <>
@@ -547,6 +633,7 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
                                         </>
                                     )}
                                 </div>
+                                )}
                             </div>
                         )}
                     </Section>
@@ -554,7 +641,7 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
                     <Section
                         icon={warnings.length ? AlertTriangle : CheckCircle2}
                         title="Check"
-                        right={warnings.length === 0 ? <span className="text-[11px] text-success font-semibold">Matches Ideogram 4’s format</span> : null}
+                        right={warnings.length === 0 ? <span className="text-[11px] text-success font-semibold">{flux3 ? 'Ready for FLUX.3' : moss ? 'Ready for MOSS-Image' : 'Matches Ideogram 4’s format'}</span> : null}
                     >
                         {warnings.length > 0 && (
                             <ul className="space-y-1">
@@ -567,7 +654,7 @@ const IdeogramComposer = ({ value, aspectOption, label, onApply, onClose }) => {
                         )}
                         <details className="text-xs">
                             <summary className="cursor-pointer text-muted hover:text-foreground inline-flex items-center gap-1"><Palette size={12} /> Show the JSON</summary>
-                            <pre className="mt-2 max-h-72 overflow-auto custom-scrollbar rounded-md bg-background border border-border p-2 text-[11px] leading-snug whitespace-pre-wrap break-words">{formatCaption(caption)}</pre>
+                            <pre className="mt-2 max-h-72 overflow-auto custom-scrollbar rounded-md bg-background border border-border p-2 text-[11px] leading-snug whitespace-pre-wrap break-words">{outputText}</pre>
                         </details>
                     </Section>
                 </div>
@@ -612,6 +699,50 @@ export const IdeogramPromptTools = ({ value, onChange, disabled, aspectOption, l
                 aspectOption={aspectOption}
                 label={label}
                 onApply={onChange}
+                onClose={close}
+            />}
+        </div>
+    );
+};
+
+// The same entry point for a MOSS-Image layout field. Apply writes the boxes
+// into the field and the character box numbers into the card's
+// `character_boxes` param (`onCharacters`), the two halves the layout node reads.
+export const MossLayoutTools = ({ value, onChange, characters, onCharacters, disabled, aspectOption, label, variant = 'moss', backgroundUrl = null }) => {
+    const [open, setOpen] = useState(false);
+    const status = useMemo(() => describeLayout(value), [value]);
+    const close = useCallback(() => setOpen(false), []);
+    const apply = useCallback((text, chars) => {
+        onChange(text);
+        if (onCharacters) onCharacters(chars);
+    }, [onChange, onCharacters]);
+    const tone = { ok: 'text-success', warn: 'text-amber-500', error: 'text-danger', none: 'text-muted' }[status.level];
+    return (
+        <div className="flex items-start gap-2 flex-wrap">
+            <button
+                type="button"
+                disabled={disabled}
+                onClick={() => setOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary text-xs font-semibold hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+                <LayoutTemplate size={13} /> Compose layout
+            </button>
+            <div className={`flex-1 min-w-[12rem] text-[11px] ${tone}`}>
+                <span className="font-semibold inline-flex items-center gap-1">
+                    {status.level === 'ok' && <CheckCircle2 size={12} />}
+                    {(status.level === 'warn' || status.level === 'error') && <AlertTriangle size={12} />}
+                    {status.short}
+                </span>
+                {status.detail && <span className="block text-muted whitespace-pre-line">{status.detail}</span>}
+            </div>
+            {open && <IdeogramComposer
+                variant={variant}
+                value={value}
+                characters={characters}
+                backgroundUrl={backgroundUrl}
+                aspectOption={aspectOption}
+                label={label}
+                onApply={apply}
                 onClose={close}
             />}
         </div>

@@ -1,0 +1,297 @@
+{
+  "schemaVersion": 1,
+  "id": "image_qwen_image_2512_360_panorama",
+  "name": "Qwen-Image 2512 — 360° panorama / HDRI from a description",
+  "description": "A 360° panorama of a place you describe, generated with Qwen-Image 2512 and the qwen-360-diffusion LoRA — usable as an HDRI/skybox in Blender, Unreal, Unity or a VR viewer.\n\nDescribe only the PLACE and the camera (\"a quiet mountain pasture above an alpine village … sharp realistic photograph\"). Time of day, season, sky and camera height are chosen from the lists and added to your words for you, together with the 360° instructions, so leave lighting and weather out of the prompt.\n\nYou get a 4096×2048 equirectangular picture as a 16-bit PNG, plus a 32-bit float EXR under the download buttons. Open the picture and press **View in 360°** to look around inside it.\n\n★ The EXR is the same picture stored as linear float, not a true high-dynamic-range capture: the sun is not brighter than white, so it lights a 3D scene evenly rather than with hard sun shadows.\n\nThe seam repair re-paints a band across the left/right join so the panorama wraps without a visible line. Outdoor scenes work best; the poles (straight up and down) can stay soft. Quality mode drops the 8-step Lightning LoRA for a slower 30-step render.",
+  "category": "t2i",
+  "experimental": true,
+  "tags": [
+    "qwen-image",
+    "2512",
+    "360",
+    "panorama",
+    "equirectangular",
+    "hdri",
+    "skybox",
+    "lightning"
+  ],
+  "promptGuides": [
+    {
+      "label": "qwen-360-diffusion — model card (trigger words, 2:1 sizes)",
+      "url": "https://huggingface.co/ProGamerGov/qwen-360-diffusion",
+      "tip": "Name the place and the medium (\"photograph of …\"); the 360° trigger and the horizon instructions are added for you."
+    }
+  ],
+  "thumbnail": null,
+  "author": "b2renger",
+  "version": "0.1.0",
+  "workflowFile": "image_qwen_image_2512_360_panorama.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "qwen_image_2512_fp8_e4m3fn.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI"
+      },
+      {
+        "type": "lora",
+        "file": "Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors",
+        "url": "https://huggingface.co/lightx2v/Qwen-Image-2512-Lightning/resolve/main/Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors",
+        "source": "https://huggingface.co/lightx2v/Qwen-Image-2512-Lightning"
+      },
+      {
+        "type": "lora",
+        "file": "qwen-360-diffusion-2512-int8-bf16-v2.safetensors",
+        "url": "https://huggingface.co/ProGamerGov/qwen-360-diffusion/resolve/main/qwen-360-diffusion-2512-int8-bf16-v2.safetensors",
+        "source": "https://huggingface.co/ProGamerGov/qwen-360-diffusion"
+      },
+      {
+        "type": "clip",
+        "file": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI"
+      },
+      {
+        "type": "vae",
+        "file": "qwen_image_vae.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI/resolve/main/split_files/vae/qwen_image_vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image_ComfyUI"
+      },
+      {
+        "type": "other",
+        "file": "RealESRGAN_x4plus.pth",
+        "source": "https://github.com/xinntao/Real-ESRGAN",
+        "note": "Published as a GitHub release asset of Real-ESRGAN; goes in models/upscale_models."
+      }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "exposedParameters": [
+    {
+      "key": "place_2",
+      "nodeId": "2",
+      "field": "value",
+      "type": "textarea",
+      "label": "The place — what surrounds the camera (and the camera, e.g. “sharp realistic photograph”)",
+      "default": "a quiet mountain pasture above a small alpine village in the French Alps, wooden chalets with stone bases, a gravel path, pine forest on the slopes and rocky summits all around, shot on a full-frame mirrorless camera, sharp realistic photograph",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "time_of_day_3",
+      "nodeId": "3",
+      "field": "value",
+      "type": "select",
+      "label": "Time of day",
+      "default": "4",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4",
+        "5",
+        "6",
+        "7"
+      ],
+      "optionLabels": [
+        "Deep night — moonlight and stars",
+        "Pre-dawn blue hour",
+        "Sunrise",
+        "Mid-morning",
+        "Midday",
+        "Mid-afternoon",
+        "Golden hour",
+        "Dusk blue hour"
+      ],
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "season_4",
+      "nodeId": "4",
+      "field": "value",
+      "type": "select",
+      "label": "Season",
+      "default": "1",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ],
+      "optionLabels": [
+        "Spring",
+        "Summer",
+        "Autumn",
+        "Winter"
+      ],
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "clouds_5",
+      "nodeId": "5",
+      "field": "value",
+      "type": "select",
+      "label": "Sky (the exact clouds follow the season)",
+      "default": "1",
+      "options": [
+        "0",
+        "1",
+        "2",
+        "3",
+        "4"
+      ],
+      "optionLabels": [
+        "Clear sky",
+        "A few clouds",
+        "Half cloudy",
+        "Mostly cloudy — sun hidden",
+        "Overcast — drizzle, storm or snow by season"
+      ],
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "camera_height_6",
+      "nodeId": "6",
+      "field": "value",
+      "type": "select",
+      "label": "Camera height",
+      "default": "0",
+      "options": [
+        "0",
+        "1",
+        "2"
+      ],
+      "optionLabels": [
+        "Eye level — 1.8 m",
+        "Rooftop / low drone — 30 m",
+        "High drone — 100 m"
+      ],
+      "required": true,
+      "order": 4
+    },
+    {
+      "key": "seam_fix_9",
+      "nodeId": "9",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Repair the left/right seam (a second pass over the join)",
+      "default": true,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "seam_denoise_10",
+      "nodeId": "10",
+      "field": "value",
+      "type": "number",
+      "label": "Seam repair strength (0.5–0.7)",
+      "default": 0.6,
+      "min": 0.3,
+      "max": 0.9,
+      "step": 0.05,
+      "required": false,
+      "disabledWhen": {
+        "param": "seam_fix_9",
+        "equals": false
+      },
+      "order": 6
+    },
+    {
+      "key": "quality_mode_11",
+      "nodeId": "11",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Quality mode — no Lightning LoRA, several times slower",
+      "default": false,
+      "required": false,
+      "order": 7
+    },
+    {
+      "key": "steps_8",
+      "nodeId": "8",
+      "field": "value",
+      "type": "number",
+      "label": "Steps in fast mode (8 recommended, 6–10)",
+      "default": 8,
+      "min": 4,
+      "max": 12,
+      "step": 1,
+      "required": true,
+      "disabledWhen": {
+        "param": "quality_mode_11",
+        "equals": true
+      },
+      "order": 8
+    },
+    {
+      "key": "quality_steps_12",
+      "nodeId": "12",
+      "field": "value",
+      "type": "number",
+      "label": "Steps in quality mode (25–40)",
+      "default": 30,
+      "min": 20,
+      "max": 50,
+      "step": 1,
+      "required": false,
+      "disabledWhen": {
+        "param": "quality_mode_11",
+        "equals": false
+      },
+      "order": 9
+    },
+    {
+      "key": "quality_cfg_13",
+      "nodeId": "13",
+      "field": "value",
+      "type": "number",
+      "label": "Guidance in quality mode (CFG 2.5–4)",
+      "default": 3,
+      "min": 1.5,
+      "max": 5,
+      "step": 0.5,
+      "required": false,
+      "disabledWhen": {
+        "param": "quality_mode_11",
+        "equals": false
+      },
+      "order": 10
+    },
+    {
+      "key": "negative_49",
+      "nodeId": "49",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt (only used in quality mode)",
+      "default": "illustration, cartoon, drawing, painting, anime, 3d render, cgi, video game, flat colors, cel shading, smooth plastic surfaces, oversaturated, blurry, text, watermark, frame",
+      "required": false,
+      "disabledWhen": {
+        "param": "quality_mode_11",
+        "equals": false
+      },
+      "order": 11
+    },
+    {
+      "key": "seed_7",
+      "nodeId": "7",
+      "field": "value",
+      "type": "number",
+      "label": "Seed",
+      "default": 360001,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 12
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

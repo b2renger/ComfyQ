@@ -3,7 +3,7 @@
     "inputs": {
       "filename_prefix": "image_flux3_klein_t2i",
       "images": [
-        "18:8",
+        "108",
         0
       ]
     },
@@ -23,7 +23,7 @@
       "title": "Resolution Selector"
     }
   },
-  "18:17": {
+  "117": {
     "inputs": {
       "value": "close up profile of a young male athlete with closed eyes pressing his sweaty forehead against a soccer ball, right hand gripping the ball, stark white background, athletic jacket, white ball with jagged red graphic patterns, high contrast studio lighting, highly detailed skin texture, sharp focus Absolutely no text, no typography, no letters, no words, no numbers, no logos, no watermark, no captions, pure imagery only."
     },
@@ -32,7 +32,7 @@
       "title": "Text (Multiline)"
     }
   },
-  "18:12": {
+  "112": {
     "inputs": {
       "clip_name": "qwen3.5_9b_flux3_prompt_upsampler_w4a8.safetensors",
       "type": "flux3",
@@ -43,7 +43,7 @@
       "title": "Load CLIP"
     }
   },
-  "18:14": {
+  "114": {
     "inputs": {
       "value": "You are the prompt upsampler of a text-to-image model. Expand the user's short request into ONE detailed, self-contained caption: the exact text the image model receives. Output only the caption, with no greetings, explanations, refusals, questions, Markdown, headings, JSON, coordinates, ids or angle-bracket tokens, and no quotes around it. If the input is not clearly an image request, caption a visualization of its concept. The request may begin with a \"TARGET CANVAS: W:H\" line: compose for that canvas (wide spreads content sideways, tall stacks it) and never mention the ratio or the canvas.\n\nFidelity and planning: keep every explicit subject, attribute, count, spatial constraint, style cue and piece of wording; never contradict, substitute, drop or narrow the request, and keep an abstract concept abstract. Decide everything left open as ONE concrete, consistent plan; never offer alternatives or hedge. Never re-express a stated constraint through another mechanism; add camera optics (depth of field, bokeh, blur) only when asked for or implied. Without a stated style, plan an actual photograph and open with the medium convention (\"Full-color outdoor photograph, ...\", \"Full-color indoor photograph, ...\", \"Studio photograph, ...\", \"Close-up photograph, ...\"); keep \"Photorealistic\" for renders, and turn \"photorealistic\" or \"realistic\" requests for photos into the photograph convention. Give a photograph a few ordinary, non-ideal specifics drawn from the scene's own objects instead of the stock-photo ideal. Do not invent names, brands, logos or celebrities; keep user-named ones. A long request keeps its content but not its wording: drop appraisal and sales vocabulary, turn moods into observable physical facts, and add only new concrete content with positions. Time of day is lighting, not rendered text.\n\nCaption format: one continuous prose block in the generative voice, never \"this image shows\", \"we can see\" or \"is visible\". Lead with medium and style, then scene, lighting and camera, then the subjects with concrete colors, materials and state. Every person in focus gets an observable profile: ethnicity, gender, age range, skin tone (\"fair skin\", \"brown skin\"), hair and clothing. Make the layout reconstructable from words: frame-relative positions (frame-left, frame-right, upper, lower, foreground, midground, background), sentence-initial anchors (\"On the left, ...\", \"In the background, ...\"), relations (holds, faces, behind) and a consistent order; describe up to about ten instances one by one, beyond that give the exact count and arrangement. Out-of-focus or distant planes are shapes, colors and silhouettes, never identities or readable text, and the background takes about a sixth of the caption. Be definite: no hedging adverbs, no quality or emotion judgments, no closing sentence about mood; state negations as what is present. Rendered text: transcribe every wording verbatim inside double quotes in its original language and script, keep the line breaks of multi-line text, and give its typography, color and placement; author concrete, domain-correct wording when the request needs text it does not supply, and name canonical structures (calendar, keyboard, periodic table) exactly with their full layout. All prose is English; only quoted text keeps its language. Typical length is 100 to 350 words, more for complex scenes.\n\nOutput only the caption.\n"
     },
@@ -52,10 +52,10 @@
       "title": "Text (System prompt)"
     }
   },
-  "18:11": {
+  "111": {
     "inputs": {
       "prompt": [
-        "18:17",
+        "117",
         0
       ],
       "max_length": 3584,
@@ -71,11 +71,11 @@
       "use_default_template": true,
       "mtp": "off",
       "clip": [
-        "18:12",
+        "112",
         0
       ],
       "system_prompt": [
-        "18:14",
+        "114",
         0
       ]
     },
@@ -84,7 +84,7 @@
       "title": "Generate Text"
     }
   },
-  "18:1": {
+  "101": {
     "inputs": {
       "unet_name": "flux3_image_klein_base_int8_convrot.safetensors",
       "weight_dtype": "default"
@@ -94,14 +94,14 @@
       "title": "Load Diffusion Model"
     }
   },
-  "18:4": {
+  "104": {
     "inputs": {
       "text": [
-        "18:16",
+        "302",
         0
       ],
       "clip": [
-        "18:2",
+        "102",
         0
       ]
     },
@@ -110,7 +110,7 @@
       "title": "Positive Prompt"
     }
   },
-  "18:2": {
+  "102": {
     "inputs": {
       "clip_name": "qwen3vl_4b_int8_convrot.safetensors",
       "type": "flux3",
@@ -121,7 +121,7 @@
       "title": "Load CLIP"
     }
   },
-  "18:7": {
+  "107": {
     "inputs": {
       "seed": 758781618552631,
       "steps": 50,
@@ -130,19 +130,19 @@
       "scheduler": "simple",
       "denoise": 1,
       "model": [
-        "18:1",
+        "101",
         0
       ],
       "positive": [
-        "18:4",
+        "104",
         0
       ],
       "negative": [
-        "18:5",
+        "105",
         0
       ],
       "latent_image": [
-        "18:6",
+        "106",
         0
       ]
     },
@@ -151,7 +151,7 @@
       "title": "KSampler"
     }
   },
-  "18:3": {
+  "103": {
     "inputs": {
       "vae_name": "flux2-vae.safetensors"
     },
@@ -160,15 +160,15 @@
       "title": "Load VAE"
     }
   },
-  "18:16": {
+  "116": {
     "inputs": {
       "switch": false,
       "on_false": [
-        "18:17",
+        "117",
         0
       ],
       "on_true": [
-        "18:11",
+        "111",
         0
       ]
     },
@@ -177,7 +177,7 @@
       "title": "If/Else Switch"
     }
   },
-  "18:6": {
+  "106": {
     "inputs": {
       "width": [
         "19",
@@ -194,11 +194,11 @@
       "title": "Empty Flux 2 Latent"
     }
   },
-  "18:5": {
+  "105": {
     "inputs": {
       "text": "",
       "clip": [
-        "18:2",
+        "102",
         0
       ]
     },
@@ -207,20 +207,52 @@
       "title": "Negative Prompt (empty = reference default)"
     }
   },
-  "18:8": {
+  "108": {
     "inputs": {
       "samples": [
-        "18:7",
+        "107",
         0
       ],
       "vae": [
-        "18:3",
+        "103",
         0
       ]
     },
     "class_type": "VAEDecode",
     "_meta": {
       "title": "VAE Decode"
+    }
+  },
+  "300": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": ""
+    }
+  },
+  "301": {
+    "class_type": "CreateBoundingBoxes",
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "editor_state": {},
+      "last_incoming": {},
+      "bboxes": [
+        "300",
+        0
+      ]
+    }
+  },
+  "302": {
+    "class_type": "Flux3LayoutPrompt",
+    "inputs": {
+      "prompt": [
+        "116",
+        0
+      ],
+      "element": [
+        "301",
+        2
+      ]
     }
   }
 }

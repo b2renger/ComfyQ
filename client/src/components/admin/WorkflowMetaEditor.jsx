@@ -190,6 +190,8 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                     disabledWhen: p.disabledWhen,
                     // Preserved like disabledWhen (no UI to edit it).
                     linkedValues: p.linkedValues,
+                    // Display names for a select's options (no UI to edit them).
+                    optionLabels: p.optionLabels,
                     // Likewise — and load-bearing: dropping `whenEmpty: unlink`
                     // does not break the job, it feeds the model a black
                     // placeholder as a reference picture and changes the result.
@@ -587,7 +589,7 @@ const StudentPreview = ({ params, headers }) => {
         const map = {};
         params.filter(p => p.enabled).forEach((p, i) => {
             let options = p.options;
-            let optionLabels;
+            let optionLabels = p.type === 'select' ? p.optionLabels : undefined;
             if (p.type === 'lora') {
                 const got = loraOpts[`${p.optionsDir || 'loras'}|${p.optionsFilter || ''}`];
                 let files = got?.files || [];

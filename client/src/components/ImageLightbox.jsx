@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box, Copy, Check, Package, Maximize2 } from 'lucide-react';
+import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box, Copy, Check, Package, Maximize2, Globe, Image as ImageIcon } from 'lucide-react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
 import { copyToClipboard } from '../utils/clipboard';
@@ -8,6 +8,7 @@ import SplatViewer from './ui/SplatViewer';
 import AudioPlayer from './ui/AudioPlayer';
 import ImageGallery from './ui/ImageGallery';
 import ImageZoomViewer from './ui/ImageZoomViewer';
+import PanoramaViewer from './ui/PanoramaViewer';
 import { useSocket } from '../context/SocketContext';
 import { getImageUrl, getDownloadUrl, getIngredientsUrl, isVideo, isModel3d, isSplat, isAudio, isImage } from '../utils/api';
 import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
@@ -42,6 +43,10 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
     const [view, setView] = useState('splat'); // 'splat' | 'mesh'
     const [copied, setCopied] = useState(false); // transient "Copied!" feedback for text jobs
     const [zoom, setZoom] = useState(false);     // full-size pan/zoom inspector (single-image jobs)
+    // A single 2:1 picture can be an equirectangular panorama: offer a 360° view.
+    // Both are keyed by job id so they reset when the lightbox shows another job.
+    const [wideJob, setWideJob] = useState(null);
+    const [panoJob, setPanoJob] = useState(null);
     if (!job) return null;
     const wf = workflowsById?.[job.workflow_id];
     const displayPrompt = getDisplayPrompt(job);
@@ -59,6 +64,8 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
         if (mediaByParam[k]) return mediaByParam[k];                       // original upload name, not comfyq_*
         if (typeof v === 'string' && v.startsWith('comfyq')) { const p = v.split('__'); return p[p.length - 1]; }
         if (typeof v === 'boolean') return v ? 'on' : 'off';
+        const labels = pmap[k]?.optionLabels, opts = pmap[k]?.options;
+        if (labels && opts) { const i = opts.indexOf(String(v)); if (i >= 0 && labels[i]) return labels[i]; }
         return v == null ? '' : String(v);
     };
     // "Use these settings" only recalls correctly when THIS job's workflow is the
@@ -106,6 +113,13 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
     // result is an inline string. Render it as a readable, copyable panel.
     const jobText = getJobText(job);
     const isTextJob = !is3D && !isAud && !isVid && !isMultiImage && !job.result_filename && !!jobText;
+
+    const isWide = isSingleImage && wideJob === job.id;
+    const showPano = isWide && panoJob === job.id;
+    // Files the browser cannot show (an EXR next to the PNG it was saved from)
+    // still get a download button. 3D jobs list their exports separately.
+    const viewable = (f) => isImage(f) || isVideo(f) || isAudio(f) || isModel3d(f) || isSplat(f);
+    const otherFiles = is3D ? [] : outputs.filter(o => o.filename && o.type !== 'temp' && !viewable(o.filename));
 
     const downloadAll = (e) => {
         e.stopPropagation();
@@ -173,11 +187,17 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
                             <div className="w-full h-full overflow-y-auto custom-scrollbar p-5 text-left bg-background">
                                 <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{jobText}</p>
                             </div>
+                        ) : showPano ? (
+                            <PanoramaViewer url={getImageUrl(job.result_filename)} />
                         ) : (
                             <img
                                 src={getImageUrl(job.result_filename)}
                                 alt="Full Preview"
                                 onClick={() => setZoom(true)}
+                                onLoad={(e) => {
+                                    const { naturalWidth: w, naturalHeight: h } = e.currentTarget;
+                                    if (h > 0 && Math.abs(w / h - 2) < 0.01) setWideJob(job.id);
+                                }}
                                 title="Click to inspect at full size"
                                 className="w-full h-full object-contain cursor-zoom-in"
                             />
@@ -187,7 +207,16 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
                     {/* Inspect at full size — designers check detail here before
                         downloading. Only for the plain single-image case; the
                         multi-image gallery ships its own zoom button. */}
-                    {isSingleImage && (
+                    {isWide && (
+                        <button
+                            onClick={() => setPanoJob(showPano ? null : job.id)}
+                            title={showPano ? 'Back to the flat picture' : 'Look around inside this 2:1 panorama'}
+                            className="absolute bottom-3 left-3 flex items-center gap-1.5 px-3 py-2 rounded-lg bg-black/60 hover:bg-primary hover:text-on-primary text-white backdrop-blur-md border border-white/10 text-xs transition-colors"
+                        >
+                            {showPano ? <><ImageIcon size={14} /> Flat picture</> : <><Globe size={14} /> View in 360°</>}
+                        </button>
+                    )}
+                    {isSingleImage && !showPano && (
                         <button
                             onClick={() => setZoom(true)}
                             title="Inspect at full size (zoom & pan)"
@@ -406,6 +435,18 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
                                 Download Creation
                             </Button>
                         )}
+                        {otherFiles.map(o => (
+                            <Button
+                                key={o.filename}
+                                variant="secondary"
+                                className="w-full"
+                                icon={Download}
+                                onClick={() => downloadFile(o.filename)}
+                                title={o.filename}
+                            >
+                                Also saved: .{o.filename.split('.').pop().toLowerCase()} file
+                            </Button>
+                        ))}
                     </div>
                 </div>
             </div>

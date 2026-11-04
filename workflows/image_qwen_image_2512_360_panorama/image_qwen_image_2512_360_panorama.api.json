@@ -1,0 +1,1164 @@
+{
+  "2": {
+    "inputs": {
+      "value": "a quiet mountain pasture above a small alpine village in the French Alps, wooden chalets with stone bases, a gravel path, pine forest on the slopes and rocky summits all around, shot on a full-frame mirrorless camera, sharp realistic photograph"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "✏️ Prompt de base (EN) : style d'environnement, lieu, boîtier / caméra"
+    }
+  },
+  "3": {
+    "inputs": {
+      "value": 4
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "🎛️ Heure (0–7) : 0 nuit · 2 lever · 4 midi · 6 golden hour"
+    }
+  },
+  "4": {
+    "inputs": {
+      "value": 1
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "🎛️ Saison (0–3) : printemps · été · automne · hiver"
+    }
+  },
+  "5": {
+    "inputs": {
+      "value": 1
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "🎛️ Nuages (0–4) : dégagé → couvert (pondéré saison)"
+    }
+  },
+  "6": {
+    "inputs": {
+      "value": 0
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "🎛️ Hauteur de prise de vue (0–2) : 1,80 m · 30 m · 100 m"
+    }
+  },
+  "7": {
+    "inputs": {
+      "value": 360001
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "🎛️ Seed"
+    }
+  },
+  "8": {
+    "inputs": {
+      "value": 8
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "🎛️ Steps (8 conseillé, 6–10)"
+    }
+  },
+  "9": {
+    "inputs": {
+      "value": true
+    },
+    "class_type": "PrimitiveBoolean",
+    "_meta": {
+      "title": "🎛️ Raccord gauche/droite (seam fix)"
+    }
+  },
+  "10": {
+    "inputs": {
+      "value": 0.6
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "🎛️ Raccord (denoise bande, 0.5–0.7)"
+    }
+  },
+  "11": {
+    "inputs": {
+      "value": false
+    },
+    "class_type": "PrimitiveBoolean",
+    "_meta": {
+      "title": "🎛️ Mode QUALITÉ (sans Lightning, lent)"
+    }
+  },
+  "12": {
+    "inputs": {
+      "value": 30
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "🎛️ Steps mode QUALITÉ (25–40)"
+    }
+  },
+  "13": {
+    "inputs": {
+      "value": 3
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "🎛️ CFG mode QUALITÉ (2.5–4)"
+    }
+  },
+  "14": {
+    "inputs": {
+      "value": 1
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": {
+      "title": "CFG mode Lightning (laisser 1.0)"
+    }
+  },
+  "15": {
+    "inputs": {
+      "unet_name": "qwen_image_2512_fp8_e4m3fn.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Qwen-Image-2512 (diffusion)"
+    }
+  },
+  "16": {
+    "inputs": {
+      "lora_name": "Qwen-Image-2512-Lightning-4steps-V1.0-fp32.safetensors",
+      "strength_model": 1,
+      "model": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA Lightning 2512 — 4 steps"
+    }
+  },
+  "17": {
+    "inputs": {
+      "lora_name": "qwen-360-diffusion-2512-int8-bf16-v2.safetensors",
+      "strength_model": 1,
+      "model": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA qwen-360-diffusion 2512 v2"
+    }
+  },
+  "18": {
+    "inputs": {
+      "shift": 3.1,
+      "sampling": "flow",
+      "model": [
+        "17",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "ModelSamplingAuraFlow"
+    }
+  },
+  "19": {
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Text encoder Qwen2.5-VL 7B"
+    }
+  },
+  "20": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "VAE Qwen Image"
+    }
+  },
+  "21": {
+    "inputs": {
+      "model_name": "RealESRGAN_x4plus.pth"
+    },
+    "class_type": "UpscaleModelLoader",
+    "_meta": {
+      "title": "Upscale ×4"
+    }
+  },
+  "22": {
+    "inputs": {
+      "lora_name": "qwen-360-diffusion-2512-int8-bf16-v2.safetensors",
+      "strength_model": 1,
+      "model": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRA qwen-360-diffusion (mode QUALITÉ, sans Lightning)"
+    }
+  },
+  "23": {
+    "inputs": {
+      "shift": 3.1,
+      "sampling": "flow",
+      "model": [
+        "22",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "AuraFlow (mode QUALITÉ)"
+    }
+  },
+  "24": {
+    "inputs": {
+      "switch": [
+        "11",
+        0
+      ],
+      "on_false": [
+        "18",
+        0
+      ],
+      "on_true": [
+        "23",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Modèle : Lightning / QUALITÉ"
+    }
+  },
+  "25": {
+    "inputs": {
+      "switch": [
+        "11",
+        0
+      ],
+      "on_false": [
+        "8",
+        0
+      ],
+      "on_true": [
+        "12",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Steps : Lightning / QUALITÉ"
+    }
+  },
+  "26": {
+    "inputs": {
+      "switch": [
+        "11",
+        0
+      ],
+      "on_false": [
+        "14",
+        0
+      ],
+      "on_true": [
+        "13",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "CFG : Lightning / QUALITÉ"
+    }
+  },
+  "27": {
+    "inputs": {
+      "value": "deep night, moon as the only light source, dark navy sky full of stars, faint cold moonlight, very dark ground, silhouettes only, a few distant lights barely visible   \npre-dawn blue hour, sun still below the horizon, a pale orange glow along the horizon, cool blue shadowless light, dew on the ground, soft and quiet                    \nsunrise, sun disc just above the horizon, very long soft shadows, warm orange and pink light, golden rim light on edges, slight morning mist in the distance            \nmid-morning, sun at medium height in the sky, fresh clear light, medium-long shadows, slightly cool blue sky, crisp air                                                 \nmidday, sun very high in the sky, short shadows directly under objects, neutral white light, bright sky, high contrast                                                  \nmid-afternoon, sun at medium height in the sky, warm neutral light, medium shadows, slightly warm sky                                                                   \ngolden hour before sunset, sun disc low above the horizon, very long shadows, warm amber and gold light, glowing backlit foliage                                        \ndusk blue hour after sunset, sun just below the horizon, fading orange band along the horizon, deep blue sky above, soft cool light, first stars, lamps starting to glow"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "🔒 Table HEURE (8 lignes, largeur fixe — ne pas éditer)"
+    }
+  },
+  "28": {
+    "inputs": {
+      "expression": "min(max(a,0),7)*169",
+      "values.a": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Début = index borné × 169"
+    }
+  },
+  "29": {
+    "inputs": {
+      "expression": "min(max(a,0),7)*169+168",
+      "values.a": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Fin = début + 168"
+    }
+  },
+  "30": {
+    "inputs": {
+      "string": [
+        "27",
+        0
+      ],
+      "start": [
+        "28",
+        1
+      ],
+      "end": [
+        "29",
+        1
+      ]
+    },
+    "class_type": "StringSubstring",
+    "_meta": {
+      "title": "Ligne de la table (position)"
+    }
+  },
+  "31": {
+    "inputs": {
+      "string": [
+        "30",
+        0
+      ],
+      "mode": "Both"
+    },
+    "class_type": "StringTrim",
+    "_meta": {
+      "title": "Texte du preset (sans remplissage)"
+    }
+  },
+  "32": {
+    "inputs": {
+      "value": "spring season, fresh light-green young foliage, blossoming trees, lush green grass with wild flowers, damp dark soil, puddles, soft clear air, mild light                       \nsummer season, dense deep-green mature foliage, tall dry grass turning yellow, sun-baked dusty ground, hard bright light, warm haze on the horizon, heat shimmer in the distance\nautumn season, foliage in orange, red and yellow, fallen leaves covering the ground, wet dark soil, low warm sun, thin mist in the distance, soft golden light                  \nwinter season, bare leafless trees, dormant brown grass, frost and patches of snow on the ground, pale low sun, cold blue-grey light, long shadows, crisp clear cold air        "
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "🔒 Table SAISON (4 lignes, largeur fixe — ne pas éditer)"
+    }
+  },
+  "33": {
+    "inputs": {
+      "expression": "min(max(a,0),3)*177",
+      "values.a": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Début = index borné × 177"
+    }
+  },
+  "34": {
+    "inputs": {
+      "expression": "min(max(a,0),3)*177+176",
+      "values.a": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Fin = début + 176"
+    }
+  },
+  "35": {
+    "inputs": {
+      "string": [
+        "32",
+        0
+      ],
+      "start": [
+        "33",
+        1
+      ],
+      "end": [
+        "34",
+        1
+      ]
+    },
+    "class_type": "StringSubstring",
+    "_meta": {
+      "title": "Ligne de la table (position)"
+    }
+  },
+  "36": {
+    "inputs": {
+      "string": [
+        "35",
+        0
+      ],
+      "mode": "Both"
+    },
+    "class_type": "StringTrim",
+    "_meta": {
+      "title": "Texte du preset (sans remplissage)"
+    }
+  },
+  "37": {
+    "inputs": {
+      "value": "completely clear deep-blue spring sky, sun disc fully visible, crisp shadows                                                                                                               \na few small white cumulus clouds scattered in a blue spring sky, sun fully visible, sharp shadows                                                                                          \nscattered fair-weather cumulus clouds covering half the spring sky, sun mostly visible, shadows slightly softened                                                                          \nbroken cloud layer of spring showers, grey and white cumulus covering most of the sky, sun disc hidden behind the clouds, soft diffuse light, bright gaps                                  \nfully overcast grey spring sky, flat diffuse light, sun disc hidden, wet glistening ground, light drizzle in the air                                                                       \nflawless clear deep-blue summer sky, sun disc fully visible, hard crisp shadows, strong contrast                                                                                           \na few small puffy white cumulus in a deep-blue summer sky, sun fully visible, hard shadows                                                                                                 \nscattered puffy cumulus clouds over half the summer sky, warm hazy horizon, sun mostly visible                                                                                             \nlarge towering cumulus and cumulonimbus covering most of the summer sky, dramatic contrast between bright cloud tops and shadowed bases, sun disc hidden, patches of sunlight on the ground\nheavy overcast summer sky, dark grey storm clouds, flat dim light, sun disc hidden, humid heavy air, threatening thunderstorm                                                              \nclear pale-blue autumn sky, sun disc fully visible, low golden light, long soft shadows                                                                                                    \na few thin wispy cirrus clouds in a pale-blue autumn sky, sun fully visible                                                                                                                \nscattered altocumulus clouds over half the autumn sky, sun visible through gaps, soft golden shadows, haze on the horizon                                                                  \nbroken grey stratocumulus covering most of the autumn sky, sun disc hidden, soft diffuse golden-grey light, low mist in the distance                                                       \nfully overcast grey autumn sky, flat diffuse light, sun disc hidden, wet dark ground, mist and drizzle                                                                                     \nclear cold winter sky, very pale blue, low sun disc fully visible, long sharp shadows, crisp air                                                                                           \na few thin high clouds in a pale winter sky, low sun fully visible, long shadows                                                                                                           \nscattered grey-white clouds over half the winter sky, low sun visible through gaps, soft long shadows                                                                                      \nbroken low grey stratus covering most of the winter sky, sun disc hidden, dim flat cold light                                                                                              \nheavy uniform overcast winter sky, flat white-grey light, sun disc hidden, snow-laden clouds, light falling snow, dim and cold                                                             "
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "🔒 Table NUAGES × SAISON (20 lignes, largeur fixe — ne pas éditer)"
+    }
+  },
+  "38": {
+    "inputs": {
+      "expression": "(min(max(a,0),3)*5+min(max(b,0),4))*188",
+      "values.a": [
+        "4",
+        0
+      ],
+      "values.b": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Début = (saison × 5 + nuages) bornés × 188"
+    }
+  },
+  "39": {
+    "inputs": {
+      "expression": "(min(max(a,0),3)*5+min(max(b,0),4))*188+187",
+      "values.a": [
+        "4",
+        0
+      ],
+      "values.b": [
+        "5",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Fin = début + 187"
+    }
+  },
+  "40": {
+    "inputs": {
+      "string": [
+        "37",
+        0
+      ],
+      "start": [
+        "38",
+        1
+      ],
+      "end": [
+        "39",
+        1
+      ]
+    },
+    "class_type": "StringSubstring",
+    "_meta": {
+      "title": "Ligne de la table (position)"
+    }
+  },
+  "41": {
+    "inputs": {
+      "string": [
+        "40",
+        0
+      ],
+      "mode": "Both"
+    },
+    "class_type": "StringTrim",
+    "_meta": {
+      "title": "Texte du preset (sans remplissage)"
+    }
+  },
+  "42": {
+    "inputs": {
+      "value": "captured from human eye level, about 1.8 metres above the ground, grass and ground texture close and detailed in the lower half, horizon exactly at mid-height, objects nearby at their natural scale                                                   \ncaptured from about 30 metres above the ground, rooftop or low drone altitude, the ground recedes below with rooftops, treetops and paths seen from above, the horizon still exactly at mid-height, buildings and trees appear small, aerial perspective\ncaptured from about 100 metres above the ground, high drone altitude, the whole landscape laid out far below, roads and buildings tiny, the horizon exactly at mid-height, strong aerial perspective, distant haze, open sky dominates                  "
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "🔒 Table HAUTEUR (3 lignes, largeur fixe — ne pas éditer)"
+    }
+  },
+  "43": {
+    "inputs": {
+      "expression": "min(max(a,0),2)*249",
+      "values.a": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Début = index borné × 249"
+    }
+  },
+  "44": {
+    "inputs": {
+      "expression": "min(max(a,0),2)*249+248",
+      "values.a": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Fin = début + 248"
+    }
+  },
+  "45": {
+    "inputs": {
+      "string": [
+        "42",
+        0
+      ],
+      "start": [
+        "43",
+        1
+      ],
+      "end": [
+        "44",
+        1
+      ]
+    },
+    "class_type": "StringSubstring",
+    "_meta": {
+      "title": "Ligne de la table (position)"
+    }
+  },
+  "46": {
+    "inputs": {
+      "string": [
+        "45",
+        0
+      ],
+      "mode": "Both"
+    },
+    "class_type": "StringTrim",
+    "_meta": {
+      "title": "Texte du preset (sans remplissage)"
+    }
+  },
+  "47": {
+    "inputs": {
+      "value": "equirectangular 360 degree panorama with equirectangular projection, photograph of"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Trigger 360 (ne pas modifier)"
+    }
+  },
+  "48": {
+    "inputs": {
+      "value": "Full spherical outdoor view, straight horizon in the exact middle, seamless left and right edges, continuous sky at the top, continuous ground at the bottom, one single coherent place with the same lighting, sun direction, weather, colours and time of day everywhere. Sharp photographic detail, natural textures on grass, foliage, bark and walls, realistic daylight and shadows, real camera photograph, not an illustration, not a 3D render. No people, no text, no frame, no vignette."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Consignes 360 (EN, fixes)"
+    }
+  },
+  "49": {
+    "inputs": {
+      "text": "illustration, cartoon, drawing, painting, anime, 3d render, cgi, video game, flat colors, cel shading, smooth plastic surfaces, oversaturated, blurry, text, watermark, frame",
+      "clip": [
+        "19",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "Négatif (actif seulement en mode QUALITÉ, CFG > 1)"
+    }
+  },
+  "51": {
+    "inputs": {
+      "string_a": [
+        "47",
+        0
+      ],
+      "string_b": [
+        "2",
+        0
+      ],
+      "delimiter": " "
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Trigger + prompt de base"
+    }
+  },
+  "52": {
+    "inputs": {
+      "string_a": [
+        "51",
+        0
+      ],
+      "string_b": [
+        "31",
+        0
+      ],
+      "delimiter": ". Time of day: "
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "+ Heure (barrette)"
+    }
+  },
+  "53": {
+    "inputs": {
+      "string_a": [
+        "52",
+        0
+      ],
+      "string_b": [
+        "36",
+        0
+      ],
+      "delimiter": ". Season: "
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "+ Saison (barrette)"
+    }
+  },
+  "54": {
+    "inputs": {
+      "string_a": [
+        "53",
+        0
+      ],
+      "string_b": [
+        "41",
+        0
+      ],
+      "delimiter": ". Sky: "
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "+ Nuages (barrette)"
+    }
+  },
+  "55": {
+    "inputs": {
+      "string_a": [
+        "54",
+        0
+      ],
+      "string_b": [
+        "46",
+        0
+      ],
+      "delimiter": ". Camera height: "
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "+ Hauteur de prise de vue (barrette)"
+    }
+  },
+  "57": {
+    "inputs": {
+      "string_a": [
+        "55",
+        0
+      ],
+      "string_b": [
+        "48",
+        0
+      ],
+      "delimiter": "\n\n"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "+ Consignes 360"
+    }
+  },
+  "58": {
+    "inputs": {
+      "text": [
+        "57",
+        0
+      ],
+      "clip": [
+        "19",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": {
+      "title": "PROMPT 360 (positif)"
+    }
+  },
+  "59": {
+    "inputs": {
+      "width": 2048,
+      "height": 1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptySD3LatentImage",
+    "_meta": {
+      "title": "Latent vide 2048 × 1024 (taille native LoRA 360)"
+    }
+  },
+  "60": {
+    "inputs": {
+      "seed": [
+        "7",
+        0
+      ],
+      "steps": [
+        "25",
+        0
+      ],
+      "cfg": [
+        "26",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "24",
+        0
+      ],
+      "positive": [
+        "58",
+        0
+      ],
+      "negative": [
+        "49",
+        0
+      ],
+      "latent_image": [
+        "59",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler — GÉNÉRATION 360° (txt2img, denoise 1.0)"
+    }
+  },
+  "61": {
+    "inputs": {
+      "samples": [
+        "60",
+        0
+      ],
+      "vae": [
+        "20",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "63": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "x": 1024,
+      "y": 0,
+      "image": [
+        "61",
+        0
+      ]
+    },
+    "class_type": "ImageCrop",
+    "_meta": {
+      "title": "Moitié droite"
+    }
+  },
+  "64": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "x": 0,
+      "y": 0,
+      "image": [
+        "61",
+        0
+      ]
+    },
+    "class_type": "ImageCrop",
+    "_meta": {
+      "title": "Moitié gauche"
+    }
+  },
+  "65": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": false,
+      "spacing_width": 0,
+      "spacing_color": "white",
+      "image1": [
+        "63",
+        0
+      ],
+      "image2": [
+        "64",
+        0
+      ]
+    },
+    "class_type": "ImageStitch",
+    "_meta": {
+      "title": "Décalage 180° (raccord au centre)"
+    }
+  },
+  "66": {
+    "inputs": {
+      "value": 0,
+      "width": 2048,
+      "height": 1024
+    },
+    "class_type": "SolidMask",
+    "_meta": {
+      "title": "Masque vide 2048 × 1024"
+    }
+  },
+  "67": {
+    "inputs": {
+      "value": 1,
+      "width": 256,
+      "height": 1024
+    },
+    "class_type": "SolidMask",
+    "_meta": {
+      "title": "Bande 256 px"
+    }
+  },
+  "68": {
+    "inputs": {
+      "x": 896,
+      "y": 0,
+      "operation": "add",
+      "destination": [
+        "66",
+        0
+      ],
+      "source": [
+        "67",
+        0
+      ]
+    },
+    "class_type": "MaskComposite",
+    "_meta": {
+      "title": "Bande au centre (x 896)"
+    }
+  },
+  "69": {
+    "inputs": {
+      "mask": [
+        "68",
+        0
+      ]
+    },
+    "class_type": "MaskToImage",
+    "_meta": {
+      "title": "Convert Mask to Image"
+    }
+  },
+  "70": {
+    "inputs": {
+      "blur_radius": 31,
+      "sigma": 10,
+      "image": [
+        "69",
+        0
+      ]
+    },
+    "class_type": "ImageBlur",
+    "_meta": {
+      "title": "Fondu de la bande"
+    }
+  },
+  "71": {
+    "inputs": {
+      "channel": "red",
+      "image": [
+        "70",
+        0
+      ]
+    },
+    "class_type": "ImageToMask",
+    "_meta": {
+      "title": "Convert Image to Mask"
+    }
+  },
+  "72": {
+    "inputs": {
+      "pixels": [
+        "65",
+        0
+      ],
+      "vae": [
+        "20",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAE Encode"
+    }
+  },
+  "73": {
+    "inputs": {
+      "samples": [
+        "72",
+        0
+      ],
+      "mask": [
+        "71",
+        0
+      ]
+    },
+    "class_type": "SetLatentNoiseMask",
+    "_meta": {
+      "title": "Set Latent Noise Mask"
+    }
+  },
+  "74": {
+    "inputs": {
+      "seed": [
+        "7",
+        0
+      ],
+      "steps": [
+        "25",
+        0
+      ],
+      "cfg": [
+        "26",
+        0
+      ],
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": [
+        "10",
+        0
+      ],
+      "model": [
+        "24",
+        0
+      ],
+      "positive": [
+        "58",
+        0
+      ],
+      "negative": [
+        "49",
+        0
+      ],
+      "latent_image": [
+        "73",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler — RACCORD (bande centrale)"
+    }
+  },
+  "75": {
+    "inputs": {
+      "samples": [
+        "74",
+        0
+      ],
+      "vae": [
+        "20",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAE Decode"
+    }
+  },
+  "76": {
+    "inputs": {
+      "x": 0,
+      "y": 0,
+      "resize_source": false,
+      "destination": [
+        "65",
+        0
+      ],
+      "source": [
+        "75",
+        0
+      ],
+      "mask": [
+        "71",
+        0
+      ]
+    },
+    "class_type": "ImageCompositeMasked",
+    "_meta": {
+      "title": "Colle la bande seule"
+    }
+  },
+  "77": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "x": 1024,
+      "y": 0,
+      "image": [
+        "76",
+        0
+      ]
+    },
+    "class_type": "ImageCrop",
+    "_meta": {
+      "title": "Moitié droite"
+    }
+  },
+  "78": {
+    "inputs": {
+      "width": 1024,
+      "height": 1024,
+      "x": 0,
+      "y": 0,
+      "image": [
+        "76",
+        0
+      ]
+    },
+    "class_type": "ImageCrop",
+    "_meta": {
+      "title": "Moitié gauche"
+    }
+  },
+  "79": {
+    "inputs": {
+      "direction": "right",
+      "match_image_size": false,
+      "spacing_width": 0,
+      "spacing_color": "white",
+      "image1": [
+        "77",
+        0
+      ],
+      "image2": [
+        "78",
+        0
+      ]
+    },
+    "class_type": "ImageStitch",
+    "_meta": {
+      "title": "Remise en place (−180°)"
+    }
+  },
+  "80": {
+    "inputs": {
+      "switch": [
+        "9",
+        0
+      ],
+      "on_false": [
+        "61",
+        0
+      ],
+      "on_true": [
+        "79",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Raccord : OFF / ON"
+    }
+  },
+  "81": {
+    "inputs": {
+      "upscale_model": [
+        "21",
+        0
+      ],
+      "image": [
+        "80",
+        0
+      ]
+    },
+    "class_type": "ImageUpscaleWithModel",
+    "_meta": {
+      "title": "Upscale ×4 (8192 × 4096)"
+    }
+  },
+  "82": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": 4096,
+      "height": 2048,
+      "crop": "disabled",
+      "image": [
+        "81",
+        0
+      ]
+    },
+    "class_type": "ImageScale",
+    "_meta": {
+      "title": "→ 4096 × 2048 exact"
+    }
+  },
+  "83": {
+    "inputs": {
+      "filename_prefix": "pano_png16",
+      "format": "png",
+      "format.bit_depth": "16-bit",
+      "format.input_color_space": "sRGB",
+      "images": [
+        "82",
+        0
+      ]
+    },
+    "class_type": "SaveImageAdvanced",
+    "_meta": {
+      "title": "💾 Pano 4K — PNG 16 bits (sRGB)"
+    }
+  },
+  "84": {
+    "inputs": {
+      "filename_prefix": "pano_exr32",
+      "format": "exr",
+      "format.bit_depth": "32-bit float",
+      "format.input_color_space": "sRGB",
+      "images": [
+        "82",
+        0
+      ]
+    },
+    "class_type": "SaveImageAdvanced",
+    "_meta": {
+      "title": "💾 Pano 4K — EXR 32 bits float (linéaire)"
+    }
+  }
+}

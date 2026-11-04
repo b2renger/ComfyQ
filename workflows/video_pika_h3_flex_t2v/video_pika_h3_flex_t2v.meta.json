@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "id": "video_pika_h3_flex_t2v",
+  "name": "Pika H3 Flex — text to video with sound (6 steps)",
+  "description": "Text to video WITH sound, in six sampling steps. Pika H3 Flex is MiniMax H3 post-trained by Pika for speed and control.\n\nWrite it as a shot list: what is in frame, then what happens and when (\"at about two seconds…\"), the camera move, and the sound. It generates the soundtrack with the picture — say what is heard (dialogue in quotes, effects, ambience, music) or you get whatever it invents.\n\nNative sizes are 480p and 768p (about 0.4 and 1.0 megapixels). Durations from 5 to 15 seconds; cost grows with both. It owns the card on a 32 GB GPU.",
+  "category": "i2v",
+  "experimental": true,
+  "tags": [
+    "minimax",
+    "h3",
+    "pika",
+    "text2video",
+    "audio",
+    "6-step"
+  ],
+  "promptGuides": [
+    {
+      "label": "Pika H3 Flex — prompt guide",
+      "url": "https://github.com/Pika-Labs/Pika-H3-Flex/blob/main/docs/prompt-guidance.md",
+      "tip": "Say what is in frame and what must stay the same, then give the camera moves with timestamps (0–3 s, 3–5 s…), then the sound and the music. Ask for real-time motion if you do not want slow motion."
+    },
+    {
+      "label": "MiniMax H3 — official prompt guide",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_base_en.md"
+    },
+    {
+      "label": "Pika H3 Flex — model card and showcase prompts",
+      "url": "https://huggingface.co/Pika-Labs/Pika-H3-Flex"
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_pika_h3_flex_t2v.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "lora",
+        "file": "pika_h3_flex_fl2va_v1_bf16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/loras/pika_h3_flex_fl2va_v1_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_video_vae_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_audio_vae_fp32.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "exposedParameters": [
+    {
+      "key": "prompt_231",
+      "nodeId": "231",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Prompt — the shot, what happens when, and the sound",
+      "default": "integrated_multimodal_description: [Shot 1] Stylized 3D animation, Pixar-inspired cartoon rendering with a C4D and Octane look, warm subsurface scattering through ears and fingertips and exaggerated squash-and-stretch acting; a three-head-tall cook with a round face, a tall white toque that flops to one side and a flour-dusted apron stands at a stainless counter in a small warm kitchen, rolling dumplings by hand. The counter is dusted white, a bamboo steamer steams on the right, and a shallow pot of broth sits at the burner behind him with visible heat shimmer. The camera holds a static shot at counter height for the first second while he sets one finished dumpling down on a tray in the foreground, presses the seam with two fingers, then turns away to reach for a rolling pin on the shelf behind him, the toque tipping as he turns. At about one and a half seconds the dumpling on the tray presses itself upward, its pleated top gathering like a brow, and two stubby legs of dough push out of its base. It walks to the tray edge in three quick shuffling steps, the tray ringing slightly under each step, and jumps off toward the pot. At about two and a half seconds the cook whips around and lunges, both arms out, and misses clean over the top of it as the dumpling arcs into the broth with a plop. He freezes half-bent over the pot, arms still out. At about three and a half seconds the surface breaks and the dumpling floats back up, cooked, glossy and steaming, bobbing once against the side of the pot. The last second holds completely still on the cook's face as he straightens up slowly, flour on his cheek, the toque now fully flopped over one eye, one eyebrow rising while his mouth stays flat; a single bubble pops on the broth behind him.\n\noverall_soundscape: Warm small-kitchen ambience with a low gas burner hiss and the faint creak of a steaming bamboo basket, the dry shuffle of a flour dusting, three soft doughy footfalls on metal tray, one short airy whoosh as he lunges, a clean heavy plop into broth, then a gentle simmer with one small bubble popping.\n\nnon_diegetic_music: A light pizzicato cello figure at a moderate tempo that follows the dumpling's footsteps, drops out completely during the lunge and the plop, and returns on a single dry resolved note as the cook straightens up.",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "duration_233",
+      "nodeId": "233",
+      "field": "value",
+      "type": "number",
+      "label": "Duration in seconds",
+      "default": 5,
+      "min": 5,
+      "max": 15,
+      "step": 1,
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "aspect_ratio_115",
+      "nodeId": "115",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio",
+      "default": "16:9 (Widescreen)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "megapixels_115",
+      "nodeId": "115",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (0.4 ≈ 480p, 1.0 ≈ 768p)",
+      "default": 1,
+      "min": 0.4,
+      "max": 1.0,
+      "step": 0.1,
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "seed_229",
+      "nodeId": "229",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 914757319624586,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 4
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

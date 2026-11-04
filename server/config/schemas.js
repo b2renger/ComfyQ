@@ -40,6 +40,10 @@ const ExposedParameter = z.object({
     label: z.string().min(1),
     default: z.any().optional(),
     options: z.array(z.string()).optional(),
+    // Display names for a `select`'s options, same order as `options`. The
+    // value sent is still the option itself -- e.g. options "0".."7" feeding a
+    // PrimitiveInt, shown as "Deep night" … "Dusk blue hour".
+    optionLabels: z.array(z.string()).optional(),
     // For `lora`-type params: the model subdir to scan (relative to
     // `<comfy root>/models/`, default `loras`) and a case-insensitive filename
     // PREFIX to keep (e.g. `krea2_` → only Krea-compatible LoRAs). The options
@@ -99,7 +103,14 @@ const ExposedParameter = z.object({
     //   adds the visual composer and a format check, and the worker sends valid
     //   JSON to the model compacted (measured on the rig: the same caption
     //   pretty-printed came back "Image blocked by safety filter").
-    format: z.enum(['ideogram4-caption']).optional(),
+    //   moss-layout — a MOSS-Image layout: a JSON list of boxes for ComfyUI's
+    //   Create Bounding Boxes node. The booking form adds the composer in its
+    //   boxes-only form (it also fills the card's `character_boxes` param);
+    //   the worker sends the list compacted.
+    //   flux3-layout — the same list of boxes, for FLUX.3 Klein's layout prompt
+    //   (Flux3LayoutPrompt cites box N as <obj_N>). Composer without characters
+    //   or palettes, which that node does not use; compacted the same way.
+    format: z.enum(['ideogram4-caption', 'moss-layout', 'flux3-layout']).optional(),
     // What to do when an optional media param is left empty. The default fills a
     // neutral placeholder, which the graph must hide behind a switch; 'unlink'
     // removes the loader and every link to it, which is what an AUTOGROW

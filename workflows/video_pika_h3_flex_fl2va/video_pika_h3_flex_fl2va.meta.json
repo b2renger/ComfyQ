@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "id": "video_pika_h3_flex_fl2va",
+  "name": "Pika H3 Flex — first / last frame to video with sound (6 steps)",
+  "description": "A picture becomes the opening shot of a video WITH sound — and optionally a second picture becomes where it ends. Six sampling steps (Pika H3 Flex on MiniMax H3).\n\nThe video takes the shape of the first picture. Describe how it moves from the first frame to the last: what happens and when (\"at about two seconds…\"), the camera move, and the sound. It generates the soundtrack with the picture — say what is heard (dialogue in quotes, effects, ambience, music) or you get whatever it invents.\n\nWith a last picture, say in the prompt that the shot ends on it. Leave it empty for a plain image-to-video. Durations from 5 to 15 seconds.",
+  "category": "i2v",
+  "experimental": true,
+  "tags": [
+    "minimax",
+    "h3",
+    "pika",
+    "image2video",
+    "first-last-frame",
+    "audio",
+    "6-step"
+  ],
+  "promptGuides": [
+    {
+      "label": "Pika H3 Flex — prompt guide",
+      "url": "https://github.com/Pika-Labs/Pika-H3-Flex/blob/main/docs/prompt-guidance.md",
+      "tip": "Say what is in frame and what must stay the same, then give the camera moves with timestamps (0–3 s, 3–5 s…), then the sound and the music. Ask for real-time motion if you do not want slow motion."
+    },
+    {
+      "label": "MiniMax H3 — official prompt guide",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_base_en.md"
+    },
+    {
+      "label": "Pika H3 Flex — model card and showcase prompts",
+      "url": "https://huggingface.co/Pika-Labs/Pika-H3-Flex"
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "video_pika_h3_flex_fl2va.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "lora",
+        "file": "pika_h3_flex_fl2va_v1_bf16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/loras/pika_h3_flex_fl2va_v1_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_video_vae_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_audio_vae_fp32.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "exposedParameters": [
+    {
+      "key": "prompt_231",
+      "nodeId": "231",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Prompt — from the first frame to the last, and the sound",
+      "default": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the 5.17-second mark of the target video.\n\nintegrated_multimodal_description: [Shot 1] Editorial pop-art photography and printed-graphic hybrid: the woman and her clothing stay photographic with real skin texture, while everything printed — the sticker pizza, the stars, the halftone dots, the sticker tiles on the floor — stays flat printed card with heavy black outlines and no thickness. Flat hard frontal light, seamless process-red field, no gloss on the red. The shot begins exactly on Picture 1: tight portrait framing, red cat-eye sunglasses on her face, black and white checkerboard top, lips just touching the tip of the flat sticker pizza held at chin height, deadpan behind the dark lenses. At about half a second she bites the sticker and pulls her head back, and the red field behind her behaves like printed paper: a ragged tear opens behind her shoulders and curls at its edges. At about one and a half seconds she spins a full turn on the spot, clockwise, the sticker turning with her so its black outline draws a full circle against the red. At about two and a half seconds she jumps up through the tear toward the lens, and the camera pulls back with small amplitude at slow speed, coming to rest exactly when her raised arms fit inside the frame. At about three and a half seconds she lands facing the lens in the pose of Picture 2: arms overhead holding the sticker pizza, its bitten edge toward camera, the red cat-eye sunglasses airborne above and to her left, tumbling end over end with one lens catching the light, her face breaking into a wide open laugh. Flat yellow stars and small sticker pizza tiles populate the red field exactly as in Picture 2, and the halftone dot pattern resolves into visible print grain. The shot settles into the final composition of Picture 2 and holds, with only the sunglasses still turning in the air.\n\noverall_soundscape: A crisp papery bite, then the dry rasping tear of thick printed stock splitting and curling, one short airy whoosh for the spin, a light thump of her landing, the plastic clatter of sunglasses tumbling above her, and her open laugh arriving on the landing over a dry studio room with no reverb.\n\nnon_diegetic_music: A fast bright brass-and-clarinet figure that hits on the spin, cuts to a single sustained note through the jump, and lands on one resolved chord with her laugh.",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "first_frame_148",
+      "nodeId": "148",
+      "field": "image",
+      "type": "image",
+      "label": "First frame — the video starts on this picture and takes its shape",
+      "required": true,
+      "maxInputEdge": 2048,
+      "order": 1
+    },
+    {
+      "key": "last_frame_147",
+      "nodeId": "147",
+      "field": "image",
+      "type": "image",
+      "label": "Last frame — optional, the video ends on it",
+      "required": false,
+      "whenEmpty": "unlink",
+      "maxInputEdge": 2048,
+      "order": 2
+    },
+    {
+      "key": "duration_233",
+      "nodeId": "233",
+      "field": "value",
+      "type": "number",
+      "label": "Duration in seconds",
+      "default": 5,
+      "min": 5,
+      "max": 15,
+      "step": 1,
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "megapixels_160",
+      "nodeId": "160",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (0.4 = 480p, 0.98 = 768p)",
+      "default": 0.98,
+      "min": 0.3,
+      "max": 1.0,
+      "step": 0.02,
+      "required": true,
+      "order": 4
+    },
+    {
+      "key": "seed_229",
+      "nodeId": "229",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 915756813683825,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 5
+    }
+  ],
+  "warmupParams": {
+    "last_frame_147": null
+  },
+  "presets": {}
+}

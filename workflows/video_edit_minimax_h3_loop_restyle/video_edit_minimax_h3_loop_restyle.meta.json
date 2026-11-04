@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "id": "video_edit_minimax_h3_loop_restyle",
+  "name": "MiniMax H3 — restyle a seamless loop (ControlNet) with sound",
+  "description": "Restyle a video that ALREADY loops seamlessly — a Blender render, a depth pass, an edge pass — with MiniMax H3. Your loop fixes the geometry and timing, H3 paints the look and invents a soundtrack, and the result loops just as cleanly. The author finds this gives the cleanest joints, and it is the way to get camera travel (tunnels, corridors) that a text prompt struggles with.\n\nThe upload must loop by itself: its frame after the last must be its first. Its frame rate is read from the file. The loop is fitted to the chosen length by repeating it a whole number of times (\"Times the control loop plays\", 0 = closest to its own speed) and resampling, which blends neighbouring frames; for an exact fit render the control at 24 fps with a cycle that divides the loop (a 34-frame cycle fits 107 frames 3 times).\n\nThe Fun ControlNet is a union model: a depth or edge render works best. Prompt the geometry the control shows first, then the look. 8 steps with the turbo LoRA v1.0, as in the author's example; clean-sound mode is off because it cannot be combined with the ControlNet.",
+  "category": "video-edit",
+  "experimental": true,
+  "tags": [
+    "minimax",
+    "h3",
+    "loop",
+    "seamless",
+    "controlnet",
+    "restyle",
+    "audio",
+    "experimental"
+  ],
+  "promptGuides": [
+    {
+      "label": "MiniMax H3 Loop — prompting guide",
+      "url": "https://github.com/pxl-pshr/ComfyUI-MiniMaxH3-Loop/blob/main/PROMPTING.md",
+      "tip": "Describe a state that keeps going, not a sequence of events: locked-off camera, one subject doing one cyclic thing, steady light and sound. Ask: if this played twice in a row, would the joint show?"
+    },
+    {
+      "label": "MiniMax H3 Loop — the node pack",
+      "url": "https://github.com/pxl-pshr/ComfyUI-MiniMaxH3-Loop"
+    }
+  ],
+  "thumbnail": null,
+  "author": "pxl-pshr (ComfyUI-MiniMaxH3-Loop)",
+  "version": "1.0.0",
+  "workflowFile": "video_edit_minimax_h3_loop_restyle.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "lora",
+        "file": "minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+        "url": "https://huggingface.co/lightx2v/Minimax-h3-Turbo/resolve/main/minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+        "source": "https://huggingface.co/lightx2v/Minimax-h3-Turbo"
+      },
+      {
+        "type": "other",
+        "file": "minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/model_patches/minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_video_vae_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_audio_vae_fp32.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "other",
+        "file": "film_net_fp32.pt",
+        "auto": true,
+        "note": "Fetched by ComfyUI-Frame-Interpolation into its own ckpts/film folder on first use.",
+        "source": "https://github.com/dajes/frame-interpolation-pytorch/releases/tag/v1.0.0"
+      }
+    ]
+  },
+  "estimatedDurationSec": 215,
+  "exposedParameters": [
+    {
+      "key": "control_video_34",
+      "nodeId": "34",
+      "field": "file",
+      "type": "video",
+      "label": "Control loop — a video that already loops seamlessly (depth, edges or a rough render)",
+      "default": "control_video.mp4",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "prompt_8",
+      "nodeId": "8",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt — describe the geometry the control shows, then the look",
+      "default": "Camera looking straight down an endless tunnel of square frames against a pure black background. Square picture-frame rings made of polished chrome with thin glowing neon edges fly steadily toward the camera, twisting slightly with depth. Bands of magenta, cyan and gold light travel through the rings in smooth waves. Glossy reflections slide across the chrome. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: a deep steady electronic drone, a soft rhythmic whoosh as each ring passes.\n\nnon_diegetic_music: N/A",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "strength_33",
+      "nodeId": "33",
+      "field": "strength",
+      "type": "number",
+      "label": "Control strength — how closely the result follows the control loop",
+      "default": 1.0,
+      "min": 0.0,
+      "max": 2.0,
+      "step": 0.05,
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "length_40",
+      "nodeId": "40",
+      "field": "value",
+      "type": "select",
+      "label": "Loop length in frames (107 = 4.25 s, 158 = 6.4 s, 209 = 8.5 s, 260 = 10.6 s, 311 = 12.75 s) — longer takes proportionally longer",
+      "options": [
+        "107",
+        "158",
+        "209",
+        "260",
+        "311"
+      ],
+      "optionLabels": [
+        "4.25 s (107 frames)",
+        "6.4 s (158 frames)",
+        "8.5 s (209 frames)",
+        "10.6 s (260 frames)",
+        "12.75 s (311 frames)"
+      ],
+      "default": "107",
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "cycles_32",
+      "nodeId": "32",
+      "field": "cycles",
+      "type": "number",
+      "label": "Times the control loop plays in the result (0 = keep it closest to its own speed)",
+      "default": 0,
+      "min": 0,
+      "max": 32,
+      "step": 1,
+      "required": true,
+      "order": 4
+    },
+    {
+      "key": "width_9",
+      "nodeId": "9",
+      "field": "width",
+      "type": "number",
+      "label": "Width (px)",
+      "default": 1024,
+      "min": 512,
+      "max": 1344,
+      "step": 32,
+      "required": true,
+      "order": 5
+    },
+    {
+      "key": "height_9",
+      "nodeId": "9",
+      "field": "height",
+      "type": "number",
+      "label": "Height (px)",
+      "default": 576,
+      "min": 512,
+      "max": 1344,
+      "step": 32,
+      "required": true,
+      "order": 6
+    },
+    {
+      "key": "multiplier_23",
+      "nodeId": "23",
+      "field": "multiplier",
+      "type": "select",
+      "label": "Smoothing — frame interpolation across the whole loop: 2 = 48 fps, 3 = 72 fps, 4 = 96 fps",
+      "options": [
+        "2",
+        "3",
+        "4"
+      ],
+      "optionLabels": [
+        "×2 → 48 fps",
+        "×3 → 72 fps",
+        "×4 → 96 fps"
+      ],
+      "default": "2",
+      "required": true,
+      "order": 7
+    },
+    {
+      "key": "seed_10",
+      "nodeId": "10",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed — the seed decides a lot on loops; try several",
+      "default": 42,
+      "min": 0,
+      "max": 9007199254740991,
+      "step": 1,
+      "required": true,
+      "order": 8
+    }
+  ],
+  "warmupParams": {}
+}

@@ -72,8 +72,8 @@
       "nodeId": "52:35",
       "field": "value",
       "type": "checkbox",
-      "label": "Enhance prompt with AI",
-      "default": true,
+      "label": "Enhance prompt with AI — off: on this ComfyUI build (0.43.2) the Qwen 3.5 rewrite fails with \"Unsupported Flash Attention tensor strides\"; write the description in full instead",
+      "default": false,
       "required": false,
       "order": 2
     },

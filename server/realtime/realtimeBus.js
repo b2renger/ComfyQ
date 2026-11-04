@@ -496,6 +496,7 @@ class RealtimeBus {
                 enabled: true,
                 order: p.order,
                 options: p.options,
+                optionLabels: p.optionLabels,
                 min: p.min,
                 max: p.max,
                 step: p.step,

@@ -42,7 +42,7 @@
     },
     {
       "key": "segment_text_114_100",
-      "nodeId": "114:100",
+      "nodeId": "200",
       "field": "text",
       "type": "text",
       "label": "What to segment",
@@ -52,7 +52,7 @@
     },
     {
       "key": "threshold_114_101",
-      "nodeId": "114:101",
+      "nodeId": "201",
       "field": "threshold",
       "type": "number",
       "label": "Detection threshold",

@@ -8,8 +8,27 @@
 //   picture when sent compact. Students paste and edit indented JSON, so valid
 //   JSON is compacted here, just before it goes into the graph. Anything that
 //   doesn't parse (plain text, broken JSON) is sent unchanged.
+//   moss-layout — the boxes for ComfyUI's Create Bounding Boxes node, which
+//   reads a JSON list of elements. The composer writes the list indented; it
+//   is compacted here. The booking form also accepts {elements: [...]} or a
+//   whole Ideogram caption, which the node would reject, so those are reduced
+//   to their element list. An empty or unparseable value is sent unchanged
+//   (empty = no layout; broken JSON fails in the node with its own message).
+
+function formatMossLayout(value) {
+    const trimmed = value.trim();
+    if (!trimmed) return value;
+    let parsed;
+    try { parsed = JSON.parse(trimmed); } catch { return value; }
+    const list = Array.isArray(parsed) ? parsed
+        : Array.isArray(parsed?.elements) ? parsed.elements
+        : Array.isArray(parsed?.compositional_deconstruction?.elements) ? parsed.compositional_deconstruction.elements
+        : null;
+    return list ? JSON.stringify(list) : value;
+}
 
 function formatPromptValue(value, format) {
+    if (typeof value === 'string' && (format === 'moss-layout' || format === 'flux3-layout')) return formatMossLayout(value);
     if (format !== 'ideogram4-caption' || typeof value !== 'string') return value;
     const trimmed = value.trim();
     if (!trimmed.startsWith('{')) return value;

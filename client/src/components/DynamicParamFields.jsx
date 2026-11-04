@@ -3,7 +3,7 @@ import { Dices } from 'lucide-react';
 import MediaCaptureField from './capture/MediaCaptureField';
 import MaskDrawField from './capture/MaskDrawField';
 import CameraAngleField from './capture/CameraAngleField';
-import { IdeogramPromptTools } from './capture/IdeogramComposer';
+import { IdeogramPromptTools, MossLayoutTools } from './capture/IdeogramComposer';
 
 // A param qualifies as a "seed" if its key or field looks like one. Catches
 // both KSampler.seed (Flux1) and RandomNoise.noise_seed (Flux2), plus any
@@ -273,11 +273,20 @@ const DynamicParamFields = ({
 
                 // Textarea Input. A prompt whose meta declares
                 // `format: "ideogram4-caption"` also gets the visual composer and
-                // a live check of Ideogram's JSON format underneath.
+                // a live check of Ideogram's JSON format underneath; a
+                // `format: "moss-layout"` field gets the same canvas in its
+                // boxes-only form, which also fills the card's character_boxes;
+                // `flux3-layout` is that form for FLUX.3 Klein (boxes cited as
+                // <obj_N>), drawn over the uploaded picture on an edit card.
                 if (type === 'textarea' || key === 'prompt') {
                     const ideogram = config.format === 'ideogram4-caption';
-                    const aspectKey = ideogram
+                    const flux3Layout = config.format === 'flux3-layout';
+                    const mossLayout = config.format === 'moss-layout' || flux3Layout;
+                    const aspectKey = (ideogram || mossLayout)
                         ? Object.keys(paramMap).find(k => paramMap[k]?.field === 'aspect_ratio')
+                        : null;
+                    const charactersKey = mossLayout && !flux3Layout
+                        ? Object.keys(paramMap).find(k => paramMap[k]?.field === 'character_boxes')
                         : null;
                     return (
                         <div key={key} className={`space-y-1.5 ${disabled ? 'opacity-50' : ''}`}>
@@ -302,6 +311,19 @@ const DynamicParamFields = ({
                                     onChange={(v) => setVal(key, v)}
                                     disabled={disabled}
                                     label={label}
+                                    aspectOption={aspectKey ? (values[aspectKey] ?? paramMap[aspectKey]?.default) : null}
+                                />
+                            )}
+                            {mossLayout && (
+                                <MossLayoutTools
+                                    value={values[key] || ''}
+                                    onChange={(v) => setVal(key, v)}
+                                    characters={charactersKey ? (values[charactersKey] || '') : ''}
+                                    onCharacters={charactersKey ? (v) => setVal(charactersKey, v) : null}
+                                    disabled={disabled}
+                                    label={label}
+                                    variant={flux3Layout ? 'flux3' : 'moss'}
+                                    backgroundUrl={flux3Layout ? subjectPreview : null}
                                     aspectOption={aspectKey ? (values[aspectKey] ?? paramMap[aspectKey]?.default) : null}
                                 />
                             )}

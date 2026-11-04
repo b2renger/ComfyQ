@@ -1,0 +1,225 @@
+{
+  "48": {
+    "inputs": {
+      "filename_prefix": "image_minimax_h3_t2i",
+      "images": [
+        "110",
+        0
+      ]
+    },
+    "class_type": "SaveImage"
+  },
+  "79": {
+    "inputs": {
+      "aspect_ratio": "16:9 (Widescreen)",
+      "megapixels": 1,
+      "multiple": 8
+    },
+    "class_type": "ResolutionSelector"
+  },
+  "106": {
+    "inputs": {
+      "unet_name": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader"
+  },
+  "141": {
+    "inputs": {
+      "lora_name": "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "106",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly"
+  },
+  "112": {
+    "inputs": {
+      "text": "Epic sci-fi concept art, extreme low-angle wide shot of a colossal spacecraft hovering above a sandstorm-ravaged desert. The open hangar glows furnace-orange through dense blowing dust and volumetric light shafts. A long boarding ramp descends to the dunes; a lone human climbs it, wind-whipped sand swirling around their ankles, tiny against the massive hull. Low amber sun behind the craft casts a hard silhouette and long god-rays across ochre and rust dunes. Distant convoy lights glimmer on the horizon. Monumental scale, cinematic digital illustration, ultra-detailed metal plating and dust particles, desert palette of ochre, rust, and ember orange, dramatic rim light, sharp focus, no text, no watermark.",
+      "clip": [
+        "113",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode"
+  },
+  "113": {
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader"
+  },
+  "111": {
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+    },
+    "class_type": "VAELoader"
+  },
+  "146": {
+    "inputs": {
+      "width": [
+        "79",
+        0
+      ],
+      "height": [
+        "79",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage"
+  },
+  "152": {
+    "inputs": {
+      "switch": [
+        "200",
+        0
+      ],
+      "on_false": [
+        "106",
+        0
+      ],
+      "on_true": [
+        "141",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode"
+  },
+  "116": {
+    "inputs": {
+      "model": [
+        "144",
+        0
+      ],
+      "conditioning": [
+        "112",
+        0
+      ]
+    },
+    "class_type": "BasicGuider"
+  },
+  "115": {
+    "inputs": {
+      "noise_seed": 426891538796818
+    },
+    "class_type": "RandomNoise"
+  },
+  "117": {
+    "inputs": {
+      "sampler_name": "res_multistep"
+    },
+    "class_type": "KSamplerSelect"
+  },
+  "109": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": [
+        "203",
+        0
+      ],
+      "denoise": 1,
+      "model": [
+        "144",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler"
+  },
+  "144": {
+    "inputs": {
+      "attention": "comfy kitchen attention",
+      "model": [
+        "152",
+        0
+      ]
+    },
+    "class_type": "ModelAttentionBackend"
+  },
+  "114": {
+    "inputs": {
+      "noise": [
+        "115",
+        0
+      ],
+      "guider": [
+        "116",
+        0
+      ],
+      "sampler": [
+        "117",
+        0
+      ],
+      "sigmas": [
+        "109",
+        0
+      ],
+      "latent_image": [
+        "146",
+        0
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced"
+  },
+  "139": {
+    "inputs": {
+      "av_latent": [
+        "114",
+        0
+      ]
+    },
+    "class_type": "LTXVSeparateAVLatent"
+  },
+  "110": {
+    "inputs": {
+      "samples": [
+        "139",
+        0
+      ],
+      "vae": [
+        "111",
+        0
+      ]
+    },
+    "class_type": "VAEDecode"
+  },
+  "200": {
+    "class_type": "PrimitiveBoolean",
+    "inputs": {
+      "value": true
+    }
+  },
+  "201": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 30
+    }
+  },
+  "202": {
+    "class_type": "PrimitiveInt",
+    "inputs": {
+      "value": 8
+    }
+  },
+  "203": {
+    "class_type": "ComfySwitchNode",
+    "inputs": {
+      "switch": [
+        "200",
+        0
+      ],
+      "on_false": [
+        "201",
+        0
+      ],
+      "on_true": [
+        "202",
+        0
+      ]
+    }
+  }
+}

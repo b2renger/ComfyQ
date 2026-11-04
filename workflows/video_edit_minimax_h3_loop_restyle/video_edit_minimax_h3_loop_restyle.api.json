@@ -1,0 +1,368 @@
+{
+  "1": {
+    "inputs": {
+      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "UNETLoader"
+    }
+  },
+  "2": {
+    "inputs": {
+      "lora_name": "minimax_h3_ref2v_turbo_8step_v1.0_768p_comfyui_bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoraLoaderModelOnly"
+    }
+  },
+  "3": {
+    "inputs": {
+      "pad_clips": [
+        "41",
+        0
+      ],
+      "views": 1,
+      "model": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3Loop",
+    "_meta": {
+      "title": "MiniMaxH3Loop"
+    }
+  },
+  "4": {
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "CLIPLoader"
+    }
+  },
+  "5": {
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Video VAE"
+    }
+  },
+  "6": {
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Audio VAE"
+    }
+  },
+  "8": {
+    "inputs": {
+      "value": "Camera looking straight down an endless tunnel of square frames against a pure black background. Square picture-frame rings made of polished chrome with thin glowing neon edges fly steadily toward the camera, twisting slightly with depth. Bands of magenta, cyan and gold light travel through the rings in smooth waves. Glossy reflections slide across the chrome. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: a deep steady electronic drone, a soft rhythmic whoosh as each ring passes.\n\nnon_diegetic_music: N/A"
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": {
+      "title": "Prompt"
+    }
+  },
+  "9": {
+    "inputs": {
+      "prompt": [
+        "8",
+        0
+      ],
+      "width": 1024,
+      "height": 576,
+      "length": [
+        "40",
+        0
+      ],
+      "ref_image_size": "match",
+      "clip": [
+        "4",
+        0
+      ],
+      "vae": [
+        "5",
+        0
+      ],
+      "audio_vae": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3ReferenceToVideo",
+    "_meta": {
+      "title": "MiniMaxH3ReferenceToVideo"
+    }
+  },
+  "10": {
+    "inputs": {
+      "noise_seed": 42
+    },
+    "class_type": "RandomNoise",
+    "_meta": {
+      "title": "RandomNoise"
+    }
+  },
+  "11": {
+    "inputs": {
+      "sampler_name": "res_multistep"
+    },
+    "class_type": "KSamplerSelect",
+    "_meta": {
+      "title": "KSamplerSelect"
+    }
+  },
+  "12": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 8,
+      "denoise": 1,
+      "model": [
+        "33",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler",
+    "_meta": {
+      "title": "BasicScheduler"
+    }
+  },
+  "13": {
+    "inputs": {
+      "model": [
+        "33",
+        0
+      ],
+      "conditioning": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "BasicGuider",
+    "_meta": {
+      "title": "BasicGuider"
+    }
+  },
+  "14": {
+    "inputs": {
+      "noise": [
+        "10",
+        0
+      ],
+      "guider": [
+        "13",
+        0
+      ],
+      "sampler": [
+        "11",
+        0
+      ],
+      "sigmas": [
+        "12",
+        0
+      ],
+      "latent_image": [
+        "9",
+        1
+      ]
+    },
+    "class_type": "SamplerCustomAdvanced",
+    "_meta": {
+      "title": "SamplerCustomAdvanced"
+    }
+  },
+  "15": {
+    "inputs": {
+      "pad_clips": [
+        "41",
+        0
+      ],
+      "samples": [
+        "14",
+        0
+      ],
+      "vae": [
+        "5",
+        0
+      ],
+      "audio_vae": [
+        "6",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3LoopDecode",
+    "_meta": {
+      "title": "MiniMaxH3LoopDecode"
+    }
+  },
+  "20": {
+    "inputs": {
+      "fps": [
+        "23",
+        1
+      ],
+      "bit_depth": "auto",
+      "color_space": "sRGB",
+      "codec": "none",
+      "images": [
+        "23",
+        0
+      ],
+      "audio": [
+        "15",
+        1
+      ]
+    },
+    "class_type": "CreateVideo",
+    "_meta": {
+      "title": "CreateVideo"
+    }
+  },
+  "21": {
+    "inputs": {
+      "filename_prefix": "video/MiniMaxH3_LoopRestyle",
+      "format": "auto",
+      "format.codec": "auto",
+      "codec": "auto",
+      "video": [
+        "20",
+        0
+      ]
+    },
+    "class_type": "SaveVideo",
+    "_meta": {
+      "title": "SaveVideo"
+    }
+  },
+  "23": {
+    "inputs": {
+      "method": "FILM",
+      "multiplier": 2,
+      "fps": 24,
+      "images": [
+        "15",
+        0
+      ]
+    },
+    "class_type": "LoopInterpolate",
+    "_meta": {
+      "title": "LoopInterpolate"
+    }
+  },
+  "30": {
+    "inputs": {
+      "name": "minimax_h3_fun_controlnet_union_pruned_int8_convrot.safetensors"
+    },
+    "class_type": "ModelPatchLoader",
+    "_meta": {
+      "title": "ModelPatchLoader"
+    }
+  },
+  "32": {
+    "inputs": {
+      "fps": [
+        "35",
+        2
+      ],
+      "length": [
+        "40",
+        0
+      ],
+      "pad_clips": [
+        "41",
+        0
+      ],
+      "cycles": 0,
+      "images": [
+        "35",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3LoopControlVideo",
+    "_meta": {
+      "title": "MiniMaxH3LoopControlVideo"
+    }
+  },
+  "33": {
+    "inputs": {
+      "strength": 1,
+      "start_percent": 0,
+      "end_percent": 1,
+      "model": [
+        "3",
+        0
+      ],
+      "model_patch": [
+        "30",
+        0
+      ],
+      "vae": [
+        "5",
+        0
+      ],
+      "control_video": [
+        "32",
+        0
+      ]
+    },
+    "class_type": "MiniMaxH3FunControlNetApply",
+    "_meta": {
+      "title": "MiniMaxH3FunControlNetApply"
+    }
+  },
+  "40": {
+    "inputs": {
+      "value": 107
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "Length (17k+5)"
+    }
+  },
+  "41": {
+    "inputs": {
+      "value": 1
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "pad_clips"
+    }
+  },
+  "34": {
+    "class_type": "LoadVideo",
+    "inputs": {
+      "file": "control_video.mp4",
+      "video-preview": ""
+    },
+    "_meta": {
+      "title": "Control loop"
+    }
+  },
+  "35": {
+    "class_type": "GetVideoComponents",
+    "inputs": {
+      "video": [
+        "34",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Control loop frames + fps"
+    }
+  }
+}

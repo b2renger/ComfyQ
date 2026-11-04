@@ -12,7 +12,7 @@
   "125": {
     "inputs": {
       "mask": [
-        "114:101",
+        "201",
         0
       ]
     },
@@ -23,12 +23,17 @@
   },
   "126": {
     "inputs": {
-      "fps": 30,
+      "fps": [
+        "204",
+        2
+      ],
       "bit_depth": 8,
       "images": [
         "125",
         0
-      ]
+      ],
+      "color_space": "sRGB",
+      "codec": "none"
     },
     "class_type": "CreateVideo",
     "_meta": {
@@ -43,18 +48,19 @@
       "video": [
         "126",
         0
-      ]
+      ],
+      "format.codec": "auto"
     },
     "class_type": "SaveVideo",
     "_meta": {
       "title": "Save Video"
     }
   },
-  "114:100": {
+  "200": {
     "inputs": {
       "text": "man",
       "clip": [
-        "114:102",
+        "202",
         1
       ]
     },
@@ -63,21 +69,21 @@
       "title": "CLIP Text Encode (Prompt)"
     }
   },
-  "114:101": {
+  "201": {
     "inputs": {
       "threshold": 0.5,
       "refine_iterations": 2,
       "individual_masks": false,
       "model": [
-        "114:102",
+        "202",
         0
       ],
       "image": [
-        "114:104",
+        "204",
         0
       ],
       "conditioning": [
-        "114:100",
+        "200",
         0
       ]
     },
@@ -86,7 +92,7 @@
       "title": "SAM3 Detect"
     }
   },
-  "114:102": {
+  "202": {
     "inputs": {
       "ckpt_name": "sam3.1_multiplex_fp16.safetensors"
     },
@@ -95,7 +101,7 @@
       "title": "Load Checkpoint"
     }
   },
-  "114:104": {
+  "204": {
     "inputs": {
       "video": [
         "115",

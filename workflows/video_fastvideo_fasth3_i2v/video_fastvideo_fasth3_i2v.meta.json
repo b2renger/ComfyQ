@@ -18,7 +18,7 @@
   "promptGuides": [
     {
       "label": "MiniMax H3 — official video prompt guide",
-      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/VIDEO_PROMPT_WRITING_GUIDE_base_en.md",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_base_en.md",
       "tip": "Bind the picture to a time first (\"at 0.00 seconds … <Picture 1> is fully referenced\"), then write one block covering framing, camera move, action and the sound."
     },
     {

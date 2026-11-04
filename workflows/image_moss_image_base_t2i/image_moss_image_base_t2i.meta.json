@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "id": "image_moss_image_base_t2i",
+  "name": "MOSS-Image Base — text to image, with an optional box layout",
+  "description": "MOSS-Image, a 5B text-to-image model with strong text rendering and layout control, running the BASE checkpoint — no post-training, so it follows your words more literally and is the one community LoRAs are trained on.\n\nWrite a long, concrete caption rather than a few keywords — the model was trained on 200–500 word descriptions. Open with the medium and subject (\"Studio photograph of …\", \"Grunge event poster: …\"), then pose, setting, framing, light and tone. Put every word that must appear in the picture in double quotes; use a real line break where the text should break.\n\n★ Layout (optional): press **Compose layout** under the Layout field to draw boxes on a canvas shaped like your aspect ratio. Each box is an object or a piece of text with its own description; tick “Character” on a box that holds a person or creature. Add the background first and the foreground last. Left empty, the prompt is used on its own. Layout control is experimental in MOSS-Image itself.\n\n“Improve my prompt with AI” rewrites the overall caption with the model's own text encoder (the boxes are left untouched). It can take several minutes, which is why it is off.\n\nSettings: 25 steps / CFG 2.5 is a fast setting; the official one is 50 steps / CFG 3. Skip-layer guidance sharpens detail but can over-bake anime styles. Best sizes are 1, 1.5 or 2 megapixels.",
+  "category": "t2i",
+  "experimental": true,
+  "tags": [
+    "moss-image",
+    "t2i",
+    "typography",
+    "layout",
+    "bounding-boxes",
+    "base"
+  ],
+  "promptGuides": [
+    {
+      "label": "MOSS-Image — official user guide",
+      "url": "https://github.com/OpenMOSS/MOSS-Image/blob/main/USERGUIDE.md",
+      "tip": "Write a long, concrete caption: medium and subject first, then pose, space, setting, framing, light and tone. Put any words to render in double quotes."
+    },
+    {
+      "label": "MOSS-Image prompt-enhancer skill (the caption style it was trained on)",
+      "url": "https://github.com/OpenMOSS/MOSS-Image/blob/main/skills/moss-image-prompt-enhancer/SKILL.md"
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_moss_image_base_t2i.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 16,
+    "models": [
+      {
+        "type": "unet",
+        "file": "moss_image_base_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/diffusion_models/moss_image_base_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MOSS-Image"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3.5_9b_w4a8_gptq.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MOSS-Image"
+      },
+      {
+        "type": "vae",
+        "file": "flux2-vae_small.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/vae/flux2-vae_small.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MOSS-Image"
+      }
+    ]
+  },
+  "estimatedDurationSec": 30,
+  "exposedParameters": [
+    {
+      "key": "prompt_117",
+      "nodeId": "117",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt — a detailed caption of the whole picture",
+      "default": "Black-and-white grunge event poster: a model in an oversized black hoodie and wide black trousers sits low on a concrete floor, photographed from a low wide angle so the sneakers are huge in the foreground, grey concrete wall behind, torn newspapers lying scattered on the floor around them. The word \"MOSS\" is set in gigantic heavy condensed capitals filling the top half of the poster behind the figure, slightly cropped by the frame edges. Along the bottom a grid of small info blocks separated by thin rules: \"SATURDAY\" and \"01 SEPT 2026\" and \"DOORS OPEN 10:00 PM\" on the left, \"MOSS IMAGE\" with \"TEXT / LAYOUT / TYPE\" in the middle,  \"SUPPORTING ACT\" with \"MOSS\" on the right, and a barcode block in the bottom right corner. Monochrome, high contrast, fine film grain, editorial print, paper texture.",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "layout_24",
+      "nodeId": "24",
+      "field": "value",
+      "type": "textarea",
+      "format": "moss-layout",
+      "label": "Layout — optional boxes (use Compose layout)",
+      "default": "",
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "character_boxes_27",
+      "nodeId": "27",
+      "field": "character_boxes",
+      "type": "text",
+      "label": "Boxes that are characters (numbers, e.g. 1, 3 — set by the composer)",
+      "default": "",
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "enhance_prompt_116",
+      "nodeId": "116",
+      "field": "switch",
+      "type": "checkbox",
+      "label": "Improve my prompt with AI (slow — several minutes) ⚠ currently fails on this ComfyUI build (0.43.2: \"Unsupported Flash Attention tensor strides\" in the Qwen 3.5 decode) — leave it off",
+      "default": false,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "aspect_ratio_19",
+      "nodeId": "19",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio",
+      "default": "1:1 (Square)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "required": true,
+      "order": 4
+    },
+    {
+      "key": "megapixels_19",
+      "nodeId": "19",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (1, 1.5 or 2 recommended)",
+      "default": 1,
+      "min": 0.25,
+      "max": 4,
+      "step": 0.25,
+      "required": true,
+      "order": 5
+    },
+    {
+      "key": "negative_105",
+      "nodeId": "105",
+      "field": "text",
+      "type": "textarea",
+      "label": "Negative prompt",
+      "default": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact",
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "slg_132",
+      "nodeId": "132",
+      "field": "switch",
+      "type": "checkbox",
+      "label": "Skip-layer guidance (sharper detail; can over-bake anime styles)",
+      "default": true,
+      "required": false,
+      "order": 7
+    },
+    {
+      "key": "steps_107",
+      "nodeId": "107",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps (25 fast · 50 official)",
+      "default": 25,
+      "min": 10,
+      "max": 60,
+      "step": 1,
+      "required": true,
+      "order": 8
+    },
+    {
+      "key": "cfg_107",
+      "nodeId": "107",
+      "field": "cfg",
+      "type": "number",
+      "label": "Guidance (CFG — 2.5 fast · 3 official)",
+      "default": 2.5,
+      "min": 1,
+      "max": 6,
+      "step": 0.5,
+      "required": true,
+      "order": 9
+    },
+    {
+      "key": "seed_107",
+      "nodeId": "107",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 524391326626742,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 10
+    }
+  ],
+  "warmupParams": {},
+  "presets": {}
+}

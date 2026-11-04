@@ -50,7 +50,7 @@
   "exposedParameters": [
     {
       "key": "prompt",
-      "nodeId": "18:17",
+      "nodeId": "117",
       "field": "value",
       "type": "textarea",
       "label": "Prompt",
@@ -59,12 +59,23 @@
       "default": "close up profile of a young male athlete with closed eyes pressing his sweaty forehead against a soccer ball, right hand gripping the ball, stark white background, athletic jacket, white ball with jagged red graphic patterns, high contrast studio lighting, highly detailed skin texture, sharp focus Absolutely no text, no typography, no letters, no words, no numbers, no logos, no watermark, no captions, pure imagery only."
     },
     {
+      "key": "layout",
+      "nodeId": "300",
+      "field": "value",
+      "type": "textarea",
+      "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+      "default": "",
+      "required": false,
+      "format": "flux3-layout",
+      "order": 1
+    },
+    {
       "key": "improve_prompt",
-      "nodeId": "18:16",
+      "nodeId": "116",
       "field": "switch",
       "type": "checkbox",
-      "order": 1,
-      "label": "Improve the prompt with AI first (a Qwen 3.5 model expands it into a full caption) — slow: adds about 3 minutes",
+      "order": 2,
+      "label": "Improve the prompt with AI first (a Qwen 3.5 model expands it into a full caption) — slow: adds about 3 minutes ⚠ currently fails on this ComfyUI build (0.43.2: \"Unsupported Flash Attention tensor strides\" in the Qwen 3.5 decode) — leave it off",
       "default": false
     },
     {
@@ -73,7 +84,7 @@
       "field": "aspect_ratio",
       "type": "select",
       "label": "Aspect ratio",
-      "order": 2,
+      "order": 3,
       "options": [
         "1:1 (Square)",
         "2:3 (Portrait Photo)",
@@ -96,15 +107,15 @@
       "max": 4,
       "step": 0.25,
       "default": 1,
-      "order": 3
+      "order": 4
     },
     {
       "key": "steps",
-      "nodeId": "18:7",
+      "nodeId": "107",
       "field": "steps",
       "type": "number",
       "label": "Steps",
-      "order": 4,
+      "order": 5,
       "min": 10,
       "max": 80,
       "step": 1,
@@ -112,11 +123,11 @@
     },
     {
       "key": "cfg",
-      "nodeId": "18:7",
+      "nodeId": "107",
       "field": "cfg",
       "type": "number",
       "label": "Guidance (CFG)",
-      "order": 5,
+      "order": 6,
       "min": 1,
       "max": 8,
       "step": 0.5,
@@ -124,12 +135,12 @@
     },
     {
       "key": "seed",
-      "nodeId": "18:7",
+      "nodeId": "107",
       "field": "seed",
       "type": "number",
       "label": "Seed",
       "default": 42,
-      "order": 6
+      "order": 7
     }
   ]
 }

@@ -16,7 +16,7 @@
   "promptGuides": [
     {
       "label": "MiniMax H3 — official video prompt guide",
-      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/VIDEO_PROMPT_WRITING_GUIDE_base_en.md",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_base_en.md",
       "tip": "Write shot by shot: framing and camera move, subject and action, setting and light — then say what is heard. Naming the audio is what gets you a deliberate soundtrack."
     },
     {

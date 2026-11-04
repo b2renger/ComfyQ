@@ -1,0 +1,265 @@
+{
+  "1": {
+    "inputs": {
+      "unet_name": "moss_image_sft_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader"
+  },
+  "2": {
+    "inputs": {
+      "double_layers": "",
+      "single_layers": "24",
+      "start_percent": 0,
+      "end_percent": 1,
+      "model": [
+        "36",
+        0
+      ]
+    },
+    "class_type": "SkipLayerGuidanceDiTSimple"
+  },
+  "3": {
+    "inputs": {
+      "clip_name": "qwen3.5_9b_int8_convrot.safetensors",
+      "type": "moss_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader"
+  },
+  "4": {
+    "inputs": {
+      "vae_name": "flux2-vae_small.safetensors"
+    },
+    "class_type": "VAELoader"
+  },
+  "5": {
+    "inputs": {
+      "text": "Candid street-style portrait of a young woman, framed from the chest up and centred, dark hair in two messy buns, chunky gold hoop earrings, oversized padded bomber jacket over a crop top. Direct on-camera flash against a night street, hard shadows on the wall behind, slightly blown highlights, raw editorial look.",
+      "clip": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode"
+  },
+  "6": {
+    "inputs": {
+      "text": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact",
+      "clip": [
+        "3",
+        0
+      ]
+    },
+    "class_type": "CLIPTextEncode"
+  },
+  "9": {
+    "inputs": {
+      "samples": [
+        "20",
+        0
+      ],
+      "vae": [
+        "4",
+        0
+      ]
+    },
+    "class_type": "VAEDecode"
+  },
+  "16": {
+    "inputs": {
+      "tsr_k": 0.95,
+      "tsr_sigma": 1,
+      "model": [
+        "49",
+        0
+      ]
+    },
+    "class_type": "TemporalScoreRescaling"
+  },
+  "20": {
+    "inputs": {
+      "add_noise": true,
+      "noise_seed": 730608533992019,
+      "cfg": 3,
+      "model": [
+        "2",
+        0
+      ],
+      "positive": [
+        "53",
+        0
+      ],
+      "negative": [
+        "53",
+        1
+      ],
+      "sampler": [
+        "21",
+        0
+      ],
+      "sigmas": [
+        "22",
+        0
+      ],
+      "latent_image": [
+        "54",
+        0
+      ]
+    },
+    "class_type": "SamplerCustom"
+  },
+  "21": {
+    "inputs": {
+      "solver_type": "ER-SDE",
+      "max_stage": 3,
+      "eta": 1,
+      "s_noise": 1.05
+    },
+    "class_type": "SamplerER_SDE"
+  },
+  "22": {
+    "inputs": {
+      "scheduler": "simple",
+      "steps": 25,
+      "denoise": 1,
+      "model": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "BasicScheduler"
+  },
+  "36": {
+    "inputs": {
+      "shift": 5,
+      "sampling": "flow",
+      "model": [
+        "16",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow"
+  },
+  "49": {
+    "inputs": {
+      "lora_name": "moss_image_color_depth_control.safetensors",
+      "strength_model": 1,
+      "model": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly"
+  },
+  "53": {
+    "inputs": {
+      "strength": 1,
+      "start_percent": 0,
+      "end_percent": 0.6,
+      "positive": [
+        "5",
+        0
+      ],
+      "negative": [
+        "6",
+        0
+      ],
+      "vae": [
+        "4",
+        0
+      ],
+      "depth_map": [
+        "175",
+        0
+      ]
+    },
+    "class_type": "MOSSImageControl"
+  },
+  "54": {
+    "inputs": {
+      "width": [
+        "61",
+        0
+      ],
+      "height": [
+        "61",
+        1
+      ],
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage"
+  },
+  "55": {
+    "inputs": {
+      "image": "example.png"
+    },
+    "class_type": "LoadImage"
+  },
+  "61": {
+    "inputs": {
+      "image": [
+        "77",
+        0
+      ]
+    },
+    "class_type": "GetImageSize"
+  },
+  "77": {
+    "inputs": {
+      "upscale_method": "lanczos",
+      "megapixels": 1,
+      "resolution_steps": 16,
+      "image": [
+        "55",
+        0
+      ]
+    },
+    "class_type": "ImageScaleToTotalPixels"
+  },
+  "85": {
+    "inputs": {
+      "filename_prefix": "image_moss_image_color_depth_control",
+      "images": [
+        "9",
+        0
+      ]
+    },
+    "class_type": "SaveImage"
+  },
+  "173": {
+    "inputs": {
+      "model_name": "moge_3_vitg_fp16.safetensors"
+    },
+    "class_type": "LoadMoGeModel"
+  },
+  "174": {
+    "inputs": {
+      "resolution_level": 9,
+      "fov_x_degrees": 0,
+      "batch_size": 4,
+      "force_projection": true,
+      "apply_mask": true,
+      "refine_steps": 3,
+      "moge_model": [
+        "173",
+        0
+      ],
+      "image": [
+        "77",
+        0
+      ]
+    },
+    "class_type": "MoGeInference"
+  },
+  "175": {
+    "inputs": {
+      "output": "depth",
+      "moge_geometry": [
+        "174",
+        0
+      ]
+    },
+    "class_type": "MoGeRender"
+  }
+}

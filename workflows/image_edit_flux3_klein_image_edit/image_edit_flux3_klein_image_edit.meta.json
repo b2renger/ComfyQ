@@ -61,8 +61,8 @@
     },
     {
       "key": "prompt",
-      "nodeId": "49",
-      "field": "prompt",
+      "nodeId": "301",
+      "field": "value",
       "type": "textarea",
       "label": "What to change",
       "required": true,
@@ -70,12 +70,23 @@
       "default": "In <ref_image_0>, change the colour of her top to deep red; keep her face, hair, pose, lighting and the background exactly the same."
     },
     {
+      "key": "layout",
+      "nodeId": "300",
+      "field": "value",
+      "type": "textarea",
+      "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+      "default": "",
+      "required": false,
+      "format": "flux3-layout",
+      "order": 2
+    },
+    {
       "key": "improve_prompt",
       "nodeId": "51",
       "field": "switch",
       "type": "checkbox",
-      "order": 2,
-      "label": "Improve the instruction with AI first (a Qwen 3.5 model looks at the picture and writes a full caption of the result) — slow: adds about 2–3 minutes",
+      "order": 3,
+      "label": "Improve the instruction with AI first (a Qwen 3.5 model looks at the picture and writes a full caption of the result) — slow: adds about 2–3 minutes ⚠ currently fails on this ComfyUI build (0.43.2: \"Unsupported Flash Attention tensor strides\" in the Qwen 3.5 decode) — leave it off",
       "default": false
     },
     {
@@ -83,7 +94,7 @@
       "nodeId": "17",
       "field": "resolution.megapixels",
       "type": "number",
-      "order": 3,
+      "order": 4,
       "label": "Working size (megapixels) — the result takes the picture's shape at this size",
       "min": 0.25,
       "max": 4,
@@ -96,7 +107,7 @@
       "field": "steps",
       "type": "number",
       "label": "Steps",
-      "order": 4,
+      "order": 5,
       "min": 10,
       "max": 80,
       "step": 1,
@@ -108,7 +119,7 @@
       "field": "cfg",
       "type": "number",
       "label": "Guidance (CFG)",
-      "order": 5,
+      "order": 6,
       "min": 1,
       "max": 8,
       "step": 0.5,
@@ -121,7 +132,7 @@
       "type": "number",
       "label": "Seed",
       "default": 42,
-      "order": 6
+      "order": 7
     }
   ]
 }

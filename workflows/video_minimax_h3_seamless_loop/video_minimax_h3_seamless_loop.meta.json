@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "id": "video_minimax_h3_seamless_loop",
+  "name": "MiniMax H3 — seamless looping video with sound",
+  "description": "A video with its own soundtrack whose last frame flows straight back into its first, so it can play forever. No first/last frame, no crossfade: the pack makes the model join the end of the clip to its start while it samples, then smooths the whole loop with frame interpolation (the joint included).\n\nWhether the joint is invisible depends mostly on the PROMPT. Describe a state that keeps going, not events: a locked-off camera (\"Locked-off static camera, no pan, no zoom.\"), one large subject doing one cyclic thing (pulsing, rotating, swaying, drifting), steady light, and a steady overall_soundscape. Avoid timelines, \"then\" and \"finally\", one-off events (a bite, a blink) and anything that piles up (spills, footprints) — it resets at the joint.\n\nA reference picture is optional: upload one and call it <Picture 1> in the prompt to hold the subject and look.\n\nFast mode uses the 8-step turbo LoRA v1.1; turn it off for 25 steps, which the author finds smoothest on fast motion (about 3× slower). The seed decides a lot — try several before blaming the prompt. Expect several minutes per loop.",
+  "category": "i2v",
+  "experimental": true,
+  "tags": [
+    "minimax",
+    "h3",
+    "loop",
+    "seamless",
+    "audio",
+    "text-to-video",
+    "reference-to-video",
+    "experimental"
+  ],
+  "promptGuides": [
+    {
+      "label": "MiniMax H3 Loop — prompting guide",
+      "url": "https://github.com/pxl-pshr/ComfyUI-MiniMaxH3-Loop/blob/main/PROMPTING.md",
+      "tip": "Describe a state that keeps going, not a sequence of events: locked-off camera, one subject doing one cyclic thing, steady light and sound. Ask: if this played twice in a row, would the joint show?"
+    },
+    {
+      "label": "MiniMax H3 Loop — the node pack",
+      "url": "https://github.com/pxl-pshr/ComfyUI-MiniMaxH3-Loop"
+    }
+  ],
+  "thumbnail": null,
+  "author": "pxl-pshr (ComfyUI-MiniMaxH3-Loop)",
+  "version": "1.0.0",
+  "workflowFile": "video_minimax_h3_seamless_loop.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "lora",
+        "file": "minimax_h3_ref2v_turbo_8step_v1.1_768p_comfyui_bf16.safetensors",
+        "url": "https://huggingface.co/lightx2v/Minimax-h3-Turbo/resolve/main/minimax_h3_ref2v_turbo_8step_v1.1_768p_comfyui_bf16.safetensors",
+        "source": "https://huggingface.co/lightx2v/Minimax-h3-Turbo"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_video_vae_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_audio_vae_fp32.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "other",
+        "file": "film_net_fp32.pt",
+        "auto": true,
+        "note": "Fetched by ComfyUI-Frame-Interpolation into its own ckpts/film folder on first use.",
+        "source": "https://github.com/dajes/frame-interpolation-pytorch/releases/tag/v1.0.0"
+      }
+    ]
+  },
+  "estimatedDurationSec": 330,
+  "exposedParameters": [
+    {
+      "key": "prompt_8",
+      "nodeId": "8",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt — a state that keeps going, not a sequence of events",
+      "default": "Locked-off static camera, no pan, no zoom. Deep blue ocean at night. A large glowing jellyfish pulses rhythmically in the center of frame, its bell contracting and relaxing in a steady cycle, long luminous tendrils trailing and swaying. Tiny specks of marine snow drift slowly upward through soft shafts of light. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: deep underwater ambience, a soft low hum, gentle muffled water movement.\n\nnon_diegetic_music: N/A",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "ref_image_7",
+      "nodeId": "7",
+      "field": "image",
+      "type": "image",
+      "label": "Reference picture (optional) — call it <Picture 1> in the prompt",
+      "default": "example.png",
+      "required": false,
+      "whenEmpty": "unlink",
+      "order": 1
+    },
+    {
+      "key": "fast_mode_50",
+      "nodeId": "50",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Fast mode — turbo LoRA, 8 steps (about 3× faster; off = 25 steps, smoothest on fast motion)",
+      "default": true,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "length_9",
+      "nodeId": "9",
+      "field": "length",
+      "type": "select",
+      "label": "Loop length in frames (107 = 4.25 s, 158 = 6.4 s, 209 = 8.5 s, 260 = 10.6 s, 311 = 12.75 s) — longer takes proportionally longer",
+      "options": [
+        "107",
+        "158",
+        "209",
+        "260",
+        "311"
+      ],
+      "optionLabels": [
+        "4.25 s (107 frames)",
+        "6.4 s (158 frames)",
+        "8.5 s (209 frames)",
+        "10.6 s (260 frames)",
+        "12.75 s (311 frames)"
+      ],
+      "default": "107",
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "width_9",
+      "nodeId": "9",
+      "field": "width",
+      "type": "number",
+      "label": "Width (px)",
+      "default": 1024,
+      "min": 512,
+      "max": 1344,
+      "step": 32,
+      "required": true,
+      "order": 4
+    },
+    {
+      "key": "height_9",
+      "nodeId": "9",
+      "field": "height",
+      "type": "number",
+      "label": "Height (px)",
+      "default": 576,
+      "min": 512,
+      "max": 1344,
+      "step": 32,
+      "required": true,
+      "order": 5
+    },
+    {
+      "key": "views_3",
+      "nodeId": "3",
+      "field": "views",
+      "type": "select",
+      "label": "Clean sound at the loop point: 2 = on (about 1.8× slower), 1 = off (the sound can garble at the joint)",
+      "options": [
+        "2",
+        "1"
+      ],
+      "optionLabels": [
+        "On — two views, clean audio",
+        "Off — faster, the sound can garble at the joint"
+      ],
+      "default": "2",
+      "required": true,
+      "order": 6
+    },
+    {
+      "key": "multiplier_23",
+      "nodeId": "23",
+      "field": "multiplier",
+      "type": "select",
+      "label": "Smoothing — frame interpolation across the whole loop: 2 = 48 fps, 3 = 72 fps, 4 = 96 fps",
+      "options": [
+        "2",
+        "3",
+        "4"
+      ],
+      "optionLabels": [
+        "×2 → 48 fps",
+        "×3 → 72 fps",
+        "×4 → 96 fps"
+      ],
+      "default": "2",
+      "required": true,
+      "order": 7
+    },
+    {
+      "key": "seed_10",
+      "nodeId": "10",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed — the seed decides a lot on loops; try several",
+      "default": 42,
+      "min": 0,
+      "max": 9007199254740991,
+      "step": 1,
+      "required": true,
+      "order": 8
+    }
+  ],
+  "warmupParams": {
+    "ref_image_7": null
+  }
+}

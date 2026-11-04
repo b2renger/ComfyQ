@@ -32,7 +32,7 @@
   "4": {
     "inputs": {
       "text": [
-        "51",
+        "49",
         0
       ],
       "clip": [
@@ -155,12 +155,12 @@
     "inputs": {
       "width": 1360,
       "height": 752,
-      "editor_state": {
-        "__value__": []
-      },
-      "last_incoming": {
-        "__value__": []
-      }
+      "editor_state": {},
+      "last_incoming": {},
+      "bboxes": [
+        "300",
+        0
+      ]
     },
     "class_type": "CreateBoundingBoxes",
     "_meta": {
@@ -181,7 +181,7 @@
   "47": {
     "inputs": {
       "prompt": [
-        "49",
+        "301",
         0
       ],
       "max_length": 3584,
@@ -225,7 +225,10 @@
   },
   "49": {
     "inputs": {
-      "prompt": "In <ref_image_0>, give her a pair of large gold hoop earrings; keep her face, hair, clothes, pose and the background exactly the same.",
+      "prompt": [
+        "51",
+        0
+      ],
       "element": [
         "33",
         2
@@ -252,7 +255,7 @@
     "inputs": {
       "switch": false,
       "on_false": [
-        "49",
+        "301",
         0
       ],
       "on_true": [
@@ -263,6 +266,18 @@
     "class_type": "ComfySwitchNode",
     "_meta": {
       "title": "If/Else Switch"
+    }
+  },
+  "301": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": "In <ref_image_0>, give her a pair of large gold hoop earrings; keep her face, hair, clothes, pose and the background exactly the same."
+    }
+  },
+  "300": {
+    "class_type": "PrimitiveStringMultiline",
+    "inputs": {
+      "value": ""
     }
   }
 }
