@@ -515,15 +515,16 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
                                             <span>Validate</span>
                                         </button>
                                     )}
-                                    {/* A lane this machine is already running, but not the
-                                        main one: it can be closed without stopping the machine. */}
-                                    {lane && !lane.primary && (
+                                    {/* A lane this machine is running while at least one other
+                                        is: any of them — the main one too — closes without
+                                        stopping the machine (main moves to the next lane). */}
+                                    {lane && lanes.length > 1 && (
                                         <div className="inline-flex items-center gap-1.5 ml-auto">
                                             <span
                                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-success/15 border border-success/40 text-success"
-                                                title={`Running in parallel on port ${lane.port}${lane.busy ? ' — currently generating' : ''}`}
+                                                title={`${lane.primary ? 'The main workflow, ' : ''}running in parallel on port ${lane.port}${lane.busy ? ' — currently generating' : ''}`}
                                             >
-                                                <Radio size={13} /> Lane :{lane.port}
+                                                <Radio size={13} /> {lane.primary ? 'Main' : 'Lane'} :{lane.port}
                                             </span>
                                             {onCloseLane && (
                                                 <button
@@ -561,7 +562,7 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
                                             <span>{serveAlongsideId === w.id ? 'Starting…' : 'Serve alongside'}</span>
                                         </button>
                                     )}
-                                    {onActivate && (!lane || lane.primary) && (!anyLaneRunning || lane?.primary) && (
+                                    {onActivate && ((!lane && !anyLaneRunning) || (lane && lanes.length === 1)) && (
                                         isServing ? (
                                             <div className="inline-flex items-center gap-1.5 ml-auto">
                                                 <span

@@ -59,6 +59,7 @@ const AdminConfig = ({ currentMode }) => {
     const [lanes, setLanes] = useState([]);
     const [laneFit, setLaneFit] = useState({});
     const [laneCard, setLaneCard] = useState(null);
+    const [comfyRestarts, setComfyRestarts] = useState(null);
     const [serveAlongsideId, setServeAlongsideId] = useState(null);
     const [closingLaneId, setClosingLaneId] = useState(null);
     const [adminPassword, setAdminPassword] = useState('');
@@ -564,7 +565,18 @@ const AdminConfig = ({ currentMode }) => {
                 method: 'POST', headers: adminHeaders(),
                 body: JSON.stringify({ workflowId: id })
             });
-            if (!res.ok) throw new Error((await res.json()).error || 'Failed to activate');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Failed to activate');
+            if (data.live) {
+                // Already serving: the server switched the main lane in place —
+                // no restart, the other lanes untouched, the panel stays here.
+                showToast(`Switching to “${id}” — no restart; the lanes card updates when it is ready.`);
+                setActivatingId(null);
+                refreshLanes();
+                setTimeout(refreshLanes, 4000);
+                setTimeout(() => { refreshLanes(); reloadConfig(); }, 12000);
+                return;
+            }
             showToast(`Activating “${id}” and switching to student mode…`);
             // Server will exit; nodemon will restart. Reload after a moment.
             setTimeout(() => window.location.assign('/user'), 2000);
@@ -648,6 +660,7 @@ const AdminConfig = ({ currentMode }) => {
             setLanes(data.lanes || []);
             setLaneFit(data.fit || {});
             setLaneCard(data.card || null);
+            setComfyRestarts(data.restarts || null);
         } catch { /* the panel still works without lane info */ }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -685,8 +698,12 @@ const AdminConfig = ({ currentMode }) => {
             const res = await fetch(`${SERVER_URL}/admin/lanes/${encodeURIComponent(workflowId)}`, {
                 method: 'DELETE', headers: adminHeaders()
             });
-            if (!res.ok) throw new Error((await res.json().catch(() => ({}))).error || 'Could not stop the lane');
-            showToast('Lane stopped — its VRAM is free again.');
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || 'Could not stop the lane');
+            showToast(data.main && data.main !== workflowId
+                ? `Lane stopped — its VRAM is free again. “${data.main}” is now the main workflow.`
+                : 'Lane stopped — its VRAM is free again.');
+            reloadConfig();
         } catch (e) { showToast(e.message, 'err'); }
         finally { setClosingLaneId(null); refreshLanes(); }
     };
@@ -895,6 +912,7 @@ const AdminConfig = ({ currentMode }) => {
                         onDeactivate={resetToAdmin}
                         deactivating={deactivating}
                         lanAccess={!!config.comfy_ui?.lan_access}
+                        restarts={comfyRestarts}
                     />
                 <Card>
                     <div className="flex items-center justify-between mb-4">

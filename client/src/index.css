@@ -201,6 +201,18 @@ body {
     box-shadow: 0 0 12px rgba(113, 113, 122, 0.4) !important;
 }
 
+/* One timeline row per lane ("All lanes"): label column readable in both
+   themes, and the row this tab books tinted so it reads as "yours". */
+.vis-labelset .vis-label {
+    color: var(--text) !important;
+    border-bottom-color: var(--border-color) !important;
+}
+.vis-labelset .vis-label .vis-inner { padding: 4px 8px; max-width: 11rem; white-space: normal; line-height: 1.2; }
+.vis-foreground .vis-group { border-bottom-color: var(--border-color) !important; }
+.vis-label.vis-group-mine, .vis-foreground .vis-group.vis-group-mine {
+    background-color: color-mix(in srgb, var(--primary) 10%, transparent) !important;
+}
+
 .vis-item.vis-selected {
     border-color: var(--text) !important;
     background-color: var(--primary-hover) !important;

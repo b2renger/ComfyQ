@@ -4,7 +4,7 @@ import { SocketProvider, useSocket } from './context/SocketContext';
 import SchedulerPage from './pages/Scheduler';
 import DashboardPage from './pages/Dashboard';
 import AdminConfig from './pages/AdminConfig';
-import { LayoutDashboard, Calendar, WifiOff, Wand2, X, RotateCw, Moon, Play } from 'lucide-react';
+import { LayoutDashboard, Calendar, WifiOff, Wand2, X, RotateCw, Moon, Play, Monitor } from 'lucide-react';
 import UsernameModal from './components/UsernameModal';
 import AccessGate from './components/AccessGate';
 import ThemeToggle from './components/ui/ThemeToggle';
@@ -115,8 +115,30 @@ const ParkedScreen = () => {
   );
 };
 
+/**
+ * The browser tab says which model this tab books and on which machine, and
+ * follows a switch without a reload: a class keeps several rigs open side by
+ * side, and "ComfyQ" × 6 told them apart by nothing. The Discovery app names
+ * its tabs from this title, so they follow a switch too.
+ */
+const useStudentTitle = () => {
+  const { state, scopedWorkflowId } = useSocket();
+  const lanes = state.lanes || [];
+  const lane = lanes.find(l => l.workflow_id === scopedWorkflowId)
+    || lanes.find(l => l.primary) || lanes[0] || null;
+  const model = lane?.title || lane?.name || state.workflow_info?.title || state.workflow_info?.name || '';
+  const machine = state.machine?.name || '';
+  useEffect(() => {
+    const parts = [model, machine].filter(Boolean);
+    document.title = parts.length ? `${parts.join(' — ')} · ComfyQ` : 'ComfyQ';
+  }, [model, machine]);
+  return { model, machine };
+};
+
 const StudentLayout = () => {
-  const { paused } = useSocket();
+  const { paused, state } = useSocket();
+  useStudentTitle();
+  const machine = state.machine?.name;
   return (
     <div className="h-screen bg-background text-foreground flex flex-col font-sans antialiased selection:bg-primary/20 selection:text-foreground relative">
       <UsernameModal />
@@ -145,6 +167,16 @@ const StudentLayout = () => {
             <h1 className="text-base sm:text-lg font-bold tracking-tight leading-none">ComfyQ</h1>
             <p className="text-[10px] text-muted font-medium uppercase tracking-widest mt-0.5 sm:mt-1">Studio</p>
           </div>
+          {/* Which rig this is — several are often open side by side. */}
+          {machine && (
+            <span
+              className="inline-flex items-center gap-1.5 ml-1 sm:ml-2 px-2 py-1 rounded-lg border border-border bg-background text-xs font-semibold text-foreground max-w-[40vw] truncate"
+              title={`You are booking on the machine “${machine}”${state.machine?.gpu ? ` (${state.machine.gpu})` : ''}`}
+            >
+              <Monitor size={13} className="text-primary shrink-0" />
+              <span className="truncate">{machine}</span>
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <div className="flex items-center space-x-1 bg-surface border border-border rounded-lg p-1">

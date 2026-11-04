@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Timeline, DataSet } from 'vis-timeline/standalone';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import { useSocket } from '../context/SocketContext';
-import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X, Crosshair, Users, Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X, Crosshair, Users, Search, ChevronDown, ChevronRight, Layers, Monitor } from 'lucide-react';
 import BookingDialog from '../components/BookingDialog';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -81,6 +81,45 @@ const SchedulerPage = () => {
         return next;
     });
 
+    // ---- lanes: one queue per model this machine serves -------------------
+    // A machine can serve several models at once, each with its OWN queue, and
+    // the timeline used to draw every lane's jobs on one track with the main
+    // lane's duration — two parallel queues read as one overlapping mess. Now
+    // the tab's own lane is the timeline (a tab books exactly one model), and
+    // "All lanes" shows one row per lane.
+    const lanes = useMemo(() => state.lanes || [], [state.lanes]);
+    const multiLane = lanes.length > 1;
+    const laneKey = lanes.map(l => l.workflow_id).join('|');
+    const myLaneId = useMemo(() => {
+        if (!lanes.length) return state.workflow_info?.id || null;
+        const scoped = scopedWorkflowId && lanes.find(l => l.workflow_id === scopedWorkflowId);
+        return (scoped || lanes.find(l => l.primary) || lanes[0]).workflow_id;
+    }, [lanes, scopedWorkflowId, state.workflow_info?.id]);
+    const laneLabel = (l) => l?.title || l?.name || l?.workflow_id || '';
+    const [showAllLanes, setShowAllLanes] = useState(() => {
+        try { return localStorage.getItem('comfyq.showAllLanes') === '1'; } catch { return false; }
+    });
+    const toggleAllLanes = () => setShowAllLanes(v => {
+        try { localStorage.setItem('comfyq.showAllLanes', v ? '0' : '1'); } catch { /* ignore */ }
+        return !v;
+    });
+    // The results grid can be narrowed to one model too ('all' = every job).
+    const [modelFilter, setModelFilter] = useState('all');
+    // Each job's bar is as long as ITS model takes, not the main lane's.
+    const durationMsOf = useCallback((job) => {
+        const sec = workflowsById?.[job.workflow_id]?.estimatedDurationSec
+            || lanes.find(l => l.workflow_id === job.workflow_id)?.estimatedDurationSec;
+        return sec ? sec * 1000 : (state.benchmark_ms || 60000);
+    }, [workflowsById, lanes, state.benchmark_ms]);
+    // Per-lane queue status for the header strip.
+    const laneQueues = useMemo(() => lanes.map(l => {
+        const own = (state.jobs || []).filter(j => j.workflow_id === l.workflow_id);
+        const waiting = own.filter(j => j.status === 'scheduled');
+        const running = own.find(j => j.status === 'processing');
+        const waitMs = waiting.reduce((t, j) => t + durationMsOf(j), 0);
+        return { lane: l, waiting: waiting.length, running: !!running || !!l.busy, waitMs };
+    }), [lanes, state.jobs, durationMsOf]);
+
     const reuseJob = (job) => {
         setPrefillParams(job.params || {});
         // No slot picked → run ASAP (null time). The server drops it into the
@@ -93,6 +132,8 @@ const SchedulerPage = () => {
     const stateRef = useRef(state);
     const usernameRef = useRef(username);
     const followNowRef = useRef(followNow);
+    const myLaneIdRef = useRef(myLaneId);
+    useEffect(() => { myLaneIdRef.current = myLaneId; }, [myLaneId]);
 
     useEffect(() => {
         stateRef.current = state;
@@ -113,6 +154,7 @@ const SchedulerPage = () => {
         return state.jobs
             .filter((job) => {
                 if (activeTab === 'mine' && job.user_id !== username) return false;
+                if (modelFilter !== 'all' && job.workflow_id !== modelFilter) return false;
                 if (activeTab === 'all' && userFilter !== 'all' && job.user_id !== userFilter) return false;
                 if (q) {
                     // Search the resolved display prompt so jobs whose headline
@@ -125,14 +167,14 @@ const SchedulerPage = () => {
                 return true;
             })
             .sort((a, b) => b.time_slot - a.time_slot);
-    }, [state.jobs, activeTab, userFilter, searchQuery, username]);
+    }, [state.jobs, activeTab, userFilter, searchQuery, username, modelFilter]);
 
     // How many cards are mounted at once. A workshop's history runs into the
     // hundreds and every card carries media, so mounting them all is what made
     // the grid slow to open and heavy to scroll; the rest follow as the student
     // reaches the bottom.
     const [cardLimit, setCardLimit] = useState(CARD_PAGE);
-    useEffect(() => { setCardLimit(CARD_PAGE); }, [activeTab, userFilter, searchQuery]);
+    useEffect(() => { setCardLimit(CARD_PAGE); }, [activeTab, userFilter, searchQuery, modelFilter]);
     const shownJobs = useMemo(() => visibleJobs.slice(0, cardLimit), [visibleJobs, cardLimit]);
     const hasMoreCards = visibleJobs.length > shownJobs.length;
     const [moreRef, moreInView] = useInView({ rootMargin: '600px' });
@@ -210,9 +252,15 @@ const SchedulerPage = () => {
                 overrideItems: false
             },
             onAdd: (item, callback) => {
+                callback(null); // Don't add directly, wait for server
+                // In "All lanes", a double-click on ANOTHER model's row would
+                // book this tab's model at that time — on the wrong row. Say so.
+                if (item.group && item.group !== myLaneIdRef.current) {
+                    window.alert('This tab books the model on the highlighted row. To book another model, open it from its row in the header (or from the Discovery app).');
+                    return;
+                }
                 setBookingTime(item.start.getTime());
                 setIsBookingOpen(true);
-                callback(null); // Don't add directly, wait for server
             },
             onMove: (item, callback) => {
                 const job = stateRef.current.jobs.find(j => j.id === item.id);
@@ -304,6 +352,28 @@ const SchedulerPage = () => {
         return () => cancelAnimationFrame(id);
     }, [scheduleCollapsed]);
 
+    // One timeline row per lane in "All lanes" (this tab's lane first), plus a
+    // row for jobs of models the machine no longer serves. Set BEFORE the items
+    // effect below runs, so items arrive with their group already known.
+    useEffect(() => {
+        const tl = timelineRef.current;
+        if (!tl) return;
+        if (multiLane && showAllLanes) {
+            const esc = (v) => String(v ?? '').replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;');
+            const groups = lanes.map((l, i) => ({
+                id: l.workflow_id,
+                order: l.workflow_id === myLaneId ? -1 : i,
+                className: l.workflow_id === myLaneId ? 'vis-group-mine' : '',
+                content: `<span class="text-[11px] font-semibold">${esc(laneLabel(l))}</span>${l.workflow_id === myLaneId ? '<br><span class="text-[9px] uppercase tracking-wider opacity-70">this tab</span>' : ''}`,
+            }));
+            groups.push({ id: '__other', order: 999, content: '<span class="text-[10px] opacity-70">earlier models</span>' });
+            tl.setGroups(new DataSet(groups));
+        } else {
+            tl.setGroups(null);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [multiLane, showAllLanes, laneKey, myLaneId]);
+
     /**
      * Effect to synchronize server state with the Timeline DataSet.
      * 
@@ -322,7 +392,13 @@ const SchedulerPage = () => {
                 .replaceAll('>', '&gt;')
                 .replaceAll('"', '&quot;')
                 .replaceAll("'", '&#39;');
-            const itemsData = state.jobs.map(job => {
+            const servedIds = new Set(lanes.map(l => l.workflow_id));
+            const grouped = multiLane && showAllLanes;
+            // With several lanes, the tab's own queue unless "All lanes" is on.
+            const timelineJobs = multiLane && !showAllLanes
+                ? state.jobs.filter(j => j.workflow_id === myLaneId)
+                : state.jobs;
+            const itemsData = timelineJobs.map(job => {
                 const isMine = job.user_id === username;
                 const shortId = (job.user_id || '???').substring(0, 3).toUpperCase();
                 const color = getUserColor(job.user_id);
@@ -338,7 +414,8 @@ const SchedulerPage = () => {
                                 <span class="font-medium text-xs truncate">${escapeHtml(promptText)}</span>
                               </div>`,
                     start: new Date(job.time_slot),
-                    end: new Date(job.time_slot + (state.benchmark_ms || 60000)), // Default to 1 min if benchmark not ready
+                    end: new Date(job.time_slot + durationMsOf(job)),
+                    ...(grouped ? { group: servedIds.has(job.workflow_id) ? job.workflow_id : '__other' } : {}),
                     className: `${isMine ? 'vis-item-mine' : ''} ${job.status === 'processing' ? 'vis-item-processing' :
                         (job.status === 'completed' ? 'vis-item-completed' : 'vis-item-scheduled')}`,
                     // Left stripe = user color. Background tint is intentionally
@@ -360,12 +437,15 @@ const SchedulerPage = () => {
             // Update or add items
             itemsRef.current.update(itemsData);
         }
-    }, [state.jobs, state.benchmark_ms, username]);
+    }, [state.jobs, state.benchmark_ms, username, multiLane, showAllLanes, myLaneId, laneKey, durationMsOf]);
 
     // Upcoming jobs waiting in the queue (status 'scheduled' = not yet run). Shown
     // as a count next to the header when the Live Schedule is collapsed, so the
     // room still sees how busy the queue is without expanding the timeline.
-    const scheduledCount = (state.jobs || []).filter((j) => j.status === 'scheduled').length;
+    const scheduledCount = (state.jobs || []).filter((j) => j.status === 'scheduled'
+        && (!multiLane || j.workflow_id === myLaneId)).length;
+    const myLaneName = laneLabel(lanes.find(l => l.workflow_id === myLaneId)) || state.workflow_info?.name || '';
+    const fmtWait = (ms) => (ms < 60000 ? `${Math.max(1, Math.round(ms / 1000))} s` : `${Math.round(ms / 60000)} min`);
 
     return (
         <div className="h-full flex overflow-hidden relative">
@@ -378,7 +458,43 @@ const SchedulerPage = () => {
                             <span className="text-[10px] font-bold uppercase tracking-widest leading-none">Creative Queue</span>
                         </div>
                         <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Timeline</h2>
-                        <p className="text-muted text-sm sm:text-base mt-1">Hello, <span className="text-primary font-bold">{username}</span>. Plan your generations.</p>
+                        <p className="text-muted text-sm sm:text-base mt-1">
+                            Hello, <span className="text-primary font-bold">{username}</span>. Plan your generations
+                            {state.machine?.name && (
+                                <> on <span className="inline-flex items-center gap-1 font-semibold text-foreground" title={state.machine.gpu || ''}>
+                                    <Monitor size={14} className="text-primary" />{state.machine.name}
+                                </span></>
+                            )}.
+                        </p>
+                        {/* One queue per model this machine serves: which one this tab
+                            books, how busy each is, and a link to book the others. */}
+                        {multiLane && (
+                            <div className="mt-2 flex flex-wrap gap-2 max-w-3xl">
+                                {laneQueues.map(({ lane: l, waiting, running, waitMs }) => {
+                                    const mine = l.workflow_id === myLaneId;
+                                    const body = (
+                                        <>
+                                            <Layers size={12} className={mine ? 'text-primary' : 'text-muted'} />
+                                            <span className="font-semibold truncate max-w-[16rem]">{laneLabel(l)}</span>
+                                            <span className={running ? 'text-success' : 'text-muted'}>{running ? 'generating' : 'idle'}</span>
+                                            <span className="text-muted">· {waiting} waiting{waiting ? ` (~${fmtWait(waitMs)})` : ''}</span>
+                                            {mine && <span className="text-[9px] uppercase tracking-wider text-primary font-bold">this tab</span>}
+                                        </>
+                                    );
+                                    const cls = `inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs ${mine ? 'border-primary/50 bg-primary/10' : 'border-border bg-surface hover:border-primary/40'}`;
+                                    return mine ? (
+                                        <span key={l.workflow_id} className={cls}>{body}</span>
+                                    ) : (
+                                        <a key={l.workflow_id} className={cls}
+                                            href={`/user?workflow=${encodeURIComponent(l.workflow_id)}`}
+                                            target="_blank" rel="noopener noreferrer"
+                                            title="Open this model's own booking page in a new tab">
+                                            {body}
+                                        </a>
+                                    );
+                                })}
+                            </div>
+                        )}
                         {/* What this machine is serving. It can run several models at
                             once, each in its own lane with its own queue — so list them
                             all, not just the first, or the others are invisible until
@@ -469,10 +585,17 @@ const SchedulerPage = () => {
                                 {scheduleCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
                                 Live Schedule
                             </button>
+                            {multiLane && (
+                                <button type="button" onClick={toggleAllLanes}
+                                    className={`text-[10px] px-2 py-0.5 rounded-md border transition-colors ${showAllLanes ? 'border-primary/50 bg-primary/10 text-primary' : 'border-border text-muted hover:text-foreground'}`}
+                                    title={showAllLanes ? 'Show only the queue of the model this tab books' : 'Show every model’s queue, one row each'}>
+                                    {showAllLanes ? 'All lanes' : `Only ${myLaneName}`}
+                                </button>
+                            )}
                             {scheduleCollapsed && (
                                 scheduledCount > 0 ? (
                                     <Badge variant="primary" className="text-[10px] py-0.5">
-                                        {scheduledCount} upcoming job{scheduledCount === 1 ? '' : 's'}
+                                        {scheduledCount} upcoming job{scheduledCount === 1 ? '' : 's'}{multiLane ? ' in this lane' : ''}
                                     </Badge>
                                 ) : (
                                     <span className="text-[10px] text-muted/70 normal-case tracking-normal">
@@ -490,7 +613,7 @@ const SchedulerPage = () => {
                     {/* Kept mounted (CSS-hidden) when collapsed so the vis-timeline
                         instance keeps its DOM node; the effect above redraws on expand. */}
                     <Card className={`flex-none border-slate-700/50 bg-background/50 shadow-inner ${scheduleCollapsed ? 'hidden' : ''}`} noPadding>
-                        <div ref={containerRef} className="h-[140px] sm:h-[170px] w-full" />
+                        <div ref={containerRef} className={`${multiLane && showAllLanes ? 'h-[220px] sm:h-[260px]' : 'h-[140px] sm:h-[170px]'} w-full`} />
                     </Card>
                 </div>
 
@@ -547,6 +670,29 @@ const SchedulerPage = () => {
                                     </button>
                                 )}
                             </div>
+                            {/* By model: a lane's queue and results on their own, or one
+                                card's examples among the whole library's. */}
+                            {(() => {
+                                const ids = Array.from(new Set(state.jobs.map(j => j.workflow_id).filter(Boolean)));
+                                if (ids.length < 2 && modelFilter === 'all') return null;
+                                const nameOf = (id) => workflowsById?.[id]?.title || workflowsById?.[id]?.name || laneLabel(lanes.find(l => l.workflow_id === id)) || id;
+                                const opts = ids.map(id => ({ id, label: nameOf(id), n: state.jobs.filter(j => j.workflow_id === id).length }))
+                                    .sort((x, y) => x.label.localeCompare(y.label));
+                                return (
+                                    <div className="flex items-center gap-2">
+                                        <Layers size={14} className="text-muted" />
+                                        <select
+                                            value={modelFilter}
+                                            onChange={(e) => setModelFilter(e.target.value)}
+                                            className="bg-surface border border-border rounded-md px-2 py-1.5 text-xs text-white max-w-[16rem]"
+                                            title="Show the jobs of one model only"
+                                        >
+                                            <option value="all">All models</option>
+                                            {opts.map(o => <option key={o.id} value={o.id}>{o.label} — {o.n}</option>)}
+                                        </select>
+                                    </div>
+                                );
+                            })()}
                             {activeTab === 'all' && (() => {
                                 const users = Array.from(new Set(state.jobs.map(j => j.user_id))).sort();
                                 return (
