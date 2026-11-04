@@ -511,6 +511,23 @@ function openMachineTab(key, name, url, machine) {
         wv.addEventListener('did-fail-load', (e) => {
             if (e.errorCode && e.errorCode !== -3) showToast(`Couldn't reach ${machine || name}`);
         });
+        // The tab is named after the workflow the machine served when it was
+        // opened — and kept that name after the machine switched model. A
+        // ComfyQ page now titles itself "<model> — <machine> · ComfyQ" and
+        // re-titles on a switch, so the tab follows it. An older ComfyQ just
+        // says "ComfyQ", which leaves the name from the card alone.
+        wv.addEventListener('page-title-updated', (e) => {
+            const t = tabs.get(key);
+            const title = String((e && e.title) || '');
+            if (!t || !/ · ComfyQ$/.test(title)) return;
+            const body = title.slice(0, -' · ComfyQ'.length);
+            const cut = body.lastIndexOf(' — ');
+            const model = cut > -1 ? body.slice(0, cut) : (body === t.machine ? '' : body);
+            const host = cut > -1 ? body.slice(cut + 3) : '';
+            if (model) t.name = model;
+            if (host) t.machine = host;
+            renderTabbar();
+        });
         webviewsEl.appendChild(wv);
         tabs.set(key, { key, name, url, machine, wv });
     }
