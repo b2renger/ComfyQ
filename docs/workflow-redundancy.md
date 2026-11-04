@@ -4,6 +4,15 @@
 **the same job for a student**, with what you'd gain and lose by cutting one. It is a
 worksheet, not a plan: nothing here has been deleted or changed.
 
+> **2026-11-03 — measured since:** the library is 80 bundles, and one test-suite run gave
+> same-job cards the same inputs ([workflow-assessment.md](workflow-assessment.md)). Two
+> questions below now have an answer: **§4, the two H3 t2v cards** — on one prompt the 4-step
+> turbo card was faster (30 s vs 54 s) *and* livelier than FastVideo's 8-step one; **§1,
+> SeedVR2** — the int8 video card was no longer faster than the fp16 one (197 s vs 195 s on
+> 0.43.2), so the case for cutting the fp16 pair rests on features, not speed. New overlap to
+> weigh: the three **Pika H3 Flex** cards do the jobs of the FastH3 t2v / first-last-frame /
+> OmniRef cards at 2.5–5× the time, for a better picture.
+
 > ⚠ **Read as of its date: the library is now 61 bundles and seven of the ones
 > weighed below are gone.** Acted on since the survey, each on the owner's call —
 > `image_flux2_dev_t2i` and `image_edit_flux2_dev_image_edit` (85.76 GB, §6d),
