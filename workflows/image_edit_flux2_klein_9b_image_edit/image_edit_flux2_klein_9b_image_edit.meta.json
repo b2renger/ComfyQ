@@ -100,7 +100,7 @@
       "field": "text",
       "type": "textarea",
       "label": "Prompt",
-      "default": "Change the camera angle to a first-person driver's perspective looking through the steering wheel at the dashboard and windshield, maintaining the same minimalist style and lighting",
+      "default": "Turn this into the same scene at night in heavy rain, with wet reflections on every surface and warm lights in the windows. Keep every building, object and person exactly where they are, at the same size and from the same camera position.",
       "required": true,
       "order": 3
     },

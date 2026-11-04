@@ -219,21 +219,12 @@
         },
         {
           "workflow": "image_edit_flux2_klein_9b_image_edit",
-          "note": "A photo of a student's scale model became a photo of the real place. Compare the two: every figurine is now a real person standing in the same spot, in the same colours.",
+          "note": "A daytime photo of the school's atrium, turned into the same room at night with string lights. Compare the two: every staircase, balcony, table and chair is exactly where it was — the light, the time of day and the mood are new.",
           "params": {
-            "cliptextencode_text_75_74": "Turn this photograph of an architectural scale model into a realistic photograph of the real place at the same moment, seen from the same low camera position. The felt lawn becomes a real grass lawn, the small painted figurines become real people in the same clothes, colours, poses and positions — the crowd standing in front of the white stage, the speaker on the stage, the people seated on the wooden crates — the wooden blocks become real wooden crate stools, the tuft of moss becomes a real shrub, the timber and steel model structures become a real timber pavilion and a real steel footbridge, and the blurred white background becomes real buildings and an overcast sky. Soft natural daylight, accurate shadows, real materials such as wood, concrete, steel and grass. Keep the composition, the camera angle, the shallow depth of field and every person and object exactly where they are.",
+            "cliptextencode_text_75_74": "Turn this daytime photograph of the school atrium into the same atrium late at night, after everyone has gone home: the glass roof is a deep blue night sky with a few stars, warm amber string lights hang in loose loops along every balcony rail, the floor is lit by a few pools of warm lamp light and the rest falls into soft shadow. Keep every staircase, balcony, wooden wall panel, table, chair and bench exactly where it is, at the same size and from the same camera position; remove the people. Realistic photograph, long exposure, no motion blur.",
             "cliptextencode_text_75_67": "",
             "flux2scheduler_steps_75_62": 20,
-            "loadimage_image_76": {
-              "from": "asset:PXL_20240628_084847386.jpg",
-              "kind": "image",
-              "derive": [
-                {
-                  "op": "scale",
-                  "factor": 0.35
-                }
-              ]
-            }
+            "loadimage_image_76": "asset:agora_ecole_de_design1.jpg"
           }
         },
         {
