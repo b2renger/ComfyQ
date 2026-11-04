@@ -1134,7 +1134,7 @@
         "models": [
           {
             "name": "qwen_3_8b_fp8mixed.safetensors",
-            "url": "https://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors",
+            "url": "https://huggingface.co/Comfy-Org/Flux-2-Klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors",
             "directory": "text_encoders"
           }
         ],

@@ -39,7 +39,8 @@
         "type": "unet",
         "file": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
         "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
-        "source": "https://huggingface.co/Lightricks/LTX-2.5"
+        "source": "https://huggingface.co/Lightricks/LTX-2.5",
+        "gated": true
       },
       {
         "type": "clip",
@@ -51,19 +52,22 @@
         "type": "clip",
         "file": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
         "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
-        "source": "https://huggingface.co/Lightricks/LTX-2.5"
+        "source": "https://huggingface.co/Lightricks/LTX-2.5",
+        "gated": true
       },
       {
         "type": "vae",
         "file": "ltx-2.5-audio-vae-bf16.safetensors",
         "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/vae/ltx-2.5-audio-vae-bf16.safetensors",
-        "source": "https://huggingface.co/Lightricks/LTX-2.5"
+        "source": "https://huggingface.co/Lightricks/LTX-2.5",
+        "gated": true
       },
       {
         "type": "vae",
         "file": "ltx-2.5-video-vae-bf16.safetensors",
         "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/vae/ltx-2.5-video-vae-bf16.safetensors",
-        "source": "https://huggingface.co/Lightricks/LTX-2.5"
+        "source": "https://huggingface.co/Lightricks/LTX-2.5",
+        "gated": true
       },
       {
         "type": "lora",
@@ -75,7 +79,8 @@
         "type": "other",
         "file": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
         "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
-        "source": "https://huggingface.co/Lightricks/LTX-2.5"
+        "source": "https://huggingface.co/Lightricks/LTX-2.5",
+        "gated": true
       }
     ]
   },

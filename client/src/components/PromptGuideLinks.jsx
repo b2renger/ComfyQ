@@ -1,5 +1,6 @@
 import React from 'react';
-import { BookOpen, ExternalLink } from 'lucide-react';
+import { BookOpen, ExternalLink as ExternalIcon } from 'lucide-react';
+import ExternalLink from './ui/ExternalLink';
 
 // Official prompting guides for the active workflow's model family (meta
 // `promptGuides: [{ label, url, tip? }]`). Shown up front — on the Timeline's
@@ -13,17 +14,14 @@ const PromptGuideLinks = ({ guides, compact = false }) => {
     const links = (
         <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
             {list.map(g => (
-                <a
+                <ExternalLink
                     key={g.url}
                     href={g.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    onClick={e => e.stopPropagation()}
                     className="inline-flex items-center gap-1 text-xs font-semibold text-primary underline underline-offset-2 hover:opacity-80"
                 >
                     {g.label || 'Prompt guide'}
-                    <ExternalLink size={11} className="shrink-0" />
-                </a>
+                    <ExternalIcon size={11} className="shrink-0" />
+                </ExternalLink>
             ))}
         </span>
     );

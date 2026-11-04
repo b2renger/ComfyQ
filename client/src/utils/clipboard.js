@@ -22,16 +22,31 @@ export async function copyToClipboard(text) {
     try {
         const ta = document.createElement('textarea');
         ta.value = str;
-        ta.setAttribute('readonly', '');
-        // Keep it off-screen but still selectable.
+        // Not `readonly`: iOS Safari will not select text in a read-only
+        // field, so the copy silently copies nothing. 16px stops iOS zooming
+        // in on focus; inputmode none keeps the keyboard down.
+        ta.setAttribute('inputmode', 'none');
         ta.style.position = 'fixed';
         ta.style.top = '-9999px';
+        ta.style.left = '0';
+        ta.style.fontSize = '16px';
         ta.style.opacity = '0';
+        const before = document.activeElement;
         document.body.appendChild(ta);
+        ta.focus();
         ta.select();
+        // WebKit on iOS needs an explicit range as well as select().
+        try {
+            const range = document.createRange();
+            range.selectNodeContents(ta);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        } catch { /* desktop browsers do not need it */ }
         ta.setSelectionRange(0, str.length);
         const ok = document.execCommand('copy');
         document.body.removeChild(ta);
+        if (before && typeof before.focus === 'function') before.focus({ preventScroll: true });
         return ok;
     } catch {
         return false;

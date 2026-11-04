@@ -2,6 +2,7 @@ import React from 'react';
 import { Radio, Square, RefreshCw, Power, MemoryStick, ExternalLink, Users } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
+import LinkOut from '../ui/ExternalLink';
 
 /**
  * What this machine is serving right now, one row per lane, each stoppable.
@@ -82,23 +83,21 @@ const RunningWorkflows = ({
                                     )}
 
                                     <div className="ml-auto flex items-center gap-2 flex-wrap">
-                                    <a
+                                    <LinkOut
                                         href={`${window.location.origin}/user?workflow=${encodeURIComponent(l.workflowId)}`}
-                                        target="_blank" rel="noopener noreferrer"
                                         className={linkCls}
                                         title="Open the student page in a new tab, with this workflow picked for booking."
                                     >
                                         <Users size={13} /><span>Student page</span>
-                                    </a>
+                                    </LinkOut>
                                     {comfyReachable ? (
-                                        <a
+                                        <LinkOut
                                             href={`${window.location.protocol}//${host}:${l.port}/`}
-                                            target="_blank" rel="noopener noreferrer"
                                             className={linkCls}
                                             title={`Open the ComfyUI this lane runs on (port ${l.port}) in a new tab.`}
                                         >
                                             <ExternalLink size={13} /><span>ComfyUI</span>
-                                        </a>
+                                        </LinkOut>
                                     ) : (
                                         <span
                                             className={`${linkCls} opacity-50 cursor-not-allowed`}

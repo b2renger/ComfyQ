@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { HardDrive, AlertTriangle, ChevronDown, ChevronUp, CircleAlert, ExternalLink, Download, HardDriveDownload } from 'lucide-react';
 import { SERVER_URL } from '../../utils/api';
+import LinkOut from '../ui/ExternalLink';
 
 /**
  * Whether this workflow's models are on THIS machine, where they sit, and where
@@ -41,8 +42,13 @@ const ModelReadiness = ({ vram, models = [], headers = {} }) => {
         // Called "download" it read as the way to install a missing model, and
         // that is exactly how a model ends up in the wrong folder under the
         // wrong name. "fetch to rig" beside it is the one that installs.
-        if (p.url) return { href: p.url, label: 'to my computer', direct: true, note: p.note };
-        if (p.source) return { href: p.source, label: 'source', direct: false, note: p.note };
+        // A gated repo answers 401 to a browser that is not signed in, so a
+        // direct link would open a login wall: say so, and point at the repo
+        // page where the licence is accepted.
+        const gate = p.gated ? 'Gated on HuggingFace: sign in and accept the licence on the repo page first.' : null;
+        const note = [gate, p.note].filter(Boolean).join('\n') || undefined;
+        if (p.url) return { href: p.url, label: p.gated ? 'to my computer (login)' : 'to my computer', direct: true, note };
+        if (p.source) return { href: p.source, label: 'source', direct: false, note };
         return p.note ? { href: null, label: null, note: p.note } : null;
     };
     // ★★ Fetch it onto THE RIG, not onto whoever has the panel open.
@@ -102,8 +108,7 @@ const ModelReadiness = ({ vram, models = [], headers = {} }) => {
         const l = link(name);
         if (!l || !l.href) return null;
         return (
-            <a href={l.href} target="_blank" rel="noreferrer"
-                onClick={(e) => e.stopPropagation()}
+            <LinkOut href={l.href}
                 className="inline-flex items-center gap-1 text-primary hover:underline flex-shrink-0"
                 title={(l.direct
                     ? 'Downloads through your browser, onto the computer you are reading this on, '
@@ -111,7 +116,7 @@ const ModelReadiness = ({ vram, models = [], headers = {} }) => {
                     : 'The page this file comes from — the exact file name inside it is not recorded.')
                     + (l.note ? `\n${l.note}` : '')}>
                 {l.direct ? <Download size={11} /> : <ExternalLink size={11} />}{l.label}
-            </a>
+            </LinkOut>
         );
     };
 
@@ -193,12 +198,11 @@ const ModelReadiness = ({ vram, models = [], headers = {} }) => {
                             <span className="font-mono break-all" title={m.note || ''}>{m.file}</span>
                             <span className="ml-auto flex-shrink-0 pl-2 whitespace-nowrap">fetched automatically</span>
                             {m.source && (
-                                <a href={m.source} target="_blank" rel="noreferrer"
-                                    onClick={(e) => e.stopPropagation()}
+                                <LinkOut href={m.source}
                                     className="inline-flex items-center gap-1 text-primary hover:underline flex-shrink-0"
                                     title={m.note || 'Where this comes from.'}>
                                     <ExternalLink size={11} />source
-                                </a>
+                                </LinkOut>
                             )}
                         </div>
                     ))}

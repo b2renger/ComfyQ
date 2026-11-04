@@ -33,7 +33,8 @@
         "type": "unet",
         "file": "flux-2-klein-base-9b-fp8.safetensors",
         "url": "https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9b-fp8/resolve/main/flux-2-klein-base-9b-fp8.safetensors",
-        "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9b-fp8"
+        "source": "https://huggingface.co/black-forest-labs/FLUX.2-klein-base-9b-fp8",
+        "gated": true
       },
       {
         "type": "vae",
@@ -44,8 +45,8 @@
       {
         "type": "clip",
         "file": "qwen_3_8b_fp8mixed.safetensors",
-        "url": "https://huggingface.co/Comfy-Org/flux2-klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors",
-        "source": "https://huggingface.co/Comfy-Org/flux2-klein-9B"
+        "url": "https://huggingface.co/Comfy-Org/Flux-2-Klein-9B/resolve/main/split_files/text_encoders/qwen_3_8b_fp8mixed.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Flux-2-Klein-9B"
       }
     ]
   },

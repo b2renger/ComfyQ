@@ -19,6 +19,7 @@ import ThemeToggle from '../components/ui/ThemeToggle';
 import { SERVER_URL } from '../utils/api';
 import { diagFetch } from '../utils/diag';
 import { useComfyOpener } from '../hooks/useComfyOpener';
+import LinkOut from '../components/ui/ExternalLink';
 
 // The admin panel's four jobs, in the order an admin needs them: what this
 // machine runs, then the server itself, then the ComfyUI behind it, then upkeep.
@@ -1229,8 +1230,8 @@ const AdminConfig = ({ currentMode }) => {
                                 Needed only for <strong>gated</strong> repositories, and only for downloading
                                 a model — nothing else uses it. Accept the licence on the model's
                                 HuggingFace page first, then create a <strong>read</strong> token at{' '}
-                                <a className="text-primary hover:underline" target="_blank" rel="noreferrer"
-                                    href="https://huggingface.co/settings/tokens">huggingface.co/settings/tokens</a>.
+                                <LinkOut className="text-primary hover:underline"
+                                    href="https://huggingface.co/settings/tokens">huggingface.co/settings/tokens</LinkOut>.
                                 It is stored in this machine's <code>config.json</code>, is never sent back to
                                 the browser, and is only ever sent to huggingface.co itself.
                             </p>
@@ -1401,7 +1402,7 @@ const AdminConfig = ({ currentMode }) => {
                                     <ul className="mt-1.5 space-y-1">
                                         {comfyStatus.urls.map(u => (
                                             <li key={u}>
-                                                <a href={u} target="_blank" rel="noreferrer" className="text-sm font-mono text-primary hover:underline break-all">{u}</a>
+                                                <LinkOut href={u} className="text-sm font-mono text-primary hover:underline break-all">{u}</LinkOut>
                                             </li>
                                         ))}
                                     </ul>

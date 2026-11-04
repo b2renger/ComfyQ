@@ -181,6 +181,11 @@ const WorkflowMeta = z.object({
             // entry is not a file to look for under models/, so it must never
             // be reported missing and nothing should offer to download it.
             auto: z.boolean().optional(),
+            // true when the repo is gated on HuggingFace: the direct link answers
+            // 401 until the person signs in and accepts the licence. Set by
+            // tools/card-links/check.cjs --mark-gated, so a card can say so
+            // instead of offering a download that opens a login wall.
+            gated: z.boolean().optional(),
             note: z.string().optional()
         })).default([]),
         // Global ComfyUI performance flags this workflow cannot run with (it

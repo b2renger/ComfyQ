@@ -501,6 +501,13 @@ function openMachineTab(key, name, url, machine) {
         wv.className = 'tabview';
         wv.setAttribute('src', url);
         wv.setAttribute('partition', 'persist:comfyq');   // keep the chosen username across tabs + launches
+        // ★ Without allowpopups a <webview> drops every target="_blank" link and
+        // window.open() before main.js's setWindowOpenHandler ever sees it, so
+        // the prompt-guide links (and every other "opens in a new tab" link in
+        // the ComfyQ page) did nothing at all inside the app, on every OS.
+        // With it the handler runs, denies the in-app window, and hands the URL
+        // to the system browser. Must be set before the element is attached.
+        wv.setAttribute('allowpopups', '');
         wv.addEventListener('did-fail-load', (e) => {
             if (e.errorCode && e.errorCode !== -3) showToast(`Couldn't reach ${machine || name}`);
         });

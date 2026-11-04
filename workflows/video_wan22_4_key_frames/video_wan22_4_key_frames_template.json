@@ -953,7 +953,7 @@
       "outputs": [],
       "properties": {},
       "widgets_values": [
-        "Guide: [Subgraph](https://docs.comfy.org/interface/features/subgraph)\n\n## Model Links (for Local Users)\n\n**text_encoders**\n\n- [umt5_xxl_fp8_e4m3fn_scaled.safetensors](https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors)\n\n**diffusion_models**\n\n- [wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors)\n- [wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors)\n\n**loras**\n\n- [wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors](https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors)\n- [wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors](https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors)\n\n**vae**\n\n- [wan_2.1_vae.safetensors](https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors)\n\n\n## Model Storage Location\n\n```\n📂 ComfyUI/\n├── 📂 models/\n│   ├── 📂 text_encoders/\n│   │   └── umt5_xxl_fp8_e4m3fn_scaled.safetensors\n│   ├── 📂 diffusion_models/\n│   │   ├── wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors\n│   │   └── wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors\n│   ├── 📂 loras/\n│   │   ├── wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors\n│   │   └── wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors\n│   └── 📂 vae/\n│       └── wan_2.1_vae.safetensors\n```\n\n## Report Issue\n\nNote: Please update ComfyUI first ([guide](https://docs.comfy.org/installation/update_comfyui)) and prepare required models. Desktop/Cloud updates follow stable releases, so some nightly-supported models may not be available yet.\n\n- Cannot run / runtime errors: [ComfyUI/issues](https://github.com/comfyanonymous/ComfyUI/issues)\n- UI / frontend issues: [ComfyUI_frontend/issues](https://github.com/Comfy-Org/ComfyUI_frontend/issues)\n- Workflow issues: [workflow_templates/issues](https://github.com/Comfy-Org/workflow_templates/issues)\n"
+        "Guide: [Subgraph](https://docs.comfy.org/interface/features/subgraph)\n\n## Model Links (for Local Users)\n\n**text_encoders**\n\n- [umt5_xxl_fp8_e4m3fn_scaled.safetensors](https://huggingface.co/Comfy-Org/Wan-2.1/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors)\n\n**diffusion_models**\n\n- [wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors)\n- [wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors](https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors)\n\n**loras**\n\n- [wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors](https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors)\n- [wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors](https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors)\n\n**vae**\n\n- [wan_2.1_vae.safetensors](https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/vae/wan_2.1_vae.safetensors)\n\n\n## Model Storage Location\n\n```\n📂 ComfyUI/\n├── 📂 models/\n│   ├── 📂 text_encoders/\n│   │   └── umt5_xxl_fp8_e4m3fn_scaled.safetensors\n│   ├── 📂 diffusion_models/\n│   │   ├── wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors\n│   │   └── wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors\n│   ├── 📂 loras/\n│   │   ├── wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors\n│   │   └── wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors\n│   └── 📂 vae/\n│       └── wan_2.1_vae.safetensors\n```\n\n## Report Issue\n\nNote: Please update ComfyUI first ([guide](https://docs.comfy.org/installation/update_comfyui)) and prepare required models. Desktop/Cloud updates follow stable releases, so some nightly-supported models may not be available yet.\n\n- Cannot run / runtime errors: [ComfyUI/issues](https://github.com/comfyanonymous/ComfyUI/issues)\n- UI / frontend issues: [ComfyUI_frontend/issues](https://github.com/Comfy-Org/ComfyUI_frontend/issues)\n- Workflow issues: [workflow_templates/issues](https://github.com/Comfy-Org/workflow_templates/issues)\n"
       ],
       "color": "#222",
       "bgcolor": "#000"
@@ -1464,7 +1464,7 @@
               "models": [
                 {
                   "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.1/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
                   "directory": "text_encoders"
                 }
               ],
@@ -1648,7 +1648,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
                   "directory": "diffusion_models"
                 }
               ],
@@ -1713,7 +1713,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
                   "directory": "diffusion_models"
                 }
               ],
@@ -1837,7 +1837,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
                   "directory": "loras"
                 }
               ],
@@ -1910,7 +1910,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
                   "directory": "loras"
                 }
               ],
@@ -2202,7 +2202,7 @@
               "models": [
                 {
                   "name": "wan_2.1_vae.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
                   "directory": "vae"
                 }
               ],
@@ -3086,7 +3086,7 @@
               "models": [
                 {
                   "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.1/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
                   "directory": "text_encoders"
                 }
               ],
@@ -3270,7 +3270,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
                   "directory": "diffusion_models"
                 }
               ],
@@ -3335,7 +3335,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
                   "directory": "diffusion_models"
                 }
               ],
@@ -3459,7 +3459,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
                   "directory": "loras"
                 }
               ],
@@ -3532,7 +3532,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
                   "directory": "loras"
                 }
               ],
@@ -3824,7 +3824,7 @@
               "models": [
                 {
                   "name": "wan_2.1_vae.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
                   "directory": "vae"
                 }
               ],
@@ -4708,7 +4708,7 @@
               "models": [
                 {
                   "name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repackaged/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.1/resolve/main/split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors",
                   "directory": "text_encoders"
                 }
               ],
@@ -4892,7 +4892,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/diffusion_models/wan2.2_i2v_high_noise_14B_fp8_scaled.safetensors",
                   "directory": "diffusion_models"
                 }
               ],
@@ -4957,7 +4957,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/diffusion_models/wan2.2_i2v_low_noise_14B_fp8_scaled.safetensors",
                   "directory": "diffusion_models"
                 }
               ],
@@ -5081,7 +5081,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_low_noise.safetensors",
                   "directory": "loras"
                 }
               ],
@@ -5154,7 +5154,7 @@
               "models": [
                 {
                   "name": "wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/loras/wan2.2_i2v_lightx2v_4steps_lora_v1_high_noise.safetensors",
                   "directory": "loras"
                 }
               ],
@@ -5446,7 +5446,7 @@
               "models": [
                 {
                   "name": "wan_2.1_vae.safetensors",
-                  "url": "https://huggingface.co/Comfy-Org/Wan_2.2_ComfyUI_Repackaged/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
+                  "url": "https://huggingface.co/Comfy-Org/Wan-2.2/resolve/main/split_files/vae/wan_2.1_vae.safetensors",
                   "directory": "vae"
                 }
               ],
