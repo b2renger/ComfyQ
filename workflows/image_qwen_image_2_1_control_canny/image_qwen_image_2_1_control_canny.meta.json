@@ -162,10 +162,10 @@
       "nodeId": "459:458",
       "field": "steps",
       "type": "number",
-      "label": "Steps (25 is quick, 40–50 is Qwen's own setting)",
+      "label": "Steps (20 is the default, 25 is quick, 40–50 is Qwen's own setting — slower)",
       "default": 20,
       "min": 10,
-      "max": 40,
+      "max": 50,
       "step": 1,
       "required": true,
       "order": 7
