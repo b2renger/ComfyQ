@@ -134,8 +134,8 @@
       "nodeId": "135",
       "field": "string_a",
       "type": "textarea",
-      "label": "String A (Concatenate Text)",
-      "default": "You have a description of a video and a movement, and the descritption of a reference image, seperated by a '/\". Combine them as a video prompt for bernini video edit with reference image and refence video.The final video should keep the movement of the video and import the character and the setting of the reference image",
+      "label": "Instruction for the AI that writes the edit (it reads a description of your clip and of your picture)",
+      "default": "You have a description of a video and of its movement, and the description of a reference image, separated by a \"/\". Combine them into one video prompt for Bernini video editing with a reference image and a reference video. The final video should keep the movement of the video and take the character and the setting from the reference image.",
       "required": false,
       "order": 4
     },
