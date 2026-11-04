@@ -23,3 +23,8 @@ The integrated suite departs from a report where wiring needed it (an input move
 output, one card's run repurposed — the MOSS base card draws the reference sheet the ingredients card
 uses); those choices are in `tools/test-suite/library.suite.json` itself, each run's `note`.
 The reports are the reasoning, kept as written; they were not re-edited after the run.
+
+**What came of it:** [run-2026-11-04.md](run-2026-11-04.md) — the verdict on every card from the run the
+suite was built for (80 of 80 clean), including where a report's expectation did not hold (Wan Animate kept
+the picture's background; the Ingredients LoRA copied the sheet on the distilled model) and the ten
+captions rewritten after their results were looked at.

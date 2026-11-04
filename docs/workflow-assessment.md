@@ -1,7 +1,10 @@
 # Which workflows are best — an assessment of the whole library
 
 *Measured 2026-11-03 on AN-5090-2 (RTX 5090, 32 GB), ComfyUI 0.43.2, one run of the
-[library test suite](../tools/test-suite/README.md) — 80 bundles. Companion to
+[library test suite](../tools/test-suite/README.md) — 80 bundles — then again on 2026-11-04
+with the suite rebuilt as a showcase (one example per card that shows what it is best at;
+see [the showcase run](#the-showcase-run-2026-11-04)). Where the second run overturned a
+verdict of the first, the table below says so. Companion to
 [workflow-redundancy.md](workflow-redundancy.md), which asks which bundles overlap; this
 one asks which of them to reach for.*
 
@@ -33,7 +36,7 @@ one asks which of them to reach for.*
 | a picture that follows a precise composition | **Qwen-Image 2.1** — 15 s | — | — |
 | text, titles, posters | **Ideogram 4** — 20 s | — | — |
 | a layout of boxes (where things go) | **MOSS-Image SFT** — 23 s, 11 GB | — | — |
-| edit one thing, keep everything else | **FLUX.3 Klein base + a box** — 70 s, 11 GB | **FLUX.2 Klein edit** — 25 s | Bernini *with reference* (makes collages) |
+| edit one thing, keep everything else | **FLUX.3 Klein base + a box** — 70 s, 11 GB | **FLUX.2 Klein edit** — 25 s | — (Bernini *with reference* made collages until its Edit-type fix of 2026-11-04; it now swaps the reference in) |
 | put something into a picture | **FLUX.2 Klein inpaint** — 3–4 s | — | Qwen 2.1 relight (scale is unreliable) |
 | a new picture in a photo's pose | **FLUX.2 Klein ref + depth** — 9 s | — | — |
 | a character from other angles | **Qwen 2511 angles** — 6 s | **Krea 2 quadview** — 22 s for four views | — |
@@ -46,10 +49,62 @@ one asks which of them to reach for.*
 | a cast of reference pictures | **FastH3 OmniRef** — 64 s | — | — |
 | a face that talks or emotes | **LivePortrait** — 11 s | — | — |
 | a seamless loop | either loop card — ~255 s; the FastH3 one holds a reference closer | — | — |
-| restyle a video | **LTX 2.5 IC-LoRA** — 130–140 s at up to 1920×1024 | — | H3 video reference (no edit), Bernini with reference (sky only) |
-| put a new character on a video | **Wan SCAIL-2** — 215 s | LTX 2.5 pose — 123 s | Wan Animate with a landscape clip |
+| restyle a video | **LTX 2.5 IC-LoRA** — 130–140 s at up to 1920×1024; depth keeps the whole scene, pose only the moves | — | the H3 Fun-ControlNet cards with a 30 fps clip (they write 24 fps: 25% slower) |
+| change one thing in a video | **H3 video reference** (a person) with the trained prompt — ~400 s; **Bernini** (a garment, or an outfit from a photo) — ~380 s, 16 fps | — | — (both returned the source on 2026-11-03; both fixed 2026-11-04) |
+| put a new character on a video | **Wan SCAIL-2** — keeps the clip's place, 215 s | LTX 2.5 pose — 123 s | Wan Animate if the place should change: it keeps the PICTURE's background |
 | music from a description | **Stable Audio 3** — 6 s for 150 s of music | — | its AI prompt improver, until ComfyUI is fixed |
 | describe a picture or a clip | **Gemma 4** — 21–25 s; reads text exactly | — | — |
+
+---
+
+## The showcase run (2026-11-04)
+
+The suite was rebuilt from [research into each model](showcase-research/README.md): instead
+of one shared story, every card got the example that shows what it is uniquely good at, with
+a caption saying what to look at. Those results are the examples students open from each
+card (**See an example**). 80 runs in five stages, **80 of 80 clean, 0 suspect, 2 h 31 min**,
+then two re-runs after fixing the suite's own settings.
+
+**How it was checked.** Every picture was opened; every video was compared **frame by
+frame with its source at the same instants** (six per clip), its cuts measured against the
+times the prompt asked for, its frame rate against the source's, its loop seam against its
+own frame steps, and its soundtrack measured (level; for a card that keeps the uploaded
+sound, the loudness envelope correlated with the input). **Ten captions said more than the
+result shows and were rewritten** before the examples were seeded — a caption is a claim
+about the result, not about the model.
+
+**What it proved** (each measured, not just looked at):
+
+| card | what it was shown doing | the evidence |
+|---|---|---|
+| `video_fastvideo_fasth3_t2v` | a ten-second, three-shot nature film with a narrator | cuts at **4.04 s and 7.46 s**, asked for 4.0 and 7.5 |
+| `video_pika_h3_flex_t2v` | a bakery scene, two speakers, a chalkboard | cuts at **2.00 / 3.46 s** (asked 2.0 / 3.5); "CROISSANTS" legible |
+| `video_ltx2_3_ia2v_iclora` | a recorded voice driving a portrait | the output's sound IS the upload: envelope correlation **0.91** |
+| `video_edit_ltx2_3_3dreal_vid2vid` | a grey blockout render → a ship in a storm | the render's cut at **3.77 s lands at 3.77 s**, at its own 30 fps |
+| `video_edit_minimax_h3_loop_restyle` | a depth tunnel → a torch-lit corridor | the loop seam (7.0) is an ordinary frame step (median 6.8) |
+| `video_edit_ltx2_5_iclora_union_control` + `…_pose_control` | the same rooftop dance, depth vs pose | depth keeps the whole scene in clay; pose keeps only the moves — the clearest lesson in the library on what each control keeps |
+| `video_edit_wan21_scail2_character_replacement` | another dancer on the same rooftop | every move at the same instant, the place untouched |
+| `image_edit_flux2_klein_9b_image_edit` | a daytime atrium photo at night | every table, bench and staircase where it was; people removed |
+| `utility_ltx2_5_video_deblur_upscale` | the 480p H3 clip → 960p | sharper at the same size, original soundtrack (correlation 0.86) |
+
+**What it overturned from the run before:**
+
+- **The H3 video-reference card works** — it replaced the rooftop dancer with a knight, same rooftop, same camera, same moves — once the prompt was in the form the model was trained on: `<Video 1>` *with* the angle brackets (ComfyUI writes `"<Video 1>: "` before the clip's tokens), `[video editing]`, "The target video is an edited version of <Video 1>.", and `removed` / `partially_preserved` / `attribute_transfer`. On 2026-11-03 it returned its source unchanged. That prompt is now the card's default.
+- **Both Bernini *with reference* cards make their edit**: the taxi became the reference's car; the dancer wears the reference photo's jacket and plaid shirt in every frame. Most likely the Edit-type fix (`CustomCombo` returns the index it is given, so the dropdown did nothing before) — the prompts changed too, so one run cannot prove it alone.
+- **Frame rates follow the source**: 3DReal (30 fps), LivePortrait (the driving clip's 30 fps, not a fixed 16), Wan key frames (16 fps), SAM3 (24 fps).
+
+**What is still weak or wrong:**
+
+- `video_ltx2_3_ic_lora_ingredients` **reproduced the reference sheet** — panels on black, invented text — instead of the scene. Its LoRA was trained on the full LTX 2.3 model at strength 1.4, 30 steps, cfg 4; the card runs the fast distilled one at 8 steps, cfg 1, and was set to strength 1.0. Measured on one sheet: **1.0** → the sheet; **1.4** → one seed gave the scene (character, watch and workshop all matching the sheet) with a column of the sheet pinned at the edge, another seed mostly the sheet again; **1.4 at the trained 768×448** and **1.8** → worse. The default is now 1.4 and the card says it is seed-dependent. The full model is already on the rig (`ltx-2.3-22b-dev-fp8.safetensors`, 29 GB), so a variant of this card on it — 30 steps, cfg 4, strength 1.4, as the model card says — is the obvious next test.
+- The plain loop (`video_minimax_h3_seamless_loop`): its seam is close but not invisible (2.1 against steps of 0.4–1.7), and the purr it was asked for is almost silent.
+- `video_edit_wan_animate2` keeps the **picture's** background (the prompt's beach shows only as palm trees), against ComfyUI's own description; the card says so now.
+- The H3 Fun-ControlNet cards write 24 fps whatever the clip — a 30 fps clip plays 25% slower.
+- Restorers restore: SeedVR2 removed every compression block from a damaged clip but did not invent back the knit the copy had lost; SAM3's matte misses sleeves and breaks up on a turn. Both are now what the captions say.
+- Two soundtracks peak just above full scale (Pika H3 Flex t2v 1.03, LTX 2.5 FLF 1.06) — worth a listen for clipping. None of the sound was listened to; levels were measured.
+
+The verdict for every card — what it was given, what came out, what was measured — is in
+[showcase-research/run-2026-11-04.md](showcase-research/run-2026-11-04.md); the inputs and
+captions are [library.suite.json](../tools/test-suite/library.suite.json).
 
 ---
 
@@ -256,9 +311,11 @@ keeper walking the pier (5 s, 1280×704, with sound).
 
 ## Worth deciding
 
-- **Retire or rework:** `image_edit_bernini_r_image_editing_with_reference` (collages instead of restyling), `video_edit_bernini_r_video_editing_with_reference` (only the sky changes, 10 minutes), `video_edit_minimax_h3_v2v_video_reference` (returned the source unchanged, 10 minutes), `image_qwen_image_2_1_t2i_fix` (slower and less accurate than the plain card on the same prompt).
+- **Retire or rework:** `image_qwen_image_2_1_t2i_fix` (slower and less accurate than the plain card on the same prompt); `video_ltx2_3_ic_lora_ingredients` (on 2026-11-04 it reproduced the reference sheet instead of the scene — see the showcase run). ~~Both Bernini *with reference* cards and the H3 video-reference card~~ were on this list after 2026-11-03 and are **not** any more: on 2026-11-04 all three made the edit they exist for (the Edit-type fix for Bernini, the trained prompt form for H3).
 - **Keep but explain:** the Pika H3 Flex cards are the best-looking H3 video at 2.5–5× the time — a choice to offer when quality matters, not the default; the MiniMax H3 still costs 29 GB for a picture Qwen 2.1 makes at 15 GB.
-- **Still emitting stray text tiles** (a node's plumbing shown as a result): both Bernini image cards and all three Bernini video cards, and LivePortrait.
+- **Still emitting stray text tiles** (a node's plumbing shown as a result): both Bernini image cards and all three Bernini video cards (now the Edit-type index: "6", "8"), and LivePortrait (three tensor shapes plus VHS's first-frame PNG).
+- **The three H3 Fun-ControlNet cards write a fixed 24 fps** and read the control clip frame for frame, so a 30 fps clip — what phones record — comes out 25% slower (measured on a 30 fps render: its cut at frame 113 lands at frame 114 of 24). The cards say so now; the fix is VHS_LoadVideo with `force_rate: 24`, which changes the cards' input key and their examples.
+- **Suite seeds are not used**: calibration replaces every seed with a fresh one so a re-run cannot be a cache hit, whatever the suite asks for. The examples record the seed that actually ran.
 - **Speed since ComfyUI 0.39** (same steps, different inputs, so a lead rather than a verdict): the H3 video-reference card runs at half its October speed per step, TripoSplat at 0.6×, the LTX IC-LoRA trio at 0.6–0.8×; LTX 2.5 t2v / i2v / FLF, FastH3, Qwen 2.1 and SeedVR2 are unchanged.
 
 ## Seeing the results
