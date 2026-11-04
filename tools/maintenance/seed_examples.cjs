@@ -62,6 +62,69 @@ const pub = JSON.parse(fs.readFileSync(latest, 'utf8'));
 const rows = pub.results || pub.rows || [];
 console.log('sweep       %s  (%d bundles, finished %s)', path.basename(latest), rows.length, pub.finishedAt || '?');
 
+// Captions are read from the suite FILE at seeding time, not only from the run
+// record: a caption is a claim about the result, and it is often only after a
+// run has been looked at that its wording can be made true (a purr that came out
+// inaudible, a crop the caption promised away). ★ But only when the published row
+// IS the run that file entry describes — same prompts, same inputs. A row left
+// over from an older version of the suite keeps its own note; the current file's
+// caption would describe a different result. Every caption taken from the file
+// is printed.
+const { loadSuite } = require(path.join(REPO, 'server', 'benchmark', 'suitePlan'));
+const suiteRuns = new Map();
+const mediaFrom = (spec) => {
+    const s = spec == null ? null
+        : typeof spec === 'string' ? spec
+        : (spec.from || (spec.asset ? 'asset:' + spec.asset : null));
+    return typeof s === 'string' ? s.replace(/^output:/, '') : s;   // "output:<id>" is recorded as "<id>"
+};
+const rowFrom = (inp) => !inp || inp.empty ? null : (inp.from || (inp.asset ? 'asset:' + inp.asset : null));
+// ★ An input taken from another bundle's result is only "the same" if that
+// bundle's published row is itself the run its file entry describes AND is the
+// very file this run consumed — a caption naming the upstream picture's content
+// is otherwise about a different picture.
+const normPath = (p) => String(p || '').replace(/\\/g, '/').toLowerCase();
+function sameRun(fileRun, r, ctx, seen = new Set()) {
+    if (!fileRun || seen.has(r.id)) return false;      // `seen` is this path only: it guards a cycle
+    const path_ = new Set([...seen, r.id]);
+    const inputs = r.suite?.inputs || {};
+    for (const [k, v] of Object.entries(fileRun.params || {})) {
+        if (k in inputs) {
+            if (mediaFrom(v) !== rowFrom(inputs[k])) return false;
+            const up = ctx && rowFrom(inputs[k]);
+            if (up && !/^(asset|file):/.test(up)) {
+                const upRow = ctx.rows.find(x => x.id === up);
+                if (!upRow || !(upRow.outputs || []).some(o => normPath(o.path) === normPath(inputs[k].source))) return false;
+                if (!sameRun(ctx.fileRuns.get(up), upRow, ctx, path_)) return false;
+            }
+            continue;
+        }
+        const ing = (r.ingredients || []).find(i => i.key === k);
+        if (!ing) return false;
+        // A seed: calibration draws a fresh one whatever the suite asked for, so
+        // it can never match — and it is not what a caption describes.
+        if (ing.from === 'calibration' || /seed/i.test(ing.key)) continue;
+        const a = String(ing.value), b = String(v);
+        if (ing.truncated ? !b.startsWith(a) : a !== b) return false;
+    }
+    return true;
+}
+const captionFor = (r) => {
+    const name = r.suite?.name;
+    if (!name) return null;
+    if (!suiteRuns.has(name)) {
+        const m = new Map();
+        try { for (const run of loadSuite(name).runs) m.set(run.workflow, run); }
+        catch { /* the suite file is gone: keep the run's own notes */ }
+        suiteRuns.set(name, m);
+    }
+    const fileRuns = suiteRuns.get(name);
+    const fileRun = fileRuns.get(r.id);
+    if (fileRun && fileRun.note && sameRun(fileRun, r, { rows, fileRuns })) return fileRun.note;
+    return r.suite?.note || null;
+};
+const captionsChanged = [];
+
 // Graph literals, for the one case the sweep row cannot answer: a prompt over
 // 2000 characters is truncated in the report.
 const literalOf = (id, node) => {
@@ -172,6 +235,8 @@ for (const r of rows) {
     const fin = Date.parse(r.finishedAt || '') || at + (r.wallSec || 10) * 1000;
     if (!at) { skipped.push(r.id + ' (no timestamp)'); continue; }
     const steps = r.steps || 1;
+    const caption = captionFor(r);
+    if (caption && r.suite?.note && caption !== r.suite.note) captionsChanged.push(r.id);
     if (!DRY) {
         insert.run({
             id: crypto.randomUUID(), user_id: USER, workflow_id: r.id,
@@ -182,13 +247,17 @@ for (const r of rows) {
             // What this example shows — the test suite's note for the run, so a
             // student opening it learns what to look at (shown in the lightbox
             // and on the card's "See an example").
-            caption: r.suite?.note || null,
+            caption,
         });
     }
     made++;
 }
 
 if (REPLACE) console.log('replaced    %d earlier example job(s)', replaced);
+if (captionsChanged.length) {
+    console.log('captions    %d corrected in the suite file since their run: %s',
+        captionsChanged.length, captionsChanged.join(', '));
+}
 console.log('examples    %d jobs written as user "%s"', made, USER);
 console.log('inputs      %d media files staged durably (%d distinct sources)', stageN, stagedCache.size);
 if (lostInputs.length) {

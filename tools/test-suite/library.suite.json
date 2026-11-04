@@ -763,7 +763,7 @@
           "note": "Only the finished poster was given, as the LAST frame: the model invented the build-up and lands exactly on the design. Pause on the final frame — the title is the original, letter for letter.",
           "params": {
             "minimaxh3imagetovideo_prompt_105_104": "How the reference pictures align with the target video — <Picture 1> (from [Shot 1]) aligns with the 5.17-second mark of the target video.\n\nintegrated_multimodal_description: [Shot 1] Animated graphic-design reveal, one continuous shot, the camera remains fixed and frontal. The video opens on a blank sheet of off-white paper filling the frame. At about one second, large flat shapes of coloured paper slide in from the edges of the frame and snap into place one after another, each casting a small soft shadow, and the main picture of the poster assembles in the middle from cut and torn pieces. At about three seconds the title letters drop in from the top one by one, bouncing slightly as they land, and the smaller lines of text slide in underneath. In the last second every piece settles and the composition locks exactly into the finished poster of <Picture 1>, which holds still to the end.\n\noverall_soundscape: Crisp paper sounds throughout: a quick whoosh and a soft slap as each cut-paper shape lands, a light rustle of paper, and a small cardboard thump for every falling letter, in a quiet room.\n\nnon_diegetic_music: A punchy, minimal electronic beat at a moderate tempo whose kicks land on the falling letters, ending on a single held chord on the finished poster.",
-            "resolutionselector_aspect_ratio_143": "9:16 (Portrait Widescreen)",
+            "resolutionselector_aspect_ratio_143": "2:3 (Portrait Photo)",
             "loadimage_image_300": {
               "from": "image_ideogram4_t2i",
               "fallback": "asset:Screenshot 2025-03-06 105700.png"
@@ -821,7 +821,7 @@
         },
         {
           "workflow": "video_minimax_h3_seamless_loop",
-          "note": "Set this clip to repeat and try to spot where it restarts: the breathing, the dust and the purr carry straight on. That is what this card is for — a loop with no visible seam, made from one paragraph of text.",
+          "note": "Set this clip to repeat and try to spot where it restarts: the breathing and the drifting dust carry straight on. That is what this card is for — a loop with no visible seam, made from one paragraph of text. (The purr the prompt asks for came out very faint — turn the sound up.)",
           "params": {
             "prompt_8": "Locked-off static camera, no pan, no zoom. A sunny windowsill in a quiet room in the late afternoon, warm golden light falling through a white lace curtain. A fluffy ginger cat lies curled up asleep on a folded wool blanket in the center of frame, its flank rising and falling in a slow, steady breathing rhythm and its whiskers trembling softly with each breath. The lace curtain sways very gently in a constant breeze, and specks of dust drift slowly through the sunbeam. Steady, unchanging light. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: a soft, steady, continuous purr, quiet room tone, a faint constant breeze at the window.\n\nnon_diegetic_music: N/A",
             "ref_image_7": null
