@@ -24,6 +24,11 @@
  *  - A parameter's value must be the staged filename, not the asset's path,
  *    because that is what the form recalls and what /input-media serves.
  *
+ * No ingredients snapshot is written: these jobs never pass through the
+ * executor, and the "Download ingredients" zip is built live from the staged
+ * inputs instead (routes/jobs.js) — one copy on disk however many examples
+ * share it.
+ *
  * Usage: node seed_examples.cjs [--dry] [--only a,b] [--replace]
  *
  *  --replace  first delete the `examples` jobs of every bundle about to be

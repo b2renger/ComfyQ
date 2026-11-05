@@ -72,9 +72,53 @@ function mediaRefs(job) {
     return out;
 }
 
+// Split a job's imported media into the files still in ComfyUI's input folder
+// (each with the name it gets under media/: its original upload name,
+// de-duplicated) and the ones that are gone. Shared by persist() and the live
+// zip, so the two can never name a file differently.
+//
+// ★ A stored name must be a plain file name. It comes from the job's parameter
+// values, which a client sends, so `comfyq_/../../config.json` would otherwise
+// reach outside the input folder — and the live zip serves what this returns.
+function collectMedia(comfyConfig, job) {
+    const inDir = inputDir(comfyConfig);
+    const used = new Set();
+    const present = [], missing = [];
+    for (const s of mediaRefs(job)) {
+        const plain = path.basename(s.filename) === s.filename && !/[/\\]/.test(s.filename);
+        const src = path.join(inDir, s.filename);
+        if (!plain || !fs.existsSync(src) || !fs.statSync(src).isFile()) {
+            missing.push({ param: s.param, original: s.original || s.filename });
+            continue;
+        }
+        const base = sanitizeName(s.original || s.filename);
+        let name = base, n = 1;
+        while (used.has(name.toLowerCase())) {
+            const ext = path.extname(base);
+            name = `${path.basename(base, ext)}_${n++}${ext}`;
+        }
+        used.add(name.toLowerCase());
+        present.push({ param: s.param, src, file: name, original: s.original || null });
+    }
+    return { present, missing };
+}
+
+// The zip's README. It names exactly the imported files that could not be
+// included, and only those — a job with no imported media, or with all of it
+// still on disk, gets the plain README.
+function readmeFor(missing) {
+    if (!missing || !missing.length) return README;
+    return README + [
+        'Not included — these imported files are no longer on this machine',
+        '(ComfyUI\'s input folder was cleaned since the job ran):',
+        ...missing.map(m => `  - ${m.param}: ${m.original}`),
+        ''
+    ].join('\n');
+}
+
 // Build the machine-readable settings snapshot for a job. `mediaIndex` (when
-// given) lists the files actually copied into media/; otherwise it's derived
-// from the job record (used by the fallback zip when nothing was persisted).
+// given) lists the files actually included under media/; otherwise it's derived
+// from the job record.
 function buildSettings(job, registry, mediaIndex) {
     let summary = null;
     try { summary = registry && registry.get(job.workflowId) && registry.get(job.workflowId).summary; }
@@ -94,6 +138,9 @@ function buildSettings(job, registry, mediaIndex) {
             name: (summary && summary.name) || null,
             category: (summary && summary.category) || null
         },
+        // A showcase example (seeded from the library sweep) carries its caption:
+        // what the result demonstrates, which is the reason to download it.
+        ...(job.createdBy === 'library-sweep' && job.batchLabel ? { shows: job.batchLabel } : {}),
         prompt: job.prompt || '',
         seed,
         parameters: params,
@@ -119,27 +166,17 @@ function persist({ comfyConfig, job, registry }) {
     if (!job) return null;
     const dir = jobDir(comfyConfig, job.id);
     const mediaDir = path.join(dir, 'media');
-    const inDir = inputDir(comfyConfig);
     try {
         fs.mkdirSync(mediaDir, { recursive: true });
-        const used = new Set();
         const mediaIndex = [];
-        for (const s of mediaRefs(job)) {
-            const src = path.join(inDir, s.filename);
-            if (!fs.existsSync(src)) continue;             // already removed — skip
-            const base = sanitizeName(s.original || s.filename);
-            let name = base, n = 1;
-            while (used.has(name.toLowerCase())) {
-                const ext = path.extname(base);
-                name = `${path.basename(base, ext)}_${n++}${ext}`;
-            }
-            used.add(name.toLowerCase());
-            fs.copyFileSync(src, path.join(mediaDir, name));
-            mediaIndex.push({ param: s.param, file: name, original: s.original || null });
+        const { present, missing } = collectMedia(comfyConfig, job);   // already removed → missing
+        for (const m of present) {
+            fs.copyFileSync(m.src, path.join(mediaDir, m.file));
+            mediaIndex.push({ param: m.param, file: m.file, original: m.original });
         }
         if (!mediaIndex.length) { try { fs.rmdirSync(mediaDir); } catch { /* not empty / ignore */ } }
         fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify(buildSettings(job, registry, mediaIndex), null, 2));
-        fs.writeFileSync(path.join(dir, 'README.txt'), README);
+        fs.writeFileSync(path.join(dir, 'README.txt'), readmeFor(missing));
         return dir;
     } catch (e) {
         console.warn(`[Ingredients] persist failed for ${String(job.id).slice(0, 8)}: ${e.message}`);
@@ -147,4 +184,4 @@ function persist({ comfyConfig, job, registry }) {
     }
 }
 
-module.exports = { baseDir, jobDir, buildSettings, persist, mediaRefs };
+module.exports = { baseDir, jobDir, buildSettings, persist, mediaRefs, collectMedia, readmeFor };

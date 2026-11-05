@@ -49,8 +49,8 @@ function makeRouter({ queue, comfyConfig, registry }) {
     // (workflow id, every parameter, the seed, the prompt) — as a single zip, so
     // the generation can be re-created later even after the machine has switched
     // to another workflow. Streams the durable per-job folder written at
-    // completion; for older jobs (or once the media was swept) it still returns
-    // settings.json generated live from the job record.
+    // completion when there is one; otherwise builds the same zip live from the
+    // job record and the media still in ComfyUI's input folder.
     router.get('/:id/ingredients.zip', (req, res) => {
         if (!comfyConfig) return res.status(501).json({ error: 'ingredients unavailable in this mode' });
         const job = queue.get(req.params.id);
@@ -70,15 +70,16 @@ function makeRouter({ queue, comfyConfig, registry }) {
         if (fs.existsSync(dir)) {
             archive.directory(dir, false);   // media/ + settings.json + README.txt
         } else {
-            // Pre-feature job, or its imported media was already swept — give the
-            // settings (always recoverable from the DB), note the missing media.
-            archive.append(JSON.stringify(ingredients.buildSettings(job, registry), null, 2), { name: 'settings.json' });
-            archive.append(
-                'ComfyQ — job ingredients\n\nThe imported media for this job is no longer on disk ' +
-                '(it predates this feature, or is older than the input-retention window), so only ' +
-                'settings.json is included.\n',
-                { name: 'README.txt' }
-            );
+            // No snapshot. ★ The showcase examples always land here — they are
+            // seeded from the library sweep and never pass through the executor —
+            // as do failed or cancelled jobs. Their media is normally still in
+            // ComfyUI's input folder under `comfyq_session__`, a prefix nothing
+            // sweeps, so include it; the README names only what is really gone.
+            const { present, missing } = ingredients.collectMedia(comfyConfig, job);
+            for (const m of present) archive.file(m.src, { name: `media/${m.file}` });
+            const index = present.map(m => ({ param: m.param, file: m.file, original: m.original }));
+            archive.append(JSON.stringify(ingredients.buildSettings(job, registry, index), null, 2), { name: 'settings.json' });
+            archive.append(ingredients.readmeFor(missing), { name: 'README.txt' });
         }
         archive.finalize();
     });
