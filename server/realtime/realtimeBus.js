@@ -5,7 +5,7 @@ const sm = require('../queue/jobStateMachine');
 const { isAuthorizedForJob, isAccessLocked, verifyAccessToken } = require('../auth/authGate');
 const { resolveOutputPath } = require('../executor/outputCollector');
 const ingredientsStore = require('../storage/ingredientsStore');
-const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
+const { listModelFiles, withoutExcluded, prettyModelLabel } = require('../workflows/modelOptions');
 
 const HEARTBEAT_MS = 5000;
 
@@ -594,7 +594,7 @@ class RealtimeBus {
             // finds nothing (dir missing off-rig), keep the default selectable
             // so the field never renders empty.
             if (p.type === 'lora') {
-                let files = listModelFiles(comfyRoot, p.optionsDir || 'loras', p.optionsFilter || '');
+                let files = withoutExcluded(listModelFiles(comfyRoot, p.optionsDir || 'loras', p.optionsFilter || ''), p.optionsExclude);
                 if (!files.length && p.default) files = [p.default];
                 else if (p.default && !files.includes(p.default)) files = [p.default, ...files];
                 entry.options = files;

@@ -73,7 +73,7 @@
       "field": "choice",
       "type": "select",
       "label": "Edit type",
-      "default": "Video Editing (Style / Motion)",
+      "default": "Video Editing",
       "options": [
         "Video Editing",
         "Video Editing (Content Propagation)",
@@ -119,7 +119,7 @@
       "field": "value",
       "type": "textarea",
       "label": "Edit instruction",
-      "default": "Restyle the video in the style of a frame by frame claymotion animation",
+      "default": "Turn the person's top bright red, keeping its texture, folds and fit. Leave the face, the hair, the background and every movement exactly as they are.",
       "required": false,
       "order": 3
     },

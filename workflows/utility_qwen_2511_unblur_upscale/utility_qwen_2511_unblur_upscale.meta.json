@@ -69,12 +69,12 @@
     },
     {
       "key": "textencodeqwenimageeditplus_prompt_427_221_151",
-      "nodeId": "427:221:151",
-      "field": "prompt",
+      "nodeId": "427:221:990",
+      "field": "string_b",
       "type": "textarea",
-      "label": "What to do (the adapter is trained on the words \"unblur and upscale\")",
-      "default": "unblur and upscale",
-      "required": true,
+      "label": "Anything to add (optional; the trigger words \"unblur and upscale\" are added for you)",
+      "default": "",
+      "required": false,
       "order": 1
     },
     {
@@ -124,14 +124,14 @@
     }
   ],
   "warmupParams": {
-    "textencodeqwenimageeditplus_prompt_427_221_151": "unblur and upscale"
+    "textencodeqwenimageeditplus_prompt_427_221_151": ""
   },
   "presets": {},
   "promptGuides": [
     {
       "label": "Qwen-Image-Edit-2511-Unblur-Upscale - the adapter",
       "url": "https://huggingface.co/prithivMLmods/Qwen-Image-Edit-2511-Unblur-Upscale",
-      "tip": "Trigger phrase is literally \"unblur and upscale\". The author recommends checkpoint 20 or 15, and warns the base model alone gives better overall quality but loses facial identity."
+      "tip": "The trigger phrase \"unblur and upscale\" is added for you. The author recommends checkpoint 20 or 15, and warns the base model alone gives better overall quality but loses facial identity."
     }
   ]
 }

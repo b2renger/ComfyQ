@@ -50,6 +50,9 @@ const ExposedParameter = z.object({
     // list is built at booking time by the server, never stored in the meta.
     optionsDir: z.string().optional(),
     optionsFilter: z.string().optional(),
+    // File names the dropdown leaves out, for a file that shares the prefix but is
+    // not one of the choices (krea2_style_reference is an adapter, not a look).
+    optionsExclude: z.array(z.string()).optional(),
     // For `camera` params: the axes the widget offers and how this graph is
     // told about them. A target without `sectors`/`terms` gets the number.
     camera: z.object({

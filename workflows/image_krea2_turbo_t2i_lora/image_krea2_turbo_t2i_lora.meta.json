@@ -135,6 +135,9 @@
       "default": "krea2_realism_lora.safetensors",
       "optionsDir": "loras",
       "optionsFilter": "krea2_",
+      "optionsExclude": [
+        "krea2_style_reference.safetensors"
+      ],
       "required": false,
       "order": 5,
       "disabledWhen": {

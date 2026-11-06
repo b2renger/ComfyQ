@@ -2,7 +2,7 @@
   "id": "00000000-0000-0000-0000-000000000000",
   "revision": 0,
   "last_node_id": 374,
-  "last_link_id": 66,
+  "last_link_id": 67,
   "nodes": [
     {
       "id": 374,
@@ -503,7 +503,7 @@
           "widget": {
             "name": "prompt"
           },
-          "link": null
+          "link": 67
         }
       ],
       "outputs": [
@@ -523,7 +523,7 @@
         "Node name for S&R": "TextEncodeQwenImageEditPlus"
       },
       "widgets_values": [
-        "unblur and upscale"
+        ""
       ],
       "widgets_values_named": {
         "prompt": "unblur and upscale"
@@ -1540,6 +1540,61 @@
         "lora_name": "Qwen-Image-Edit-Unblur-Upscale_20.safetensors",
         "strength_model": 1
       }
+    },
+    {
+      "id": "427:221:990",
+      "type": "StringConcatenate",
+      "pos": [
+        552.798828125,
+        700
+      ],
+      "size": [
+        270,
+        170
+      ],
+      "flags": {},
+      "order": 14,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string_a",
+          "name": "string_a",
+          "type": "STRING",
+          "widget": {
+            "name": "string_a"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string_b",
+          "name": "string_b",
+          "type": "STRING",
+          "widget": {
+            "name": "string_b"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            67
+          ]
+        }
+      ],
+      "title": "Trigger words + prompt",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "StringConcatenate"
+      },
+      "widgets_values": [
+        "unblur and upscale",
+        "",
+        " "
+      ]
     }
   ],
   "links": [
@@ -1806,6 +1861,14 @@
       "427:221:220",
       0,
       "MODEL"
+    ],
+    [
+      67,
+      "427:221:990",
+      0,
+      "427:221:151",
+      5,
+      "STRING"
     ]
   ],
   "groups": [],

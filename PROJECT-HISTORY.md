@@ -4,6 +4,17 @@ The dated log of the project: every decision, bug, measurement and the reason be
 
 Entries are records of their date. Numbers and behaviours in them may be out of date, and a later entry or a `⚠ superseded` note says so. Links to removed bundles are records too. Everything below was moved from CLAUDE.md on 2026-11-06, verbatim.
 
+## Latest progress (2026-11-06, questions 10-49 answered)
+
+Answers in [docs/review-2026-11-05.md](docs/review-2026-11-05.md). Worked through one at a time, with no agents.
+
+- **Q10:** ceiling 2048×2048, but a card with no `maxInputEdge` keeps 1920×1080, so nothing else changed size, time or memory. Real multipart upload on the running server: 2048×2048 accepted, 2049 wide refused.
+- **Q11, 12, 48:** a batch does not use lanes. The main lane alone takes its jobs, in order, and `_prepareRun` unloads models and sets the flags between workflows. Waiting jobs of an unserved workflow are cancelled with a reason, never a batch job. ★ Cancelled jobs showed no reason at all in the UI: the cards only printed one for `failed`.
+- **Q13:** ★★ A canvas cannot keep colour under alpha 0: it stores premultiplied pixels. The PNG is encoded by hand; `CompressionStream` works on the LAN address, which is not a secure context. 2048×1536 joined and encoded in 94 ms in Chrome. Read back the way `LoadImage` reads it: colour kept, mask 1 under the paint. The file is written when leaving the editor, not per stroke.
+- **Q14:** `optionsExclude` on a `lora` param.
+- **Q15:** trigger words in the graph on relight, unblur and 3DReal. On 3DReal the concat sits AFTER the improver switch, so the LLM cannot drop the word. Param keys kept, so suite runs and old jobs still bind; `nodeId` and `field` moved.
+- **Q16:** Bernini video defaults to `Video Editing` with a targeted instruction. Its claymation default was a style edit on a card titled "Change one thing in a video".
+
 ## Latest progress (2026-11-06, the owner's first answers)
 
 **CLAUDE.md cut from 540 KB to 43 KB, and questions 1-9 of [docs/review-2026-11-05.md](docs/review-2026-11-05.md) answered (owner, 2026-11-06).** The dated log moved here verbatim (a script compared every line, 0 lost); the 11 convention lists were merged into one in CLAUDE.md, with the full wording kept at the end of this file. Work done one step at a time, with no agents.

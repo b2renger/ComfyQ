@@ -1,8 +1,8 @@
 {
   "id": "0112e9af-5129-48ba-af78-92c40ac40b40",
   "revision": 0,
-  "last_node_id": 704,
-  "last_link_id": 1793,
+  "last_node_id": 705,
+  "last_link_id": 1794,
   "nodes": [
     {
       "id": 68,
@@ -1945,7 +1945,7 @@
                 "widget": {
                   "name": "text"
                 },
-                "link": 1775
+                "link": 1794
               }
             ],
             "outputs": [
@@ -2864,6 +2864,61 @@
               "linear_quadratic",
               1
             ]
+          },
+          {
+            "id": 705,
+            "type": "StringConcatenate",
+            "pos": [
+              1010,
+              2420
+            ],
+            "size": [
+              270,
+              170
+            ],
+            "flags": {},
+            "order": 18,
+            "mode": 0,
+            "inputs": [
+              {
+                "localized_name": "string_a",
+                "name": "string_a",
+                "type": "STRING",
+                "widget": {
+                  "name": "string_a"
+                },
+                "link": null
+              },
+              {
+                "localized_name": "string_b",
+                "name": "string_b",
+                "type": "STRING",
+                "widget": {
+                  "name": "string_b"
+                },
+                "link": 1775
+              }
+            ],
+            "outputs": [
+              {
+                "localized_name": "STRING",
+                "name": "STRING",
+                "type": "STRING",
+                "links": [
+                  1794
+                ]
+              }
+            ],
+            "title": "Trigger word + prompt",
+            "properties": {
+              "cnr_id": "comfy-core",
+              "Node name for S&R": "StringConcatenate"
+            },
+            "widgets_values": [
+              "3DREAL.",
+              "",
+              " "
+            ]
           }
         ],
         "groups": [
@@ -3381,7 +3436,7 @@
             "id": 1775,
             "origin_id": 211,
             "origin_slot": 0,
-            "target_id": 128,
+            "target_id": 705,
             "target_slot": 1,
             "type": "STRING"
           },
@@ -3464,6 +3519,14 @@
             "target_id": 704,
             "target_slot": 4,
             "type": "INT"
+          },
+          {
+            "id": 1794,
+            "origin_id": 705,
+            "origin_slot": 0,
+            "target_id": 128,
+            "target_slot": 1,
+            "type": "STRING"
           }
         ],
         "extra": {

@@ -93,7 +93,10 @@
   },
   "427:221:151": {
     "inputs": {
-      "prompt": "unblur and upscale",
+      "prompt": [
+        "427:221:990",
+        0
+      ],
       "clip": [
         "427:221:162",
         0
@@ -358,6 +361,17 @@
     "class_type": "LoraLoaderModelOnly",
     "_meta": {
       "title": "Unblur / Upscale adapter"
+    }
+  },
+  "427:221:990": {
+    "inputs": {
+      "string_a": "unblur and upscale",
+      "string_b": "",
+      "delimiter": " "
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Trigger words + prompt"
     }
   }
 }

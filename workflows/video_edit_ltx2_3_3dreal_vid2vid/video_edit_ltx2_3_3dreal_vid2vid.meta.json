@@ -4,7 +4,7 @@
   "name": "LTX 2.3 3DReal — rough 3D render to photoreal (render-guided + audio)",
   "title": "Turn a rough 3D render photoreal",
   "summary": "Upload a rough grey 3D animation plus one finished-looking picture of its first frame; it turns the animation into realistic footage with the same camera move, and adds sound. Pick it to preview a 3D scene as if it had been filmed.",
-  "description": "Turn a rough 3D render into a photorealistic clip. Upload a rough 3D render as the source video and a reference image that sets the look; the render itself is the control the 3DREAL IC-LoRA reads (as in fal's own workflow for it), and the clip comes back photoreal with a matching audio track — keeping the render's motion, camera and layout, at the render's own frame rate. Start the prompt with the trigger word 3DREAL (\"3DREAL. Make it photorealistic. …\"). The source is sliced to ~5 s. (Until 2026-11-04 this card fed a MoGe depth map of the render instead, and played a 30 fps render at 25 fps.)\n\nTwo prompt boxes: with \"Enhance prompt with AI\" OFF, the \"Prompt (used as-is)\" box drives generation. With it ON, the \"Prompt (AI-enhanced)\" box is rewritten by an in-graph LLM using your reference image. The inactive box is greyed out.",
+  "description": "Turn a rough 3D render into a photorealistic clip. Upload a rough 3D render as the source video and a reference image that sets the look; the render itself is the control the 3DREAL IC-LoRA reads (as in fal's own workflow for it), and the clip comes back photoreal with a matching audio track — keeping the render's motion, camera and layout, at the render's own frame rate. The graph adds the trigger word 3DREAL in front of the prompt, on both the typed and the AI-written path. The source is sliced to ~5 s. (Until 2026-11-04 this card fed a MoGe depth map of the render instead, and played a 30 fps render at 25 fps.)\n\nTwo prompt boxes: with \"Enhance prompt with AI\" OFF, the \"Prompt (used as-is)\" box drives generation. With it ON, the \"Prompt (AI-enhanced)\" box is rewritten by an in-graph LLM using your reference image. The inactive box is greyed out.",
   "category": "video-edit",
   "tags": [
     "ltx",
@@ -20,7 +20,7 @@
     {
       "label": "LTX IC-LoRA guide — Lightricks",
       "url": "https://docs.ltx.io/open-source-model/usage-guides/ic-lo-ra",
-      "tip": "Start with 3DREAL, then describe the photoreal look you want — materials, lighting, lens, atmosphere — and the sound; the layout and motion come from your render."
+      "tip": "The trigger word 3DREAL is added for you: describe the photoreal look you want — materials, lighting, lens, atmosphere — and the sound; the layout and motion come from your render."
     },
     {
       "label": "LTX-2.3 prompt guide — Lightricks blog",
@@ -29,7 +29,7 @@
     {
       "label": "3DREAL LoRA (fal) — trigger word and settings",
       "url": "https://huggingface.co/fal/LTX-2.3-3DREAL-LoRA",
-      "tip": "Start the prompt with the trigger word 3DREAL, then describe the real materials and light you want."
+      "tip": "The trigger word 3DREAL is added for you: describe the real materials and light you want."
     }
   ],
   "thumbnail": null,
@@ -104,7 +104,7 @@
       "field": "prompt",
       "type": "textarea",
       "label": "Prompt (AI-enhanced)",
-      "default": "3DREAL. Make it photorealistic. A photorealistic, cinematic rendering of the scene: physically-based materials, realistic lighting and soft shadows, natural textures and subtle depth of field, lifelike detail and smooth natural motion, film-quality.",
+      "default": "Make it photorealistic. A photorealistic, cinematic rendering of the scene: physically-based materials, realistic lighting and soft shadows, natural textures and subtle depth of field, lifelike detail and smooth natural motion, film-quality.",
       "disabledWhen": {
         "param": "primitiveboolean_value_129_212",
         "equals": false
@@ -118,7 +118,7 @@
       "field": "on_false",
       "type": "textarea",
       "label": "Prompt (used as-is)",
-      "default": "3DREAL. Make it photorealistic. A photorealistic, cinematic rendering of the scene: physically-based materials, realistic lighting and soft shadows, natural textures and subtle depth of field, lifelike detail and smooth natural motion, film-quality.",
+      "default": "Make it photorealistic. A photorealistic, cinematic rendering of the scene: physically-based materials, realistic lighting and soft shadows, natural textures and subtle depth of field, lifelike detail and smooth natural motion, film-quality.",
       "disabledWhen": {
         "param": "primitiveboolean_value_129_212",
         "equals": true

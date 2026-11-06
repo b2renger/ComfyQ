@@ -10,49 +10,6 @@
       "title": "Resolution Selector"
     }
   },
-  "461": {
-    "inputs": {
-      "filename_prefix": "Qwen_2.1_relight",
-      "format": "png",
-      "format.bit_depth": "8-bit",
-      "format.input_color_space": "sRGB",
-      "images": [
-        "457",
-        0
-      ]
-    },
-    "class_type": "SaveImageAdvanced",
-    "_meta": {
-      "title": "Save Image (Advanced)"
-    }
-  },
-  "470": {
-    "inputs": {
-      "image": "example.png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "Image 1 - the composite, or the object"
-    }
-  },
-  "475": {
-    "inputs": {
-      "image": "example.png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "Image 2 - the background"
-    }
-  },
-  "476": {
-    "class_type": "LoadImage",
-    "inputs": {
-      "image": "example.png"
-    },
-    "_meta": {
-      "title": "Image 3 - optional extra reference"
-    }
-  },
   "451": {
     "inputs": {
       "unet_name": "qwen_image_2.1_int8_convrot.safetensors",
@@ -146,6 +103,22 @@
       "title": "KSampler"
     }
   },
+  "461": {
+    "inputs": {
+      "filename_prefix": "Qwen_2.1_relight",
+      "format": "png",
+      "format.bit_depth": "8-bit",
+      "format.input_color_space": "sRGB",
+      "images": [
+        "457",
+        0
+      ]
+    },
+    "class_type": "SaveImageAdvanced",
+    "_meta": {
+      "title": "Save Image (Advanced)"
+    }
+  },
   "468": {
     "inputs": {
       "switch": false,
@@ -177,9 +150,21 @@
       "title": "Qwen Image 2.1 Cache"
     }
   },
+  "470": {
+    "inputs": {
+      "image": "example.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Image 1 - the composite, or the object"
+    }
+  },
   "474": {
     "inputs": {
-      "prompt": "pengyu Apply consistent lighting to the product or object, enhance specular highlights，front-back spatial relationship，add natural contact shadow, and blend it seamlessly into the background。",
+      "prompt": [
+        "902",
+        0
+      ],
       "negative_prompt": "",
       "resolution": 0,
       "clip": [
@@ -208,6 +193,24 @@
       "title": "Text Encode Qwen Image 2.1"
     }
   },
+  "475": {
+    "inputs": {
+      "image": "example.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Image 2 - the background"
+    }
+  },
+  "476": {
+    "class_type": "LoadImage",
+    "inputs": {
+      "image": "example.png"
+    },
+    "_meta": {
+      "title": "Image 3 - optional extra reference"
+    }
+  },
   "900": {
     "inputs": {
       "lora_name": "Qwenimag21_c2-st2000.safetensors",
@@ -220,6 +223,17 @@
     "class_type": "LoraLoaderModelOnly",
     "_meta": {
       "title": "Relight / blend LoRA"
+    }
+  },
+  "902": {
+    "inputs": {
+      "string_a": "pengyu",
+      "string_b": "Apply consistent lighting to the product or object, enhance specular highlights，front-back spatial relationship，add natural contact shadow, and blend it seamlessly into the background。",
+      "delimiter": " "
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "Trigger word + prompt"
     }
   }
 }

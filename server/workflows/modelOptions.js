@@ -54,4 +54,12 @@ function prettyModelLabel(filename) {
     return String(filename || '').replace(/\.(safetensors|ckpt|pt|pth|sft|bin)$/i, '');
 }
 
-module.exports = { listModelFiles, prettyModelLabel };
+// `exclude` drops file names a param declares (optionsExclude). Case-insensitive,
+// like the prefix. Pure, so the cached list is never touched.
+function withoutExcluded(files, exclude) {
+    if (!exclude?.length) return files;
+    const out = new Set(exclude.map(f => String(f).toLowerCase()));
+    return files.filter(f => !out.has(f.toLowerCase()));
+}
+
+module.exports = { listModelFiles, withoutExcluded, prettyModelLabel };

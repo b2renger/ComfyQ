@@ -173,6 +173,7 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                     // through a re-save or the dropdown loses its filter.
                     optionsDir: p.type === 'lora' ? (p.optionsDir || undefined) : undefined,
                     optionsFilter: p.type === 'lora' ? (p.optionsFilter || undefined) : undefined,
+                    optionsExclude: p.type === 'lora' ? p.optionsExclude : undefined,
                     // A `camera` param's axes + targets say how THIS graph is
                     // told a camera position. Dropping them on a re-save would
                     // leave a widget that writes nothing.
@@ -587,15 +588,15 @@ const StudentPreview = ({ params, headers }) => {
     const [loraOpts, setLoraOpts] = useState({});
     const loraKeys = params
         .filter(p => p.enabled && p.type === 'lora')
-        .map(p => `${p.optionsDir || 'loras'}|${p.optionsFilter || ''}`);
+        .map(p => `${p.optionsDir || 'loras'}|${p.optionsFilter || ''}|${(p.optionsExclude || []).join(',')}`);
     const loraSig = JSON.stringify([...new Set(loraKeys)].sort());
     useEffect(() => {
         let cancelled = false;
         const keys = JSON.parse(loraSig);
         Promise.all(keys.map(async (k) => {
-            const [dir, filter] = k.split('|');
+            const [dir, filter, exclude] = k.split('|');
             try {
-                const res = await fetch(`${SERVER_URL}/admin/loras?dir=${encodeURIComponent(dir)}&filter=${encodeURIComponent(filter)}`, { headers });
+                const res = await fetch(`${SERVER_URL}/admin/loras?dir=${encodeURIComponent(dir)}&filter=${encodeURIComponent(filter)}&exclude=${encodeURIComponent(exclude)}`, { headers });
                 const data = await res.json();
                 return [k, { files: data.files || [], labels: data.labels || [] }];
             } catch { return [k, { files: [], labels: [] }]; }
@@ -611,7 +612,7 @@ const StudentPreview = ({ params, headers }) => {
             let options = p.options;
             let optionLabels = p.type === 'select' ? p.optionLabels : undefined;
             if (p.type === 'lora') {
-                const got = loraOpts[`${p.optionsDir || 'loras'}|${p.optionsFilter || ''}`];
+                const got = loraOpts[`${p.optionsDir || 'loras'}|${p.optionsFilter || ''}|${(p.optionsExclude || []).join(',')}`];
                 let files = got?.files || [];
                 let labels = got?.labels || [];
                 if (!files.length && p.default) { files = [p.default]; labels = [p.default]; }

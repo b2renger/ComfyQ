@@ -9,7 +9,7 @@ const { defaultConfig } = require('../config/configManager');
 const { WorkflowMeta } = require('../config/schemas');
 const { validateApiWorkflow } = require('../workflows/workflowValidator');
 const { parseWorkflow } = require('../workflows/workflowParser');
-const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
+const { listModelFiles, withoutExcluded, prettyModelLabel } = require('../workflows/modelOptions');
 const { buildModelUsage } = require('../workflows/modelUsage');
 const { listInstalledPacks, missingNodePacks, readRequirements, refreshCachedObjectInfo } = require('../workflows/nodePacks');
 const { renderSweepReport } = require('../benchmark/sweepReport');
@@ -114,6 +114,7 @@ function mergeEditData(detected, exposedParameters) {
                 optionLabels: found.optionLabels,
                 optionsDir: found.optionsDir,
                 optionsFilter: found.optionsFilter,
+                optionsExclude: found.optionsExclude,
                 camera: found.camera,
                 min: found.min,
                 max: found.max,
@@ -1641,7 +1642,8 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             const root = configManager.load().config.comfy_ui.root_path;
             const dir = typeof req.query.dir === 'string' && req.query.dir ? req.query.dir : 'loras';
             const filter = typeof req.query.filter === 'string' ? req.query.filter : '';
-            const files = listModelFiles(root, dir, filter);
+            const exclude = typeof req.query.exclude === 'string' && req.query.exclude ? req.query.exclude.split(',') : [];
+            const files = withoutExcluded(listModelFiles(root, dir, filter), exclude);
             res.json({ files, labels: files.map(prettyModelLabel) });
         } catch (e) { res.status(400).json({ error: e.message }); }
     });

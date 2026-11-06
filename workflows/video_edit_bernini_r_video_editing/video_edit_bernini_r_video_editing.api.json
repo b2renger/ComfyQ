@@ -382,8 +382,8 @@
   },
   "76:54": {
     "inputs": {
-      "choice": "Video Editing (Style / Motion)",
-      "index": 11,
+      "choice": "Video Editing",
+      "index": 6,
       "option1": "Default",
       "option2": "Text to Image",
       "option3": "Text to Video",
@@ -621,7 +621,7 @@
   },
   "76:114": {
     "inputs": {
-      "value": "Restyle the video in the style of a frame by frame claymotion animation"
+      "value": "Turn the person's top bright red, keeping its texture, folds and fit. Leave the face, the hair, the background and every movement exactly as they are."
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {

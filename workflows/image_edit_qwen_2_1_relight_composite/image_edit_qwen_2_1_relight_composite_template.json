@@ -1,8 +1,8 @@
 {
   "id": "fc53f18c-9de1-4fa0-be91-661bd512a257",
   "revision": 0,
-  "last_node_id": 901,
-  "last_link_id": 36,
+  "last_node_id": 902,
+  "last_link_id": 37,
   "nodes": [
     {
       "id": 901,
@@ -869,7 +869,7 @@
           "widget": {
             "name": "prompt"
           },
-          "link": null
+          "link": 37
         },
         {
           "localized_name": "negative_prompt",
@@ -922,7 +922,7 @@
         "Node name for S&R": "TextEncodeQwenImage21"
       },
       "widgets_values": [
-        "pengyu Apply consistent lighting to the product or object, enhance specular highlights，front-back spatial relationship，add natural contact shadow, and blend it seamlessly into the background。",
+        "",
         "",
         0
       ],
@@ -1126,6 +1126,61 @@
         "lora_name": "Qwenimag21_c2-st2000.safetensors",
         "strength_model": 1
       }
+    },
+    {
+      "id": 902,
+      "type": "StringConcatenate",
+      "pos": [
+        182.798828125,
+        908
+      ],
+      "size": [
+        270,
+        170
+      ],
+      "flags": {},
+      "order": 9,
+      "mode": 0,
+      "inputs": [
+        {
+          "localized_name": "string_a",
+          "name": "string_a",
+          "type": "STRING",
+          "widget": {
+            "name": "string_a"
+          },
+          "link": null
+        },
+        {
+          "localized_name": "string_b",
+          "name": "string_b",
+          "type": "STRING",
+          "widget": {
+            "name": "string_b"
+          },
+          "link": null
+        }
+      ],
+      "outputs": [
+        {
+          "localized_name": "STRING",
+          "name": "STRING",
+          "type": "STRING",
+          "links": [
+            37
+          ]
+        }
+      ],
+      "title": "Trigger word + prompt",
+      "properties": {
+        "cnr_id": "comfy-core",
+        "Node name for S&R": "StringConcatenate"
+      },
+      "widgets_values": [
+        "pengyu",
+        "Apply consistent lighting to the product or object, enhance specular highlights，front-back spatial relationship，add natural contact shadow, and blend it seamlessly into the background。",
+        " "
+      ]
     }
   ],
   "links": [
@@ -1272,6 +1327,14 @@
       900,
       0,
       "MODEL"
+    ],
+    [
+      37,
+      902,
+      0,
+      474,
+      6,
+      "STRING"
     ]
   ],
   "groups": [],
