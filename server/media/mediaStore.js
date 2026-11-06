@@ -4,14 +4,19 @@ const path = require('path');
 const { classify, KIND_BY_EXT } = require('./mediaTypes');
 
 // Where extra lanes keep their own ComfyUI folders — the same path as
-// laneManager's LANES_DIR, kept here rather than requiring the lane manager.
-const LANES_DIR = path.join(__dirname, '..', '..', '.comfyq-lanes');
+// laneManager's LANES_DIR (COMFYQ_LANES_DIR moves both), kept here rather than
+// requiring the lane manager.
+const LANES_DIR = process.env.COMFYQ_LANES_DIR
+    ? path.resolve(process.env.COMFYQ_LANES_DIR)
+    : path.join(__dirname, '..', '..', '.comfyq-lanes');
 
 // Serves media files from ComfyUI's output_dir and temp/ directory.
 // Routes:
-//   GET /media/:kind/:filename(*)    — kind = image|video|audio|model3d|json|binary
-//   GET /media/_any/:filename(*)     — kind-agnostic (for clients that don't know yet)
-// Path traversal: reject any filename containing '..' segments.
+//   GET /media/:kind/:filename(*)    — kind = image|video|audio|model3d|json|binary,
+//                                      or _any; the kind is not checked (a strict
+//                                      404 would break URLs after a format change)
+// Path traversal: reject any filename containing '..', and anything that does
+// not resolve INSIDE one of the roots (see _resolveSafe).
 //
 // Backward-compat aliases:
 //   GET /images/:filename(*)
@@ -29,11 +34,20 @@ const IMMUTABLE_CACHE = 'public, max-age=31536000, immutable';
 // by a later preview. Cache it briefly instead of for a year.
 const TEMP_CACHE = 'public, max-age=60';
 
+// The file a request names, or null when it is not strictly inside rootDir.
+//
+// ★ Compared with a separator after the root. path.resolve also accepts an
+// absolute filename, and a bare startsWith let `<root>_old\x` through -- a
+// sibling folder whose name begins with the output or temp folder's. Folded to
+// lower case on Windows, where J:\X and j:\x are the same folder.
 function _resolveSafe(rootDir, fileRel) {
     const decoded = decodeURIComponent(fileRel);
     if (decoded.includes('..')) return null;
-    const abs = path.resolve(rootDir, decoded);
-    if (!abs.startsWith(path.resolve(rootDir))) return null;
+    const root = path.resolve(rootDir);
+    const abs = path.resolve(root, decoded);
+    const fold = (s) => (process.platform === 'win32' ? s.toLowerCase() : s);
+    const r = fold(root.endsWith(path.sep) ? root : root + path.sep);
+    if (!fold(abs).startsWith(r)) return null;
     return abs;
 }
 
@@ -82,17 +96,7 @@ function makeRouter(comfyConfig) {
         }
     }
 
-    router.get('/media/:kind/:filename(*)', (req, res) => {
-        const { kind } = req.params;
-        const filename = req.params.filename;
-        const cls = classify(filename);
-        if (kind !== '_any' && cls.kind !== kind) {
-            // Be lenient: still serve, but log.
-            // (Strict 404 would break URLs after format changes.)
-        }
-        serve(req, res);
-    });
-    router.get('/media/_any/:filename(*)', serve);
+    router.get('/media/:kind/:filename(*)', serve);
 
     // Backward-compat aliases for v1 client paths.
     router.get('/images/:filename(*)', serve);
@@ -104,4 +108,4 @@ function makeRouter(comfyConfig) {
     return router;
 }
 
-module.exports = { makeRouter, KIND_BY_EXT };
+module.exports = { makeRouter, KIND_BY_EXT, _resolveSafe, LANES_DIR };

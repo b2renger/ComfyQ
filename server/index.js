@@ -105,13 +105,14 @@ function printConnectionBanner(label, serverPort) {
 const {
     markNextBootStudent, consumeStudentBootFlag,
     setServingIntent, isServingIntended, resolveBootMode,
+    noteServeError,
 } = require('./config/servingFlags');
 
 // nextMode: 'student' = serve after the restart (and keep serving through
 // later ones); 'admin' = stop serving on purpose; omitted = a neutral restart
 // that leaves the machine doing whatever it was doing.
 function exitForRestart(nextMode) {
-    if (nextMode === 'student') { markNextBootStudent(); setServingIntent(true); }
+    if (nextMode === 'student') { markNextBootStudent(); setServingIntent(true); noteServeError(''); }
     else if (nextMode === 'admin') setServingIntent(false);
     const willServe = nextMode === 'student' || (nextMode !== 'admin' && isServingIntended());
     console.log(`[ComfyQ] Exiting for restart → ${willServe ? 'student' : 'admin'} mode`);
@@ -205,6 +206,12 @@ async function main() {
     console.log(`[ComfyQ] registry: ${registry.summaries({ includeUnavailable: false }).length} usable workflow(s)`);
 
     const app = express();
+    // Every browser reaches this server through Vite's proxy on the same
+    // machine, so req.ip was always the proxy's own address and the admin-mode
+    // "users connected" count could never pass 1. Trusting X-Forwarded-For from
+    // the loopback address only (what the proxy sends with `xfwd`) gives each
+    // browser's own address; a request from anywhere else cannot set it.
+    app.set('trust proxy', 'loopback');
     app.use(cors());
     app.use(express.json({ limit: '20mb' }));
     const server = http.createServer(app);
@@ -365,7 +372,9 @@ async function main() {
 
     if (!config.comfy_ui.root_path || !config.comfy_ui.python_executable) {
         console.error('[ComfyQ] ComfyUI paths are not configured. Switching to admin mode.');
-        configManager.update(c => { c.mode = 'admin'; return c; });
+        // The extra lanes go with the serving intent: the next "Activate &
+        // serve" may be another workflow, and must not reopen them unchecked.
+        configManager.update(c => { c.mode = 'admin'; c.workflows.extraLaneWorkflowIds = []; return c; });
         // 'admin' clears the serving intent: a machine that cannot serve must
         // settle in admin, not restart into student mode over and over.
         return exitForRestart('admin');
@@ -435,15 +444,25 @@ async function main() {
     try {
         await lanes.open(config.workflows.activeWorkflowId, { primary: true });
     } catch (e) {
-        console.error('[ComfyQ] ComfyUI would not start after several attempts — reverting to admin mode:', e.message);
-        configManager.update(c => { c.mode = 'admin'; return c; });
-        return exitForRestart('admin');   // stop resuming — see above
+        console.error('[ComfyQ] ComfyUI would not start — reverting to admin mode:', e.message);
+        noteServeError(e.message);
+        configManager.update(c => { c.mode = 'admin'; c.workflows.extraLaneWorkflowIds = []; return c; });
+        return exitForRestart('admin');   // stop resuming (and the extra lanes with it) — see above
     }
     // Bring back any extra lanes this machine was serving before it restarted,
     // so a nodemon reload or a crash doesn't quietly drop a class to one model.
     // Done after the primary lane so the first workflow is servable as early as
     // possible; failures are logged and forgotten rather than fatal.
-    lanes.restoreRemembered(savedExtras).catch(e => console.warn('[ComfyQ] lane restore failed:', e.message));
+    // A job the restart failed may still hold its ComfyUI: cancel its prompt on the
+    // main lane now, and again once the extra lanes are back.
+    const stalePrompts = queue.staleBootPrompts || [];
+    if (stalePrompts.length) {
+        console.log(`[ComfyQ] cancelling ${stalePrompts.length} prompt(s) left in ComfyUI by the restart`);
+        await lanes.cancelPrompts(stalePrompts);
+    }
+    lanes.restoreRemembered(savedExtras)
+        .catch(e => console.warn('[ComfyQ] lane restore failed:', e.message))
+        .finally(() => lanes.cancelPrompts(stalePrompts));
 
     const primaryLane = lanes.get(config.workflows.activeWorkflowId);
     // The MAIN lane's worker/executor stand in wherever the rest of the server

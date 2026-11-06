@@ -79,6 +79,21 @@ function parseMediaSpec(spec) {
     return null;
 }
 
+/**
+ * The file an `asset:<name>` names inside the assets folder (sub-folders
+ * allowed), or null when it is not there, is not a file, or escapes the folder.
+ * The sweep resolves plain assets, `from` and `fallback` with it, and
+ * `run-suite.cjs --check` uses it to list missing assets before a run, so the two
+ * cannot disagree about what is there.
+ */
+function assetFile(assetsDir, spec) {
+    if (!assetsDir) return null;
+    const root = path.resolve(assetsDir);
+    const full = path.resolve(root, String(spec).replace(/^asset:/, ''));
+    if (full === root || !(full.toLowerCase() + path.sep).startsWith(root.toLowerCase() + path.sep)) return null;
+    try { return fs.statSync(full).isFile() ? full : null; } catch { return null; }
+}
+
 function suitePath(name) {
     if (!/^[A-Za-z0-9_-]+$/.test(String(name || ''))) {
         throw new Error(`a suite name is letters, digits, - and _ only (got "${name}")`);
@@ -156,4 +171,4 @@ function validateSuite(suite, registry) {
     return { errors, warnings };
 }
 
-module.exports = { loadSuite, validateSuite, parseMediaSpec, kindForParam, suitePath, SUITE_DIR, MEDIA_TYPES, DERIVE_OPS, VIDEO_DERIVE_OPS };
+module.exports = { loadSuite, validateSuite, parseMediaSpec, kindForParam, assetFile, suitePath, SUITE_DIR, MEDIA_TYPES, DERIVE_OPS, VIDEO_DERIVE_OPS };

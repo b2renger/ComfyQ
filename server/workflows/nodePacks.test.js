@@ -169,24 +169,38 @@ ok('an existing folder is reported, so install can refuse it',
         // ★ And the cache refresh must never take a fixture for a real ComfyUI:
         // the first version ran inside missingNodePacks, and THIS test file's
         // two-class fixture overwrote the real 4.7 MB cache.
-        const cachePath = path.resolve(__dirname, '..', '..', 'tools', 'maintenance', 'model-audit', 'object_info.json');
-        const before = fs.existsSync(cachePath) ? fs.statSync(cachePath).mtimeMs : null;
+        //
+        // ★ So every check that could WRITE runs against a temp copy. Pointing
+        // them at the real file relied on the guards refusing before the write:
+        // a regression in a guard would have replaced it, silently, since the
+        // file is gitignored. The real file is only ever read here.
+        const realCache = np.CACHED_OBJECT_INFO;
+        const realBefore = fs.existsSync(realCache) ? fs.statSync(realCache).mtimeMs : null;
+        const cachePath = path.join(tmp, 'object_info.json');
+        const fullList = Object.fromEntries(Array.from({ length: 300 }, (_, i) => [`Node${i}`, {}]));
+        fs.writeFileSync(cachePath, JSON.stringify(fullList));
+        const sameFile = () => fs.readFileSync(cachePath, 'utf8') === JSON.stringify(fullList);
+
         np.missingNodePacks([{ id: 'x', graph: { 1: { class_type: 'KSampler', inputs: {} } } }], root,
-            { objectInfo: { KSampler: {}, VAEDecode: {} } });
-        ok('checking against a live list never rewrites the cache by itself',
-            (fs.existsSync(cachePath) ? fs.statSync(cachePath).mtimeMs : null) === before);
+            { objectInfo: { KSampler: {}, VAEDecode: {} }, cachePath });
+        ok('checking against a live list never rewrites the cache by itself', sameFile());
         ok('a payload too small to be a ComfyUI is refused as a cache',
-            np.refreshCachedObjectInfo({ KSampler: {}, VAEDecode: {} }) === false);
+            np.refreshCachedObjectInfo({ KSampler: {}, VAEDecode: {} }, { cachePath }) === false && sameFile());
         // ★ And a ComfyUI that lost most of what the cache knew — one started with
-        // --disable-all-custom-nodes — must not replace it. The payload is refused
-        // before anything is written, so the real cache is never at risk here.
-        if (fs.existsSync(cachePath)) {
-            const prev = Object.keys(JSON.parse(fs.readFileSync(cachePath, 'utf8')));
-            const stripped = Object.fromEntries(prev.slice(0, Math.floor(prev.length * 0.5)).map(k => [k, {}]));
-            const mtime = fs.statSync(cachePath).mtimeMs;
-            ok('a stripped class list does not replace the cache',
-                np.refreshCachedObjectInfo(stripped) === false && fs.statSync(cachePath).mtimeMs === mtime);
-        }
+        // --disable-all-custom-nodes — must not replace it.
+        const stripped = Object.fromEntries(Object.keys(fullList).slice(0, 150).map(k => [k, {}]));
+        ok('a stripped class list does not replace the cache',
+            np.refreshCachedObjectInfo(stripped, { cachePath }) === false && sameFile());
+        // The positive case, so the two refusals above cannot pass by never
+        // writing anywhere: a full list (one pack gained) does replace it.
+        const grown = { ...fullList, NewPackNode: {} };
+        ok('a full class list does replace the cache it was pointed at',
+            np.refreshCachedObjectInfo(grown, { cachePath }) === true
+            && 'NewPackNode' in JSON.parse(fs.readFileSync(cachePath, 'utf8')));
+        ok('...and that is the copy the offline check then reads',
+            np.availableClasses({ cachePath }).classes.has('NewPackNode'));
+        ok('the real cache was never written by any of this',
+            (fs.existsSync(realCache) ? fs.statSync(realCache).mtimeMs : null) === realBefore);
     }
 
     fs.rmSync(tmp, { recursive: true, force: true });

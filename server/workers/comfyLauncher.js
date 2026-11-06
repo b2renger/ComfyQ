@@ -32,7 +32,12 @@ const path = require('path');
 
 const execFileAsync = promisify(execFile);
 
-const STATE_DIR = path.join(__dirname, '..', '..', '.comfyq-lanes');
+// COMFYQ_LANES_DIR moves it, as it moves laneManager's lane folders —
+// lanes.integration.js points both at a throwaway folder, so its test
+// ComfyUIs never land in the rig's real registry.
+const STATE_DIR = process.env.COMFYQ_LANES_DIR
+    ? path.resolve(process.env.COMFYQ_LANES_DIR)
+    : path.join(__dirname, '..', '..', '.comfyq-lanes');
 const REGISTRY = path.join(STATE_DIR, 'processes.json');
 const LOG_DIR = path.join(STATE_DIR, 'logs');
 const HISTORY_MAX = 200;

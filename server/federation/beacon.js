@@ -90,7 +90,23 @@ class StatusBeacon {
     _send() {
         if (!this.socket) return;
         // Re-read enable state each send so the toggle is live.
-        const fed = this.configManager.load().config.federation || {};
+        //
+        // ★ Inside a try: load() throws on a config.json that fails the schema
+        // (a hand edit like "enabled": "false"), and this runs on a timer, where
+        // an uncaught throw exits Node. nodemon only restarts on a change under
+        // server/, so fixing config.json would not have brought the rig back.
+        // A bad file now skips beacons until it is fixed.
+        let fed;
+        try {
+            fed = this.configManager.load().config.federation || {};
+            this._configWarned = false;
+        } catch (e) {
+            if (!this._configWarned) {
+                console.warn(`[Federation] beacon paused — config.json cannot be read: ${e.message}`);
+                this._configWarned = true;
+            }
+            return;
+        }
         if (fed.enabled === false) return;
         let buf;
         try {

@@ -5,12 +5,13 @@ const path = require('path');
 const sizeOf = require('image-size');
 
 // Session-scoped uploads. Files land in ComfyUI/input/ with a comfyq_session__
-// prefix so the InputUploader's TTL sweep can clean them up.
+// prefix, which the InputUploader's TTL sweep deliberately does NOT match (it
+// sweeps only comfyq__ and comfyq_chain__), so recalled uploads stay available.
 //
 // Upload caps — the backstop that keeps a too-big image from crashing the rig.
-// The booking dialog already downsizes images client-side to ~1024px on the
-// long edge (see client/src/utils/imageResize.js), so a legitimate upload lands
-// far under these limits. The caps exist for when that client resize is
+// The booking dialog already fits images client-side into the same 1920×1080
+// box, in either orientation (see client/src/utils/imageResize.js), so a
+// legitimate upload lands within these limits. The caps exist for when that client resize is
 // bypassed or fails — HEIC/HEIF photos (it can't decode them), a corrupt image,
 // or any non-browser client. Without them a full-resolution phone photo (40+ MP)
 // reaches ComfyUI, whose LoadImage decode (~0.5 GB RAM per copy) plus the model

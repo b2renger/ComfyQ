@@ -4,7 +4,8 @@ rem ---------------------------------------------------------------------------
 rem  ComfyQ - double-click launcher
 rem
 rem  Starts the ComfyQ server and its web interface, then opens the page.
-rem  Keep this window open while you work; closing it stops ComfyQ.
+rem  Keep this window open while you work; closing it stops ComfyQ, not the
+rem  ComfyUI it started.
 rem
 rem  It takes its own folder from %~dp0 and never names a drive, so this file
 rem  works wherever the repo sits and under whatever letter the NVMe mounts as.
@@ -35,6 +36,19 @@ if errorlevel 1 (
 )
 for /f "delims=" %%v in ('node --version') do set "NODEVER=%%v"
 echo   Node %NODEVER%
+
+rem --- Git (optional) --------------------------------------------------------
+rem ComfyQ runs without Git, but updating it and its node packs does not, so
+rem say so now rather than when the admin presses the button.
+where git >nul 2>&1
+if not errorlevel 1 goto gitok
+echo.
+echo   Git was not found. ComfyQ will run, but git pull, Check for updates
+echo   and node-pack installs need Git for Windows:
+echo.
+echo       winget install --id Git.Git --exact
+echo.
+:gitok
 
 rem --- Already running? ------------------------------------------------------
 rem A second copy could only fail on the port it cannot have, so read a
@@ -79,10 +93,13 @@ echo.
 echo     Students    http://localhost:5173
 echo     Admin       http://localhost:5173/admin
 echo.
-echo   On the network, swap localhost for this machine's IP - the admin panel
-echo   prints the addresses a moment from now.
+echo   On the network, swap localhost for this machine's IP - this window
+echo   prints the addresses in a moment, under 'LAN access'.
 echo.
 echo   Keep this window open. Closing it, or Ctrl+C, stops ComfyQ.
+echo   ComfyUI keeps running after this window closes. To stop it too, do
+echo   so first from the admin page: Reset to admin (if the machine is
+echo   serving), then Manage ComfyUI, Stop ComfyUI.
 echo.
 
 call npm run dev

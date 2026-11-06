@@ -1,3 +1,4 @@
+const os = require('os');
 const express = require('express');
 const {
     isAccessLocked, loginWithAccessPassword, verifyAccessToken, tokenFromRequest
@@ -6,8 +7,10 @@ const {
 // Access router — the pre-connection handshake for the student client.
 //
 // Mounted in BOTH modes and deliberately ungated: it's how a client discovers
-// whether this machine needs a password at all. Everything it can reveal is a
-// single boolean plus a yes/no on a password the caller already typed.
+// whether this machine needs a password at all. It reveals whether a password
+// is needed, a yes/no on a token or password the caller already holds, and the
+// machine's name — which the federation beacon and GET /federation/self already
+// tell anyone on the LAN, so the gate can say which rig is asking.
 function makeRouter({ configManager }) {
     const router = express.Router();
 
@@ -17,7 +20,9 @@ function makeRouter({ configManager }) {
     router.get('/status', (req, res) => {
         const locked = isAccessLocked(configManager);
         const valid = locked ? verifyAccessToken(tokenFromRequest(req), configManager) : true;
-        res.json({ locked, valid });
+        // Same source as the scheduling page's header (realtimeBus `machine`).
+        const name = configManager.load().config.instance?.name || os.hostname();
+        res.json({ locked, valid, name });
     });
 
     // Exchange the password for a token the client stores and replays on the

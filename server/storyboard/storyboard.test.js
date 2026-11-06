@@ -13,7 +13,7 @@ const path = require('path');
 const assert = require('assert');
 
 const { parseStoryboard } = require('./storyboardParser');
-const { planStoryboard } = require('./storyboardPlanner');
+const { planStoryboard, predictOutputKind, isSeed } = require('./storyboardPlanner');
 const { resolveWorkflowAlias, buildIndex } = require('./workflowResolver');
 const { WorkflowRegistry } = require('../workflows/workflowRegistry');
 const { JobQueue } = require('../queue/jobQueue');
@@ -280,21 +280,18 @@ test('a ref naming no anchor is an ERROR - an unbound input renders the graph li
 
 // ---- regressions found by review -------------------------------------
 
-test('the prompt never lands on a field the workflow has gated off', () => {
-    // video_edit_ltx2_3_3dreal_vid2vid exposes two prompt boxes; the AI-enhanced
-    // one is disabled while "Enhance" is off (its default), so the live field
-    // is "Prompt (used as-is)".
+test('a vid2vid shot is refused for its source video, and told to book it from the app', () => {
+    // video_edit_ltx2_3_3dreal_vid2vid needs a source video, which nothing in a
+    // storyboard can produce. The ref fills its image slot only, so the message
+    // must not send the author round in a circle with "add | ref A1".
     const doc = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\nplate\n\n' +
         '## Restyle\n### video_edit_ltx2_3_3dreal_vid2vid (ref A1)\nMAKE IT SNOW';
     const p = planStoryboard(parseStoryboard(doc), registry, {});
-    const restyle = p.jobs.find(j => j.title === 'Restyle');
-    if (restyle) {
-        assert.strictEqual(restyle.promptParamKey, 'comfyswitchnode_on_false_129_211');
-    } else {
-        // It also needs a video input a storyboard cannot supply - refusing is
-        // equally correct, as long as it is never queued with a dead prompt.
-        assert.match(p.errors.join(' '), /Source video/);
-    }
+    assert.ok(!p.jobs.some(j => j.title === 'Restyle'));
+    const err = p.errors.find(e => /Restyle/.test(e));
+    assert.match(err, /Source video/);
+    assert.match(err, /Book that one from the app/);
+    assert.ok(!/ref A1/.test(err), err);
 });
 
 test('a workflow whose only text field is plumbing is refused, not corrupted', () => {
@@ -306,15 +303,11 @@ test('a workflow whose only text field is plumbing is refused, not corrupted', (
     assert.ok(p.errors.some(e => /no prompt field|Source video/.test(e)), p.errors.join(' | '));
 });
 
-test('a video-producing "preprocessor" is not mistaken for an image source', () => {
-    const doc = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\nplate\n\n' +
-        '## Upscale\n### utility_seedvr2_hd_upscale\nbigger\n\n' +
-        '## Cut\n### ltx_2_5_i2v\nit moves';
-    const p = planStoryboard(parseStoryboard(doc), registry, {});
-    const up = p.jobs.find(j => j.title === 'Upscale');
-    if (up) assert.strictEqual(up.phaseLabel, 'videos');
-    const cut = p.jobs.find(j => j.title === 'Cut');
-    if (cut) assert.match(cut.deps[0].sourceTitle, /Anchor image 1/);
+test('a video-producing "preprocessor" is classified as video', () => {
+    // utility_seedvr2_hd_upscale is category "preprocessor"; only its SaveVideo
+    // node says what it makes. (It is refused in a storyboard anyway - no prompt
+    // field - so the planning half of this is covered by the stub tests below.)
+    assert.strictEqual(predictOutputKind(registry.get('utility_seedvr2_hd_upscale')), 'video');
 });
 
 test('a mask input is refused - a storyboard cannot paint one', () => {
@@ -611,6 +604,22 @@ test('"(loop)" on the ## line drives both frames from one key frame', () => {
     assert.match(loop.deps[0].sourceTitle, /Reference image 1/);
 });
 
+test('an unnumbered "(loop)" cut uses up one image, not two', () => {
+    // It took two for a first/last-frame workflow and threw the second away,
+    // so the next cut had no frame left.
+    const doc = '# S | scene | -\n\n## Plate one\n### image_flux2_klein_9b_t2i | 1280x720\none\n\n' +
+        '## Plate two\n### image_flux2_klein_9b_t2i | 1280x720\ntwo\n\n' +
+        '## Cut (loop)\n### ltx_2_5_flf2v | 1280x720 | 5s\nit loops\n\n' +
+        '## Cut two\n### ltx_2_5_i2v | 1280x720 | 5s\nit moves';
+    const p = planStoryboard(parseStoryboard(doc), registry, {});
+    assert.deepStrictEqual(p.errors, []);
+    const loop = p.jobs.find(j => j.title === 'Cut (loop)');
+    assert.strictEqual(loop.deps.length, 2);
+    for (const d of loop.deps) assert.match(d.sourceTitle, /Plate one/);
+    const next = p.jobs.find(j => j.title === 'Cut two');
+    assert.match(next.deps[0].sourceTitle, /Plate two/);
+});
+
 test('"Video cut N" is wired to "Reference image N", by number', () => {
     // Numbered out of document order on purpose: the grammar promises the cut
     // takes the key frame of the SAME number, not simply the previous image.
@@ -674,6 +683,357 @@ test('spacing=asap packs the timeline, estimated spreads it', () => {
     assert.strictEqual(plan.jobs[1].scheduledAt - plan.jobs[0].scheduledAt,
         plan.jobs[0].estimatedDurationSec * 1000);
 });
+
+// ---- regressions found by the 2026-11-05 review ------------------------
+
+const LIB2 = '# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\na\n\n' +
+    '## Anchor image 2\n### image_flux2_klein_9b_t2i\nb\n\n';
+
+test('"### wf (ref A2, A1)" keeps both anchors, in slot order', () => {
+    // The format doc's own two-anchor example. The parenthesis is split on its
+    // comma, and the bare "A1" used to become a note: both slots got A2.
+    const r = parseStoryboard(LIB2 + '## Reference image 1\n### image_edit_flux2_klein_9b_image_edit_ref (ref A2, A1)\nedit');
+    assert.deepStrictEqual(r.items[2].refs, ['A2', 'A1']);
+    assert.deepStrictEqual(r.warnings, []);
+    const p = planStoryboard(r, registry, {});
+    assert.deepStrictEqual(p.errors, []);
+    const edit = p.jobs.find(j => j.title === 'Reference image 1');
+    assert.match(edit.deps[0].paramLabel, /Source/);
+    assert.match(edit.deps[0].sourceTitle, /Anchor image 2/);
+    assert.match(edit.deps[1].paramLabel, /Reference/);
+    assert.match(edit.deps[1].sourceTitle, /Anchor image 1/);
+    assert.ok(!p.warnings.some(w => /used for BOTH/.test(w)), p.warnings.join(' | '));
+    // A size after a ref is still a size, not a third anchor.
+    const sized = parseStoryboard('# S | scene | -\n\n## Edit\n### image_edit_flux2_klein_9b_image_edit_ref (ref A1, 900x900)\nedit');
+    assert.deepStrictEqual(sized.items[0].refs, ['A1']);
+    assert.deepStrictEqual(sized.items[0].size, { width: 900, height: 900 });
+});
+
+test('refs written on both the ## and ### line are not added up', () => {
+    // The same list twice is one list: doubling a single ref filled the second
+    // image slot and hid the one-ref-in-two-slots warning.
+    const same = parseStoryboard('# S | scene | -\n\n## Anchor image 2\n### image_flux2_klein_9b_t2i\nb\n\n' +
+        '## Reference image 1 (ref A2)\n### image_edit_flux2_klein_9b_image_edit_ref | ref A2\nedit');
+    assert.deepStrictEqual(same.items[1].refs, ['A2']);
+    assert.deepStrictEqual(same.errors, []);
+    const p = planStoryboard(same, registry, {});
+    assert.ok(p.warnings.some(w => /used for BOTH/.test(w)), p.warnings.join(' | '));
+    // Two lists that disagree cannot both be right: an error naming both lines.
+    const clash = parseStoryboard('# S | scene | -\n\n## Reference image 1 (ref A2, A1)\n' +
+        '### image_edit_flux2_klein_9b_image_edit_ref | ref A3, A1\nedit');
+    assert.strictEqual(clash.errors.length, 1, clash.errors.join(' | '));
+    assert.match(clash.errors[0], /Line 4: .*ref A3, A1.*\(line 3\) names ref A2, A1/);
+});
+
+test('"| 5s" on a workflow that counts frames converts at its own frame rate', () => {
+    // video_minimax_h3_t2v_turbo's only rate is in its length label ("124 is
+    // about 5 s at 24 fps"); the length itself used to be read as the rate,
+    // turning 5 s into 620 frames - about 15 s once the worker clamped it.
+    const p = planStoryboard(parseStoryboard(
+        '# S | scene | -\n\n## Cut\n### video_minimax_h3_t2v_turbo | 1280x720 | 5s\nwaves'), registry, {});
+    assert.deepStrictEqual(p.errors, []);
+    const frames = p.jobs[0].paramValues.minimaxh3imagetovideo_length_11;
+    assert.ok(frames >= 100 && frames <= 130, `5s became ${frames} frames`);
+    assert.ok(p.jobs[0].notes.some(n => /@ 24fps/.test(n)), p.jobs[0].notes.join(' ; '));
+});
+
+test('a cut whose own key frame was refused waits instead of taking another shot\'s', () => {
+    // Refused early (unknown workflow) or late (an edit naming a missing anchor):
+    // either way "Video cut 1" must not animate "Reference image 2".
+    for (const first of ['### not_a_real_workflow | 1280x720', '### image_edit_flux2_klein_9b_image_edit_ref | ref A9']) {
+        const doc = `# S | scene | -\n\n## Reference image 1\n${first}\nfirst\n\n` +
+            '## Reference image 2\n### image_flux2_klein_9b_t2i | 1280x720\nsecond\n\n' +
+            '## Video cut 1\n### ltx_2_5_i2v | 1280x720 | 5s\nfirst moves\n\n' +
+            '## Video cut 2\n### ltx_2_5_i2v | 1280x720 | 5s\nsecond moves';
+        const p = planStoryboard(parseStoryboard(doc), registry, {});
+        assert.ok(!p.jobs.some(j => j.title === 'Video cut 1'), `${first}: cut 1 was queued`);
+        assert.match(p.blockedReasons.join(' '), /"Video cut 1".*key frame numbered 1/, first);
+        assert.match(p.jobs.find(j => j.title === 'Video cut 2').deps[0].sourceTitle, /Reference image 2/, first);
+        assert.strictEqual(p.errors.length, 1, p.errors.join(' | '));
+        assert.strictEqual(p.summary, '1 shot cannot be queued, and 1 more depends on it — 2 of 4 would run.', first);
+    }
+});
+
+test('an attribute the ### line does not understand is reported, not dropped', () => {
+    const r = parseStoryboard('# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\nplate\n\n' +
+        '## Video cut 3\n### ltx_2_5_i2v | 1280x720 | 5.5s | ref: A1\nmoves');
+    assert.strictEqual(r.warnings.length, 2, r.warnings.join(' | '));
+    assert.match(r.warnings[0], /"5\.5s" on "### ltx_2_5_i2v/);
+    assert.match(r.warnings[1], /"ref: A1" on.*not understood/);
+});
+
+test('a fractional duration says it was not whole seconds, in every place it can be written', () => {
+    // The shot runs at the workflow default either way; the warning has to say
+    // why, or "6.5s" reads as accepted.
+    for (const [h2, h3] of [['## Video cut 1', '### ltx_2_5_i2v | 1280x720 | 6.5s'],
+                            ['## Video cut 1', '### ltx_2_5_i2v (6.5s)'],
+                            ['## Video cut 1', '### ltx_2_5_i2v | 2,5 sec'],
+                            // A decimal comma inside the parenthesis, which is
+                            // split on commas: "(2,5s)" ran as 5 s, blaming "2".
+                            ['## Video cut 1', '### ltx_2_5_i2v (2,5s)'],
+                            ['## Video cut 1', '### ltx_2_5_i2v (ref A1, 2,5s)'],
+                            ['## Video cut 1', '### ltx_2_5_i2v (ref A1 2,5s)'],
+                            ['## Video cut 1 (2,5s)', '### ltx_2_5_i2v'],
+                            ['## Video cut 1 (6.5s)', '### ltx_2_5_i2v']]) {
+        const r = parseStoryboard(`# S | scene | -\n\n${h2}\n${h3}\nmoves`);
+        assert.strictEqual(r.items[0].durationSec, null, h3);
+        assert.strictEqual(r.warnings.length, 1, r.warnings.join(' | '));
+        assert.match(r.warnings[0], /is not a whole number of seconds.*Write whole seconds/, `${h2} / ${h3}`);
+    }
+    // After a ref and a space, the "2" of "2,5s" is not a second anchor.
+    const ref = parseStoryboard('# S | scene | -\n\n## Video cut 1\n### ltx_2_5_i2v (ref A1 2,5s)\nmoves');
+    assert.deepStrictEqual(ref.items[0].refs, ['A1']);
+    // A whole number is still read, with no warning.
+    const ok = parseStoryboard('# S | scene | -\n\n## Video cut 1\n### ltx_2_5_i2v | 6s\nmoves');
+    assert.strictEqual(ok.items[0].durationSec, 6);
+    assert.deepStrictEqual(ok.warnings, []);
+    // A comma between a size and a whole duration still separates them.
+    const both = parseStoryboard('# S | scene | -\n\n## Video cut 1\n### ltx_2_5_i2v (1280x720,5s)\nmoves');
+    assert.deepStrictEqual(both.items[0].size, { width: 1280, height: 720 });
+    assert.strictEqual(both.items[0].durationSec, 5);
+    assert.deepStrictEqual(both.warnings, []);
+});
+
+test('a size, a duration or a loop written after a ref is read, wherever the ref is', () => {
+    // A ref list used to swallow everything after it on the "##" line and in a
+    // "|" note: "(ref A2, 8s)" queued at the default length with no warning.
+    const read = (h2, h3) => parseStoryboard(`# S | scene | -\n\n${h2}\n${h3}\nmoves`);
+    for (const [h2, h3] of [['## Video cut 1 (ref A2, 8s)', '### ltx_2_5_i2v'],
+                            ['## Video cut 1', '### ltx_2_5_i2v | ref A2, 8s'],
+                            ['## Video cut 1', '### ltx_2_5_i2v | ref A2 8s'],
+                            ['## Video cut 1', '### ltx_2_5_i2v (ref A2, 8s)']]) {
+        const r = read(h2, h3);
+        assert.deepStrictEqual(r.items[0].refs, ['A2'], `${h2} / ${h3}`);
+        assert.strictEqual(r.items[0].durationSec, 8, `${h2} / ${h3}`);
+        assert.deepStrictEqual(r.warnings, [], `${h2} / ${h3}`);
+    }
+    const sized = read('## Reference image 1 (ref A1, 900x900)', '### image_edit_flux2_klein_9b_image_edit_ref');
+    assert.deepStrictEqual(sized.items[0].refs, ['A1']);
+    assert.deepStrictEqual(sized.items[0].size, { width: 900, height: 900 });
+    assert.deepStrictEqual(sized.warnings, []);
+    const looped = read('## Video cut 1 (ref A2, loop)', '### ltx_2_5_flf2v');
+    assert.deepStrictEqual(looped.items[0].refs, ['A2']);
+    assert.strictEqual(looped.items[0].loop, true);
+    const two = read('## Reference image 1 (ref A2, A1)', '### image_edit_flux2_klein_9b_image_edit_ref');
+    assert.deepStrictEqual(two.items[0].refs, ['A2', 'A1']);
+    // Anything else after the ref is reported, on either line.
+    for (const [h2, h3] of [['## Video cut 1 (ref A2, hero)', '### ltx_2_5_i2v'],
+                            ['## Video cut 1', '### ltx_2_5_i2v | ref A2, hero']]) {
+        const r = read(h2, h3);
+        assert.deepStrictEqual(r.items[0].refs, ['A2'], `${h2} / ${h3}`);
+        assert.strictEqual(r.warnings.length, 1, r.warnings.join(' | '));
+        assert.match(r.warnings[0], /"hero" on .*not understood/, `${h2} / ${h3}`);
+    }
+});
+
+test('the planner rolls a seed only for what the shared seed rule calls a seed', () => {
+    // The planner overwrites every seed with a random number. Its own bare
+    // /seed/ called SeedVR2's colour-correction method and "seed_mode" seeds;
+    // it now follows the list the server and the booking form are tested on.
+    const fixture = JSON.parse(fs.readFileSync(
+        path.join(REPO, 'server', 'benchmark', 'seedParam.fixture.json'), 'utf8'));
+    const asNumber = (p) => (p.keyOnly ? { key: p.key, type: 'number' } : { key: p.key, field: p.field, type: 'number' });
+    for (const p of fixture.seeds) assert.ok(isSeed(asNumber(p)), `${p.key} / ${p.field || '(key only)'} is a seed`);
+    for (const p of fixture.notSeeds) assert.ok(!isSeed(asNumber(p)), `${p.key} / ${p.field || '(key only)'} is not a seed`);
+    // Only a number is rolled: a seed-named text field is left alone.
+    assert.ok(!isSeed({ key: 'seed', field: 'value', type: 'text' }));
+});
+
+test('the summary counts shots refused before they were wired', () => {
+    const p = planStoryboard(parseStoryboard('# S | scene | -\n\n## Plate\n### not_a_real_workflow\nx\n\n' +
+        '## Bed\n### stable_audio_3\nTrackType: Music. a bed'), registry, {});
+    assert.strictEqual(p.jobs.length, 1);
+    assert.strictEqual(p.refusedCount, 1);
+    assert.strictEqual(p.summary, '1 shot cannot be queued — 1 of 2 would run.');
+});
+
+test('a shot whose inputs loop back to itself is refused, never queued', () => {
+    // Refs resolve document-wide, so an anchor can name itself. Queued, it
+    // would wait on its own result for ever, and hold its batch open.
+    const self = planStoryboard(parseStoryboard('# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\nplate\n\n' +
+        '## Anchor image 2\n### image_edit_flux2_klein_9b_image_edit_ref | ref A2, A1\nself\n\n' +
+        '## Video cut 1\n### ltx_2_5_i2v | ref A2\nmoves'), registry, {});
+    assert.deepStrictEqual(self.jobs.map(j => j.title), ['Anchor image 1']);
+    assert.match(self.errors.join(' '), /"Anchor image 2".*its own result/);
+    assert.match(self.blockedReasons.join(' '), /"Video cut 1".*waits on S · Anchor image 2/);
+    assert.strictEqual(self.refusedCount, 1);
+    assert.strictEqual(self.blockedCount, 1);
+    // ...and two anchors naming each other.
+    const mutual = planStoryboard(parseStoryboard('# S | scene | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\nplate\n\n' +
+        '## Anchor image 2\n### image_edit_flux2_klein_9b_image_edit_ref | ref A3, A1\ntwo\n\n' +
+        '## Anchor image 3\n### image_edit_flux2_klein_9b_image_edit_ref | ref A2, A1\nthree'), registry, {});
+    assert.deepStrictEqual(mutual.jobs.map(j => j.title), ['Anchor image 1']);
+    assert.strictEqual(mutual.errors.filter(e => /form a loop/.test(e)).length, 2, mutual.errors.join(' | '));
+    assert.strictEqual(mutual.refusedCount, 2);
+});
+
+test('an unclosed code fence is an error naming the line it opened on', () => {
+    // Everything after it was swallowed into one prompt, so the later shots
+    // would silently never be generated.
+    const r = parseStoryboard('# S | scene | -\n\n## Plate 1\n### image_flux2_klein_9b_t2i\na plate\n~~~\n\n' +
+        '## Plate 2\n### image_flux2_klein_9b_t2i\nsecond');
+    assert.strictEqual(r.items.length, 1);
+    assert.strictEqual(r.errors.length, 1, r.errors.join(' | '));
+    assert.match(r.errors[0], /^Line 6: a code fence.*"## Plate 2" \(line 8\)/);
+    // A shot heading swallowed after a notes section ends counts as lost too.
+    const afterNotes = parseStoryboard('# S | scene | -\n\n## Plate 1\n### image_flux2_klein_9b_t2i\na plate\n\n' +
+        '# NOTES | notes | -\n\n```\n## Idea\n# S2 | scene | -\n## Plate 2\n### image_flux2_klein_9b_t2i\nsecond');
+    assert.strictEqual(afterNotes.errors.length, 1, afterNotes.errors.join(' | '));
+    assert.match(afterNotes.errors[0], /"## Plate 2" \(line 12\)/);
+});
+
+test('an unclosed code fence that swallowed no shot is a warning, not a refused batch', () => {
+    // In the last shot's prompt: only that prompt's text follows.
+    const last = parseStoryboard('# S | scene | -\n\n## Plate 1\n### image_flux2_klein_9b_t2i\na plate\n```\nmore text');
+    assert.deepStrictEqual(last.errors, []);
+    assert.match(last.warnings.join(' '), /Line 6: .*never closed.*prompt of "Plate 1"/);
+    // In a notes section: nothing after it was ever a prompt.
+    const notes = parseStoryboard('# S | scene | -\n\n## Plate 1\n### image_flux2_klein_9b_t2i\na plate\n\n' +
+        '# NOTES | notes | -\n\n```\n## Idea\nprose');
+    assert.deepStrictEqual(notes.errors, []);
+    assert.match(notes.warnings.join(' '), /Line 9: .*never closed.*in a notes section/);
+    assert.ok(!/prompt text/.test(notes.warnings.join(' ')), notes.warnings.join(' | '));
+});
+
+test('a cut whose key frame the PARSER dropped waits too, and the summary counts it', () => {
+    // "Reference image 1" never reaches the planner's items: no "###" line, or
+    // no prompt. "Video cut 1" used to take "Reference image 2" instead, and
+    // force queued it.
+    for (const [form, first] of [['no ### line', '## Reference image 1\n\n'],
+                                 ['no prompt', '## Reference image 1\n### image_flux2_klein_9b_t2i\n\n']]) {
+        const doc = `# S | scene | -\n\n${first}` +
+            '## Reference image 2\n### image_flux2_klein_9b_t2i\nsecond\n\n' +
+            '## Video cut 1\n### ltx_2_5_i2v\nfirst moves\n\n' +
+            '## Video cut 2\n### ltx_2_5_i2v\nsecond moves';
+        const r = parseStoryboard(doc);
+        assert.strictEqual(r.errors.length, 1, `${form}: ${r.errors.join(' | ')}`);
+        assert.deepStrictEqual(r.dropped.map(d => d.title), ['Reference image 1'], form);
+        const p = planStoryboard(r, registry, {});
+        assert.ok(!p.jobs.some(j => j.title === 'Video cut 1'), `${form}: cut 1 was queued`);
+        assert.match(p.blockedReasons.join(' '), /"Video cut 1".*key frame numbered 1/, form);
+        assert.match(p.jobs.find(j => j.title === 'Video cut 2').deps[0].sourceTitle, /Reference image 2/, form);
+        assert.deepStrictEqual(p.errors, [], form);
+        assert.strictEqual(p.totalShots, 4, form);
+        assert.strictEqual(p.summary, '1 shot cannot be queued, and 1 more depends on it — 2 of 4 would run.', form);
+    }
+    // The same with a library anchor feeding "Reference image 2".
+    const lib = parseStoryboard('# LIBRARY | library | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i\nplate\n\n' +
+        '# S0 | scene | -\n\n## Reference image 1\n\n' +
+        '## Reference image 2\n### image_edit_flux2_klein_9b_image_edit_ref | ref A1\nedit\n\n' +
+        '## Video cut 1\n### ltx_2_5_i2v\nmoves');
+    const lp = planStoryboard(lib, registry, {});
+    assert.deepStrictEqual(lp.jobs.map(j => j.title), ['Anchor image 1', 'Reference image 2']);
+    assert.match(lp.blockedReasons.join(' '), /"Video cut 1" \(S0\).*key frame numbered 1/);
+    // A dropped VIDEO shot is not a missing key frame.
+    const vid = planStoryboard(parseStoryboard('# S | scene | -\n\n## Reference image 1\n### image_flux2_klein_9b_t2i\nfirst\n\n' +
+        '## Video cut 1\n### ltx_2_5_i2v\n\n## Video cut 2\n### ltx_2_5_i2v\nmoves'), registry, {});
+    assert.deepStrictEqual(vid.blockedReasons, []);
+    assert.match(vid.jobs.find(j => j.title === 'Video cut 2').deps[0].sourceTitle, /Reference image 1/);
+});
+
+// A registry stub: planStoryboard only reaches the registry through
+// summaries() and get(), so these cases do not depend on what is installed.
+function stubRegistry(entries) {
+    const byId = new Map(entries.map(e => [e.id, e]));
+    return {
+        summaries: () => entries.map(e => ({ id: e.id })),
+        get: (id) => byId.get(id)
+    };
+}
+function stubEntry(id, category, saveNode, params) {
+    return {
+        id,
+        apiWorkflow: { 1: { class_type: saveNode, inputs: {} } },
+        summary: { id, category, estimatedDurationSec: 10 },
+        meta: { category },
+        effective: { exposedParameters: params }
+    };
+}
+
+test('the prompt never lands on a field the workflow has gated off', () => {
+    // Two prompt boxes, the higher-scoring one disabled at the default of the
+    // toggle - by exact key, and by the node-id suffix a meta may use instead.
+    const gated = (id, toggleKey, dwParam) => stubEntry(id, 't2i', 'SaveImage', [
+        { key: toggleKey, type: 'checkbox', label: 'Enhance prompt with AI', default: false, field: 'value' },
+        { key: `enhanced_prompt_description_${id}`, type: 'textarea', label: 'AI-enhanced prompt description',
+          field: 'text', disabledWhen: { param: dwParam, equals: false } },
+        { key: `raw_prompt_${id}`, type: 'textarea', label: 'Prompt (used as-is)', field: 'text',
+          disabledWhen: { param: dwParam, equals: true } }
+    ]);
+    const reg = stubRegistry([
+        gated('gated_exact', 'enhance_1', 'enhance_1'),
+        gated('gated_suffix', 'primitiveboolean_value_9_12', 'enhance_prompt_9_12')
+    ]);
+    for (const id of ['gated_exact', 'gated_suffix']) {
+        const p = planStoryboard(parseStoryboard(`# S | scene | -\n\n## Shot\n### ${id}\nMAKE IT SNOW`), reg, {});
+        assert.deepStrictEqual(p.errors, [], id);
+        assert.strictEqual(p.jobs[0].promptParamKey, `raw_prompt_${id}`, id);
+    }
+});
+
+test('a video-producing "preprocessor" runs with the videos and is not a cut\'s frame', () => {
+    const prompt = (k) => ({ key: k, type: 'textarea', label: 'Prompt', field: 'text' });
+    const reg = stubRegistry([
+        stubEntry('stub_plate', 't2i', 'SaveImage', [prompt('p_plate')]),
+        stubEntry('stub_upscale', 'preprocessor', 'SaveVideo', [prompt('p_up')]),
+        stubEntry('stub_cut', 'i2v', 'SaveVideo', [
+            { key: 'start_image', type: 'image', label: 'Start image', field: 'image' }, prompt('p_cut')])
+    ]);
+    assert.strictEqual(predictOutputKind(reg.get('stub_upscale')), 'video');
+    const p = planStoryboard(parseStoryboard('# S | scene | -\n\n## Plate\n### stub_plate\nplate\n\n' +
+        '## Upscale\n### stub_upscale\nbigger\n\n## Cut\n### stub_cut\nit moves'), reg, {});
+    assert.deepStrictEqual(p.errors, []);
+    assert.strictEqual(p.jobs.find(j => j.title === 'Upscale').phaseLabel, 'videos');
+    assert.match(p.jobs.find(j => j.title === 'Cut').deps[0].sourceTitle, /Plate/);
+});
+
+// ------------------------------------------------- the batch-skill examples
+// batch-skill/README.md says these were validated and prints their counts in a
+// table. A bundle rename, a param reorder (which changes ref slot order) or a
+// removed alias would break them silently, so plan each one here.
+console.log('\nbatch-skill examples');
+const EXAMPLES_DIR = path.join(REPO, 'batch-skill', 'examples');
+// Each example file and the title of its row in the README table. A new
+// example needs a row there and an entry here.
+const EXAMPLE_TITLES = {
+    'linear-the-lamplighter.md':   'The Lamplighter',
+    'branching-the-tide-clock.md': 'The Tide Clock',
+    'branching-the-red-thread.md': 'The Red Thread'
+};
+// The README table itself: | **Title** — kind | states | shots | images |
+// videos | audio | model loads | warm est |. Read from the file, so the test
+// fails when the table and the examples drift apart.
+const README_ROWS = new Map();
+for (const m of fs.readFileSync(path.join(REPO, 'batch-skill', 'README.md'), 'utf8')
+    .matchAll(/^\| \*\*(The [^*]+)\*\*[^|]*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|\s*(\d+)\s*\|/gm)) {
+    const [states, shots, images, videos, audio, modelLoads] = m.slice(2, 8).map(Number);
+    README_ROWS.set(m[1].trim(), { states, shots, images, videos, audio, modelLoads });
+}
+
+test('every example has a row in the README table', () => {
+    const files = fs.readdirSync(EXAMPLES_DIR).filter(f => f.endsWith('.md')).sort();
+    assert.deepStrictEqual(files, Object.keys(EXAMPLE_TITLES).sort(),
+        'batch-skill/examples changed: update the README table and EXAMPLE_TITLES');
+    assert.deepStrictEqual([...README_ROWS.keys()].sort(), Object.values(EXAMPLE_TITLES).sort(),
+        'the README table names a different set of examples');
+});
+
+for (const [file, title] of Object.entries(EXAMPLE_TITLES)) {
+    test(`${file} plans with no error and matches its README row`, () => {
+        const parsedEx = parseStoryboard(fs.readFileSync(path.join(EXAMPLES_DIR, file), 'utf8'));
+        const p = planStoryboard(parsedEx, registry, {});
+        assert.deepStrictEqual(parsedEx.errors, [], 'PARSE errors');
+        assert.deepStrictEqual(p.errors, [], 'PLAN errors');
+        assert.deepStrictEqual(p.blockedReasons, [], 'blocked');
+        const want = README_ROWS.get(title);
+        assert.ok(want, `no "${title}" row in batch-skill/README.md`);
+        const phase = (label) => (p.phases.find(x => x.label === label) || { count: 0 }).count;
+        assert.deepStrictEqual(
+            { states: parsedEx.states.length, shots: p.jobs.length, images: phase('images'),
+                videos: phase('videos'), audio: phase('audio'), modelLoads: p.modelLoads },
+            want, `the README table and the file disagree (runs: ${p.workflowRuns.map(x => x.workflowId).join(' -> ')})`);
+    });
+}
 
 // ------------------------------------------------------------ queue + deps
 console.log('\nqueue, dependencies and chained inputs');

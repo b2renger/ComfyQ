@@ -5,7 +5,8 @@ const { spawn } = require('child_process');
 const { readAccessLog, invalidateAccessLog, namesOpenedBetween } = require('../workflows/modelAccessLog');
 const { flagsFromArgv } = require('../workers/perfFlags');
 const { classify } = require('../media/mediaTypes');
-const { parseMediaSpec, kindForParam, MEDIA_TYPES, VIDEO_DERIVE_OPS } = require('./suitePlan');
+const { parseMediaSpec, kindForParam, assetFile, MEDIA_TYPES, VIDEO_DERIVE_OPS } = require('./suitePlan');
+const { isSeedParam } = require('./benchmarkService');
 
 // Run every workflow in the library once, and write down what happened.
 //
@@ -35,7 +36,7 @@ const { parseMediaSpec, kindForParam, MEDIA_TYPES, VIDEO_DERIVE_OPS } = require(
 // black output this sweep exists to detect, and would blame the bundle for it.
 // It therefore requires admin mode, and refuses while the rig is serving.
 //
-// Measured cost on this rig: about 2 hours for 61 bundles.
+// Measured cost on this rig: about 2 hours for 61 bundles; 2½–3 hours for 80.
 
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
 const STATS_SCRIPT = path.resolve(__dirname, '..', '..', 'tools', 'maintenance', 'output_stats.py');
@@ -221,16 +222,21 @@ class LibrarySweep {
      *   its bundles in ITS order with its inputs; `ids` then narrows it
      */
     async start(opts = {}) {
-        if (this._run && this._run.state === 'running') {
-            return { ok: false, error: 'a sweep is already running' };
+        // ★ 'stopping' is still running: the loop finishes the workflow it is on.
+        // Accepting a start then reset the cancel flag and swapped the run under
+        // the old loop, which carried on with ITS remaining bundles into the new
+        // run while the new loop calibrated beside it — busy refusals, restarts
+        // that killed each other's runs, and a report with duplicate rows.
+        if (this._busy()) {
+            return { ok: false, error: this._busyReason() };
         }
         // ★ Admin mode only, and this is not timidity. The sweep holds the GPU for
-        // about two hours and restarts ComfyUI whenever the next bundle needs a
+        // about 2½–3 hours and restarts ComfyUI whenever the next bundle needs a
         // different perf flag — both of which would break a class mid-booking.
         if (this._mode() !== 'admin') {
             return {
                 ok: false,
-                error: 'This machine is serving students. A sweep takes about two hours of the GPU '
+                error: 'This machine is serving students. A sweep takes about 2½–3 hours of the GPU '
                     + 'and restarts ComfyUI between workflows that need different performance flags, '
                     + 'so run it from admin mode — Stop serving first.',
             };
@@ -242,6 +248,7 @@ class LibrarySweep {
             .filter(e => e.apiWorkflow);
         const narrow = Array.isArray(opts.ids) && opts.ids.length ? opts.ids : null;
         let wanted;
+        let notInSuite = [];
         if (opts.suite) {
             // The suite's order IS the point: a result has to exist before the
             // workflow that is fed it runs.
@@ -250,6 +257,20 @@ class LibrarySweep {
                 .filter(r => !narrow || narrow.includes(r.workflow))
                 .filter(r => byId.has(r.workflow))
                 .map(r => ({ entry: byId.get(r.workflow), run: r }));
+            // ★ A remainder ("Run the remaining N") is computed from the LIBRARY, so
+            // it can name a bundle the suite file does not — a workflow added after
+            // the suite was written. Filtering by the suite alone skipped it in
+            // silence, or refused the whole run as "no workflows to run" when it was
+            // the only one left. Such a bundle runs after the suite, as a plain
+            // calibration with no suite inputs, and is named as such.
+            if (narrow) {
+                notInSuite = [...new Set(narrow)]
+                    .filter(id => !opts.suite.runs.some(r => r.workflow === id) && byId.has(id));
+                for (const id of notInSuite) wanted.push({ entry: byId.get(id), run: null });
+                if (notInSuite.length) {
+                    console.log(`[Sweep] not in suite "${opts.suite.name}", run as a plain calibration: ${notInSuite.join(', ')}`);
+                }
+            }
         } else {
             wanted = (narrow ? entries.filter(e => narrow.includes(e.id)) : entries)
                 .map(entry => ({ entry, run: null }));
@@ -267,14 +288,16 @@ class LibrarySweep {
             suite: opts.suite ? { name: opts.suite.name, file: opts.suite.file, description: opts.suite.description } : null,
             results: [],
             current: null,
-            // Written per bundle, not once at the end: a two-hour run that is
+            // Written per bundle, not once at the end: a 2½–3 hour run that is
             // interrupted must still leave behind what it learned. Same lesson as
             // the prune log.
             reportPath: path.join(this._dataDir, `library-sweep-${stamp}.jsonl`),
             stamp,
             recorderAvailable: readAccessLog(this._config()?.comfy_ui?.root_path || '').available,
-            // The last published rows, read once: a suite run narrowed with `ids`
-            // takes the inputs it does not produce itself from here.
+            // The last published rows, read once. An `output:` input whose bundle
+            // this run does not run at all (narrowed with `ids` / --only / --from)
+            // is taken from here. A bundle that IS in this run but failed or was
+            // skipped supplies nothing — its old row is not used (see _suiteOutput).
             prevRows: (this.lastReport()?.results) || [],
         };
         // Captured once, up front: a report is read later, often on another
@@ -283,14 +306,17 @@ class LibrarySweep {
         fs.writeFileSync(this._run.reportPath,
             JSON.stringify({
                 type: 'start', at: this._run.startedAt,
-                bundles: this._run.ids.length, machine: this._run.machine,
+                // `ids` as well as the count: a rescue of an interrupted run
+                // (publish_partial_sweep.cjs) can then tell a bundle this run planned
+                // but never reached from one it never meant to run.
+                bundles: this._run.ids.length, ids: this._run.ids, machine: this._run.machine,
                 suite: this._run.suite,
             }) + '\n');
 
         this._execute(wanted, cal).catch(e => {
             if (this._run) { this._run.state = 'failed'; this._run.error = e.message; }
         });
-        return { ok: true, total: wanted.length };
+        return { ok: true, total: wanted.length, notInSuite };
     }
 
     /**
@@ -305,8 +331,8 @@ class LibrarySweep {
      * ComfyUI's output folder is not ours to tidy.
      */
     clear() {
-        if (this._run && this._run.state === 'running') {
-            return { ok: false, error: 'a sweep is running — stop it first' };
+        if (this._busy()) {
+            return { ok: false, error: this._run.state === 'stopping' ? this._busyReason() : 'a sweep is running — stop it first' };
         }
         let removed = 0;
         try {
@@ -320,6 +346,17 @@ class LibrarySweep {
         return { ok: true, removed };
     }
 
+    /** A sweep is running, or stopping (its loop finishes the workflow it is on). */
+    _busy() {
+        return !!this._run && (this._run.state === 'running' || this._run.state === 'stopping');
+    }
+
+    _busyReason() {
+        return this._run?.state === 'stopping'
+            ? 'the last sweep is still finishing the workflow it was running — wait for it to stop'
+            : 'a sweep is already running';
+    }
+
     stop() {
         if (!this._run || this._run.state !== 'running') return { ok: false, error: 'nothing is running' };
         this._cancelled = true;
@@ -328,6 +365,20 @@ class LibrarySweep {
     }
 
     async _execute(entries, cal) {
+        // ★ Hold the calibrator from the first bundle to the last. Between two
+        // bundles nothing is running, so a gauge click on a card there was
+        // accepted — and this sweep's next bundle was then refused as busy and
+        // recorded as FAILED, in the report that decides whether a drive is worth
+        // imaging.
+        const hold = typeof cal.reserve === 'function' ? cal.reserve('the library sweep') : null;
+        try {
+            return await this._executeHeld(entries, cal, hold);
+        } finally {
+            hold?.release();
+        }
+    }
+
+    async _executeHeld(entries, cal, hold) {
         const root = this._config()?.comfy_ui?.root_path || '';
         for (const item of entries) {
             // { entry, run } from start(); a bare registry entry from an older caller
@@ -382,11 +433,17 @@ class LibrarySweep {
                     console.log(`[Sweep] SKIP ${entry.id} — ${rec.error}`);
                     continue;
                 }
-                calOpts = { params: res.params, mediaNotes: res.notes };
+                calOpts = {
+                    params: res.params, mediaNotes: res.notes,
+                    // ★ Where this sweep writes derived inputs. With --data-dir that is
+                    // not server/data, and the calibrator refused every derived input
+                    // there and fed the run a random asset instead.
+                    inputRoots: [path.join(this._dataDir, 'suite-inputs'), this._config()?.assets?.dir].filter(Boolean),
+                };
             }
 
             try {
-                const runtime = await cal.calibrate(entry.id, calOpts);
+                const runtime = await cal.calibrate(entry.id, hold ? { ...calOpts, reservation: hold } : calOpts);
                 rec.ok = true;
                 // ★ The ingredients, so a human can read what produced the result
                 // rather than taking the measurement on trust.
@@ -560,8 +617,7 @@ class LibrarySweep {
             //   cannot be a cache hit (benchmarkService._buildCalibrationParams), the
             //   suite's own seed included — say so, or the example names the suite as
             //   the source of a number it never chose.
-            const k = String(p.key || '').toLowerCase(), f = String(p.field || '').toLowerCase();
-            const isSeed = k === 'seed' || k.endsWith('_seed') || f === 'seed' || f.endsWith('_seed');
+            const isSeed = isSeedParam(p);
             const row = {
                 key: p.key,
                 label: p.label || p.key,
@@ -593,7 +649,7 @@ class LibrarySweep {
      * A suite run's parameters, with every media reference turned into a file.
      *
      * Returns { params, notes, inputs, missing }: `params` is what calibrate()
-     * lays over warmupParams (media as `file:<path>` or `asset:<name>`), `notes`
+     * lays over warmupParams (media as `file:<path>`, or null), `notes`
      * says where each media input came from, `inputs` is what the report records,
      * and `missing` lists every input that could not be found — any entry there
      * skips the run.
@@ -607,7 +663,19 @@ class LibrarySweep {
             const media = MEDIA_TYPES.includes(p.type) ? parseMediaSpec(spec) : null;
             if (!media) { params[key] = spec; continue; }
             if (media.empty) { params[key] = null; inputs[key] = { empty: true }; continue; }
-            if (media.asset) { params[key] = media.asset; inputs[key] = { asset: media.asset.slice('asset:'.length) }; continue; }
+            // ★ A named asset is checked here like every other source. It used to go
+            // through unchecked, and when the file was missing the calibrator fed the
+            // run whatever file of that type the assets folder held — while the row
+            // still named the one asked for, so its example was captioned for a
+            // picture it never saw. Passed on as the file that was found.
+            if (media.asset) {
+                const name = media.asset.slice('asset:'.length);
+                const file = this._assetFile(media.asset);
+                if (!file) { missing.push(`"${key}" names the asset ${name}, which is not in the assets folder (${this._config()?.assets?.dir || 'none is set'})`); continue; }
+                params[key] = `file:${file}`;
+                inputs[key] = { asset: name };
+                continue;
+            }
 
             const kind = media.kind || kindForParam(p.type);
             let src = null, from = null;
@@ -616,8 +684,14 @@ class LibrarySweep {
                 if (src) { from = id; break; }
             }
             if (!src && media.fallback) {
-                params[key] = media.fallback;
-                inputs[key] = { asset: media.fallback.replace(/^asset:/, ''), fallbackFor: media.from };
+                const name = media.fallback.replace(/^asset:/, '');
+                const file = this._assetFile(media.fallback);
+                if (!file) {
+                    missing.push(`"${key}" needs a ${kind} from ${media.from.join(' or ')}, and there is none — nor is its fallback asset ${name} in the assets folder (${this._config()?.assets?.dir || 'none is set'})`);
+                    continue;
+                }
+                params[key] = `file:${file}`;
+                inputs[key] = { asset: name, fallbackFor: media.from };
                 notes[key] = `fallback asset — no ${kind} output from ${media.from.join(' or ')}`;
                 continue;
             }
@@ -637,7 +711,9 @@ class LibrarySweep {
             params[key] = `file:${file}`;
             const ops = media.derive.map(o => o.op).join(' + ');
             notes[key] = `${from.startsWith('asset:') ? `the asset ${from.slice(6)}` : `output of ${from}`}${ops ? ` (${ops})` : ''}`;
-            inputs[key] = { from, source: src, path: file, ...(ops ? { derive: media.derive } : {}) };
+            // `pick` only when it is not the first file: exampleRules.sameMedia reads
+            // a missing one as 0, so rows written before it was recorded still match.
+            inputs[key] = { from, source: src, path: file, ...(media.pick ? { pick: media.pick } : {}), ...(ops ? { derive: media.derive } : {}) };
         }
         return { params, notes, inputs, missing };
     }
@@ -648,8 +724,14 @@ class LibrarySweep {
      * classification, with an unambiguous mesh format preferred over a .ply.
      */
     _suiteOutput(workflowId, kind, pick = 0) {
-        const rows = [...(this._run?.results || []), ...(this._run?.prevRows || [])];
-        const row = rows.find(r => r.id === workflowId && r.ok);
+        // ★ This run's row decides whenever there is one. The last report only
+        // stands in for a bundle this run never ran (an --only run). An upstream
+        // that FAILED or was skipped here used to be quietly replaced by its picture
+        // from the previous report — often an older version of the suite — so the
+        // run it feeds followed from a result this run never made.
+        const cur = (this._run?.results || []).find(r => r.id === workflowId);
+        const row = cur ? (cur.ok ? cur : null)
+            : (this._run?.prevRows || []).find(r => r.id === workflowId && r.ok);
         if (!row) return null;
         const files = (row.outputs || []).filter(o => o.path && o.file
             && classify(o.file).kind === kind && fs.existsSync(o.path));
@@ -661,12 +743,7 @@ class LibrarySweep {
 
     /** A file in the assets folder (sub-folders allowed, escapes refused), or null. */
     _assetFile(spec) {
-        const dir = this._config()?.assets?.dir;
-        if (!dir) return null;
-        const rootDir = path.resolve(dir);
-        const full = path.resolve(rootDir, String(spec).replace(/^asset:/, ''));
-        if (!(full.toLowerCase() + path.sep).startsWith(rootDir.toLowerCase() + path.sep) || full === rootDir) return null;
-        try { return fs.statSync(full).isFile() ? full : null; } catch { return null; }
+        return assetFile(this._config()?.assets?.dir, spec);
     }
 
     /** Make an input from an output or an asset (a frame, a crop, a hole, a damaged copy, a trimmed clip). */

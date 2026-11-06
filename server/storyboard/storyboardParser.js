@@ -38,16 +38,45 @@ const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 //   ### stable_audio_3 | 45s
 //   ### image_edit_flux2_klein_9b_image_edit_ref | 1280x720 | ref A3
 //
-// A parenthesised "(ref A3)" is still accepted, and trailing prose after the
-// name is kept as a note rather than voiding the whole shot.
+// A parenthesised "(ref A3)" is still accepted. Trailing prose after the name
+// does not void the whole shot; it is reported as a warning and ignored.
 const H3_PARTS = /^(\S+)(?:[ \t]*\(([^)]*)\))?[ \t]*(.*)$/;
 
 // "45s" / "5 sec" / "12 seconds" -> seconds. Bounded so a stray number in a
 // note can never be read as a duration.
 const DURATION_ATTR = /^(\d{1,4})[ \t]*(?:s|sec|secs|seconds?)$/i;
 
+// "6.5s" / "2,5 sec" — a duration in fractional seconds. Not accepted (the
+// planner sets whole seconds), but recognised so the warning can say why it
+// was ignored instead of only that it was.
+const FRACTIONAL_DURATION_ATTR = /^\d+[.,]\d+[ \t]*(?:s|sec|secs|seconds?)$/i;
+
+// A decimal comma inside a duration ("2,5s") is one attribute, not a "2" and
+// a "5s". The comma split in splitAttrs must not cut it in two, or "(2,5s)"
+// would run as 5 s and the warning would blame the "2". Matched only as a
+// whole word, so "(1280x720,5s)" still comes apart into a size and a duration,
+// while "(ref A2 2,5s)" keeps it after the space.
+const DECIMAL_COMMA_DURATION = /(^|,|[ \t])([ \t]*\d+),(\d+[ \t]*(?:s|sec|secs|seconds?)[ \t]*)(?=,|$)/gi;
+const KEPT_COMMA = '\u0000';
+
+// The warning for an attribute that changed nothing. A fractional duration
+// gets its own wording: the shot silently runs at the workflow's default
+// length, which is easy to miss when the number looks right.
+function unreadAttrWarning(lineNo, attr, where) {
+    if (FRACTIONAL_DURATION_ATTR.test(attr)) {
+        return `Line ${lineNo}: "${attr}" on ${where} is not a whole number of seconds, so it was ignored ` +
+            'and the shot runs at the workflow default. Write whole seconds.';
+    }
+    return `Line ${lineNo}: "${attr}" on ${where} was not understood — ignored.`;
+}
+
 // "ref A3" / "refs A2, A1" / "ref A2 + A1" → ['A2','A1'] (order preserved).
 const REF_ANNOTATION = /^refs?[ \t]+(.+)$/i;
+
+// A bare "A1" (or "1"). On its own it means nothing, but straight after a ref
+// it is that ref's next anchor: "(ref A2, A1)" is split on its comma into
+// "ref A2" and "A1", and the second anchor must not be lost.
+const BARE_ANCHOR = /^a?(\d+)$/i;
 
 // A pixel size written anywhere it is convenient — in the "### workflow (...)"
 // annotation, or as a "Resolution:" / "Size:" line of its own before the
@@ -87,48 +116,97 @@ function splitHeaderCells(text) {
     return String(text).split('|').map(s => s.trim());
 }
 
-// Split the part of the "###" line after the workflow name into attributes.
-// Both "| a | b" and a bare "(a, b)" annotation end up as the same list.
+// Split a run of attributes into a list. Pipes and commas both separate, so
+// "| ref A2, 8s", "(ref A2, 8s)" and "## Video cut 1 (ref A2, 8s)" all come
+// apart the same way, and a size or a duration written after a ref is read
+// instead of vanishing into the ref list. A decimal comma in a duration is
+// kept (DECIMAL_COMMA_DURATION).
 function splitAttrs(text) {
     return String(text || '')
         .split('|')
-        .map(t => t.trim())
+        .flatMap(seg => seg.replace(DECIMAL_COMMA_DURATION, `$1$2${KEPT_COMMA}$3`).split(','))
+        .map(t => t.split(KEPT_COMMA).join(',').trim())
         .filter(Boolean);
 }
 
 // Read one attribute. Returns what it was, so anything unrecognised can be
-// preserved as a note instead of being silently dropped.
+// reported instead of being silently dropped.
 function classifyAttr(attr) {
     const size = parseSize(attr);
     if (size && /^\s*\d+\s*[x\u00d7*]\s*\d+\s*$/i.test(attr)) return { kind: 'size', size };
     const dur = DURATION_ATTR.exec(attr);
     if (dur) return { kind: 'duration', durationSec: Number(dur[1]) };
-    const refs = parseRefs(attr);
-    if (refs.length) return { kind: 'refs', refs };
+    const refs = readRefList(attr);
+    if (refs) return { kind: 'refs', refs: refs.refs, rest: refs.rest };
     return { kind: 'note', text: attr };
 }
 
-function parseRefs(annotation) {
-    if (!annotation) return [];
+// "ref A2 + A1" → { refs: ['A2','A1'], rest: '' }, or null when it is not a
+// ref list. Tokens that are not anchors come back in `rest` instead of
+// vanishing: "ref A2 8s" is a ref and a duration.
+function readRefList(annotation) {
+    if (!annotation) return null;
     const m = REF_ANNOTATION.exec(annotation.trim());
-    if (!m) return [];
-    return m[1]
-        .split(/[,+&]|\s+/)
-        .map(s => s.trim())
-        .filter(Boolean)
-        .map(tok => {
-            const n = /^a?(\d+)$/i.exec(tok);
-            return n ? `A${n[1]}` : null;
-        })
-        .filter(Boolean);
+    if (!m) return null;
+    const refs = [];
+    const rest = [];
+    // A decimal comma stays inside its duration here too: "ref A2 2,5s" is not
+    // the anchors A2 and 2 plus a 5 s duration.
+    const list = m[1].replace(DECIMAL_COMMA_DURATION, `$1$2${KEPT_COMMA}$3`);
+    for (const raw of list.split(/[,+&]|\s+/).map(t => t.trim()).filter(Boolean)) {
+        const tok = raw.split(KEPT_COMMA).join(',');
+        const n = BARE_ANCHOR.exec(tok);
+        if (n) refs.push(`A${n[1]}`);
+        else rest.push(tok);
+    }
+    return refs.length ? { refs, rest: rest.join(' ') } : null;
+}
+
+function parseRefs(annotation) {
+    const r = readRefList(annotation);
+    return r ? r.refs : [];
+}
+
+// Read a run of attributes onto a shot: the "## Slot (…)" argument, or what
+// follows the workflow name on the "###" line. One reader for both, so
+// "ref A2, 8s" means the same wherever it is written. A bare anchor straight
+// after a ref continues that ref's list ("ref A2, A1" names two anchors, while
+// "ref A1, 900x900" is an anchor and a size). `loop` is read only where the
+// caller allows it. Whatever is not understood comes back in `leftovers` for
+// the caller to report: it changed nothing.
+function readAttrs(attrs, { allowLoop = false } = {}) {
+    const out = { refs: [], size: null, durationSec: null, loop: false, leftovers: [] };
+    const apply = (attr) => {
+        if (allowLoop && /^loop$/i.test(attr)) { out.loop = true; return 'loop'; }
+        const a = classifyAttr(attr);
+        if (a.kind === 'size') out.size = out.size || a.size;
+        else if (a.kind === 'duration') out.durationSec = out.durationSec ?? a.durationSec;
+        else if (a.kind === 'refs') {
+            out.refs.push(...a.refs);
+            if (a.rest) apply(a.rest);
+        } else out.leftovers.push(a.text);
+        return a.kind;
+    };
+    let afterRefs = false;
+    for (const attr of attrs) {
+        const bare = afterRefs ? BARE_ANCHOR.exec(attr) : null;
+        if (bare) { out.refs.push(`A${bare[1]}`); continue; }
+        afterRefs = apply(attr) === 'refs';
+    }
+    return out;
 }
 
 // Parse a storyboard markdown document.
 //
-// Returns { states, items, warnings, errors }:
-//   states: [{ id, kind, transitions, line }]
-//   items:  [{ index, stateId, stateKind, title, workflowAlias, annotation,
-//              refs, anchorKey, prompt, note, line }]
+// Returns { states, items, dropped, warnings, errors }:
+//   states:  [{ id, kind, transitions, line }]
+//   items:   [{ index, stateId, stateKind, title, workflowAlias, annotation,
+//               refs, anchorKey, prompt, note, line }]
+//   dropped: [{ stateId, stateKind, title, workflowAlias, slotNumber,
+//               anchorKey, line }] — the "##" shots refused here (no "###"
+//               line, or no prompt), each already reported in `errors`. The
+//               planner needs them: a "Video cut 1" whose "Reference image 1"
+//               was dropped must wait, not take the next shot's picture.
 // Anything fatal for the document as a whole throws.
 function parseStoryboard(markdown) {
     if (typeof markdown !== 'string' || markdown.trim() === '') {
@@ -140,6 +218,7 @@ function parseStoryboard(markdown) {
     const lines = markdown.split(/\r\n|\n|\r/).map(l => l.replace(/\r/g, ''));
     const states = [];
     const items = [];
+    const dropped = [];
     const warnings = [];
     const errors = [];
 
@@ -147,6 +226,14 @@ function parseStoryboard(markdown) {
     let item = null;       // current item awaiting its ### / prompt body
     let body = [];         // prompt lines for `item`
     let fence = null;      // open code-fence marker, or null
+    let fenceLine = 0;     // where the open fence started
+    let fenceIn = null;    // the shot whose prompt it opened in, or null
+    let fenceInNotes = false;
+    // While a fence is open: whether the text it is swallowing sits in a notes
+    // section (a "# X | notes" line inside it counts), and the first "## "
+    // heading it swallowed outside one — the shot that will not be generated.
+    let swallowNotes = false;
+    let swallowed = null;
 
     const flushItem = () => {
         if (!item) return;
@@ -160,6 +247,13 @@ function parseStoryboard(markdown) {
             item.index = items.length;
             items.push(item);
         }
+        if (item.index < 0) {
+            dropped.push({
+                stateId: item.stateId, stateKind: item.stateKind, title: item.title,
+                workflowAlias: item.workflowAlias, slotNumber: item.slotNumber,
+                anchorKey: item.anchorKey, line: item.line
+            });
+        }
         item = null;
         body = [];
     };
@@ -171,12 +265,29 @@ function parseStoryboard(markdown) {
         // Code fences win over everything: their contents are prompt text.
         const f = FENCE.exec(line);
         if (f) {
-            if (!fence) fence = f[1][0].repeat(Math.max(3, f[1].length));
-            else if (f[1][0] === fence[0] && f[1].length >= fence.length) fence = null;
+            if (!fence) {
+                fence = f[1][0].repeat(Math.max(3, f[1].length));
+                fenceLine = lineNo;
+                fenceIn = item ? item.title : null;
+                fenceInNotes = swallowNotes = !!(state && state.kind === 'notes');
+                swallowed = null;
+            } else if (f[1][0] === fence[0] && f[1].length >= fence.length) fence = null;
             if (item) body.push(line);
             continue;
         }
-        if (fence) { if (item) body.push(line); continue; }
+        if (fence) {
+            // Only matters if the fence is never closed: then this heading was
+            // never read as one. Tracked so the report can name the first shot
+            // lost, and stay a warning when none was.
+            const sh = !swallowed && HEADING.exec(line);
+            if (sh && sh[1].length === 1) {
+                swallowNotes = (splitHeaderCells(sh[2] || '')[1] || '').toLowerCase() === 'notes';
+            } else if (sh && sh[1].length === 2 && !swallowNotes) {
+                swallowed = { line: lineNo, text: (sh[2] || '').replace(CLOSING_HASHES, '').trim() };
+            }
+            if (item) body.push(line);
+            continue;
+        }
 
         const h = HEADING.exec(line);
         if (!h) {
@@ -242,19 +353,17 @@ function parseStoryboard(markdown) {
                 note: '',
                 line: lineNo
             };
-            // Apply the "## Slot (argument)" parenthetical.
+            // Apply the "## Slot (argument)" parenthetical, read by the same
+            // rules as the "###" line: "(ref A2, A1)" is two anchors in slot
+            // order, "(ref A1, 900x900)" an anchor and a size, "(ref A2, loop)"
+            // an anchor and a loop.
             if (arg) {
-                // NOT split on commas: the grammar gives the slot ONE argument,
-                // and "ref A2, A1" is one argument naming two anchors in slot
-                // order. Splitting here dropped the second one.
-                for (const a of splitAttrs(arg[1])) {
-                    if (/^loop$/i.test(a)) { item.loop = true; continue; }
-                    const c = classifyAttr(a);
-                    if (c.kind === 'refs') item.refs.push(...c.refs);
-                    else if (c.kind === 'size') item.size = item.size || c.size;
-                    else if (c.kind === 'duration') item.durationSec = item.durationSec ?? c.durationSec;
-                    else warnings.push(`Line ${lineNo}: "(${a})" on "${text}" was not understood — ignored.`);
-                }
+                const r = readAttrs(splitAttrs(arg[1]), { allowLoop: true });
+                item.refs = r.refs;
+                item.size = r.size;
+                item.durationSec = r.durationSec;
+                item.loop = r.loop;
+                for (const left of r.leftovers) warnings.push(unreadAttrWarning(lineNo, left, `"${text}"`));
             }
             body = [];
             continue;
@@ -281,23 +390,33 @@ function parseStoryboard(markdown) {
             item.annotation = parts[2] ? parts[2].trim() : null;
             item.note = (parts[3] || '').trim();
 
-            // Attributes may arrive parenthesised or pipe-separated (or both).
-            const attrs = [
-                ...splitAttrs(item.annotation ? item.annotation.replace(/,/g, '|') : ''),
-                ...splitAttrs(item.note)
-            ];
-            const leftovers = [];
-            for (const attr of attrs) {
-                const a = classifyAttr(attr);
-                if (a.kind === 'size') item.size = item.size || a.size;
-                else if (a.kind === 'duration') item.durationSec = item.durationSec ?? a.durationSec;
-                else if (a.kind === 'refs') item.refs.push(...a.refs);
-                else leftovers.push(a.text);
+            // Attributes may arrive parenthesised or pipe-separated (or both),
+            // read by the same rules as the "##" argument. `loop` is not read
+            // here: it belongs on the "##" line, and is reported if written here.
+            const r = readAttrs([...splitAttrs(item.annotation), ...splitAttrs(item.note)]);
+            item.size = item.size || r.size;
+            item.durationSec = item.durationSec ?? r.durationSec;
+            const h3Refs = r.refs;
+            const leftovers = r.leftovers;
+            // The refs may be written on the "##" line or here, not added up
+            // from both: the same list twice is kept once (doubling it would
+            // fill a second image slot and hide the one-ref warning), and two
+            // lists that disagree cannot both be right.
+            if (h3Refs.length) {
+                if (item.refs.length === 0) {
+                    item.refs = h3Refs;
+                } else if (item.refs.join(',') !== h3Refs.join(',')) {
+                    errors.push(`Line ${lineNo}: "### ${text}" names ref ${h3Refs.join(', ')}, but ` +
+                        `"## ${item.title}" (line ${item.line}) names ref ${item.refs.join(', ')}. ` +
+                        'Write the refs in one place.');
+                }
             }
             item.note = leftovers.join(' | ');
-            if (item.annotation && item.refs.length === 0 && !item.size && item.durationSec == null
-                && !/^refs?\b/i.test(item.annotation)) {
-                warnings.push(`Line ${lineNo}: "(${item.annotation})" was not understood — ignored.`);
+            // Anything left over changed nothing — a "5.5s" (durations are
+            // whole seconds) or a "ref: A2" (no colon) would otherwise be
+            // dropped while the shot quietly ran on defaults or another frame.
+            for (const left of leftovers) {
+                warnings.push(unreadAttrWarning(lineNo, left, `"### ${text}"`));
             }
             continue;
         }
@@ -309,7 +428,23 @@ function parseStoryboard(markdown) {
     }
     flushItem();
 
-    if (fence) warnings.push('A code fence was opened and never closed; everything after it was read as prompt text.');
+    // An unclosed fence swallows the rest of the document. That is an error
+    // only when a "## " shot heading was in what it swallowed — those shots
+    // would silently not be generated. Otherwise nothing was lost, and a
+    // warning that says where the text went is enough.
+    if (fence && swallowed) {
+        errors.push(`Line ${fenceLine}: a code fence opened here was never closed, so "## ${swallowed.text}" ` +
+            `(line ${swallowed.line}) and everything after it was taken as the fence's content, not as shots. ` +
+            'Close the fence with a matching line, or remove it.');
+    } else if (fence && fenceIn) {
+        warnings.push(`Line ${fenceLine}: a code fence opened here was never closed, so everything after it ` +
+            `was read as part of the prompt of "${fenceIn}". Check that the prompt ends where you meant, ` +
+            'and close the fence with a matching line.');
+    } else if (fence) {
+        warnings.push(`Line ${fenceLine}: a code fence opened here was never closed. It is ` +
+            (fenceInNotes ? 'in a notes section' : 'not inside any shot') +
+            ', so the text after it was skipped; no shot heading was in it. Close it with a matching line, or remove it.');
+    }
 
     if (items.length === 0) {
         throw new Error(
@@ -318,7 +453,7 @@ function parseStoryboard(markdown) {
             (errors.length ? `\n${errors.join('\n')}` : '')
         );
     }
-    return { states, items, warnings, errors };
+    return { states, items, dropped, warnings, errors };
 }
 
 module.exports = { parseStoryboard, parseRefs, parseSize };

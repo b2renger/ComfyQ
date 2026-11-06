@@ -10,6 +10,19 @@ const CHAIN_RETENTION_MS = 24 * 60 * 60 * 1000;
 const PLACEHOLDER_IMAGE = 'comfyq_placeholder.png';
 const PLACEHOLDER_PNG_BASE64 = 'iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAIAAAAlC+aJAAAAIklEQVR42u3BAQ0AAADCoPdPbQ8HFAAAAAAAAAAAAAAA8G4wQAAB7OHIlwAAAABJRU5ErkJggg==';
 
+// Copy a file into ComfyUI/input dated NOW. ★ On Windows a copy keeps the
+// SOURCE's modification time, and sweepStale ages files by it: a calibration
+// asset dated last year was deleted by the next minute's sweep, before ComfyUI
+// read it, and a storyboard frame rendered more than a day earlier (a retry the
+// next morning) would be just as "stale" the moment it was staged. The
+// retention window starts when the file is staged. Every copy into the swept
+// prefixes goes through here, so the two cannot drift apart again.
+function stageCopy(source, dest) {
+    fs.copyFileSync(source, dest);
+    const now = new Date();
+    fs.utimesSync(dest, now, now);
+}
+
 // Copies a user-uploaded file from the ComfyQ-managed staging dir into
 // ComfyUI/input/ with a namespaced filename so two jobs can't clobber each
 // other and so we can clean up later by job id.
@@ -33,7 +46,7 @@ class InputUploader {
         if (Buffer.isBuffer(source)) {
             fs.writeFileSync(dest, source);
         } else if (typeof source === 'string') {
-            fs.copyFileSync(source, dest);
+            stageCopy(source, dest);
         } else {
             throw new Error('Unsupported input source');
         }
@@ -102,4 +115,4 @@ class InputUploader {
     }
 }
 
-module.exports = { InputUploader, PLACEHOLDER_IMAGE };
+module.exports = { InputUploader, PLACEHOLDER_IMAGE, stageCopy };

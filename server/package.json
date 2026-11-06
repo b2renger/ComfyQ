@@ -4,12 +4,12 @@
   "description": "ComfyQ v2 — multi-workflow scheduler over ComfyUI",
   "main": "index.js",
   "engines": {
-    "node": ">=22.0.0 <25.0.0"
+    "node": "^22.0.0 || ^24.0.0"
   },
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js",
-    "test:storyboard": "node storyboard/storyboard.test.js && node storyboard/storyboardRoutes.test.js && node executor/sageRecovery.test.js && node workers/selectValidation.test.js && node workers/optionalMedia.test.js && node workers/linkedValues.test.js && node workers/promptFormat.test.js && node workers/comfyLauncher.test.js && node config/servingFlags.test.js && node workflows/vramEstimate.test.js && node workflows/bundleCompleteness.test.js && node lanes/laneManager.test.js && node benchmark/vramWatch.test.js"
+    "dev": "nodemon index.js --ignore data",
+    "test:storyboard": "npm --prefix .. run test:storyboard"
   },
   "dependencies": {
     "archiver": "^7.0.1",
@@ -18,7 +18,6 @@
     "better-sqlite3": "^12.10.0",
     "cors": "^2.8.5",
     "express": "^4.18.2",
-    "form-data": "^4.0.0",
     "image-size": "^1.2.1",
     "mime-types": "^2.1.35",
     "multer": "^2.0.2",

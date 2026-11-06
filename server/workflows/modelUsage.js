@@ -17,9 +17,12 @@ const { readAccessLog } = require('./modelAccessLog');
 //   template  the EDITABLE graph beside it. "Open in ComfyUI" hands the
 //             template to an admin, so a weight only the template loads is
 //             still in use — deleting it breaks the thing they opened.
-//   dropdown  ★ a `lora` parameter with an optionsFilter exposes EVERY file
-//             matching its prefix. Those files appear in no graph at all, so a
-//             grep over the workflows finds nothing and they look orphaned.
+//   dropdown  ★ a `lora` parameter exposes EVERY file directly inside its
+//             folder (models/<optionsDir>, default loras) whose name starts
+//             with its optionsFilter — all of them when there is no filter.
+//             Those files appear in no graph at all, so a grep over the
+//             workflows finds nothing and they look orphaned. A `select`
+//             option or a default that is itself a weight filename counts too.
 //   external  a candidate, a demo file, or a workflow saved in ComfyUI's own
 //             user dir. Not something ComfyQ serves, but somebody's work.
 //
@@ -163,9 +166,6 @@ function refsInGraph(graph, into = new Map(), embedded = false) {
     }
     return into;
 }
-
-// Kept for callers that only need the names.
-const namesInGraph = (graph) => new Set(refsInGraph(graph).keys());
 
 // Folders that hold JSON but no workflow. ★ __manager is the one that matters:
 // ComfyUI-Manager's cache carries a model-list.json naming 527 weight files, so
@@ -336,6 +336,64 @@ function packCodeClaims(comfyRoot) {
 const REMOVED_LOG = 'comfyq_removed_workflows.jsonl';
 
 /**
+ * The weight files a bundle's booking FORM can hand to a loader without its
+ * graph naming them.
+ *
+ *   dropdowns  one per `lora` param (or any param carrying an optionsFilter):
+ *              { prefix, dir }. See dropdownOffers for what it matches.
+ *   names      folded basenames of every `select` option, param default and
+ *              admin override default that is itself a weight filename — a
+ *              student can pick those, and nothing else names them.
+ *
+ * ★ A `lora` param needs no filter: the booking form then lists the whole
+ * folder (modelOptions.listModelFiles with an empty prefix). Only counting
+ * filtered params left every LoRA such a dropdown offers unprotected.
+ *
+ * @param {object} meta        a <id>.meta.json (its exposedParameters)
+ * @param {object} configMeta  a <id>.config.meta.json (its parameterOverrides)
+ */
+function formWeightClaims(meta, configMeta) {
+    const dropdowns = [];
+    const names = new Set();
+    const note = (v) => { if (typeof v === 'string' && WEIGHT_RX.test(v)) names.add(basename(v)); };
+    for (const p of (meta?.exposedParameters || [])) {
+        if (!p || typeof p !== 'object') continue;
+        if (p.type === 'lora' || p.optionsFilter) {
+            const sub = String(p.optionsDir || 'loras').split('\\').join('/')
+                .replace(/^\/+|\/+$/g, '').toLowerCase();
+            dropdowns.push({ prefix: String(p.optionsFilter || '').toLowerCase(), dir: `models/${sub}/` });
+        }
+        if (Array.isArray(p.options)) p.options.forEach(note);
+        note(p.default);
+    }
+    for (const o of Object.values(configMeta?.parameterOverrides || {})) note(o?.default);
+    return { dropdowns, names };
+}
+
+/**
+ * Does this dropdown offer the file? Exactly what modelOptions.listModelFiles
+ * lists for it: a file DIRECTLY inside its folder whose name starts with the
+ * prefix.
+ *
+ * ★ The folder is the half of the test that cannot be dropped. With an
+ * unfiltered dropdown the prefix is empty, and a prefix alone would then match
+ * every weight on the disk — protecting all of them and turning the prune tool
+ * into a silent no-op. It also stops a `krea2_` filter claiming the Krea UNETs
+ * in diffusion_models, which that dropdown has never offered.
+ *
+ * @param {{prefix: string, dir: string}} drop  from formWeightClaims
+ * @param {string}   name  the file's basename
+ * @param {string[]} rels  every on-disk path of that basename, install-relative
+ */
+function dropdownOffers(drop, name, rels) {
+    if (!String(name || '').toLowerCase().startsWith(drop.prefix)) return false;
+    return rels.some(r => {
+        const l = String(r || '').split('\\').join('/').toLowerCase();
+        return l.startsWith(drop.dir) && !l.slice(drop.dir.length).includes('/');
+    });
+}
+
+/**
  * Folded basenames of the models a bundle LOADS — what to record when it is
  * removed.
  *
@@ -345,9 +403,10 @@ const REMOVED_LOG = 'comfyq_removed_workflows.jsonl';
  * (the api.json executes; the template is what "Open in ComfyUI" runs), plus the
  * meta's declared models.
  *
- * ★ And a `lora` dropdown's files. A dropdown offers every file matching its
- * prefix, so those LoRAs appear in no graph — without this, a LoRA a student
- * picked would stay protected by its observed load after the bundle is gone.
+ * ★ And a `lora` dropdown's files. A dropdown offers every file in its folder
+ * matching its prefix, so those LoRAs appear in no graph — without this, a LoRA
+ * a student picked would stay protected by its observed load after the bundle
+ * is gone. Likewise a `select` option or default that names a weight.
  *
  * @param {string} bundleDir
  * @param {object} [opts]
@@ -366,13 +425,15 @@ function bundleModelNames(bundleDir, { onDisk = null } = {}) {
                 const f = typeof m === 'string' ? m : m?.file || m?.name;
                 if (typeof f === 'string' && WEIGHT_RX.test(f)) names.add(basename(f));
             }
-            for (const p of (j.exposedParameters || [])) {
-                if (!p.optionsFilter || !onDisk) continue;
-                const prefix = String(p.optionsFilter).toLowerCase();
-                const dir = `models/${String(p.optionsDir || 'loras').split('\\').join('/').toLowerCase()}/`;
-                for (const [name, hit] of onDisk) {
-                    const lower = String(name).toLowerCase();
-                    if (lower.startsWith(prefix) && String(hit.rel || '').toLowerCase().startsWith(dir)) names.add(lower);
+            // Each file is read on its own: a meta.json carries the params, a
+            // config.meta.json the admin's overrides, so one call covers both.
+            const claims = formWeightClaims(j, j);
+            for (const nm of claims.names) names.add(nm);
+            if (onDisk) {
+                for (const d of claims.dropdowns) {
+                    for (const [name, hit] of onDisk) {
+                        if (dropdownOffers(d, name, [hit.rel, ...(hit.others || [])])) names.add(String(name).toLowerCase());
+                    }
                 }
             }
             continue;
@@ -600,16 +661,19 @@ function buildModelUsage({
         }
     }
     const filters = [];
+    // folded name -> bundles whose form lists it as a select option or default
+    const formNames = new Map();
     // HuggingFace repos a pipeline stages through: a folder of weights on disk
     // that no graph names file by file. See where this is filled, below.
     const repoClaims = [];
     for (const id of bundleIds) {
         const meta = readJson(path.join(workflowsDir, id, `${id}.meta.json`));
-        for (const p of (meta?.exposedParameters || [])) {
-            if (p.optionsFilter) {
-                filters.push({ bundle: id, prefix: String(p.optionsFilter).toLowerCase() });
-            }
-        }
+        // The admin's overrides can change a param's default, which is what
+        // the booking form pre-selects.
+        const configMeta = readJson(path.join(workflowsDir, id, `${id}.config.meta.json`));
+        const claims = formWeightClaims(meta, configMeta);
+        for (const d of claims.dropdowns) filters.push({ bundle: id, ...d });
+        for (const n of claims.names) add(formNames, n, id);
         // A declared model is in use even if the graph resolves it internally.
         for (const m of (meta?.requirements?.models || [])) {
             const b = basename(m.file);
@@ -633,9 +697,11 @@ function buildModelUsage({
         const used = [...(usedBy.get(name) || [])];
         const tpl = [...(templateOnly.get(name) || [])].sort();
         const ext = [...(external.get(name) || [])].sort();
-        const drops = filters
-            .filter(f => name.toLowerCase().startsWith(f.prefix))
-            .map(f => f.bundle);
+        const rels = [hit.rel, ...(hit.others || [])];
+        const drops = [
+            ...filters.filter(f => dropdownOffers(f, name, rels)).map(f => f.bundle),
+            ...(formNames.get(name) || []),
+        ];
         const relLower = String(hit.rel || '').split('\\').join('/').toLowerCase();
 
         // Opened by a node pack's own code — by filename, or because it sits in
@@ -798,6 +864,7 @@ function invalidatePackCode() { _codeCache = { root: null, at: 0, value: null };
 
 module.exports = {
     bundleModelNames, recordRemovedWorkflow, readRemovedWorkflows, REMOVED_LOG,
-    buildModelUsage, refsInGraph, namesInGraph, basename, isLoader, isGenericBasename,
+    buildModelUsage, refsInGraph, basename, isLoader, isGenericBasename,
+    formWeightClaims, dropdownOffers,
     packCodeClaims, invalidatePackCode,
 };

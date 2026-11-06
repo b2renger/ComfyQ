@@ -1,4 +1,3 @@
-const fs = require('fs');
 const path = require('path');
 const { LocalComfyUIWorker } = require('../workers/localComfyUIWorker');
 const { JobExecutor } = require('../executor/jobExecutor');
@@ -38,8 +37,12 @@ const launcher = require('../workers/comfyLauncher');
 // nodemon watches that tree, and a lane's ComfyUI writes settings and manager
 // cache files as .json — which restarted ComfyQ, which killed the very ComfyUI
 // it had just spawned. Outside the install too, so the portable ComfyUI stays
-// untouched. Gitignored.
-const LANES_DIR = path.join(__dirname, '..', '..', '.comfyq-lanes');
+// untouched. Gitignored. COMFYQ_LANES_DIR moves it — lanes.integration.js
+// points it at a throwaway folder so a test never lands on (or deletes) the
+// folders of the lanes the rig is serving.
+const LANES_DIR = process.env.COMFYQ_LANES_DIR
+    ? path.resolve(process.env.COMFYQ_LANES_DIR)
+    : path.join(__dirname, '..', '..', '.comfyq-lanes');
 // Left free on the card for the OS/desktop after all lanes are accounted for.
 const CARD_HEADROOM_GB = 2;
 // What each extra ComfyUI is asked to keep free for its neighbours.
@@ -72,7 +75,8 @@ class LaneManager {
      * What one workflow needs on the card, or null when it can't be told.
      * A measured figure from calibration wins over the static estimate: it is
      * the truth, and for pipelines whose models aren't named as files in the
-     * graph (the 3D bundles load a HuggingFace repo) it is all there is.
+     * graph (LivePortrait's pack loads its weights by a path built in code,
+     * and the 3d_mesh_* tools name no model) it is all there is.
      */
     vramFor(workflowId) {
         const entry = this.registry.get(workflowId);
@@ -88,6 +92,19 @@ class LaneManager {
 
     list() {
         return [...this.lanes.values()].map(l => this._describe(l));
+    }
+
+    // Take prompts out of every lane's ComfyUI: queued ones are dropped, a running
+    // one is interrupted. Each call names the prompt, so a run that is not one of
+    // these is left alone, and an id a ComfyUI does not know changes nothing.
+    async cancelPrompts(promptIds) {
+        if (!promptIds?.length) return;
+        for (const lane of this.lanes.values()) {
+            try { await lane.worker.rest.deleteFromQueue(promptIds); } catch { /* lane going down */ }
+            for (const id of promptIds) {
+                try { await lane.worker.rest.interrupt(id); } catch { /* lane going down */ }
+            }
+        }
     }
 
     _describe(lane) {
@@ -118,11 +135,6 @@ class LaneManager {
     /** The lane running on the install's own ComfyUI, if any. */
     baseLane() { return [...this.lanes.values()].find(l => l.base) || null; }
     get(workflowId) { return this.lanes.get(workflowId) || null; }
-    /** The lane a job belongs to, or the only lane when there is just one. */
-    laneForWorkflow(workflowId) {
-        return this.lanes.get(workflowId)
-            || (this.lanes.size === 1 ? [...this.lanes.values()][0] : null);
-    }
 
     // ---- admission ---------------------------------------------------------
 
@@ -258,17 +270,19 @@ class LaneManager {
             try {
                 started = await worker.start();
                 // A ComfyUI that was already running — the install's own, or
-                // one a previous ComfyQ started and this one adopted — may have
-                // been launched with a speed-up this workflow cannot run with.
-                // Replace it only then; otherwise reuse it as it is.
+                // one a previous ComfyQ started and this one adopted — was
+                // started for whatever the settings were THEN: a workflow that
+                // needed Sage off, a speed-up since turned on, LAN access since
+                // changed. Relaunch it only when it differs from what this lane
+                // would start it with now; otherwise reuse it as it is.
                 if ((started?.external && onBase) || started?.adopted) {
-                    const { replaced } = await worker.ensureNoBlockingPerfFlags();
+                    const { replaced } = await worker.ensureLaunchSettings();
                     if (replaced) started = { external: false };
                 }
                 break;
             } catch (e) {
                 console.error(`[Lane ${label}] ComfyUI did not start (attempt ${attempt}/${attempts}): ${e.message}`);
-                if (attempt === attempts) { try { await worker.shutdown(); } catch { /* already down */ } throw e; }
+                if (attempt === attempts || e.noRetry) { try { await worker.shutdown(); } catch { /* already down */ } throw e; }
                 await new Promise(r => setTimeout(r, retryMs));
             }
         }
@@ -286,6 +300,11 @@ class LaneManager {
                 throw new Error(`Port ${port} is already serving a ComfyUI this lane does not own.`);
             }
             console.log(`[Lane ${label}] adopted the ComfyUI already running on port ${port}`);
+            // Ours, but started for the settings of its time — same check as above.
+            // `ours`: the worker cannot tell on its own (no PID record), and
+            // would otherwise leave it alone as a hand-started ComfyUI.
+            try { await worker.ensureLaunchSettings({ ours: true }); }
+            catch (e) { try { await worker.shutdown(); } catch { /* already down */ } throw e; }
         }
 
         const executor = new JobExecutor({
@@ -354,6 +373,15 @@ class LaneManager {
         if (!lane) return false;
         this.lanes.delete(workflowId);
         try { lane.executor.stop(); } catch { /* not running */ }
+        // A job still running here is stopped and failed with a reason. Left
+        // alone it was orphaned: the install's ComfyUI stays up and went on
+        // rendering it, with no executor left to collect it or to cancel it,
+        // so it sat "processing" until the next restart.
+        if (lane.executor?._currentJobId && typeof lane.executor.abortCurrent === 'function') {
+            try {
+                await lane.executor.abortCurrent('Stopped: this workflow stopped being served on this machine while the job was running.');
+            } catch (e) { console.warn(`[Lane ${lane.id}] could not stop its running job: ${e.message}`); }
+        }
         try { await lane.worker.shutdown(); } catch { /* already down */ }
         if (lane.base) {
             try { await lane.worker.rest.free({ unloadModels: true, freeMemory: true }); }
@@ -447,9 +475,19 @@ class LaneManager {
      * restart should undo.
      */
     async closeAll() {
-        for (const id of [...this.lanes.keys()]) await this.close(id);
+        // The main lane closes LAST, and is written back after: each close()
+        // hands "main" to the next lane, so closing in order left
+        // activeWorkflowId naming whichever lane happened to close last.
+        const main = this.mainLane()?.workflowId || null;
+        const order = [...this.lanes.keys()].filter(id => id !== main);
+        if (main) order.push(main);
+        for (const id of order) await this.close(id);
         try {
-            this.configManager.update(c => { c.workflows.extraLaneWorkflowIds = []; return c; });
+            this.configManager.update(c => {
+                if (main) c.workflows.activeWorkflowId = main;
+                c.workflows.extraLaneWorkflowIds = [];
+                return c;
+            });
         } catch { /* config read-only — nothing to forget */ }
     }
 

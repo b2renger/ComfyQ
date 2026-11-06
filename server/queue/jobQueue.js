@@ -128,6 +128,9 @@ class JobQueue {
     _emit() { for (const cb of this._listeners) try { cb(); } catch (e) { console.error('[Queue] listener err:', e); } }
 
     // Move any in-flight job (pre-restart) to FAILED with reason 'server-restart'.
+    // ComfyUI outlives ComfyQ, so such a job's prompt may still be queued or
+    // running there: its ids stay in staleBootPrompts for the boot to cancel, or
+    // it would hold the GPU for a job nobody is waiting for.
     reconcileOnBoot() {
         const inflight = [
             sm.STATES.UPLOADING_INPUTS,
@@ -136,7 +139,8 @@ class JobQueue {
             sm.STATES.COLLECTING_OUTPUTS
         ];
         const placeholders = inflight.map(() => '?').join(',');
-        const rows = this.db.prepare(`SELECT id, status FROM jobs WHERE status IN (${placeholders})`).all(...inflight);
+        const rows = this.db.prepare(`SELECT id, status, prompt_id FROM jobs WHERE status IN (${placeholders})`).all(...inflight);
+        this.staleBootPrompts = rows.map(r => r.prompt_id).filter(Boolean);
         const tx = this.db.transaction(() => {
             for (const r of rows) {
                 this.db.prepare(

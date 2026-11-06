@@ -1,10 +1,11 @@
 const fs = require('fs');
 const path = require('path');
 
-// The ComfyQ opener is a tiny frontend-only ComfyUI extension (see ./opener)
-// that auto-opens a workflow passed via `?comfyq_open=<name>`. We install it
-// into the user's ComfyUI `custom_nodes` so "Open in ComfyUI" can hand over the
-// editable graph directly instead of asking the admin to pick it from a menu.
+// ComfyQ's own small ComfyUI extension (see ./opener): a frontend script that
+// auto-opens a workflow passed via `?comfyq_open=<name>`, so "Open in ComfyUI"
+// hands over the editable graph directly, and a Python hook that records which
+// model files a running prompt opens (comfyq_model_access.jsonl). We install it
+// into the user's ComfyUI `custom_nodes`.
 //
 // Bump OPENER_VERSION whenever ./opener changes so installs refresh (and callers
 // know to restart a running ComfyUI to pick up the new web asset).
@@ -26,6 +27,10 @@ const path = require('path');
 //    restart to take effect.
 // 9: v8's execution hook closed over a rebound variable and called load_torch_file
 //    for every prompt — caught on a throwaway ComfyUI before any rig restarted on it.
+// 10: the recorder also ignores lookups made by ComfyUI's asset scanner (a call
+//    stack through app.assets). The scanner runs on its own thread and could
+//    overlap a prompt — 218 models logged in one second on 2026-10-16. Python:
+//    needs a ComfyUI restart.
 const OPENER_VERSION = '10';
 const SRC = path.join(__dirname, 'opener');
 const DEST_NAME = 'comfyq_opener';

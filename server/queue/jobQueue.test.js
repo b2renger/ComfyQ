@@ -32,6 +32,17 @@ ok('excluding the job itself still works when scoped', q.findCollisions(T, MIN, 
 book('lane_b', T);
 ok('each lane walks only its own queue', q.nextFreeSlot(T, MIN, 'lane_b') === T + MIN && q.nextFreeSlot(T, MIN, 'lane_a') === T + MIN);
 
+// A job caught by a restart leaves its ComfyUI prompt to be cancelled.
+{
+    const running = book('lane_a', T + 100 * MIN);
+    q.db.prepare('UPDATE jobs SET status=?, prompt_id=? WHERE id=?').run('executing', 'prompt-1', running.id);
+    const queuedNoPrompt = book('lane_a', T + 200 * MIN);
+    q.db.prepare('UPDATE jobs SET status=? WHERE id=?').run('uploading-inputs', queuedNoPrompt.id);
+    ok('both in-flight jobs are reconciled', q.reconcileOnBoot() === 2);
+    ok('only the job that reached ComfyUI leaves a prompt to cancel', q.staleBootPrompts.length === 1 && q.staleBootPrompts[0] === 'prompt-1');
+    ok('the job reads failed', q.get(running.id).errorReason === 'server-restart' || q.get(running.id).error_reason === 'server-restart');
+}
+
 q.db.close();
 fs.rmSync(dir, { recursive: true, force: true });
 console.log(`jobQueue: all ${pass} checks passed`);

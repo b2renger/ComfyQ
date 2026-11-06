@@ -9,7 +9,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const { scoreDeletable, familyKey } = require('./modelConfidence');
+const { scoreDeletable, familyKey, AUDIT_DATE } = require('./modelConfidence');
 
 const ok = [];
 const check = (label, cond) => { assert.ok(cond, label); ok.push(label); };
@@ -212,6 +212,21 @@ fs.writeFileSync(path.join(root, 'tools', 'maintenance', 'model-audit', 'decisio
     check('...and it reads as audit-keep rather than audit-delete',
         over.confidenceReasons.some(x => x.code === 'audit-keep')
         && !over.confidenceReasons.some(x => x.code === 'audit-delete'));
+
+    // ★ The audit is dated by when it was CARRIED OUT, not by the file's mtime —
+    // which is the day it was copied into the repo, or the checkout day on a clone.
+    // This fixture file was just written, so an mtime-based date would read today.
+    const keepDetail = () => find(score(makeReport([row('audit_keep.safetensors')])), 'audit_keep.safetensors')
+        .confidenceReasons.find(x => x.code === 'audit-keep').detail;
+    check('the audit is dated by when it was carried out, not by the file\'s mtime',
+        keepDetail().includes(`of ${AUDIT_DATE}`)
+        && !keepDetail().includes(new Date().toISOString().slice(0, 10)));
+    const decisions = path.join(root, 'tools', 'maintenance', 'model-audit', 'decisions.json');
+    const doc = JSON.parse(fs.readFileSync(decisions, 'utf8'));
+    fs.writeFileSync(decisions, JSON.stringify({ ...doc, audited: '2027-01-02' }));
+    check('...and a decisions.json that carries its own `audited` date wins',
+        keepDetail().includes('of 2027-01-02'));
+    fs.writeFileSync(decisions, JSON.stringify(doc));
 }
 
 // 9b. ★★ Two copies of one basename on disk. Usage is matched by basename, so

@@ -12,6 +12,11 @@ const launcher = require('./comfyLauncher');
 // start()). A cold ComfyUI on this class of machine needs 30–90 s.
 const PORT_SETTLE_MS = 90000;
 
+// How long a ComfyUI that ComfyQ started may take to answer before it is
+// presumed hung and replaced (see start()). A cold boot on this rig takes
+// 15–40 s; the first boot of a freshly cloned drive can take minutes.
+const BOOT_PATIENCE_MS = 10 * 60 * 1000;
+
 // Owns the ComfyUI process lifecycle. v2 design: spawn once, keep alive.
 // If ComfyUI exits, we emit 'exited' and let the LocalComfyUIWorker decide
 // whether to respawn (default: yes, with backoff).
@@ -50,10 +55,12 @@ class ComfyProcess extends EventEmitter {
         this.vramHeadroomGb = vramHeadroomGb || null;
         // Keep ComfyUI-Manager from fetching from the internet at start (see spawn).
         this.managerOffline = managerOffline !== false;
-        this.proc = null;
         // The PID of the ComfyUI we own — spawned by this ComfyQ or adopted
         // from a previous one. Null for an external instance.
         this.pid = null;
+        // When that PID became ours (launched or adopted) — the clock
+        // BOOT_PATIENCE_MS runs against.
+        this._ownedSince = null;
         this._tails = [];
         this._watch = null;
         // Why the next start() happens, for the restart history the admin
@@ -102,7 +109,15 @@ class ComfyProcess extends EventEmitter {
         if (launcher.norm(rec.userDir) !== launcher.norm(this.userDir)) return false;
         const listening = await launcher.pidsOnPort(this.port);
         if (!listening.includes(rec.pid)) return false;
+        // Already ours — a retry of start() found the ComfyUI this ComfyQ
+        // launched or adopted itself: nothing to take back, and no 'adopt' to
+        // put in the restart history (it would say ComfyQ had restarted).
+        if (this.pid === rec.pid) {
+            this.adoptedFlags = rec.flags || null;
+            return true;
+        }
         this.pid = rec.pid;
+        this._ownedSince = Date.now();
         this.adoptedFlags = rec.flags || null;
         this._follow(true);
         this._watchPid();
@@ -138,7 +153,7 @@ class ComfyProcess extends EventEmitter {
             this._watch = null;
             if (this.pid !== pid) return;
             this.pid = null;
-            this.proc = null;
+            this._ownedSince = null;
             this._unfollow();
             const intentional = !!this._stopping;
             this._stopping = false;
@@ -147,6 +162,28 @@ class ComfyProcess extends EventEmitter {
             this.emit('exited', { code: null, signal: null, intentional });
         }, 2000);
         if (this._watch.unref) this._watch.unref();
+    }
+
+    // The same race one ComfyQ later: ComfyQ restarted (a nodemon reload, a
+    // workflow switch) while the ComfyUI it had just started was still
+    // booting. Nothing answers and the port is not bound yet, but the registry
+    // holds that start, for this port and this user directory, with its PID
+    // alive. Wait for it to come up, so _tryAdopt can take it back, instead of
+    // launching a competitor. Returns true once it answers. A record older
+    // than BOOT_PATIENCE_MS is not waited for: that PID may by now belong to
+    // some other program, so it is neither trusted nor stopped.
+    async _waitForRecordedBoot() {
+        const rec = launcher.recordFor(this.port);
+        const since = rec ? Date.parse(rec.startedAt) : NaN;
+        if (!rec || !Number.isFinite(since) || launcher.norm(rec.userDir) !== launcher.norm(this.userDir)) return false;
+        const booting = () => launcher.pidAlive(rec.pid) && Date.now() - since < BOOT_PATIENCE_MS;
+        if (!booting()) return false;
+        console.log(`[ComfyProcess] The ComfyUI a previous ComfyQ started on port ${this.port} (PID ${rec.pid}) is still starting — waiting for it.`);
+        while (booting()) {
+            if (await this.isApiResponsive()) return true;
+            await new Promise(r => setTimeout(r, this._pollMs || 2000));
+        }
+        return false;
     }
 
     async isApiResponsive() {
@@ -177,7 +214,32 @@ class ComfyProcess extends EventEmitter {
         // If something is already responding on the port, assume an external
         // ComfyUI is running and don't try to spawn our own.
         if (await this.isApiResponsive()) {
-            this.proc = null;
+            if (await this._tryAdopt()) return { external: false, adopted: true };
+            console.log('[ComfyProcess] External ComfyUI already responding; using it.');
+            return { external: true };
+        }
+        // ★ A ComfyUI we started is alive but not answering yet: it is still
+        // booting. ComfyUI binds its port only at the very END of its start,
+        // after every node pack has imported, so the port checks below cannot
+        // see it. Launching a second one here (a boot that outlasted
+        // waitForApi, then a retry) left two processes racing for the port: the
+        // first bound it, the second exited, and the first was then taken for an
+        // external ComfyUI nobody could stop. Wait for our own instead, and only
+        // replace one that has not answered for BOOT_PATIENCE_MS. (One that
+        // already holds the port is merely slow to answer: the port wait below
+        // handles it, as it always has — not the wait for a PREVIOUS ComfyQ's
+        // start, which is why that one is skipped for a ComfyUI we own.)
+        if (this.owned && !await this.isPortBound()) {
+            const waited = Date.now() - (this._ownedSince || Date.now());
+            if (waited < BOOT_PATIENCE_MS) {
+                console.log(`[ComfyProcess] The ComfyUI ComfyQ started on port ${this.port} (PID ${this.pid}) is still starting — waiting for it rather than launching a second one.`);
+                return { external: false };
+            }
+            console.warn(`[ComfyProcess] The ComfyUI on port ${this.port} (PID ${this.pid}) has not answered in ${Math.round(waited / 60000)} min — stopping it and starting a fresh one.`);
+            const reason = this.nextStartReason;
+            await this.stop();
+            this.nextStartReason = reason === 'start' ? 'the previous start never answered' : reason;
+        } else if (!this.owned && await this._waitForRecordedBoot()) {
             if (await this._tryAdopt()) return { external: false, adopted: true };
             console.log('[ComfyProcess] External ComfyUI already responding; using it.');
             return { external: true };
@@ -194,7 +256,6 @@ class ComfyProcess extends EventEmitter {
             const deadline = Date.now() + PORT_SETTLE_MS;
             while (Date.now() < deadline) {
                 if (await this.isApiResponsive()) {
-                    this.proc = null;
                     if (await this._tryAdopt()) return { external: false, adopted: true };
                     console.log('[ComfyProcess] The ComfyUI already on the port came up; using it.');
                     return { external: true };
@@ -336,7 +397,7 @@ class ComfyProcess extends EventEmitter {
             logBase: launcher.logBaseFor(this.port),
         });
         this.pid = pid;
-        this.proc = { pid };      // truthy for older call sites that ask "did we spawn it?"
+        this._ownedSince = Date.now();
         this._registryMilestoneFired = false;
         this._stdoutBuf = '';
         launcher.recordStart({ port: this.port, pid, userDir: this.userDir, flags: this._flags(), reason: this.nextStartReason });
@@ -409,7 +470,7 @@ class ComfyProcess extends EventEmitter {
         for (let i = 0; i < 20 && launcher.pidAlive(pid); i++) await new Promise(r => setTimeout(r, 250));
         launcher.recordEvent({ port: this.port, pid, event: 'stop', reason: 'stopped by ComfyQ' });
         this.pid = null;
-        this.proc = null;
+        this._ownedSince = null;
         this._unfollow();
         this._stopping = false;
         this.emit('exited', { code: null, signal: null, intentional: true });

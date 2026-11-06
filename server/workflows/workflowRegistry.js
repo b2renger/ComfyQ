@@ -2,8 +2,14 @@
 // Each bundle has:
 //   <id>.api.json              ComfyUI API-format workflow (REQUIRED, validated)
 //   <id>.meta.json             WorkflowMeta (REQUIRED for v2)
-//   <id>.config.meta.json      Per-deployment overrides (OPTIONAL, written by admin UI)
+//   <id>.config.meta.json      Per-deployment overrides (OPTIONAL; read if present.
+//                              Only PUT /workflows/:id/config-meta writes it, and no
+//                              UI calls that route — the admin UI writes
+//                              <id>.meta.json directly)
 //   <id>.runtime.json          BenchmarkService output (OPTIONAL, written at calibration)
+//   <id>_template.json         Editable ComfyUI UI graph (never parsed here; the
+//                              registry only degrades "Open in ComfyUI" without it,
+//                              but bundleCompleteness.test.js REQUIRES it)
 //
 // The registry caches results in-memory but invalidates a bundle when any of
 // its files' mtimes change. No Litegraph auto-conversion: invalid format is
@@ -30,9 +36,10 @@ class WorkflowRegistry {
             configMetaPath: path.join(folder, `${id}.config.meta.json`),
             runtimePath: path.join(folder, `${id}.runtime.json`),
             // Original ComfyUI UI/litegraph export (subgraphs, groups, notes,
-            // layout). Optional — present only for workflows whose full editable
-            // graph has been dropped in. Lets the admin "Open in ComfyUI" load the
-            // real editable workflow instead of the flat API graph.
+            // layout). Optional to the registry (without it "Open in ComfyUI"
+            // falls back to download-and-drag), required of every bundle by
+            // bundleCompleteness.test.js. Lets the admin "Open in ComfyUI" load
+            // the real editable workflow instead of the flat API graph.
             templatePath: path.join(folder, `${id}_template.json`)
         };
     }

@@ -67,5 +67,63 @@ const mixed = followDriveLetter([stale, real, nowhere, 'relative/dir'], root);
 check('a mixed list is handled entry by entry',
     mixed[0] === real && mixed[1] === real && mixed[2] === nowhere && mixed[3] === 'relative/dir');
 
+// ---- Which ComfyUI a clone picks up ----------------------------------------
+// The drive ComfyQ runs from must be searched before the others. In C..Z order,
+// a clone mounted as K: on a rig with its own D:\ComfyUI_windows_portable_nvidia
+// was repointed at THAT install.
+const { comfyCandidates, detectComfyPaths, writeAtomic, keepBrokenCopy } = require('./configManager');
+const order = Array.from(comfyCandidates(['C', 'D', 'K'], 'K:\\ComfyQ', () => []));
+const firstOn = (L) => order.findIndex(p => p.toUpperCase().startsWith(`${L}:`));
+check('the install beside the checkout is tried first',
+    order[0] === 'K:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI');
+check('ComfyQ\'s own drive comes before C: and D:', firstOn('K') < firstOn('C') && firstOn('K') < firstOn('D'));
+check('C: still comes before D: after it, as before', firstOn('C') < firstOn('D'));
+check('no path is tried twice', new Set(order.map(p => p.toLowerCase())).size === order.length);
+const nested = Array.from(comfyCandidates(['C'], 'D:\\Work\\ComfyQ', () => []));
+check('a checkout in a sub-folder looks beside itself first',
+    nested[0] === 'D:\\Work\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI');
+const listed = [];
+const lazy = comfyCandidates(['C', 'D'], 'X:\\ComfyQ', (d) => { listed.push(d); return ['ComfyUI_other']; });
+for (const p of lazy) { if (p.startsWith('C:')) break; }
+check('a drive is only listed when the search reaches it', listed.length === 0 || (listed.length === 1 && listed[0] === 'C:\\'),
+    JSON.stringify(listed));
+
+if (process.platform === 'win32') {
+    const fake = fs.mkdtempSync(path.join(os.tmpdir(), 'comfyq-detect-'));
+    const root = path.join(fake, 'ComfyUI_windows_portable_nvidia', 'ComfyUI_windows_portable', 'ComfyUI');
+    fs.mkdirSync(root, { recursive: true });
+    fs.writeFileSync(path.join(root, 'main.py'), '');
+    fs.mkdirSync(path.join(root, '..', 'python_embeded'), { recursive: true });
+    fs.writeFileSync(path.join(root, '..', 'python_embeded', 'python.exe'), '');
+    const found = detectComfyPaths({ projectRoot: path.join(fake, 'ComfyQ') });
+    check('detect finds the install beside the checkout before scanning drives',
+        found && found.root_path === root && found.installation_type === 'portable', JSON.stringify(found));
+    fs.rmSync(fake, { recursive: true, force: true });
+}
+
+// ---- config.json is never lost to a typo or a power cut -------------------
+const cfgDir = fs.mkdtempSync(path.join(os.tmpdir(), 'comfyq-cfg-'));
+const cfgFile = path.join(cfgDir, 'config.json');
+writeAtomic(cfgFile, '{"a":1}');
+check('an atomic write lands the content', fs.readFileSync(cfgFile, 'utf8') === '{"a":1}');
+writeAtomic(cfgFile, '{"a":2}');
+check('and replaces it', fs.readFileSync(cfgFile, 'utf8') === '{"a":2}');
+check('no temporary file is left behind', !fs.existsSync(cfgFile + '.tmp'));
+// The temporary file cannot be written (here a folder is in its way; on the
+// rig, a full volume): the save fails and config.json keeps what it had.
+fs.mkdirSync(cfgFile + '.tmp');
+let tmpThrew = false;
+try { writeAtomic(cfgFile, '{"a":3}'); } catch { tmpThrew = true; }
+check('a temporary file that cannot be written fails the save', tmpThrew);
+check('… and leaves config.json as it was', fs.readFileSync(cfgFile, 'utf8') === '{"a":2}');
+fs.rmSync(cfgFile + '.tmp', { recursive: true, force: true });
+fs.writeFileSync(cfgFile, '{"auth": {"adminPasswordHash": "x"},}');
+const aside = keepBrokenCopy(cfgFile, 123);
+check('a broken config.json is kept beside it', aside === cfgFile + '.broken-123.bak'
+    && fs.readFileSync(aside, 'utf8').includes('adminPasswordHash'));
+check('… under a name the repo ignores (it holds secrets)', /\.bak$/.test(aside));
+check('nothing is kept when there is no file to keep', keepBrokenCopy(path.join(cfgDir, 'missing.json')) === null);
+fs.rmSync(cfgDir, { recursive: true, force: true });
+
 fs.rmSync(dir, { recursive: true, force: true });
 console.log(`configManager: all ${ok.length} checks passed (a cloned-from drive stood in as ${gone}:)`);

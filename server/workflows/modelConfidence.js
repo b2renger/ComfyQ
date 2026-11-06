@@ -135,13 +135,26 @@ function referenceNames(comfyRoot) {
     return names;
 }
 
+// The day the audit behind decisions.json was carried out. ★ Not the file's
+// mtime: that is the day it was copied into the repo (2026-10-05), or the day
+// of the checkout on a fresh clone — either way the panel would have dated the
+// audit's verdicts weeks after they were written. A decisions.json that carries
+// its own `audited: "YYYY-MM-DD"` wins over this.
+const AUDIT_DATE = '2026-09-11';
+
 /** The model audit's own written verdict per file, when it has been run here. */
 function auditVerdicts(repoRoot) {
+    return readAudit(repoRoot).verdicts;
+}
+
+/** The verdicts and the date of the audit they come from (null when there is no audit). */
+function readAudit(repoRoot) {
     const out = new Map();
-    if (!repoRoot) return out;
+    if (!repoRoot) return { verdicts: out, audited: null };
     const p = path.join(repoRoot, 'tools', 'maintenance', 'model-audit', 'decisions.json');
     let doc;
-    try { doc = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return out; }
+    try { doc = JSON.parse(fs.readFileSync(p, 'utf8')); } catch { return { verdicts: out, audited: null }; }
+    const audited = /^\d{4}-\d{2}-\d{2}$/.test(String(doc?.audited || '')) ? doc.audited : AUDIT_DATE;
     for (const m of doc.models || []) {
         if (!m?.name) continue;
         // ★ `final` BEFORE `classify`. The audit records its first-pass verdict in
@@ -158,7 +171,7 @@ function auditVerdicts(repoRoot) {
             reason: m.reason || '',
         });
     }
-    return out;
+    return { verdicts: out, audited };
 }
 
 /**
@@ -172,12 +185,7 @@ function auditVerdicts(repoRoot) {
  */
 function scoreDeletable(report, { comfyRoot, repoRoot, now = Date.now() } = {}) {
     const refs = referenceNames(comfyRoot);
-    const audit = auditVerdicts(repoRoot);
-    let auditDate = null;
-    try {
-        auditDate = new Date(fs.statSync(path.join(repoRoot, 'tools', 'maintenance', 'model-audit', 'decisions.json')).mtimeMs)
-            .toISOString().slice(0, 10);
-    } catch { /* no audit on this machine */ }
+    const { verdicts: audit, audited: auditDate } = readAudit(repoRoot);
 
     // Families of the files that ARE spoken for, so a lookalike can be spotted.
     const usedFamilies = new Map();
@@ -403,5 +411,5 @@ function auditRedownload(repoRoot) {
 
 module.exports = {
     scoreDeletable, familyKey, referenceNames, auditVerdicts, auditRedownload,
-    invalidateReferenceNames, GENERIC_NAMES,
+    invalidateReferenceNames, GENERIC_NAMES, AUDIT_DATE,
 };

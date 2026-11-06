@@ -20,20 +20,80 @@ const COMMON_OPTIONS = {
     ]
 };
 
+// The file an upload input can hold, by extension. Input-side only: what a
+// student can upload into a loader, not what a save node writes.
+const MEDIA_BY_EXT = {
+    png: 'image', jpg: 'image', jpeg: 'image', webp: 'image', bmp: 'image', gif: 'image', tif: 'image', tiff: 'image',
+    mp4: 'video', webm: 'video', mov: 'video', mkv: 'video', avi: 'video', m4v: 'video',
+    wav: 'audio', mp3: 'audio', flac: 'audio', ogg: 'audio', aac: 'audio', m4a: 'audio', opus: 'audio',
+    glb: 'model3d', gltf: 'model3d', obj: 'model3d', stl: 'model3d', fbx: 'model3d', ply: 'model3d',
+};
+const { WEIGHT_RX } = require('./vramEstimate');
+
+// Widget values the ComfyUI frontend writes into an export that are not inputs
+// of the node: a player's or a 3D viewer's state. Nothing runs on them, so they
+// are not offered as parameters at all. A bare name matches on any node; a
+// `Class.field` entry only on that class, because `image` is LoadImage's real
+// upload everywhere else. (SaveGLB declares only `mesh` and `filename_prefix`,
+// comfy_extras/nodes_save_3d.py; its `image` is the canvas preview.)
+const FRONTEND_ONLY = new Set(['video-preview', 'audioUI', 'SaveGLB.image']);
+function isFrontendOnly(nodeType, field) {
+    return FRONTEND_ONLY.has(field) || FRONTEND_ONLY.has(`${nodeType}.${field}`);
+}
+
+// ComfyUI annotates an upload with where it lives: `clipspace/x.png [input]`.
+function stripAnnotation(value) {
+    return value.replace(/\s*\[(input|output|temp)\]\s*$/i, '');
+}
+
+function mediaFromValue(value) {
+    const m = /\.([a-z0-9]+)$/i.exec(stripAnnotation(value).trim());
+    return m ? MEDIA_BY_EXT[m[1].toLowerCase()] : undefined;
+}
+
 function isPrimitive(v) {
     return v === null || ['string', 'number', 'boolean'].includes(typeof v);
 }
 
-function inferType(field, value) {
+function inferType(field, value, nodeType = '') {
     const f = field.toLowerCase();
-    // Exact match, not `f.includes('model')`: half the loaders in the library
-    // have a `model`-ish field naming a WEIGHT file, which is infrastructure.
-    // `model_file` is the Load3D / Load3DAdvanced mesh input and nothing else.
-    if (field === 'model_file') return 'model3d';
-    if (f.includes('mask')) return 'mask';
-    if (f.includes('image')) return 'image';
-    if (f.includes('video')) return 'video';
-    if (f.includes('audio')) return 'audio';
+    // ★ A media type only for a value that can BE an upload. Going by the field
+    // name alone made `mask_blend_pixels: 64`, `mask_invert: false` and
+    // `noise_mask: true` required mask uploads, and `ref_image_size: "match"`
+    // (a dropdown), `audio_encoder_name: "…safetensors"` (a weight) required
+    // picture and audio uploads: the booking form then asked for a file in a
+    // setting, and calibration staged a file name into an input ComfyUI rejects.
+    // So a FILLED value decides by its own extension, whatever the field is
+    // called (LoadVideo's `file` holding x.mp4 is a video), and a filled value
+    // that is a weight, a dropdown word or a URL is never media. The field name
+    // decides only for an EMPTY value, where there is nothing else to go on.
+    if (typeof value === 'string' && value.trim() !== '') {
+        const v = stripAnnotation(value).trim();
+        // A URL is a setting even when it ends in .png: a loader's upload is a
+        // file name in ComfyUI's input folder, never an address.
+        if (!WEIGHT_RX.test(v) && !/:\/\//.test(v)) {
+            const media = mediaFromValue(value);
+            if (media === 'image' && f.includes('mask')) return 'mask';
+            if (media) return media;
+        }
+    } else if (value === null || typeof value === 'string') {
+        // Exact match, not `f.includes('model')`: half the loaders in the library
+        // have a `model`-ish field naming a WEIGHT file, which is infrastructure.
+        // `model_file` is the Load3D / Load3DAdvanced mesh input and nothing else.
+        if (field === 'model_file') return 'model3d';
+        if (f.includes('mask')) return 'mask';
+        if (f.includes('image')) return 'image';
+        if (f.includes('video')) return 'video';
+        if (f.includes('audio')) return 'audio';
+        // LoadVideo's upload is called just `file`: when it is empty, the node's
+        // own name is the only thing that says what goes in it.
+        if (field === 'file') {
+            const c = String(nodeType).toLowerCase();
+            if (c.includes('video')) return 'video';
+            if (c.includes('audio')) return 'audio';
+            if (c.includes('image')) return 'image';
+        }
+    }
     if (field === SAMPLER_FIELD || field === SCHEDULER_FIELD) return 'select';
     if (typeof value === 'boolean') return 'checkbox';
     if (typeof value === 'number') return 'number';
@@ -73,8 +133,9 @@ function parseWorkflow(apiWorkflow) {
 
         for (const [field, value] of Object.entries(inputs)) {
             if (!isPrimitive(value)) continue;
+            if (isFrontendOnly(nodeType, field)) continue;
             primitiveCount++;
-            const type = inferType(field, value);
+            const type = inferType(field, value, nodeType);
             parameters.push({
                 key: makeKey(nodeType, field, nodeId),
                 nodeId,
@@ -101,30 +162,7 @@ function parseWorkflow(apiWorkflow) {
     };
 }
 
-// Convert ExposedParameter[] into the wire-compat parameter_map shape that
-// BookingDialog already understands: { [key]: { node_id, field, type, label,
-// default, enabled, order, options? } }. Only `enabled: true` parameters
-// appear in the final map.
-function toParameterMap(exposedParameters) {
-    const out = {};
-    for (const p of exposedParameters) {
-        out[p.key] = {
-            node_id: p.nodeId,
-            field: p.field,
-            type: p.type,
-            label: p.label,
-            default: p.default,
-            enabled: true,
-            order: p.order,
-            options: p.options,
-            min: p.min,
-            max: p.max,
-            step: p.step,
-            disabledWhen: p.disabledWhen,
-            required: p.required
-        };
-    }
-    return out;
-}
-
-module.exports = { parseWorkflow, toParameterMap, COMMON_OPTIONS, inferType };
+// The parameter_map students receive is built in realtime/realtimeBus.js
+// (_buildParameterMap), which adds the fields this parser knows nothing about
+// (lora options, camera, format, maxInputEdge…).
+module.exports = { parseWorkflow, COMMON_OPTIONS, inferType, mediaFromValue };

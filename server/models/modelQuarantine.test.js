@@ -29,7 +29,8 @@ const put = (rel, bytes = 4096) => {
 const BATCH = '2026-10-06T10-00-00-000Z';
 
 // 1. where it goes by default: beside the install, on the same volume, which is
-//    also where _maintenance/prune-models.ps1 puts its own.
+//    the same folder tools/maintenance/model-audit/prune-models.ps1 uses (its
+//    batch layout differs).
 const dflt = quarantineRoot({ comfyRoot: comfy });
 check('the default quarantine sits at the volume root', dflt === path.join(path.parse(comfy).root, '_model_quarantine'));
 check('...and is on the same volume as the models, so a move is a rename',
@@ -82,6 +83,22 @@ for (const rel of ['../../evil.safetensors', 'models/../../evil.safetensors']) {
 }
 check('restoring something not held is refused',
     restoreFile({ root: qRoot, batch: BATCH2, rel: 'models/loras/nope.safetensors', comfyRoot: comfy }).ok === false);
+// ★ ...nor talked into READING from outside the quarantine. Only the
+//    destination used to be checked, so a batch of '../elsewhere' moved a file
+//    from anywhere on the drive into models/.
+const stray = path.join(root, 'elsewhere', 'models', 'loras', 'stray.safetensors');
+fs.mkdirSync(path.dirname(stray), { recursive: true });
+fs.writeFileSync(stray, Buffer.alloc(16, 1));
+for (const batch of ['../elsewhere', '..\\elsewhere', `${BATCH2}/../../elsewhere`]) {
+    const out = restoreFile({ root: qRoot, batch, rel: 'models/loras/stray.safetensors', comfyRoot: comfy });
+    check(`a restore source outside the quarantine is refused (${batch})`, out.ok === false);
+}
+check('★ ...and the file outside it was not moved',
+    fs.existsSync(stray) && !fs.existsSync(path.join(comfy, 'models', 'loras', 'stray.safetensors')));
+for (const [batch, rel] of [[BATCH2, undefined], [BATCH2, {}], [undefined, 'models/loras/a.safetensors'], [null, null]]) {
+    check(`a restore with a missing or non-string name is refused, not thrown (${typeof batch}/${typeof rel})`,
+        restoreFile({ root: qRoot, batch, rel, comfyRoot: comfy }).ok === false);
+}
 
 // 8. emptying: the one irreversible step, and it must not follow a link out
 check('an unknown batch cannot be emptied', emptyBatch({ root: qRoot, batch: 'nope' }).ok === false);
@@ -92,6 +109,10 @@ for (const bad of ['..', '../..']) {
 const emptied = emptyBatch({ root: qRoot, batch: BATCH2 });
 check('a real batch can finally be let go', emptied.ok === true
     && !fs.existsSync(path.join(qRoot, BATCH2)));
+// The panel toasts "N GB freed" from this; it used to be missing, so every
+// empty said "? GB freed" for the one step that actually frees the space.
+check('emptying reports the size it freed, measured before the delete',
+    emptied.bytes === 4096 && emptied.gb === +(4096 / 1024 ** 3).toFixed(2));
 check('and the listing reflects it', listQuarantine({ root: qRoot }).batches.length === 0);
 
 // 9. a missing source is an error, not a silent success

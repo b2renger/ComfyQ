@@ -17,6 +17,7 @@
 const fs = require('fs');
 const path = require('path');
 const { resolveOutputPath } = require('./outputCollector');
+const { stageCopy } = require('../workers/inputUploader');
 
 // `comfyq_chain__` deliberately does NOT match the `comfyq__` prefix that
 // InputUploader.sweepStale deletes after ~30 min: a storyboard runs for hours
@@ -96,7 +97,7 @@ function resolveChainedInputs({ job, deps, queue, comfyConfig }) {
         const destName = `${CHAIN_PREFIX}${job.id.slice(0, 8)}__${sanitize(dep.paramKey)}__${sanitize(base)}`;
         const dest = path.join(inputDir, destName);
         try {
-            fs.copyFileSync(abs, dest);
+            stageCopy(abs, dest);
         } catch (e) {
             errors.push(`could not stage the ${dep.kind || 'image'} for "${dep.paramKey}": ${e.message}`);
             continue;

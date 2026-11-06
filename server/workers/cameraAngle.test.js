@@ -6,7 +6,7 @@
  * phrase in it came from `comfy_extras.nodes_camera_angle.describe_camera_angle`
  * over a 5110-point grid. So this is not a copy of the algorithm agreeing with
  * itself: it is our bucketing measured against the node that will actually run.
- * Regenerate it if ComfyUI rewords a term (see the entry in CLAUDE.md).
+ * Regenerate it if ComfyUI rewords a term (see the entry in PROJECT-HISTORY.md).
  */
 const assert = require('assert');
 const fs = require('fs');

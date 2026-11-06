@@ -68,7 +68,7 @@ server/data/
 # Per-lane ComfyUI state (user + temp dirs for extra lanes).
 .comfyq-lanes/
 
-# Personal config overrides (keep config.json template but ignore local copies)
+# config.json is generated per machine and never committed (ignored below); also ignore these override names
 config.local.json
 config.development.json
 config.production.json
@@ -172,7 +172,7 @@ temp/
 .cache/
 
 # ============ Misc ============
-# Lock files (keep package-lock.json but ignore others)
+# Other package managers' lock files (npm's package-lock.json is handled at the top)
 yarn.lock
 pnpm-lock.yaml
 
@@ -231,7 +231,6 @@ docs/.doctrees/
 
 # MkDocs
 site/
-./config.json
 config.json
 
 # Converter run reports (tools/ui-to-api, tools/api-to-ui)

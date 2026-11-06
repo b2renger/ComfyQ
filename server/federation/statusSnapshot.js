@@ -12,7 +12,14 @@ const sm = require('../queue/jobStateMachine');
 const { lanAddresses } = require('./systemInfo');
 
 const SNAPSHOT_VERSION = 1;
-const MAX_SCHEDULED = 25;          // keep the datagram comfortably small
+// Waiting jobs listed per served model, and in all. A monitor shows one card
+// per model, so the list is filled a model at a time, round-robin: filled in
+// queue order, one lane's backlog (or three lanes' backlogs against the total)
+// pushed every other lane's waiting jobs out of the snapshot, and those cards
+// read "Nothing queued". The total keeps the datagram well under the 64 KB a
+// UDP packet can carry.
+const MAX_SCHEDULED = 25;
+const MAX_SCHEDULED_TOTAL = 60;
 const PROMPT_MAX = 160;            // trim prompts for the wire
 
 function trimPrompt(p) {
@@ -118,15 +125,18 @@ function usage({ runtime }) {
 
 function jobsState({ runtime, registry }) {
     const queue = runtime?.queue;
-    if (!queue?.list) return { running: null, scheduled: [] };
+    if (!queue?.list) return { running: null, runningAll: [], scheduled: [] };
 
     const estFor = (workflowId) => {
         try { return registry.get(workflowId)?.summary?.estimatedDurationSec || null; }
         catch { return null; }
     };
+    // `workflowId` lets a monitor that shows one card per served model put each
+    // job on its own model's card.
     const compact = (j) => ({
         id: j.id,
         user: j.userId,
+        workflowId: j.workflowId || null,
         prompt: trimPrompt(j.prompt),
         status: j.status,
         scheduledAt: j.scheduledAt,
@@ -135,23 +145,46 @@ function jobsState({ runtime, registry }) {
     });
 
     let running = null;
+    // Every job in flight: with several lanes, several run at once. `running`
+    // (the first of them) stays for older Discovery builds.
+    const runningAll = [];
     const scheduled = [];
     try {
         // Unfinished jobs, scheduled_at ASC; partition them into "running now"
         // (in-flight) vs "planned". Asking the queue for only the unfinished
         // ones matters: list({limit}) keeps the OLDEST rows, so past 500 jobs
         // the fleet monitor reported an idle machine while it was working.
+        const waiting = new Map();     // workflowId -> its first MAX_SCHEDULED waiting jobs, in queue order
+        let order = 0;
         for (const j of queue.listActive()) {
             if (sm.isTerminal(j.status)) continue;
             if (j.status === sm.STATES.SCHEDULED) {
-                if (scheduled.length < MAX_SCHEDULED) scheduled.push(compact(j));
-            } else if (!running) {
-                running = compact(j);     // first in-flight job is the active one
+                const wf = j.workflowId || '';
+                if (!waiting.has(wf)) waiting.set(wf, []);
+                const list = waiting.get(wf);
+                if (list.length < MAX_SCHEDULED) list.push({ j, order: order++ });
+            } else {
+                runningAll.push(compact(j));
+                if (!running) running = runningAll[0];   // first in-flight job, as before
             }
         }
+        // One from each model in turn, until the total is reached, so every
+        // busy lane has something on its card.
+        const groups = [...waiting.values()];
+        const picked = [];
+        for (let round = 0; round < MAX_SCHEDULED && picked.length < MAX_SCHEDULED_TOTAL; round++) {
+            for (const g of groups) {
+                if (picked.length >= MAX_SCHEDULED_TOTAL) break;
+                if (round < g.length) picked.push(g[round]);
+            }
+        }
+        // Back in time order: an older Discovery build shows the list
+        // machine-wide, as it comes.
+        picked.sort((a, b) => (a.j.scheduledAt - b.j.scheduledAt) || (a.order - b.order));
+        for (const p of picked) scheduled.push(compact(p.j));
     } catch { /* queue read failed — report empty */ }
 
-    return { running, scheduled };
+    return { running, runningAll, scheduled };
 }
 
 function buildSnapshot({ configManager, registry, runtime, sysInfo }) {
@@ -186,7 +219,7 @@ function buildSnapshot({ configManager, registry, runtime, sysInfo }) {
         // — a fleet monitor can show a lock instead of an open "Schedule a job".
         accessLocked: !!config.auth?.accessPasswordHash,
         jobs: jobsState({ runtime, registry }),
-        federation: { enabled: fed.enabled !== false, intervalSec: fed.intervalSec || 15 },
+        federation: { enabled: fed.enabled !== false, intervalSec: fed.intervalSec || 5 },
         ts: Date.now()
     };
 }

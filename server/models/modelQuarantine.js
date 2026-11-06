@@ -22,9 +22,9 @@ const path = require('path');
 //
 // ★ Same volume on purpose: the quarantine sits beside the ComfyUI install, not
 // in the repo, because moving 40 GB across volumes would be a copy — slow, and
-// it could fill the disk the queue database lives on. This is also where
-// _maintenance/model-audit/prune-models.ps1 already puts its own quarantine,
-// so the two agree.
+// it could fill the disk the queue database lives on. This is the same folder
+// tools/maintenance/model-audit/prune-models.ps1 uses, with the same batch layout,
+// so each one can list, restore and empty what the other moved.
 
 const DEFAULT_DIR_NAME = '_model_quarantine';
 
@@ -73,6 +73,28 @@ function quarantineFile({ abs, rel, root, batch }) {
     }
 }
 
+/** Every file under one batch folder, with its size. */
+function batchFiles(dir) {
+    const files = [];
+    const walk = (d) => {
+        let entries = [];
+        try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+        for (const e of entries) {
+            const p = path.join(d, e.name);
+            if (e.isDirectory()) { walk(p); continue; }
+            let size = 0;
+            try { size = fs.statSync(p).size; } catch { continue; }
+            files.push({
+                rel: path.relative(dir, p).split(path.sep).join('/'),
+                gb: +(size / 1024 ** 3).toFixed(2),
+                bytes: size,
+            });
+        }
+    };
+    walk(dir);
+    return files;
+}
+
 /** Everything currently held, newest batch first. */
 function listQuarantine({ root }) {
     if (!root || !fs.existsSync(root)) return { root, batches: [], totalGb: 0 };
@@ -83,24 +105,8 @@ function listQuarantine({ root }) {
         let st;
         try { st = fs.statSync(dir); } catch { continue; }
         if (!st.isDirectory()) continue;
-        const files = [];
-        const walk = (d) => {
-            let entries = [];
-            try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
-            for (const e of entries) {
-                const p = path.join(d, e.name);
-                if (e.isDirectory()) { walk(p); continue; }
-                let size = 0;
-                try { size = fs.statSync(p).size; } catch { continue; }
-                files.push({
-                    rel: path.relative(dir, p).split(path.sep).join('/'),
-                    gb: +(size / 1024 ** 3).toFixed(2),
-                    bytes: size,
-                });
-                total += size;
-            }
-        };
-        walk(dir);
+        const files = batchFiles(dir);
+        for (const f of files) total += f.bytes;
         if (files.length) batches.push({ batch: name, files, gb: +(files.reduce((t, f) => t + f.bytes, 0) / 1024 ** 3).toFixed(2) });
     }
     return { root, batches, totalGb: +(total / 1024 ** 3).toFixed(2) };
@@ -114,7 +120,16 @@ function listQuarantine({ root }) {
  */
 function restoreFile({ root, batch, rel, comfyRoot }) {
     if (!root || !comfyRoot) return { ok: false, error: 'paths are not configured' };
+    if (typeof batch !== 'string' || !batch || typeof rel !== 'string' || !rel) {
+        return { ok: false, error: 'not in quarantine' };
+    }
     const from = path.join(root, batch, rel.split('/').join(path.sep));
+    // ★ The SOURCE must be inside the quarantine too, not only the destination:
+    // a batch of '../somewhere' would otherwise move any file on the drive into
+    // models/. The route checks the batch name; this holds for every caller.
+    if (!path.resolve(from).startsWith(path.resolve(root) + path.sep)) {
+        return { ok: false, error: 'outside the quarantine folder' };
+    }
     const back = path.resolve(comfyRoot, rel);
     const modelsRoot = path.resolve(comfyRoot, 'models');
     if (!back.startsWith(modelsRoot + path.sep)) {
@@ -137,7 +152,7 @@ function emptyBatch({ root, batch }) {
     if (!root || !batch) return { ok: false, error: 'paths are not configured' };
     const dir = path.join(root, batch);
     // Never follow a reparse point out of the quarantine: a junction here would
-    // put rm -r on whatever it points at. CLAUDE.md records a junction once
+    // put rm -r on whatever it points at. PROJECT-HISTORY.md records a junction once
     // pointing at the only copy of a node pack.
     let st;
     try { st = fs.lstatSync(dir); } catch { return { ok: false, error: 'no such batch' }; }
@@ -145,9 +160,12 @@ function emptyBatch({ root, batch }) {
     if (!path.resolve(dir).startsWith(path.resolve(root) + path.sep)) {
         return { ok: false, error: 'outside the quarantine folder' };
     }
+    // Measured BEFORE the delete: the panel says how much space this freed, and
+    // after the rm there is nothing left to measure.
+    const bytes = batchFiles(dir).reduce((t, f) => t + f.bytes, 0);
     try {
         fs.rmSync(dir, { recursive: true, force: true });
-        return { ok: true };
+        return { ok: true, bytes, gb: +(bytes / 1024 ** 3).toFixed(2) };
     } catch (e) {
         return { ok: false, error: e.message };
     }

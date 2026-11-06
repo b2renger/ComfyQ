@@ -153,6 +153,17 @@ const registry = { get: (id) => ({ summary: { name: 'Card ' + id, category: 'i2v
         assert.deepStrictEqual(media(snap), media(live));
     });
 
+    await test('the seed block holds the node-numbered seed keys, and nothing that merely contains "seed"', async () => {
+        const s = ingredients.buildSettings({
+            id: 'seeds', workflowId: 'w',
+            paramValues: {
+                ksampler_seed_3: 5, seed_7: 1, seed_52_3: 9, randomnoise_noise_seed_75_73: 11,
+                seedvr2postprocessing_color_correction_method_66_59: 'lab'
+            }
+        }, registry);
+        assert.deepStrictEqual(s.seed, { ksampler_seed_3: 5, seed_7: 1, seed_52_3: 9, randomnoise_noise_seed_75_73: 11 });
+    });
+
     await test('an unknown job is a 404', async () => {
         const r = await fetch(base + 'nope/ingredients.zip');
         assert.strictEqual(r.status, 404);

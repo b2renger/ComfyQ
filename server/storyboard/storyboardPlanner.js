@@ -25,6 +25,7 @@
 // created — and unit-tested with no ComfyUI on the machine.
 
 const { resolveWorkflowAlias, buildIndex } = require('./workflowResolver');
+const { isSeedParam } = require('../benchmark/benchmarkService');
 
 const MEDIA_TYPES = new Set(['image', 'mask', 'video', 'audio']);
 const IMAGE_TYPES = new Set(['image', 'mask']);
@@ -32,7 +33,7 @@ const IMAGE_TYPES = new Set(['image', 'mask']);
 // What a bundle PRODUCES, predicted before it runs.
 //
 // ComfyQ's runtime output detection is extension-based on purpose (see
-// CLAUDE.md), but a plan has to be built before anything has executed and
+// PROJECT-HISTORY.md), but a plan has to be built before anything has executed and
 // there is no file yet — so the prediction reads the graph's save nodes.
 // Ordered most- to least-specific because a graph often carries several: an
 // image-to-video bundle still contains a SaveImage for a preview frame.
@@ -139,10 +140,16 @@ function durationParam(params) {
         && !/clip length|source/i.test(x.label || ''));
     if (!p) return null;
     const inFrames = /frame/i.test(`${p.label || ''} ${p.key}`);
+    // The rate to convert with: a separate "Frame rate" parameter, else the
+    // rate the length parameter's own label states ("124 is about 5 s at
+    // 24 fps"). Never the length parameter itself — its label says "fps" too,
+    // and reading its 124 frames as the rate turned "5s" into 620 frames.
     const fps = inFrames
-        ? params.find(x => x.type === 'number' && /frame\s*rate|fps/i.test(`${x.label || ''} ${x.key}`))
+        ? params.find(x => x !== p && x.type === 'number' && /frame\s*rate|fps/i.test(`${x.label || ''} ${x.key}`))
         : null;
-    return { param: p, inFrames, fps };
+    const stated = inFrames ? /(\d+(?:\.\d+)?)\s*fps/i.exec(p.label || '') : null;
+    const labelFps = stated ? Number(stated[1]) || null : null;
+    return { param: p, inFrames, fps, labelFps };
 }
 
 // Frame counts for latent-video models are not free: LTX wants 8n+1 frames, and
@@ -188,8 +195,12 @@ function closestAspect(param, width, height) {
 function isNegative(p) {
     return /negative/i.test(p.key) || /negative/i.test(p.label || '');
 }
+// The server's one seed rule (benchmarkService.isSeedParam, tested against
+// seedParam.fixture.json), limited to numbers: the planner overwrites every
+// match with a random value. A bare /seed/ here read SeedVR2's colour-
+// correction key as a seed.
 function isSeed(p) {
-    return p.type === 'number' && (/seed/i.test(p.key) || /seed/i.test(p.field));
+    return p.type === 'number' && isSeedParam(p);
 }
 
 // Is this parameter greyed out by the workflow's own either/or gating?
@@ -287,10 +298,12 @@ function byOrder(params) {
 //               back to back with no idle gap on a dedicated machine.
 //   defaults    { [workflowId]: { paramKey: value } } extra params per workflow
 //
-// Returns { jobs, phases, warnings, errors, totalEstimatedSec }.
+// Returns { jobs, phases, warnings, errors, totalEstimatedSec, totalShots, ... }.
 // `errors` is non-empty when something cannot be queued correctly; the caller
-// refuses the batch (or opts into a partial run).
-function planStoryboard({ items, states = [] }, registry, options = {}) {
+// refuses the batch (or opts into a partial run). `dropped` is the parser's
+// list of shots it refused itself: they are counted, and a cut numbered to one
+// of them waits rather than animating another shot's picture.
+function planStoryboard({ items, states = [], dropped: parserDropped = [] }, registry, options = {}) {
     const {
         userId = 'storyboard',
         startAt = Date.now(),
@@ -333,6 +346,11 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
     // actually wrong, not the far larger list of shots waiting on them.
     const blockedReasons = [];
     const planned = [];              // one entry per queueable item
+    // Shots refused before pass 3, by item index → the phase they would have
+    // run in (null when the workflow could not even be read, so it may have
+    // been an image). Pass 3 needs them: a cut must not quietly take another
+    // shot's frame because its own key frame was refused early.
+    const refusedPhase = new Map();
 
     // ---- pass 1: resolve workflows and classify -------------------------
     for (const item of items) {
@@ -343,10 +361,12 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
             entry = registry.get(id);
             if (!entry || entry.unavailable) {
                 errors.push(`${where}: workflow ${id} is unavailable — ${entry?.reason || 'unknown reason'}.`);
+                refusedPhase.set(item.index, null);
                 continue;
             }
         } catch (e) {
             errors.push(`${where}: ${e.message}`);
+            refusedPhase.set(item.index, null);
             continue;
         }
 
@@ -357,6 +377,7 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
         if (phase === undefined) {
             errors.push(`${where}: ${entry.id} produces ${produces || 'something'} rather than an image, ` +
                 'a video or audio, so a storyboard cannot sequence it.');
+            refusedPhase.set(item.index, 'other');
             continue;
         }
 
@@ -383,6 +404,7 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
         if (mask) {
             errors.push(`${where}: ${entry.id} needs a painted mask ("${mask.label}"), which a storyboard cannot supply. ` +
                 'Book that one from the app instead.');
+            refusedPhase.set(item.index, phase);
             continue;
         }
 
@@ -476,7 +498,7 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
             if (!dur) {
                 untimeable.add(entry.id);
             } else if (dur.inFrames) {
-                const fps = (dur.fps && spec.paramValues[dur.fps.key]) || dur.fps?.default || 25;
+                const fps = (dur.fps && spec.paramValues[dur.fps.key]) || dur.fps?.default || dur.labelFps || 25;
                 const frames = snapFrames(Math.round(item.durationSec * fps), dur.param.default);
                 spec.paramValues[dur.param.key] = frames;
                 spec.notes.push(`${item.durationSec}s = ${frames} frames @ ${fps}fps`);
@@ -494,6 +516,7 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
 
     // Items that failed pass 2 are dropped from the run.
     const runnable = planned.filter(s => s.promptParamKey);
+    for (const s of planned) if (!s.promptParamKey) refusedPhase.set(s.item.index, s.phase);
 
     if (substituted.length) {
         warnings.push(`${substituted.length} shot(s) asked for ${substituted[0].from}, which edits an ` +
@@ -527,11 +550,32 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
     let sectionId = null;
     let available = [];              // images produced in this section, unconsumed
     let refusedInSection = 0;        // image shots this section could not queue
+    let refusedSlots = new Set();    // ...and their numbers ("Reference image 2" → 2)
+    const noteRefused = (it) => {
+        refusedInSection++;
+        if (it.slotNumber != null) refusedSlots.add(it.slotNumber);
+    };
+    const specByIndex = new Map(runnable.map(s => [s.item.index, s]));
 
-    for (const spec of runnable) {
-        const { item } = spec;
+    // Every shot, in document order — including the ones refused in pass 1 or
+    // 2, and the ones the parser dropped (a "##" with no "###" line or no
+    // prompt), which a cut after them must see as refused rather than absent.
+    const walk = items.map(item => ({ item, wasDropped: false }));
+    if (parserDropped.length) {
+        walk.push(...parserDropped.map(item => ({ item, wasDropped: true })));
+        walk.sort((a, b) => a.item.line - b.item.line);
+    }
+    for (const { item, wasDropped } of walk) {
+        if (item.stateId !== sectionId) {
+            sectionId = item.stateId; available = []; refusedInSection = 0; refusedSlots = new Set();
+        }
+        const spec = wasDropped ? null : specByIndex.get(item.index);
+        if (!spec) {
+            const phase = wasDropped ? droppedPhase(item) : refusedPhase.get(item.index);
+            if ((phase === 0 || phase === null) && !item.anchorKey) noteRefused(item);
+            continue;
+        }
         const where = `"${item.title}" (${item.stateId})`;
-        if (item.stateId !== sectionId) { sectionId = item.stateId; available = []; refusedInSection = 0; }
 
         if (spec.imageParams.length > 0) {
             const wanted = spec.imageParams.length;
@@ -564,15 +608,29 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
                 const byNumber = item.slotNumber != null
                     ? available.findIndex(s => s.item.slotNumber === item.slotNumber)
                     : -1;
-                sources = byNumber >= 0
-                    ? available.splice(byNumber, 1)
-                    : available.splice(0, wanted);
+                if (byNumber < 0 && item.slotNumber != null && refusedSlots.has(item.slotNumber)) {
+                    // Its own key frame was refused. Falling back to the next
+                    // image would animate a different shot — and force would
+                    // queue exactly that.
+                    block(spec, `${where}: waits on the key frame numbered ${item.slotNumber} in section ` +
+                        `${item.stateId}, which could not be queued.`);
+                    sources = [];
+                } else {
+                    // A "(loop)" cut uses one key frame for every slot, so it
+                    // takes one: taking two would throw the second away and
+                    // leave the next cut without its frame.
+                    sources = byNumber >= 0
+                        ? available.splice(byNumber, 1)
+                        : available.splice(0, item.loop ? 1 : wanted);
+                }
                 if (byNumber >= 0 && wanted > sources.length && !spec.item.loop) {
                     // A first/last-frame cut numbered to one key frame still needs
                     // its second slot; take the next image in the section.
                     sources.push(...available.splice(0, wanted - sources.length));
                 }
-                if (sources.length === 0 && refusedInSection > 0) {
+                if (spec.blocked) {
+                    // Already reported above.
+                } else if (sources.length === 0 && refusedInSection > 0) {
                     // The shots that would have fed it were themselves refused.
                     // Reporting this as its own fault would triple the length of
                     // the report and point at the wrong line of the document.
@@ -620,16 +678,33 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
         if (!spec.failed && !spec.blocked) {
             for (const p of spec.mediaParams) {
                 if (spec.deps.some(d => d.paramKey === p.key)) continue;
-                fail(spec, `${where}: ${spec.entry.id} needs "${p.label}" (${p.type}), and nothing in the ` +
-                    'storyboard supplies it. Add an anchor to the "###" line, e.g. "| ref A1".');
+                // A ref only ever fills an IMAGE slot, so suggesting one for a
+                // video or audio input would send the author round in a circle.
+                fail(spec, IMAGE_TYPES.has(p.type)
+                    ? `${where}: ${spec.entry.id} needs "${p.label}" (${p.type}), and nothing in the ` +
+                      'storyboard supplies it. Add an anchor to the "###" line, e.g. "| ref A1".'
+                    : `${where}: ${spec.entry.id} needs "${p.label}" (${p.type}), which a storyboard cannot ` +
+                      'supply. Book that one from the app instead.');
             }
         }
 
         // An ordinary image becomes available to the cuts after it. An ANCHOR
         // does not: it is the named library, reached with "| ref Ax". Nor does a
         // shot that failed above, since it will never run.
-        if (spec.phase === 0 && (spec.failed || spec.blocked) && !item.anchorKey) refusedInSection++;
+        if (spec.phase === 0 && (spec.failed || spec.blocked) && !item.anchorKey) noteRefused(item);
         if (spec.phase === 0 && !spec.failed && !spec.blocked && !item.anchorKey) available.push(spec);
+    }
+
+    // A shot whose inputs lead back to itself can never run: it would sit
+    // SCHEDULED forever, and its batch with it. Refs resolve document-wide, so
+    // "## Anchor image 2" editing "ref A2" — or two anchors naming each other —
+    // makes one. Refused here, before the cascade, so whatever waits on it is
+    // dropped too and none of it is ever queued.
+    for (const spec of cycleMembers(runnable.filter(s => !s.failed && !s.blocked))) {
+        const self = spec.deps.some(d => d.sourceItemIndex === spec.item.index);
+        fail(spec, `"${spec.item.title}" (${spec.item.stateId}): ` + (self
+            ? 'it takes its own result as an input, so it could never run.'
+            : 'its inputs form a loop with another item, so neither could ever run.'));
     }
 
     // Drop everything that could not be queued correctly, then everything that
@@ -637,8 +712,7 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
     // jobs it queues are exactly the ones with no unmet input, never a job
     // silently stripped of its dependency.
     const dropped = new Set(runnable.filter(s => s.failed || s.blocked).map(s => s.item.index));
-    const refused = runnable.filter(s => s.failed).length;   // broken in their own right
-    let blocked = runnable.filter(s => s.blocked).length;    // only fail because those did
+    let blocked = runnable.filter(s => s.blocked).length;    // only fail because others did
     for (let pass = 0; pass < runnable.length; pass++) {
         let grew = false;
         for (const spec of runnable) {
@@ -658,6 +732,19 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
     function fail(spec, message) {
         spec.failed = true;
         errors.push(message);
+    }
+
+    // The phase a shot the parser dropped would have run in, read from its
+    // "###" line when it has one. Null when there is nothing to read (it may
+    // have been an image), as for a workflow pass 1 could not resolve.
+    function droppedPhase(it) {
+        if (!it.workflowAlias) return null;
+        try {
+            const entry = registry.get(resolveWorkflowAlias(it.workflowAlias, registry, index).id);
+            if (!entry || entry.unavailable) return null;
+            const phase = PHASE_FOR_KIND[predictOutputKind(entry)];
+            return phase === undefined ? 'other' : phase;
+        } catch { return null; }
     }
 
     // Not wrong in itself — it just cannot run because something it needs was
@@ -697,11 +784,14 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
         const group = queueable.filter(s => s.phase === phase);
         const { sorted, unresolved, endedOn } = orderByWorkflow(group, lastWorkflowId);
         lastWorkflowId = endedOn;
+        // Loops were refused before the cascade, so this should never fire.
+        // Kept so a later change cannot queue a job that waits forever: an
+        // unresolved shot is reported and never becomes a job.
         for (const spec of unresolved) {
             errors.push(`"${spec.item.title}" (${spec.item.stateId}): its inputs form a loop with another ` +
                 'item, so neither could ever run.');
         }
-        ordered.push(...sorted, ...unresolved);
+        ordered.push(...sorted);
     }
 
     // ---- pass 5: timeline slots ----------------------------------------
@@ -753,16 +843,25 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
     const workflowRuns = summariseRuns(jobs);
 
     // A one-line account of why a document was refused, so the card can lead
-    // with it instead of a wall of near-identical sentences.
-    const summary = errors.length
+    // with it instead of a wall of near-identical sentences. Counted from the
+    // outcome: a shot refused in pass 1 or 2 (an unknown workflow, no prompt
+    // field) never reached pass 3, so counting failures there missed it and
+    // the headline claimed more shots would run than there were jobs. Shots
+    // the parser dropped count too: its errors already name them, but the
+    // document had them, and "2 of 3" for a four-shot document reads wrong.
+    // Written whenever the plan has something to report — its own errors, or
+    // a shot left waiting on one the parser dropped.
+    const totalShots = items.length + parserDropped.length;
+    const refused = totalShots - jobs.length - blocked;   // broken in their own right
+    const summary = (errors.length || blocked)
         ? `${refused} shot${refused === 1 ? '' : 's'} cannot be queued` +
           (blocked ? `, and ${blocked} more depend${blocked === 1 ? 's' : ''} on ${refused === 1 ? 'it' : 'them'}` : '') +
-          ` — ${items.length - refused - blocked} of ${items.length} would run.`
+          ` — ${jobs.length} of ${totalShots} would run.`
         : null;
 
     return { jobs, phases, workflowRuns, modelLoads: workflowRuns.length,
              warnings, errors, blockedReasons, refusedCount: refused, blockedCount: blocked,
-             summary, totalEstimatedSec, states };
+             summary, totalShots, totalEstimatedSec, states };
 }
 
 // Topological sort that sticks to one workflow for as long as it can.
@@ -774,10 +873,10 @@ function planStoryboard({ items, states = [] }, registry, options = {}) {
 // Ties fall back to document order, which keeps the result deterministic and
 // keeps the storyboard's own sequence where the grouping does not care.
 //
-// A cycle cannot arise through the storyboard grammar (a ref always points at
-// an earlier anchor), but a hand-edited document could produce one — those
-// shots would sit SCHEDULED forever waiting on each other, so they come back
-// separately for the caller to report as an error.
+// Refs resolve document-wide, so a shot can name itself or a later anchor and
+// close a loop. planStoryboard refuses those before it gets here (see
+// cycleMembers); any shot still unresolved comes back separately so the caller
+// reports it rather than queueing a job that would sit SCHEDULED forever.
 function orderByWorkflow(group, startWorkflowId = null) {
     const inGroup = new Set(group.map(s => s.item.index));
     const placed = new Set();
@@ -795,6 +894,25 @@ function orderByWorkflow(group, startWorkflowId = null) {
     return { sorted, unresolved: group.filter(s => !placed.has(s.item.index)), endedOn: current };
 }
 
+// The shots that sit on a dependency loop — each can reach itself through its
+// inputs. Shots merely waiting on a loop are NOT members: they are left to the
+// cascade, which reports them as blocked rather than broken.
+function cycleMembers(specs) {
+    const byIndex = new Map(specs.map(s => [s.item.index, s]));
+    const reaches = (from, target, seen) => {
+        for (const d of from.deps) {
+            const src = byIndex.get(d.sourceItemIndex);
+            if (!src) continue;
+            if (src === target) return true;
+            if (seen.has(src.item.index)) continue;
+            seen.add(src.item.index);
+            if (reaches(src, target, seen)) return true;
+        }
+        return false;
+    };
+    return specs.filter(s => reaches(s, s, new Set()));
+}
+
 // The consecutive runs of one workflow, in run order — what the batch will
 // actually ask ComfyUI to load, and how many shots each load pays for.
 function summariseRuns(jobs) {
@@ -807,4 +925,4 @@ function summariseRuns(jobs) {
     return runs;
 }
 
-module.exports = { planStoryboard, predictOutputKind, orderByWorkflow, PHASE_LABELS };
+module.exports = { planStoryboard, predictOutputKind, orderByWorkflow, PHASE_LABELS, isSeed };

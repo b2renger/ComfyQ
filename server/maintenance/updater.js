@@ -43,6 +43,16 @@ const GIT_TIMEOUT_MS = 3 * 60 * 1000;
 const UPDATE_TIMEOUT_MS = 15 * 60 * 1000;
 const PIP_TIMEOUT_MS = 30 * 60 * 1000;
 
+// ★ git refuses to read a repository another Windows user owns ("detected
+// dubious ownership") — the normal state of a drive cloned onto a new machine.
+// Every read then fails, and without this the pack showed no commit and, after
+// a check, "could not reach its remote": a false reason with no way forward.
+const SAFE_DIRECTORY_FIX = 'git refuses this folder: run git config --global --add safe.directory "*" '
+    + 'once on this machine';
+function isOwnershipRefusal(stderr) {
+    return /dubious ownership/i.test(String(stderr || ''));
+}
+
 /** `v0.39.1` -> a sortable number, ordered the way the vendor's updater orders it. */
 function tagRank(tag) {
     const m = /^v(\d+)\.(\d+)\.(\d+)$/.exec(String(tag || '').trim());
@@ -81,6 +91,32 @@ function comfyVerdict({ before, after, moved }) {
     };
 }
 
+/** "0.43.2 (a1b2c3d)": the version alone cannot show a move onto untagged master. */
+function where(s) {
+    if (!s) return 'unknown';
+    if (s.head && s.label && s.label !== s.head) return `${s.label} (${s.head})`;
+    return s.label || s.head || 'unknown';
+}
+
+/**
+ * The sentence a STOPPED ComfyUI update should print.
+ *
+ * ★ A stop is not "nothing happened". update.py stashes local edits, checks out
+ * master and pulls BEFORE it checks out the newest tag, so a stop in between
+ * can leave the install on an untagged master commit. Without this the run read
+ * as just "cancelled", with no restart warning, wherever HEAD had got to.
+ */
+function comfyStoppedVerdict({ before, after, moved }) {
+    if (moved) {
+        return `Stopped part-way: ComfyUI is now at ${where(after)} (was ${where(before)}), which may be `
+            + 'an untagged commit rather than a release. Read the output above before running anything — '
+            + 'the updater may already have stashed local edits. ComfyUI must be restarted before it runs '
+            + 'this code; running Update ComfyUI again should finish the move to the newest release.';
+    }
+    return `Stopped before anything moved — ComfyUI is still at ${where(after)}. The updater may already `
+        + 'have stashed local edits; read the output above.';
+}
+
 class Updater {
     /**
      * @param {object} opts
@@ -93,6 +129,7 @@ class Updater {
         this._run = null;       // the one update in flight, or the last finished
         this._child = null;
         this._scan = null;      // the last "what has updates?" sweep
+        this._claim = null;     // a pack being fetched just before its update begins
         this._localCache = null;
     }
 
@@ -138,7 +175,7 @@ class Updater {
         }
         this._scan = {
             status: 'running', startedAt: new Date().toISOString(),
-            comfy: null, packs: [], done: 0, total: 0, unreachable: 0,
+            comfy: null, packs: [], done: 0, total: 0, unreachable: 0, refused: 0,
         };
         const scan = this._scan;
         (async () => {
@@ -159,7 +196,10 @@ class Updater {
                     const row = one.ok ? one.packs[0] : null;
                     if (row) {
                         scan.packs.push(row);
-                        if (row.fetched === false) scan.unreachable++;
+                        // A folder git refuses was never fetched: that is not an
+                        // unreachable remote, and saying so sends people to the network.
+                        if (row.gitRefused) scan.refused++;
+                        else if (row.fetched === false) scan.unreachable++;
                     }
                     scan.done++;
                 }
@@ -200,7 +240,7 @@ class Updater {
         const out = {
             root, present: false, version: null, head: null, describe: null, branch: null,
             isGit: false, updaterPresent: false,
-            newestLocalTag: null, onNewestLocalTag: null,
+            newestLocalTag: null, onNewestLocalTag: null, aheadOfNewestTag: false,
             dirty: [], untracked: 0,
         };
         if (!root || !fs.existsSync(root)) return out;
@@ -219,6 +259,10 @@ class Updater {
         out.isGit = fs.existsSync(path.join(root, '.git'));
         if (!out.isGit) return out;
         out.head = this._gitSync(root, ['rev-parse', '--short', 'HEAD']);
+        if (out.head == null && this._gitRefusedDir === root) {
+            out.gitRefused = SAFE_DIRECTORY_FIX;
+            return out;
+        }
         out.describe = this._gitSync(root, ['describe', '--tags', '--always']);
         out.branch = this._gitSync(root, ['rev-parse', '--abbrev-ref', 'HEAD']);
         const tags = (this._gitSync(root, ['tag', '--list', 'v*']) || '').split(/\r?\n/).filter(Boolean);
@@ -227,6 +271,20 @@ class Updater {
             const tagSha = this._gitSync(root, ['rev-list', '-n', '1', out.newestLocalTag]);
             const headSha = this._gitSync(root, ['rev-parse', 'HEAD']);
             out.onNewestLocalTag = !!tagSha && !!headSha && tagSha === headSha;
+            // ★ "Not on the newest tag" has two opposite meanings. Behind it, the
+            // stable updater moves forward. AHEAD of it — on master past the
+            // release, which update_comfyui.bat (the non-stable one, in the same
+            // folder) leaves you on — the stable updater checks the tag out,
+            // i.e. it moves BACK. Commits in the tag that HEAD lacks: 0 means
+            // the tag is already behind HEAD.
+            // ⚠ Read from the LOCAL tags, with no fetch. update.py fetches
+            // before it picks the tag, so "moves back" holds only if no newer
+            // release was published since the last fetch; checkComfy fetches
+            // first and is the one place this can be stated as fact.
+            if (out.onNewestLocalTag === false) {
+                const missing = this._gitSync(root, ['rev-list', '--count', `HEAD..${out.newestLocalTag}`]);
+                out.aheadOfNewestTag = missing === '0';
+            }
         }
         // ★ Tracked modifications are reported because the vendor updater
         // STASHES them onto a backup branch. That is recoverable, but it is not
@@ -255,18 +313,30 @@ class Updater {
                     + 'against — it was unpacked from an archive. Update it the way it was installed.',
             };
         }
+        if (st.gitRefused) {
+            return {
+                ok: true, ...st, fetched: false, updateAvailable: false,
+                verdict: `Whether a newer release exists is unknown: ${st.gitRefused}. `
+                    + `What is installed is ${st.version || 'unclear'}.`,
+            };
+        }
         const log = [];
         const code = await this._spawnQuiet('git', ['-C', st.root, 'fetch', '--tags', 'origin'],
             { cwd: st.root, timeout: GIT_TIMEOUT_MS, log });
         const after = this.comfyState();
         const fetched = code === 0;
-        const available = fetched && !!after.newestLocalTag && after.onNewestLocalTag === false;
+        const available = fetched && !!after.newestLocalTag && after.onNewestLocalTag === false
+            && !after.aheadOfNewestTag;
         let verdict;
         if (!fetched) {
             verdict = 'Could not reach the remote, so whether a newer release exists is unknown. '
                 + `What is installed is ${after.version || after.describe || 'unclear'}.`;
         } else if (!after.newestLocalTag) {
             verdict = 'The remote has no version tags to compare against.';
+        } else if (after.aheadOfNewestTag) {
+            verdict = `Installed is an untagged commit (${after.describe || after.head}) AHEAD of the `
+                + `newest release, ${after.newestLocalTag}. There is no newer release to take. `
+                + `Update ComfyUI runs the stable updater, which would move it BACK to ${after.newestLocalTag}.`;
         } else if (available) {
             verdict = `A newer release is available: ${after.newestLocalTag} `
                 + `(installed: ${after.version || after.describe}).`;
@@ -296,6 +366,17 @@ class Updater {
                     + 'this can drive. Update it the way it was installed.',
             };
         }
+        // ★ The vendor updater turns git's ownership check off for itself
+        // (pygit2 GIT_OPT_SET_OWNER_VALIDATION 0), so it WOULD stash, pull and
+        // check out here. But with git refusing us, neither the stash warning
+        // below (no tracked edits can be read) nor the before/after commit can
+        // be evaluated — and a real update then reported "Nothing moved".
+        if (st.gitRefused) {
+            return {
+                ok: false,
+                error: `whether ComfyUI's own files are modified, and where it stands, cannot be read: ${st.gitRefused}`,
+            };
+        }
         if (st.dirty.length && !opts.acceptStash) {
             return {
                 ok: false,
@@ -323,7 +404,7 @@ class Updater {
             let code = await this._spawn(py, ['-s', './update.py', target, '--stable'],
                 { cwd: dir, timeout: UPDATE_TIMEOUT_MS, run });
             const fresh = path.join(dir, 'update_new.py');
-            if (code === 0 && fs.existsSync(fresh)) {
+            if (code === 0 && !run.stopping && fs.existsSync(fresh)) {
                 run.step = 'the updater replaced itself — running it again';
                 try {
                     fs.renameSync(fresh, path.join(dir, 'update.py'));
@@ -338,6 +419,18 @@ class Updater {
             const is = now.version || now.describe || now.head || 'unknown';
             run.after = { version: now.version, describe: now.describe, head: now.head, label: is };
             run.step = null;
+            // Stopped by the admin: the killed updater exits non-zero, and that
+            // is a cancel, not a failure with a cause to report — but it may
+            // already have moved the install, so say where it landed.
+            if (run.stopping) {
+                run.status = 'cancelled';
+                run.moved = run.before.head !== run.after.head;
+                run.needsRestart = run.moved;
+                run.verdict = comfyStoppedVerdict({ before: run.before, after: run.after, moved: run.moved });
+                run.requirements = this.comfyRequirements();
+                if (run.moved) invalidateNodePacks();
+                return;
+            }
             if (code !== 0) {
                 run.status = 'failed';
                 run.error = `the updater exited with code ${code} — read its output above before retrying`;
@@ -396,6 +489,7 @@ class Updater {
             const code = await this._spawn(py,
                 ['-s', '-m', 'pip', 'install', '-r', path.join(this._updateDir(), 'current_requirements.txt')],
                 { cwd: this._updateDir(), timeout: PIP_TIMEOUT_MS, run });
+            if (run.stopping) { run.status = 'cancelled'; run.step = null; run.needsRestart = true; return; }
             run.status = code === 0 ? 'done' : 'failed';
             run.step = null;
             run.needsRestart = true;
@@ -430,7 +524,7 @@ class Updater {
                 hasRequirements: p.hasRequirements, disabled: p.disabled,
                 head: null, subject: null, date: null, branch: null,
                 dirty: [], untracked: 0,
-                behind: null, incoming: [], fetched: false,
+                behind: null, incoming: [], fetched: false, gitRefused: false,
                 // Why this pack cannot be updated from here, in words.
                 blocked: null,
             };
@@ -444,6 +538,15 @@ class Updater {
                 continue;
             }
             row.head = this._gitSync(dir, ['rev-parse', '--short', 'HEAD']);
+            if (row.head == null && this._gitRefusedDir === dir) {
+                // Nothing else git says about this folder can be read, and a
+                // fetch would fail the same way and read as an unreachable remote.
+                // Flagged so a check counts it as refused, not unreachable.
+                row.blocked = SAFE_DIRECTORY_FIX;
+                row.gitRefused = true;
+                out.push(row);
+                continue;
+            }
             row.subject = this._gitSync(dir, ['log', '-1', '--format=%s']);
             row.date = this._gitSync(dir, ['log', '-1', '--format=%ad', '--date=short']);
             row.branch = this._gitSync(dir, ['rev-parse', '--abbrev-ref', 'HEAD']);
@@ -545,7 +648,18 @@ class Updater {
             return { ok: false, error: `custom_nodes/${folder} is not a git clone — there is nothing to pull from` };
         }
         const dir = path.join(cn, folder);
-        const before = await this.packStates({ fetch: true, only: folder });
+        // ★ Claim the slot BEFORE the fetch below. It takes seconds, and the
+        // run slot is only taken by _begin after it — so a second Update (this
+        // pack, another pack, or ComfyUI itself) used to pass _busy() inside
+        // that window, and the two runs overwrote each other's status and
+        // Stop could only reach the last child.
+        this._claim = folder;
+        let before;
+        try {
+            before = await this.packStates({ fetch: true, only: folder });
+        } finally {
+            this._claim = null;
+        }
         const row = before.ok ? before.packs[0] : null;
         if (row?.blocked) return { ok: false, error: row.blocked };
         if (row && row.behind === 0) {
@@ -567,10 +681,46 @@ class Updater {
                 subject: this._gitSync(dir, ['log', '-1', '--format=%s']),
             };
             run.step = null;
+            // A killed pull may still have moved HEAD: say where it is now, and
+            // drop the cached list either way.
+            if (run.stopping) {
+                run.status = 'cancelled';
+                run.moved = run.before.head !== run.after.head;
+                run.needsRestart = run.moved;
+                if (!run.after.head) {
+                    // Unknown is not "did not move" — and restarting is the safe side.
+                    run.verdict = `Stopped part-way, and where ${folder} now stands could not be read. `
+                        + 'Read the output above and check the folder before restarting ComfyUI.';
+                    invalidateNodePacks();
+                    this._localCache = null;
+                    return;
+                }
+                if (run.moved) {
+                    const reqAfter = readRequirements(dir);
+                    run.requirements = reqAfter;
+                    run.requirementsChanged = reqBefore.lines.join('\n') !== reqAfter.lines.join('\n');
+                    invalidateNodePacks();
+                }
+                run.verdict = run.moved
+                    ? `Stopped part-way: ${folder} is now at ${run.after.head} (was ${run.before.head}). `
+                        + 'Read the output above. ComfyUI must be restarted before it loads the new code.'
+                        + (run.requirementsChanged
+                            ? ' Its requirements.txt changed — read it before running pip.'
+                            : '')
+                    : `Stopped before anything moved — ${folder} is still at ${run.after.head}.`;
+                this._localCache = null;
+                return;
+            }
             if (code !== 0) {
+                // ★ Not "its history has diverged": that is one cause among
+                // several (the remote unreachable, an untracked file in the way,
+                // a timeout), and asserting it sent people looking for the
+                // wrong thing. Say what is known.
                 run.status = 'failed';
-                run.error = 'git could not fast-forward this pack: its history has diverged from the '
-                    + 'remote. Nothing was changed — look at it by hand.';
+                run.error = `git pull --ff-only failed (exit ${code}) — read its output above. `
+                    + (run.before.head && run.before.head === run.after.head
+                        ? `The pack is still at ${run.after.head}. ` : '')
+                    + 'A diverged history is never merged here; that one is for a person to resolve.';
                 return;
             }
             const reqAfter = readRequirements(dir);
@@ -599,6 +749,9 @@ class Updater {
         if (this._run && this._run.status === 'running') {
             return { ok: false, error: `${this._run.label} is already being updated` };
         }
+        if (this._claim) {
+            return { ok: false, error: `${this._claim} is being checked against its remote before it updates` };
+        }
         // ⚠ An update changes what the next prompt runs and is not live until
         // ComfyUI restarts. Neither belongs in the middle of a class.
         if (this._mode() !== 'admin') {
@@ -614,7 +767,7 @@ class Updater {
 
     _begin(key, label, step) {
         this._run = {
-            key, label, step, status: 'running',
+            key, label, step, status: 'running', stopping: false,
             startedAt: new Date().toISOString(),
             output: [], error: null, verdict: null,
             before: null, after: null, incoming: [], moved: false,
@@ -624,9 +777,16 @@ class Updater {
     }
 
     stop() {
-        if (!this._run || this._run.status !== 'running') return { ok: false, error: 'nothing is running' };
+        const run = this._run;
+        if (!run || run.status !== 'running') return { ok: false, error: 'nothing is running' };
         try { this._child?.kill(); } catch { /* already gone */ }
-        this._run.status = 'cancelled';
+        // ★ The status stays 'running' until the child has really exited: the
+        // run's own block then reads where the install landed and sets
+        // 'cancelled' together with that. Flipping it here made the panel stop
+        // polling before the after-state existed, so a stop that had already
+        // moved HEAD read as just "cancelled", with no restart warning.
+        run.stopping = true;
+        run.step = 'stopping — waiting for it to exit';
         return { ok: true };
     }
 
@@ -636,8 +796,14 @@ class Updater {
         return { ok: true };
     }
 
-    /** A short git read. Returns trimmed stdout, or null when git says no. */
+    /**
+     * A short git read. Returns trimmed stdout, or null when git says no.
+     * `_gitRefusedDir` is set to `cwd` when this read was refused over folder
+     * ownership, and cleared by any other outcome, so the caller can tell that
+     * case from an ordinary null on the very next line.
+     */
     _gitSync(cwd, args) {
+        this._gitRefusedDir = null;
         try {
             return execFileSync('git', ['-C', cwd, ...args], {
                 encoding: 'utf8', timeout: 20000, windowsHide: true,
@@ -645,7 +811,10 @@ class Updater {
                 // ComfyUI-Manager might be touching at the same moment.
                 env: { ...process.env, GIT_TERMINAL_PROMPT: '0', GIT_OPTIONAL_LOCKS: '0' },
             }).trim() || null;
-        } catch { return null; }
+        } catch (e) {
+            if (isOwnershipRefusal(e && e.stderr)) this._gitRefusedDir = cwd;
+            return null;
+        }
     }
 
     /**
@@ -707,15 +876,18 @@ class Updater {
             };
             child.stdout.on('data', feed);
             child.stderr.on('data', feed);
+            // Only clear the handle if it is still ours: a stopped child that
+            // closes late must not orphan the next run's child from Stop.
+            const release = () => { if (keepChild && this._child === child) this._child = null; };
             child.on('error', (e) => {
                 clearTimeout(timer);
                 run.output.push(`${cmd} failed to start: ${e.message}`);
-                if (keepChild) this._child = null;
+                release();
                 resolve(1);
             });
             child.on('close', (code) => {
                 clearTimeout(timer);
-                if (keepChild) this._child = null;
+                release();
                 resolve(code == null ? 1 : code);
             });
         });
@@ -730,4 +902,4 @@ class Updater {
     }
 }
 
-module.exports = { Updater, tagRank, newestTag, comfyVerdict };
+module.exports = { Updater, tagRank, newestTag, comfyVerdict, comfyStoppedVerdict };

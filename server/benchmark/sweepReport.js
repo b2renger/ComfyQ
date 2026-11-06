@@ -293,10 +293,13 @@ function renderSweepReport(report, opts = {}) {
             for (const seg of wrap(t.text, 68).slice(0, 12)) L.push(`        ${seg}`);
             if (wrap(t.text, 68).length > 12) L.push('        … (full text in the .jsonl)');
         }
-        // ★ And a stray one is a defect, reported rather than hidden: these reach a
-        // student's gallery as a result tile beside the picture.
+        // ★ And a stray one is reported rather than hidden: an in-path preview node
+        // emitted a bare value (a line index, a tensor shape). A real job drops it
+        // when a file sits beside it (outputCollector._keepResultText), so students
+        // never see it — but it is node plumbing leaking out of the graph, and a
+        // reader judging the bundle should know it is there.
         for (const t of (r.outputs || []).filter(x => isStrayText(x, r))) {
-            L.push(`      ⚠ ${t.file} also published the bare string ${JSON.stringify(t.text)} as a result tile`);
+            L.push(`      ⚠ ${t.file} also emitted the bare string ${JSON.stringify(t.text)} (node plumbing; real jobs drop it)`);
         }
     }
     L.push('');

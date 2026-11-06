@@ -131,19 +131,20 @@ function classesInGraph(graph) {
  * @param {object} opts
  * @param {object} [opts.objectInfo]   a live /object_info payload, if the caller has one
  * @param {boolean} [opts.allowCache]  fall back to the audit's copy (default true)
+ * @param {string} [opts.cachePath]    where that copy is (tests pass a temp file)
  */
-function availableClasses({ objectInfo = null, allowCache = true } = {}) {
+function availableClasses({ objectInfo = null, allowCache = true, cachePath = CACHED_OBJECT_INFO } = {}) {
     if (objectInfo && typeof objectInfo === 'object') {
         const names = Object.keys(objectInfo);
         if (names.length) return { classes: new Set(names), source: 'live', at: null };
     }
-    if (allowCache && fs.existsSync(CACHED_OBJECT_INFO)) {
+    if (allowCache && fs.existsSync(cachePath)) {
         try {
-            const raw = JSON.parse(fs.readFileSync(CACHED_OBJECT_INFO, 'utf8'));
+            const raw = JSON.parse(fs.readFileSync(cachePath, 'utf8'));
             return {
                 classes: new Set(Object.keys(raw)),
                 source: 'cache',
-                at: fs.statSync(CACHED_OBJECT_INFO).mtimeMs,
+                at: fs.statSync(cachePath).mtimeMs,
             };
         } catch { /* a torn cache is the same as none */ }
     }
@@ -159,8 +160,12 @@ function availableClasses({ objectInfo = null, allowCache = true } = {}) {
  * ComfyUI had gained since — CameraAngle, which the 2511 angles bundle uses —
  * read as a missing NODE PACK, with no Install button because no pack provides
  * it. The fallback is now never older than the last time ComfyUI answered.
+ *
+ * `cachePath` exists for the test: its refusal checks must run against a temp
+ * copy, because if a guard here ever regressed, a check against the real file
+ * would be the thing that overwrote it (it has happened once already).
  */
-function refreshCachedObjectInfo(objectInfo) {
+function refreshCachedObjectInfo(objectInfo, { cachePath = CACHED_OBJECT_INFO } = {}) {
     // ★ Only a payload that can be a real ComfyUI. The first version of this was
     // called from inside missingNodePacks, and its own test handed that function a
     // two-class fixture — which then overwrote the 4.7 MB cache. It is called from
@@ -172,8 +177,8 @@ function refreshCachedObjectInfo(objectInfo) {
     // would then read as missing whenever ComfyUI is down. Removing a pack or two
     // passes this; losing a fifth of the classes does not.
     try {
-        if (fs.existsSync(CACHED_OBJECT_INFO)) {
-            const prev = Object.keys(JSON.parse(fs.readFileSync(CACHED_OBJECT_INFO, 'utf8')));
+        if (fs.existsSync(cachePath)) {
+            const prev = Object.keys(JSON.parse(fs.readFileSync(cachePath, 'utf8')));
             if (prev.length >= 200) {
                 const kept = prev.filter(k => k in objectInfo).length;
                 if (kept < prev.length * 0.8) return false;
@@ -181,10 +186,10 @@ function refreshCachedObjectInfo(objectInfo) {
         }
     } catch { /* an unreadable cache is replaced */ }
     try {
-        fs.mkdirSync(path.dirname(CACHED_OBJECT_INFO), { recursive: true });
-        const tmp = CACHED_OBJECT_INFO + '.tmp';
+        fs.mkdirSync(path.dirname(cachePath), { recursive: true });
+        const tmp = cachePath + '.tmp';
         fs.writeFileSync(tmp, JSON.stringify(objectInfo));
-        fs.renameSync(tmp, CACHED_OBJECT_INFO);
+        fs.renameSync(tmp, cachePath);
         return true;
     } catch { return false; }
 }
@@ -254,7 +259,7 @@ function coreSourceDefines(comfyRoot, className) {
  * }}
  */
 function missingNodePacks(bundles, comfyRoot, opts = {}) {
-    const key = JSON.stringify([comfyRoot, bundles.map(b => b.id), !!opts.objectInfo]);
+    const key = JSON.stringify([comfyRoot, bundles.map(b => b.id), !!opts.objectInfo, opts.cachePath || null]);
     if (_cache.value && _cache.key === key && (Date.now() - _cache.at) < TTL_MS) return _cache.value;
 
     const { classes, source, at } = availableClasses(opts);

@@ -8,6 +8,18 @@ const ingredientsStore = require('../storage/ingredientsStore');
 const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions');
 
 const HEARTBEAT_MS = 5000;
+
+// The library's showcase jobs belong to the user "examples" (seeded by
+// tools/maintenance/seed_examples.cjs). A job's owner is just the name a
+// student types, and an owner may delete or cancel their jobs without the
+// admin password — deleting also removes the sweep result files the examples
+// point to. So nobody may take that name: acting on an example always goes
+// through the admin password. (The client refuses it too, as a courtesy.)
+// "storyboard" for the same reason: a batch's shots belong to it, and a student
+// who took the name could cancel them.
+const RESERVED_USER_IDS = new Set(['examples', 'storyboard']);
+const isReservedUserId = (name) => RESERVED_USER_IDS.has(String(name ?? '').trim().toLowerCase());
+const RESERVED_NAME_MESSAGE = '“examples” and “storyboard” are reserved for ComfyQ’s own jobs — please choose another name.';
 // Progress arrives once per sampler step — or per tile / frame on some nodes —
 // and every tick used to push the whole job list to every client. Changes are
 // now merged into at most one broadcast per interval.
@@ -51,11 +63,11 @@ const PATCH_MAX_JOBS = 60;
 // })
 //
 // Inbound events:
-//   register_user(name)
+//   register_user(name)          a reserved name is refused: register_refused({ reason, message })
 //   request_state()              resend the full snapshot to this socket
 //   book_job({ scheduledTime, prompt, params, user_id, workflow_id?, admin_password? })
 //   delete_job(jobId)            with optional admin_password
-//   reorder_job({ jobId, newTimeSlot })
+//   reorder_job({ jobId, newTimeSlot, admin_password? }, ack?)  ack({ ok, error? })
 //   cancel_job(jobId)            with optional admin_password
 class RealtimeBus {
     constructor({ httpServer, queue, executor, registry, configManager, worker, lanes = null, comfyConfig, activity }) {
@@ -162,6 +174,11 @@ class RealtimeBus {
 
             socket.on('register_user', (name) => {
                 if (!name) return;
+                if (isReservedUserId(name)) {
+                    // `message` is what SocketContext shows; `reason` for any other reader.
+                    socket.emit('register_refused', { reason: RESERVED_NAME_MESSAGE, message: RESERVED_NAME_MESSAGE });
+                    return;
+                }
                 const u = this.connectedUsers.get(socket.id);
                 if (u) { u.userId = String(name); this.connectedUsers.set(socket.id, u); }
                 this.broadcast();
@@ -172,6 +189,7 @@ class RealtimeBus {
                     const { scheduledTime, prompt, params = {}, user_id, workflow_id } = payload || {};
                     const me = this.connectedUsers.get(socket.id);
                     const userId = user_id || me?.userId || 'anon';
+                    if (isReservedUserId(userId)) throw new Error(RESERVED_NAME_MESSAGE);
                     const cfg = this.configManager.load().config;
                     const wfId = workflow_id || cfg.workflows.activeWorkflowId;
                     if (!wfId) throw new Error('No active workflow configured');
@@ -278,31 +296,63 @@ class RealtimeBus {
                         job, configManager: this.configManager
                     });
                     if (!auth.allowed) return socket.emit('error', { message: auth.reason });
-                    this._executorFor(job).cancelJob(jobId);
+                    Promise.resolve(this._executorFor(job).cancelJob(jobId)).then((done) => {
+                        // A job that finished meanwhile needs nothing. One still
+                        // marked running that no executor is running was either
+                        // left behind, or is on a lane that is closing right now
+                        // (the lane leaves the map before its abort finishes, and
+                        // that abort fails the job a moment later). Say so,
+                        // rather than let the button do nothing — and only what
+                        // is true in both cases: stale jobs are failed by the
+                        // student-mode boot, not by a restart into admin mode.
+                        const now = this.queue.get(jobId);
+                        if (!done && now && sm.isInFlight(now.status)) {
+                            socket.emit('error', {
+                                message: 'This job could not be stopped from here: no lane on this machine is running it. ' +
+                                    'If it does not stop on its own in a moment, it will be marked failed the next time this machine starts serving.'
+                            });
+                        }
+                    }).catch((e) => socket.emit('error', { message: e.message }));
                 } catch (e) {
                     socket.emit('error', { message: e.message });
                 }
             });
 
-            socket.on('reorder_job', (payload) => {
+            // A client that passes an ack learns the answer either way, so it
+            // can put a refused move back where it was; the refusal then comes
+            // in the ack only, as for book_job. Without an ack, the 'error'
+            // event carries it, as before.
+            socket.on('reorder_job', (payload, ack) => {
+                const refuse = (message) => {
+                    if (typeof ack === 'function') ack({ ok: false, error: message });
+                    else socket.emit('error', { message });
+                };
                 try {
                     const { jobId, newTimeSlot, admin_password } = payload || {};
                     const job = this.queue.get(jobId);
-                    if (!job) return;
+                    if (!job) return refuse('This job no longer exists.');
                     const me = this.connectedUsers.get(socket.id);
                     const auth = isAuthorizedForJob({
                         socketUserId: me?.userId, providedPassword: admin_password,
                         job, configManager: this.configManager
                     });
-                    if (!auth.allowed) return socket.emit('error', { message: auth.reason });
-                    const cfg = this.configManager.load().config;
+                    if (!auth.allowed) return refuse(auth.reason);
+                    // Same rule as booking. A slot in the past is free (only
+                    // unfinished jobs count as collisions) and comes due at
+                    // once, so the moved job would run next — ahead of every
+                    // earlier booking on its lane. And a value that is not a
+                    // time would be stored as text and never come due at all.
+                    if (!Number.isFinite(newTimeSlot) || newTimeSlot < Date.now()) {
+                        return refuse('Pick a time in the future.');
+                    }
                     const entry = this.registry.get(job.workflowId);
                     const duration = ((entry?.summary?.estimatedDurationSec) || 60) * 1000;
                     const collisions = this.queue.findCollisions(newTimeSlot, duration, jobId, job.workflowId);
-                    if (collisions.length > 0) return socket.emit('error', { message: 'Time slot collision' });
+                    if (collisions.length > 0) return refuse('Time slot collision');
                     this.queue.reorder(jobId, newTimeSlot);
+                    if (typeof ack === 'function') ack({ ok: true });
                 } catch (e) {
-                    socket.emit('error', { message: e.message });
+                    refuse(e.message);
                 }
             });
 
@@ -558,4 +608,4 @@ class RealtimeBus {
     }
 }
 
-module.exports = { RealtimeBus };
+module.exports = { RealtimeBus, isReservedUserId };

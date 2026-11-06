@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const zlib = require('zlib');
+const crypto = require('crypto');
 const { effectiveComfyConfig, runningPerfFlags, blockingFlags, PERF_FLAG_LABELS } = require('../workers/perfFlags');
 
 // BenchmarkService — runs each workflow's `warmupParams` once and writes a
@@ -32,11 +33,36 @@ const ASSET_EXTS = {
     video: ['.mp4', '.webm', '.mov', '.mkv', '.avi'],
     audio: ['.mp3', '.wav', '.flac', '.ogg', '.m4a', '.aac'],
     // A 3D mesh input. Geometry only -- textures ride inside a .glb.
-    model3d: ['.glb', '.gltf', '.obj', '.stl', '.ply', '.fbx']
+    // Only what Get3DComponents can read (glb, gltf, obj, stl): it refuses .fbx
+    // and any other suffix, so a .ply or .fbx in the assets dir must not be picked.
+    model3d: ['.glb', '.gltf', '.obj', '.stl']
 };
 // Skip tiny thumbnails / depth maps when picking an image so we don't feed a
 // degenerate 12×12 px file into a workflow that derives latent size from it.
 const IMAGE_MIN_BYTES = 50 * 1024;
+
+// Whether an exposed parameter is a seed. Calibration replaces every one with a
+// fresh number so the run cannot be answered from ComfyUI's result cache, and the
+// sweep report labels those values "calibration" — both read this one rule.
+// A seed sits on a sampler field (`seed`, `noise_seed`), inside a widget group
+// (`sampling_mode.seed` — the Gemma captioners) or on a primitive node whose key
+// is `seed_<n>` (the 360 panorama's `7.value`, linked into both samplers). The
+// last two were missed: the panorama could be calibrated from the cache, and the
+// captioners ran the test suite's seed verbatim.
+// The key rule alone (`seed` as the last word, then only node-id numbers:
+// `seed_7`, `ksampler_seed_3`, `randomnoise_noise_seed_75_73`) gives the same
+// answer as key + field on every bundle, so a caller that only has a job's
+// param keys (the ingredients zip, the relaunch panel) can pass `{ key }`.
+// ⚠ Never /seed/ anywhere in the name: SeedVR2's colour-correction key contains it.
+// ⚠ The client cannot import this, so it keeps its own copy (the booking form's
+//   re-roll, the relaunch panel's seed line, client/src/utils/seedParam.js).
+//   client/src/utils/seedParam.test.mjs tests that copy against seedParam.fixture.json,
+//   the list this rule is tested against, so the two cannot drift apart.
+function isSeedParam(p) {
+    const k = String(p?.key || '').toLowerCase();
+    const f = String(p?.field || '').toLowerCase();
+    return /(^|_)seed(_\d+)*$/.test(k) || /(^|[._])seed$/.test(f);
+}
 
 // Tiny PNG generator (no external deps). Used to seed a reference image into
 // ComfyUI's input/ dir so workflows with image inputs can be calibrated
@@ -149,12 +175,30 @@ class BenchmarkService {
     // assets dir for that media input. Needed when the content matters, not
     // just the type: a pose / character-replacement workflow calibrated on
     // whatever video happens to be smallest may find no person and fail.
-    _namedAsset(value, type) {
+    /**
+     * @param {object} [opts]
+     * @param {string[]} [opts.extraRoots]  more folders a `file:` value may come
+     *   from — a sweep run with its own data dir derives its inputs there
+     * @param {boolean} [opts.strict]  the value is a TEST SUITE's input: refuse it
+     *   with an error instead of falling back to an automatic pick
+     */
+    _namedAsset(value, type, { extraRoots = [], strict = false } = {}) {
+        // ★ A value that cannot be used. For warmupParams the gauge picks a file of
+        // the right type instead and says so. A test suite's input is never swapped:
+        // the result would become an example that pretends to follow from a file
+        // it never saw, while the report still named the one asked for. The run
+        // stops with the reason instead.
+        const refuse = (why) => {
+            if (strict) throw new Error(`${why} — a test-suite input is never replaced with a random file, so this run was not made`);
+            console.warn(`[Benchmark]   ${why} — picking a ${type} automatically`);
+            return null;
+        };
         // `file:<absolute path>` — what a test suite passes when it feeds one
         // workflow's RESULT to the next (see suitePlan.js). Accepted only inside
         // the folders ComfyQ already works with: ComfyUI's output and input dirs,
-        // the assets dir, and the suite's own derived-inputs folder. A path from
-        // anywhere else is refused rather than copied into ComfyUI's input dir.
+        // the assets dir, and the suite's own derived-inputs folder (plus the one
+        // a sweep with its own data dir writes to). A path from anywhere else is
+        // refused rather than copied into ComfyUI's input dir.
         if (typeof value === 'string' && value.startsWith('file:')) {
             const full = path.resolve(value.slice('file:'.length).trim());
             const roots = [
@@ -162,13 +206,13 @@ class BenchmarkService {
                 this.comfyConfig?.root_path ? path.join(this.comfyConfig.root_path, 'input') : null,
                 this.assetsDir || null,
                 path.resolve(__dirname, '..', 'data', 'suite-inputs'),
+                ...(extraRoots || []),
             ].filter(Boolean).map(r => path.resolve(r).toLowerCase() + path.sep);
             const inside = roots.some(r => (full.toLowerCase() + path.sep).startsWith(r) && full.toLowerCase() + path.sep !== r);
             let isFile = false;
             try { isFile = fs.statSync(full).isFile(); } catch { /* missing */ }
             if (inside && isFile) return full;
-            console.warn(`[Benchmark]   a ${type} input asks for ${full}, which is ${isFile ? 'outside the folders ComfyQ works with' : 'not there'} — picking a ${type} automatically`);
-            return null;
+            return refuse(`a ${type} input asks for ${full}, which is ${isFile ? 'outside the folders ComfyQ works with' : 'not there'}`);
         }
         if (typeof value !== 'string' || !value.startsWith('asset:')) return undefined;
         const name = value.slice('asset:'.length).trim();
@@ -179,8 +223,7 @@ class BenchmarkService {
         const ok = full && rootDir && path.resolve(full).toLowerCase().startsWith(rootDir)
             && fs.existsSync(full) && fs.statSync(full).isFile();
         if (ok) return full;
-        console.warn(`[Benchmark]   warmupParams asks for asset "${name}" but it isn't in ${this.assetsDir || '(no assets dir)'} — picking a ${type} automatically`);
-        return null;
+        return refuse(`a ${type} input asks for the asset "${name}", which is not in ${this.assetsDir || '(no assets dir)'}`);
     }
 
     // Stage the assets each image/video/audio input needs into ComfyUI/input and
@@ -191,8 +234,11 @@ class BenchmarkService {
      *   over warmupParams (a media value may be `asset:` or `file:`)
      * @param {object} [mediaNotes]  per media key, where a suite input came from —
      *   shown to a human beside the ingredient ("output of image_…_t2i")
+     * @param {object} [opts]
+     * @param {object} [opts.worker]      the worker whose uploader stages the copies
+     * @param {string[]} [opts.inputRoots]  more folders a suite's `file:` value may come from
      */
-    _buildCalibrationParams(entry, benchJobId, overrides = null, mediaNotes = null) {
+    _buildCalibrationParams(entry, benchJobId, overrides = null, mediaNotes = null, { worker = this.worker, inputRoots = [] } = {}) {
         const paramValues = { ...(entry.meta.warmupParams || {}), ...(overrides || {}) };
         // ★ Which file on disk each media input really came from, kept so a sweep
         // report can show a human the ingredients that produced a given result.
@@ -201,9 +247,10 @@ class BenchmarkService {
         this._lastMedia = {};
         for (const p of entry.effective.exposedParameters) {
             if (!['image', 'video', 'audio', 'mask', 'model3d'].includes(p.type)) continue;
-            const named = this._namedAsset(paramValues[p.key], p.type);
+            const fromSuite = !!overrides && Object.prototype.hasOwnProperty.call(overrides, p.key);
+            const named = this._namedAsset(paramValues[p.key], p.type, { extraRoots: inputRoots, strict: fromSuite });
             if (named) {
-                const rec = this.worker.uploader.copy({
+                const rec = worker.uploader.copy({
                     jobId: benchJobId, paramKey: p.key,
                     originalName: path.basename(named), source: named
                 });
@@ -218,7 +265,7 @@ class BenchmarkService {
             if (paramValues[p.key] !== undefined && paramValues[p.key] !== '') continue;
             const asset = this._resolveAsset(p.type);
             if (asset) {
-                const rec = this.worker.uploader.copy({
+                const rec = worker.uploader.copy({
                     jobId: benchJobId, paramKey: p.key,
                     originalName: path.basename(asset), source: asset
                 });
@@ -241,11 +288,7 @@ class BenchmarkService {
         // (field `value`) which `_randomizeSeeds` (literal `*seed` fields) misses.
         // Overrides a warmupParams seed on purpose; calibration must always run.
         for (const p of entry.effective.exposedParameters) {
-            const k = String(p.key || '').toLowerCase();
-            const f = String(p.field || '').toLowerCase();
-            if (k === 'seed' || k.endsWith('_seed') || f === 'seed' || f.endsWith('_seed')) {
-                paramValues[p.key] = Math.floor(Math.random() * 0x7fffffff);
-            }
+            if (isSeedParam(p)) paramValues[p.key] = Math.floor(Math.random() * 0x7fffffff);
         }
         return paramValues;
     }
@@ -292,14 +335,14 @@ class BenchmarkService {
      * keeps a model resident (a second lane serving) never drops, and waiting
      * for it would hang every calibration.
      */
-    async _waitForVramSettle({ timeoutMs = 25000, intervalMs = 1500, quietMs = 3000 } = {}) {
+    async _waitForVramSettle({ worker = this.worker, timeoutMs = 25000, intervalMs = 1500, quietMs = 3000 } = {}) {
         const GB = 1024 ** 3;
         const deadline = Date.now() + timeoutMs;
         let lowest = Infinity, lastDropAt = Date.now();
         while (Date.now() < deadline) {
             let used = null;
             try {
-                const stats = await this.worker.rest.ping();
+                const stats = await worker.rest.ping();
                 const dev = (stats?.devices || []).find(d => d?.type === 'cuda') || stats?.devices?.[0];
                 if (dev) used = (dev.vram_total || 0) - (dev.vram_free || 0);
             } catch { /* ComfyUI busy or restarting — just stop waiting */ }
@@ -314,12 +357,12 @@ class BenchmarkService {
         console.warn('[Benchmark] card never settled — the VRAM baseline may include another process');
     }
 
-    _watchVram({ intervalMs = 2000, settleMs = 4000 } = {}) {
+    _watchVram({ worker = this.worker, intervalMs = 2000, settleMs = 4000 } = {}) {
         const GB = 1024 ** 3;
         let peak = 0, cardPeak = 0, seen = false, baseCard = null;
         const read = async () => {
             try {
-                const stats = await this.worker.rest.ping();
+                const stats = await worker.rest.ping();
                 const dev = (stats?.devices || []).find(d => d?.type === 'cuda') || stats?.devices?.[0];
                 if (!dev) return null;
                 const mine = (dev.torch_vram_total || 0) - (dev.torch_vram_free || 0);
@@ -372,7 +415,7 @@ class BenchmarkService {
         };
     }
 
-    async _runOnce(entry, apiWorkflow, paramValues, runId) {
+    async _runOnce(entry, apiWorkflow, paramValues, runId, worker = this.worker) {
         let stepsDone = 0, stepsTotal = 0, firstStepAt = null, lastStepAt = null;
         let resolveDone, rejectDone;
         const donePromise = new Promise((res, rej) => { resolveDone = res; rejectDone = rej; });
@@ -395,13 +438,13 @@ class BenchmarkService {
             }
             rejectDone(e);
         };
-        this.worker.on('progress', onProgress);
-        this.worker.on('execution-finished', onFinished);
-        this.worker.on('failed', onFailed);
+        worker.on('progress', onProgress);
+        worker.on('execution-finished', onFinished);
+        worker.on('failed', onFailed);
 
         const startedAt = Date.now();
         try {
-            await this.worker.submit(runId, apiWorkflow, {
+            await worker.submit(runId, apiWorkflow, {
                 workflowId: entry.id,
                 exposedParameters: entry.effective.exposedParameters,
                 paramValues,
@@ -413,17 +456,21 @@ class BenchmarkService {
                 donePromise,
                 new Promise((_, rej) => setTimeout(() => rej(new Error('benchmark timed out')), CALIBRATION_TIMEOUT_MS))
             ]);
-            this.worker.finalize({ success: true });
+            worker.finalize({ success: true });
             const finishedAt = Date.now();
             return { durationMs: finishedAt - startedAt, startedAt, finishedAt, firstStepAt, lastStepAt, stepsDone, stepsTotal };
         } catch (e) {
-            // Release the worker so the next run (or a later job) can submit.
-            try { this.worker.finalize({ success: false }); } catch { /* ignore */ }
+            // Release the worker so the next run (or a later job) can submit — but
+            // only while it is still running THIS run. A submit refused with "Worker
+            // not idle" means someone else holds it (a student job, another
+            // calibration): finalize() would reset THEIR run, its events would be
+            // dropped from then on, and it would wait out the two-hour timeout.
+            try { if (worker.getStatus().currentJobId === runId) worker.finalize({ success: false }); } catch { /* ignore */ }
             throw e;
         } finally {
-            this.worker.off('progress', onProgress);
-            this.worker.off('execution-finished', onFinished);
-            this.worker.off('failed', onFailed);
+            worker.off('progress', onProgress);
+            worker.off('execution-finished', onFinished);
+            worker.off('failed', onFailed);
         }
     }
 
@@ -438,27 +485,49 @@ class BenchmarkService {
     // its cached result for an identical graph in ~1s (which is what made
     // calibration report 1s). Instead the run uses a fresh random seed so it
     // always actually executes — even on re-calibration — and we derive the warm
-    // cost by subtracting the measured load phase. Inputs (image/video/audio) are
-    // auto-supplied from the assets dir, so no upload or warmupParams is required.
+    // cost by subtracting the measured load phase. Inputs are auto-supplied from
+    // the assets dir; when the content matters, meta.warmupParams names a file
+    // with `asset:<name>` (see _namedAsset).
     /**
      * @param {object} [opts]
      * @param {object} [opts.params]      a test suite's values for this run
      * @param {object} [opts.mediaNotes]  where each suite media input came from
+     * @param {string[]} [opts.inputRoots]  more folders a suite's `file:` input may
+     *   come from (a sweep run with its own data dir derives its inputs there)
      */
     async calibrate(workflowId, opts = {}) {
         const entry = this.registry.get(workflowId);
         if (!entry || entry.unavailable) {
             throw new Error(`Cannot calibrate unavailable workflow: ${workflowId}`);
         }
-        // Run on this workflow's own lane when it has one. Calibration is
-        // serialized (the guard below refuses a busy worker), so swapping the
-        // worker for the duration is safe; it is restored in the finally at the
-        // end of the run.
-        const defaultWorker = this.worker;
+        // ★ One calibration at a time, claimed BEFORE the first await. The idle check
+        // in _calibrate is not enough on its own: the worker stays 'idle' through the
+        // /free and the wait for the card to settle (3–25 s), so a second click in
+        // that window passed it too. The loser's submit then failed "Worker not
+        // idle", its cleanup reset the winner's run — which then waited out the
+        // two-hour timeout — and could delete the winner's staged inputs. One claim
+        // for the whole service also stops two LANES calibrating at once: both
+        // would /free and measure the same card.
+        if (this._running) {
+            throw new Error(`Another calibration is running (${this._running}) — wait for it to finish; two at once would disturb each other's timing and memory figures`);
+        }
+        this._running = workflowId;
+        try {
+            return await this._calibrate(workflowId, entry, opts);
+        } finally {
+            this._running = null;
+        }
+    }
+
+    async _calibrate(workflowId, entry, opts) {
+        // Run on this workflow's own lane when it has one. The worker is handed to
+        // every step rather than swapped into this.worker: the swap was not undone
+        // when preparing the inputs threw, so later calibrations of other workflows
+        // ran on that lane's ComfyUI — or, once the lane closed, were refused as
+        // busy until a restart.
         const laneWorker = this.lanes?.get?.(workflowId)?.worker || null;
-        if (laneWorker) this.worker = laneWorker;
-        if (this.worker.getStatus().state !== 'idle') {
-            this.worker = defaultWorker;
+        const worker = laneWorker || this.worker;
+        if (worker.getStatus().state !== 'idle') {
             throw new Error('Worker is busy; calibrate after queue drains');
         }
         // Refuse to gauge a workflow whose ComfyUI is running with a flag that
@@ -470,9 +539,8 @@ class BenchmarkService {
         // black run and writing it to runtime.json as fact is worse than not
         // measuring at all, so say plainly what is wrong and what to do.
         const blocked = blockingFlags(effectiveComfyConfig(this.comfyConfig, entry.meta),
-            await runningPerfFlags(this.worker.rest));
+            await runningPerfFlags(worker.rest));
         if (blocked.length) {
-            this.worker = defaultWorker;
             const names = blocked.map(k => PERF_FLAG_LABELS[k] || k).join(' and ');
             throw new Error(
                 `Cannot calibrate ${workflowId}: the ComfyUI it would run on was started with ${names}, `
@@ -482,29 +550,43 @@ class BenchmarkService {
         }
 
         const benchJobId = `bench-${workflowId}-${Date.now()}`;
-        console.log(`[Benchmark] ${workflowId}: preparing calibration inputs…`);
-        const paramValues = this._buildCalibrationParams(entry, benchJobId, opts.params || null, opts.mediaNotes || null);
-        const { wf, seedsRandomized } = this._randomizeSeeds(entry.apiWorkflow);
-        // ★ What this run was actually fed, kept on the service for a caller that
-        // wants to show it. runtime.json is the wrong home for a prompt and a set of
-        // asset paths — it is committed per bundle and read by the scheduler — so
-        // this stays in memory and the library sweep copies what it needs.
-        this.lastRun = {
-            workflowId,
-            paramValues: { ...paramValues },
-            media: { ...(this._lastMedia || {}) },
-            // Which values a test suite chose, so the report can say so rather
-            // than calling them "calibration" defaults.
-            suiteKeys: Object.keys(opts.params || {}),
-            seedsRandomized,
-            startedAt: new Date().toISOString(),
-        };
+        // ★ What the staged copies are namespaced by. The uploader keeps only the
+        // first 8 characters of it, so `bench-${workflowId}` gave every image_*
+        // bundle the same namespace (`comfyq__bench-im__…`), and one run's cleanup
+        // could delete another's inputs — a second ComfyQ process (the suite CLI)
+        // stages into the same folder. A random token keeps them this run's own.
+        const stageId = `b${crypto.randomBytes(4).toString('hex').slice(0, 7)}`;
 
         try {
+            // Inside the try, so a refused input still cleans up what was staged.
+            console.log(`[Benchmark] ${workflowId}: preparing calibration inputs…`);
+            const paramValues = this._buildCalibrationParams(entry, stageId, opts.params || null, opts.mediaNotes || null,
+                { worker, inputRoots: opts.inputRoots || [] });
+            const { wf, seedsRandomized: literalSeeds } = this._randomizeSeeds(entry.apiWorkflow);
+            // …plus the exposed seeds _buildCalibrationParams replaced on a field the
+            // literal pass does not touch (a primitive's `value`, `sampling_mode.seed`),
+            // or the report reads "0 seeds randomized" for a run that was cache-proof.
+            const seedsRandomized = literalSeeds + entry.effective.exposedParameters.filter(p => isSeedParam(p)
+                && !(typeof entry.apiWorkflow?.[p.nodeId]?.inputs?.[p.field] === 'number' && /seed$/i.test(p.field))).length;
+            // ★ What this run was actually fed, kept on the service for a caller that
+            // wants to show it. runtime.json is the wrong home for a prompt and a set of
+            // asset paths — it is committed per bundle and read by the scheduler — so
+            // this stays in memory and the library sweep copies what it needs.
+            this.lastRun = {
+                workflowId,
+                paramValues: { ...paramValues },
+                media: { ...(this._lastMedia || {}) },
+                // Which values a test suite chose, so the report can say so rather
+                // than calling them "calibration" defaults.
+                suiteKeys: Object.keys(opts.params || {}),
+                seedsRandomized,
+                startedAt: new Date().toISOString(),
+            };
+
             // Evict everything first so the run pays the full model-load cost,
             // exactly like the first job after a fresh start (→ coldDurationSec).
             try {
-                await this.worker.rest.free({ unloadModels: true, freeMemory: true });
+                await worker.rest.free({ unloadModels: true, freeMemory: true });
             } catch (e) {
                 console.warn(`[Benchmark] pre-run /free failed (continuing): ${e.message}`);
             }
@@ -512,20 +594,21 @@ class BenchmarkService {
             // returns as soon as it has asked, so without this both the model
             // load time and the VRAM baseline are measured against the previous
             // run's weights.
-            await this._waitForVramSettle();
+            await this._waitForVramSettle({ worker });
             console.log(`[Benchmark] ${workflowId}: timed run (load models → generate; ${seedsRandomized} seed(s) randomized to avoid the result cache)…`);
             // Watch VRAM for the length of the run. This is the only honest
             // figure for a pipeline whose models aren't named as files in the
-            // graph (the 3D bundles load a HuggingFace repo and stage through
-            // it), and it is what decides whether two workflows can be served
-            // side by side on one card.
-            const vram = this._watchVram();
+            // graph (LivePortrait's pack loads its weights by a path built in
+            // code, and the 3d_mesh_* tools name no model), and it is what
+            // decides whether two workflows can be served side by side on one
+            // card.
+            const vram = this._watchVram({ worker });
             // stop() in a finally, or a run that throws leaves the 2 s poller
             // running for the life of the server — one more every time a
             // calibration fails.
             let run, vramPeak;
             try {
-                run = await this._runOnce(entry, wf, paramValues, `${benchJobId}-run`);
+                run = await this._runOnce(entry, wf, paramValues, `${benchJobId}-run`, worker);
             } finally {
                 vramPeak = await vram.stop();
             }
@@ -546,14 +629,14 @@ class BenchmarkService {
             // Capture the GPU that produced these numbers (best-effort).
             let gpu = null;
             try {
-                const stats = await this.worker.rest.ping();
+                const stats = await worker.rest.ping();
                 const dev = (stats?.devices || []).find(d => d?.type === 'cuda') || stats?.devices?.[0];
                 if (dev?.name) gpu = String(dev.name).replace(/^cuda:\d+\s+/i, '').trim();
             } catch (e) {
                 console.warn(`[Benchmark] could not capture GPU info: ${e.message}`);
             }
 
-            const runtime = {
+            const runtime = keepHighestVram({
                 schemaVersion: 1,
                 calibratedAt: new Date().toISOString(),
                 // estimatedDurationSec drives the timeline → the warm/recurring cost
@@ -575,7 +658,7 @@ class BenchmarkService {
                 vramResidentGb: vramPeak.residentGb,
                 vramCardPeakGb: vramPeak.cardPeakGb,
                 source: 'benchmark'
-            };
+            }, entry.runtime, entry.apiWorkflow);
             this.registry.writeRuntime(workflowId, runtime);
             console.log(`[Benchmark] ${workflowId}: first run ${runtime.coldDurationSec}s = model-load ~${runtime.modelLoadSec}s + generation ~${runtime.estimatedDurationSec}s${gpu ? ` · ${gpu}` : ''}`);
             if (runtime.vramPeakGb) {
@@ -583,11 +666,24 @@ class BenchmarkService {
             }
             return runtime;
         } finally {
-            this.worker = defaultWorker;
             // Remove the namespaced asset copies we staged into ComfyUI/input.
-            try { this.worker.uploader.cleanupJob(benchJobId); } catch { /* ignore */ }
+            try { worker.uploader.cleanupJob(stageId); } catch { /* ignore */ }
         }
     }
 }
 
-module.exports = { BenchmarkService };
+// Lane admission reads vramPeakGb, and a peak depends on the input and on what
+// was already on the card: SeedVR2-3B measured 12.64 GB, then 8.31 GB on a later
+// run, and the lower figure admitted a pairing measured at 30.17 of 30 GB usable.
+// So the figure only goes up while the graph is the same; a changed graph starts
+// again. A runtime.json from before this has no hash and keeps its higher figure,
+// which is the safe direction. vramLastPeakGb is what this run really measured.
+function keepHighestVram(runtime, prev, apiWorkflow) {
+    const vramGraph = crypto.createHash('sha1').update(JSON.stringify(apiWorkflow || {})).digest('hex').slice(0, 12);
+    const out = { ...runtime, vramLastPeakGb: runtime.vramPeakGb ?? null, vramGraph };
+    const comparable = prev?.vramPeakGb && (!prev.vramGraph || prev.vramGraph === vramGraph);
+    if (comparable && !(runtime.vramPeakGb >= prev.vramPeakGb)) out.vramPeakGb = prev.vramPeakGb;
+    return out;
+}
+
+module.exports = { BenchmarkService, isSeedParam, keepHighestVram };

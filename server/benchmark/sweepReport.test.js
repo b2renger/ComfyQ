@@ -204,9 +204,9 @@ console.log('\nthe clean rows');
     // ★ A caption IS the result; measuring it is printing nothing.
     ok('a working captioner\'s answer is printed in full, not measured',
         t.includes('asphalt road') && /the result, \d+ characters/.test(t));
-    // ★ The stray tile is a student-facing defect, so it is reported, not hidden.
-    ok('a bare string published as a result tile is called out as a defect',
-        /also published the bare string "8" as a result tile/.test(t));
+    // ★ The stray string is node plumbing; real jobs drop it, but the report names it.
+    ok('a bare string a node emitted is called out, as plumbing real jobs drop',
+        /also emitted the bare string "8" \(node plumbing; real jobs drop it\)/.test(t));
     ok('...and a stray is not mistaken for the result',
         !/node 117:57:1 — the result/.test(t));
     // ⚠ Column collisions: three rows of the first real report ran their fields

@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
-const { readRequirements, repoName, invalidateNodePacks } = require('../workflows/nodePacks');
+const { readRequirements, repoName, invalidateNodePacks, listInstalledPacks } = require('../workflows/nodePacks');
 
 // Install a node pack from ComfyQ's own backend.
 //
@@ -112,16 +112,33 @@ class NodePackInstaller {
         const code = await this._run('git', ['clone', '--depth', '1', job.url, job.dest],
             { job, cwd: path.dirname(job.dest), timeout: CLONE_TIMEOUT_MS });
         if (code !== 0) {
+            // Leave no half directory behind: a partial clone would read as an
+            // installed pack to every other check in here, and a second install
+            // would then refuse with "already exists".
+            //
+            // ★ Removed whether or not it holds a .git. git creates <dest>/.git
+            // before it touches the network, and on an ordinary failure it
+            // deletes the folder itself — so the folder that SURVIVES is the one
+            // from the timeout kill, which on Windows is TerminateProcess and
+            // never lets git clean up. That folder always has a .git. install()
+            // refused if dest already existed, so whatever is there now was made
+            // by this clone — except when git refused because something else
+            // took the path in the meantime, which is the one case left alone.
+            const someoneElses = job.output.some(l => /already exists and is not an empty directory/i.test(l));
+            if (!someoneElses && fs.existsSync(job.dest)) {
+                try {
+                    // Async with retries: an orphaned git child (index-pack,
+                    // remote-https) can hold files open for a moment after the
+                    // kill, and a sync retry loop would stall the whole server.
+                    await fs.promises.rm(job.dest, { recursive: true, force: true, maxRetries: 6, retryDelay: 500 });
+                    job.output.push(`removed the incomplete folder custom_nodes/${job.folder}`);
+                } catch (e) {
+                    job.output.push(`could not remove the incomplete folder custom_nodes/${job.folder} `
+                        + `(${e.code || e.message}) — delete it by hand before installing again`);
+                }
+            }
             job.status = 'failed';
             job.error = `git clone exited with code ${code}`;
-            // Leave no half directory behind: a partial clone would read as an
-            // installed pack to every other check in here.
-            try {
-                if (fs.existsSync(job.dest) && !fs.existsSync(path.join(job.dest, '.git'))) {
-                    fs.rmSync(job.dest, { recursive: true, force: true });
-                    job.output.push('removed the incomplete folder');
-                }
-            } catch { /* say nothing; the error above is the headline */ }
             return;
         }
         job.requirements = readRequirements(job.dest);
@@ -149,6 +166,14 @@ class NodePackInstaller {
      */
     async pipInstall(folder, acceptRisky = false) {
         const job = this._jobs.get(folder);
+        // ★ A pack is a folder NAME that is on disk in custom_nodes, never a
+        // path: it is joined onto custom_nodes and pip then runs the
+        // requirements.txt it finds there. The route checks this too; checked
+        // again here so no other caller can hand it '..\something'.
+        if (!job && (typeof folder !== 'string'
+            || !listInstalledPacks(this._root()).some(p => p.name === folder))) {
+            return { ok: false, error: 'that pack is not installed' };
+        }
         const cn = this._customNodes();
         const dest = job?.dest || (cn ? path.join(cn, folder) : null);
         if (!dest || !fs.existsSync(dest)) return { ok: false, error: 'that pack is not installed' };

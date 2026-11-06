@@ -1,6 +1,6 @@
 const { Worker } = require('./workerInterface');
 const { ComfyProcess, killProcessOnPort } = require('./comfyProcess');
-const { runningPerfFlags, blockingFlags, PERF_FLAG_LABELS } = require('./perfFlags');
+const { runningLaunch, launchDrift } = require('./launchSettings');
 const { ComfyRestClient } = require('./comfyRestClient');
 const { ComfyWsClient } = require('./comfyWsClient');
 const { InputUploader, PLACEHOLDER_IMAGE } = require('./inputUploader');
@@ -26,7 +26,12 @@ function clampParamValue(v, p) {
     const { min, max, step } = p;
     if (Number.isFinite(step) && step > 0) {
         const base = Number.isFinite(min) ? min : 0;
-        n = Math.round((base + Math.round((n - base) / step) * step) * 1e6) / 1e6;
+        let snapped = base + Math.round((n - base) / step) * step;
+        // The 1e6 rounding only cleans up float steps (0.1 → 0.30000000000000004).
+        // On whole numbers it is harmful: times 1e6, a seed above ~9e9 loses
+        // integer precision and comes back fractional (…019 → …018.9).
+        if (!Number.isInteger(step) || !Number.isInteger(base)) snapped = Math.round(snapped * 1e6) / 1e6;
+        n = snapped;
     }
     if (Number.isFinite(min) && n < min) n = min;
     if (Number.isFinite(max) && n > max) n = max;
@@ -279,34 +284,94 @@ class LocalComfyUIWorker extends Worker {
         }
     }
 
-    // Make sure the ComfyUI we're talking to was not launched with a performance
-    // flag this worker's config has turned off (a workflow's
-    // `disabledPerfFlags`, see perfFlags.js). Such a flag doesn't crash — it
-    // saves black images — so a mismatch is replaced, not just logged. The usual
-    // culprit is an EXTERNAL instance: the ComfyUI the previous admin/student
-    // session left running for a different workflow.
-    async ensureNoBlockingPerfFlags() {
+    // Make a ComfyUI we are about to REUSE match what this worker would start it
+    // with (see launchSettings.js). ComfyUI outlives ComfyQ, so after a restart,
+    // a live switch or a lane reopening the process may have been started for
+    // other settings:
+    //   • a perf flag ON that this lane runs without (a workflow's
+    //     `disabledPerfFlags`, or the rig setting turned off) saves black
+    //     images — that process is replaced whoever started it;
+    //   • any other difference — a speed-up this lane runs WITH, LAN access,
+    //     another install — relaunches a ComfyUI that ComfyQ started; one an
+    //     admin started by hand is theirs, so it is left alone and named.
+    //   • except a hand-started ComfyUI of ANOTHER install: uploads go to the
+    //     configured install, so every job with an input would fail. ComfyQ
+    //     refuses to serve on it, and does not kill what somebody else started.
+    // When nothing differs nothing restarts, which is the whole point of reuse.
+    //
+    // `ours`: the caller has proved the running ComfyUI is ComfyQ's own even
+    // though this worker has no PID record of it (a lane that found its own
+    // user directory in the argv). It is then relaunched like an owned one —
+    // killed by port, since there is no PID to stop — instead of being left
+    // alone as a hand-started ComfyUI.
+    async ensureLaunchSettings({ ours = false } = {}) {
+        let argv = null;
+        try { argv = (await this.rest.ping())?.system?.argv; } catch { /* not answering: nothing to compare */ }
         const wanted = {
             use_sage_attention: this.process.useSageAttention,
-            fp16_accumulation: this.process.fp16Accumulation
+            fp16_accumulation: this.process.fp16Accumulation,
+            bindHost: this.process.bindHost,
+            rootPath: this.process.rootPath,
         };
-        const blockers = blockingFlags(wanted, await runningPerfFlags(this.rest));
-        if (blockers.length === 0) return { replaced: false, blockers };
-        const labels = blockers.map(k => PERF_FLAG_LABELS[k]).join(' + ');
-        console.warn(`[Worker] the running ComfyUI was started with ${labels}, which this workflow cannot use — relaunching it without`);
+        const drift = launchDrift(wanted, runningLaunch(argv));
+        if (drift.length === 0) return { replaced: false, drift };
+        const what = drift.map(d => d.text).join('; ');
+        const foreign = drift.find(d => d.key === 'root_path');
+        if (foreign && !(ours || this.process.owned)) {
+            const e = new Error(`The ComfyUI on port ${this.port} runs from ${foreign.running}, not from the install in the settings (${foreign.wanted}). ` +
+                'Jobs with an uploaded input would fail on it, so ComfyQ did not start serving. ' +
+                'Close that ComfyUI, or change the port under Manage ComfyUI → Startup options.');
+            e.noRetry = true;
+            throw e;
+        }
+        if (!drift.some(d => d.breaks) && !(ours || this.process.owned)) {
+            console.warn(`[Worker] the ComfyUI on port ${this.port} was started outside ComfyQ and does not match the settings (${what}) — ` +
+                'leaving it as it is; close it and let ComfyQ start its own to apply them');
+            return { replaced: false, drift };
+        }
+        console.warn(`[Worker] relaunching the ComfyUI on port ${this.port}: ${what}`);
         try {
             if (this.process.owned) await this.process.stop();
-            else await killProcessOnPort(this.port);
+            else await this._killOnPort(this.port);
             await this._waitForPortFree(20000);
             this.process._stopping = false;
-            this.process.nextStartReason = `relaunched without ${labels} for this workflow`;
+            const reason = `relaunched because ${what}`;
+            this.process.nextStartReason = reason;
             await this.start();
-            return { replaced: true, blockers };
+            // start() consumes the reason only when it launches; when it
+            // attached to whatever still answers, the reason must not label
+            // the next real launch.
+            const launched = this.process.nextStartReason !== reason;
+            if (!launched) this.process.nextStartReason = 'start';
+            // ★ Check what is answering NOW. A refused taskkill, or a port
+            // released too slowly, leaves the old process up, and start() then
+            // simply attaches to it again — the lane would go on serving with
+            // the flag that blacks out its output while the log says
+            // "relaunching". That must stop the lane from opening instead.
+            let argvAfter = null;
+            try { argvAfter = (await this.rest.ping())?.system?.argv; } catch { /* checked below */ }
+            const left = launchDrift(wanted, runningLaunch(argvAfter));
+            const broken = left.filter(d => d.breaks);
+            if (broken.length) {
+                throw new Error(`could not stop the ComfyUI on port ${this.port} (${broken.map(d => d.text).join('; ')}) — close it and retry`);
+            }
+            if (!launched || left.length) {
+                console.warn(`[Worker] the ComfyUI on port ${this.port} could not be replaced; it keeps running as it was` +
+                    (left.length ? ` (${left.map(d => d.text).join('; ')})` : ''));
+                return { replaced: false, drift: left };
+            }
+            return { replaced: true, drift };
         } catch (e) {
-            console.error('[Worker] could not relaunch ComfyUI without those flags:', e.message);
+            console.error('[Worker] could not relaunch ComfyUI with the current settings:', e.message);
             this._setState('down', e.message);
             throw e;
         }
+    }
+
+    // Force-kill whatever listens on the port. A method so the tests can
+    // replace it: the real one runs netstat and `taskkill /F /T`.
+    async _killOnPort(port) {
+        return killProcessOnPort(port);
     }
 
     async _waitForPortFree(timeoutMs = 20000) {
@@ -455,24 +520,31 @@ class LocalComfyUIWorker extends Worker {
         // bundle's meta.json drifting from its node fails every job that picks
         // the stale option. Done here rather than in _materializeWorkflow so
         // that stays a pure, synchronously-testable function.
+        // A validation VERDICT must stop the job; a validation FAILURE
+        // (ComfyUI unreachable, odd schema) must not — it is a diagnostic.
+        let verdict = null;
         try {
             const checked = await validateSelects({ apiWorkflow, exposedParameters, paramValues, rest: this.rest });
             for (const a of checked.adjustments) {
                 console.log(`[Worker] param ${a.key}: ${JSON.stringify(a.from)} → ${JSON.stringify(a.to)} ` +
                     `(${a.why}; ${a.classType} offers the latter)`);
             }
-            if (checked.errors.length > 0) {
-                this._resetCurrent();
-                this._setState('idle');
-                throw new Error(checked.errors.join(' · '));
-            }
-            paramValues = checked.paramValues;
+            if (checked.errors.length > 0) verdict = checked.errors.join(' · ');
+            else paramValues = checked.paramValues;
         } catch (e) {
-            // A validation VERDICT must stop the job; a validation FAILURE
-            // (ComfyUI unreachable, odd schema) must not — it is a diagnostic.
-            if (this._state !== 'busy') throw e;
             console.warn('[Worker] could not check dropdown values against ComfyUI:', e.message);
         }
+        if (this.currentJobId !== jobId) return this._abandon(jobId, null);
+        if (verdict) {
+            this._resetCurrent();
+            this._setState('idle');
+            throw new Error(verdict);
+        }
+
+        // What the booking actually left empty. unlink and whenEmptySet judge
+        // emptiness on THESE values, never on the placeholder-filled ones: a
+        // slot holding the placeholder is still a slot the student left empty.
+        const booked = paramValues;
 
         // Optional image inputs the booking left empty still need a real file:
         // ComfyUI validates every LoadImage, even one a switched-off branch reads.
@@ -492,17 +564,18 @@ class LocalComfyUIWorker extends Worker {
             minVRAM: opts.requirements?.minVRAM ?? 0
         });
         if (lifecycleResult.freed) console.log(`[Worker] /free invoked: ${lifecycleResult.reason}`);
+        if (this.currentJobId !== jobId) return this._abandon(jobId, null);
 
         // Unused reference slots are removed from the graph rather than filled
         // with a placeholder the model would actually look at (see optionalMedia).
-        const pruned = unlinkEmptyMedia({ apiWorkflow, exposedParameters, paramValues });
+        const pruned = unlinkEmptyMedia({ apiWorkflow, exposedParameters, paramValues: booked });
         if (pruned.unlinked.length) {
             console.log(`[Worker] ${pruned.unlinked.length} unused reference input(s) removed from the graph: ${pruned.unlinked.join(', ')}`);
         }
         // A param left empty can also flip the graph onto its other branch —
         // without this, an edit with no pictures renders a 1024x1024 square and
         // ignores the chosen aspect ratio (see optionalMedia).
-        const branched = applyWhenEmptySet({ apiWorkflow: pruned.workflow, exposedParameters, paramValues });
+        const branched = applyWhenEmptySet({ apiWorkflow: pruned.workflow, exposedParameters, paramValues: booked });
         if (branched.applied.length) {
             console.log(`[Worker] empty input(s) switched the graph: ${branched.applied.join(', ')}`);
         }
@@ -512,6 +585,7 @@ class LocalComfyUIWorker extends Worker {
         try {
             resp = await this.rest.submitPrompt(wf, this.clientId);
         } catch (e) {
+            if (this.currentJobId !== jobId) return this._abandon(jobId, null);
             this._resetCurrent();
             this._setState('idle');
             const err = new Error(e.response?.data
@@ -520,6 +594,11 @@ class LocalComfyUIWorker extends Worker {
             err.cause = e;
             throw err;
         }
+
+        // ★ Cancelled while the POST was in flight: ComfyUI has queued a prompt
+        // that nobody will collect — and whose events, left as currentPromptId,
+        // would be read as the NEXT job's. Take it back out instead.
+        if (this.currentJobId !== jobId) return this._abandon(jobId, resp?.prompt_id || null);
 
         if (!resp || !resp.prompt_id) {
             this._resetCurrent();
@@ -550,12 +629,42 @@ class LocalComfyUIWorker extends Worker {
             // Job may still be in queue (not yet submitted). Executor handles that case.
             return false;
         }
-        try { await this.rest.interrupt(); } catch (e) { /* ignore */ }
+        // ★ Stop THIS job's prompt, not whatever ComfyUI is running: with LAN
+        // access on, the run in progress may be somebody else's, and ours may
+        // still be waiting behind it — where it used to stay, and run later on
+        // a worker that had already moved on. Queue first, then interrupt, so a
+        // prompt that starts between the two calls is still caught. With no
+        // prompt id yet, submit() may still be on its way to ComfyUI: resetting
+        // the worker here is what tells it to stop, and it takes back a prompt
+        // that got queued anyway (see _abandon).
         const promptId = this.currentPromptId;
+        if (promptId) {
+            try { await this.rest.deleteFromQueue([promptId]); } catch (e) { /* ignore */ }
+            try { await this.rest.interrupt(promptId); } catch (e) { /* ignore */ }
+            // Those two round trips leave room for the run to end on its own
+            // and the executor to start the next job on this worker. Then
+            // nothing of this job is left to reset — and resetting would wipe
+            // the next job's tracking.
+            if (this.currentJobId !== jobId) return false;
+        }
         this._resetCurrent();
         this._setState('idle');
         this.emit('failed', { jobId, promptId, errorReason: 'cancelled', errorPhase: 'executing' });
         return true;
+    }
+
+    // A submit whose job was cancelled while it waited on ComfyUI. cancel()
+    // has already reset the worker and failed the job, and the worker may be
+    // serving another run by now — so touch none of its state and emit
+    // nothing; only take back a prompt that reached ComfyUI anyway.
+    async _abandon(jobId, promptId) {
+        console.log(`[Worker] job ${jobId.slice(0, 8)} was cancelled while it was being submitted` +
+            (promptId ? ` — its prompt ${promptId.slice(0, 8)} is taken back out of ComfyUI` : ''));
+        if (promptId) {
+            try { await this.rest.deleteFromQueue([promptId]); } catch (e) { /* ignore */ }
+            try { await this.rest.interrupt(promptId); } catch (e) { /* ignore */ }
+        }
+        return { promptId: null, cancelled: true };
     }
 
     async shutdown() {

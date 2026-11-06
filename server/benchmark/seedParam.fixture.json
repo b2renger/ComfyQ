@@ -1,0 +1,24 @@
+{
+  "_comment": "Which exposed params are seeds. Read by server/benchmark/vramWatch.test.js against benchmarkService.isSeedParam; and by client/src/utils/seedParam.test.mjs against the client's own copy of the rule, so the two cannot drift apart; and by server/storyboard/storyboard.test.js against the storyboard planner's isSeed (benchmarkService.isSeedParam limited to type number), so the planner cannot drift either. 'keyOnly' means the key alone must give the answer (a job record carries keys, not fields).",
+  "seeds": [
+    { "key": "seed_7", "field": "value", "why": "360 panorama: a primitive node linked into both samplers" },
+    { "key": "seed_1", "field": "sampling_mode.seed", "why": "Gemma captioners: a seed inside a widget group" },
+    { "key": "ksampler_seed_3", "field": "seed" },
+    { "key": "noise", "field": "noise_seed" },
+    { "key": "seed", "field": "value" },
+    { "key": "ksampler_seed_3", "keyOnly": true },
+    { "key": "randomnoise_noise_seed_75_73", "keyOnly": true },
+    { "key": "seed_52_3", "keyOnly": true },
+    { "key": "seed_7", "keyOnly": true },
+    { "key": "seed_1", "keyOnly": true },
+    { "key": "latenttiledpiddecode_seed_7", "keyOnly": true }
+  ],
+  "notSeeds": [
+    { "key": "seedvr2postprocessing_color_correction_method_66_59", "field": "color_correction_method", "why": "contains 'seed' but is a colour-correction setting" },
+    { "key": "loraloadermodelonly_strength_model_900", "field": "strength_model" },
+    { "key": "seeds", "field": "value" },
+    { "key": "seedvr2postprocessing_color_correction_method_66_59", "keyOnly": true },
+    { "key": "seeds", "keyOnly": true },
+    { "key": "seed_mode", "keyOnly": true }
+  ]
+}

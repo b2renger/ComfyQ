@@ -64,6 +64,22 @@ const reg = path.join(tmp, 'processes.json');
     t2.stop();
     ok('fromEnd skips what was already there (adopting does not replay a boot)', late.join('') === 'after\n');
 
+    // COMFYQ_LANES_DIR moves the registry and the logs, as it moves the lane
+    // folders. lanes.integration.js relies on it: without it, every test
+    // ComfyUI it starts was written into the rig's real processes.json. The
+    // path is fixed when the module loads, so it is read in a fresh process.
+    const { execFileSync } = require('child_process');
+    const moved = path.join(tmp, 'moved-lanes');
+    const paths = JSON.parse(execFileSync(process.execPath, ['-e',
+        "const l = require(process.argv[1]); console.log(JSON.stringify({ s: l.STATE_DIR, r: l.REGISTRY, g: l.LOG_DIR }))",
+        path.join(__dirname, 'comfyLauncher.js')],
+        { env: { ...process.env, COMFYQ_LANES_DIR: moved }, encoding: 'utf8' }));
+    ok('COMFYQ_LANES_DIR moves the registry and the logs with it',
+        paths.s === path.resolve(moved) && paths.r === path.join(path.resolve(moved), 'processes.json')
+        && paths.g === path.join(path.resolve(moved), 'logs'));
+    ok('without it, the state stays in the repo\'s .comfyq-lanes',
+        L.STATE_DIR === path.join(__dirname, '..', '..', '.comfyq-lanes') || !!process.env.COMFYQ_LANES_DIR);
+
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(failed ? `comfyLauncher: ${failed} FAILED` : 'comfyLauncher: all checks passed');
     process.exit(failed ? 1 : 0);

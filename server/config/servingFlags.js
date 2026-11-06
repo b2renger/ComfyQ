@@ -26,6 +26,9 @@ const path = require('path');
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const STUDENT_BOOT_FLAG = path.join(DATA_DIR, '.boot-student');
 const SERVING_INTENT_FLAG = path.join(DATA_DIR, '.serving');
+// Why the last attempt to serve failed. A failed boot lands in admin mode, so
+// without this the reason would only be in the terminal, not where the admin looks.
+const SERVE_ERROR_FILE = path.join(DATA_DIR, '.serve-error');
 
 function _write(file) {
     fs.mkdirSync(path.dirname(file), { recursive: true });
@@ -61,6 +64,19 @@ function isServingIntended(file = SERVING_INTENT_FLAG) {
     catch { return false; }
 }
 
+/** Remember why serving failed; empty clears it. */
+function noteServeError(message, file = SERVE_ERROR_FILE) {
+    try {
+        if (message) { fs.mkdirSync(path.dirname(file), { recursive: true }); fs.writeFileSync(file, String(message)); }
+        else _remove(file);
+    } catch (e) { console.warn('[ComfyQ] could not update the serve-error note:', e.message); }
+}
+
+function readServeError(file = SERVE_ERROR_FILE) {
+    try { return fs.existsSync(file) ? fs.readFileSync(file, 'utf8') : ''; }
+    catch { return ''; }
+}
+
 /**
  * The mode this boot runs in. `oneShot` is the consumed .boot-student flag,
  * `intended` the standing .serving marker. Kept as a pure function so the
@@ -77,5 +93,7 @@ module.exports = {
     consumeStudentBootFlag,
     setServingIntent,
     isServingIntended,
+    noteServeError,
+    readServeError,
     resolveBootMode,
 };

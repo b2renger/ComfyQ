@@ -29,6 +29,7 @@ const sm = require('../queue/jobStateMachine');
 const { parseStoryboard } = require('../storyboard/storyboardParser');
 const { planStoryboard } = require('../storyboard/storyboardPlanner');
 const cleanup = require('../storage/jobCleanup');
+const { sweepBlocksRestart, SWEEP_RUNNING_MESSAGE } = require('./sweepGuard');
 
 // Storyboards are prose; a megabyte is already an enormous one.
 const MAX_BYTES = 2 * 1024 * 1024;
@@ -144,7 +145,7 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
                 workflowRuns: plan.workflowRuns,
                 modelLoads: plan.modelLoads,
                 totalJobs: plan.jobs.length,
-                totalShots: parsed.items.length,
+                totalShots: plan.totalShots,
                 totalEstimatedSec: plan.totalEstimatedSec,
                 warnings: [...parsed.warnings, ...plan.warnings],
                 errors: [...(parsed.errors || []), ...plan.errors],
@@ -162,24 +163,37 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
         const c = ctx();
         let restartTo = null;
         try {
+            // From admin mode the batch starts by restarting the server, which
+            // would kill a library sweep mid-bundle. Refused before anything
+            // is queued, so the batch is not left half-started.
+            if (!c.serving && sweepBlocksRestart(runtime)) {
+                return res.status(409).json({ error: SWEEP_RUNNING_MESSAGE });
+            }
             const { doc, parsed, plan } = buildPlan(req, c.queue);
 
             // Refuse the batch outright when any item could not be planned. A
             // storyboard is one piece of work: queueing 38 of 42 generations
             // and reporting the rest as a warning leaves an admin to discover
             // the holes an hour later. `force: true` opts into the partial run.
+            //
+            // ★ The PARSER's errors count too. A `##` with no `###` line is
+            // dropped from the items before the planner sees it, so checking
+            // only the plan queued 41 of 42 shots and said nothing -- the
+            // exact outcome the parser files those as errors to prevent.
+            // /preview always merged the two; this route now does as well.
             const force = req.body?.force === true || req.body?.force === 'true';
-            if (plan.errors.length > 0 && !force) {
+            const allErrors = [...(parsed.errors || []), ...plan.errors];
+            if (allErrors.length > 0 && !force) {
                 return res.status(422).json({
-                    error: plan.summary || `${plan.errors.length} shot(s) could not be queued.`,
-                    errors: plan.errors,
+                    error: plan.summary || `${allErrors.length} problem(s) in the storyboard — nothing was queued.`,
+                    errors: allErrors,
                     blockedReasons: plan.blockedReasons,
                     warnings: [...parsed.warnings, ...plan.warnings],
                     hint: 'Fix the storyboard and upload it again, or resend with force=true to queue the rest.'
                 });
             }
             if (plan.jobs.length === 0) {
-                return res.status(422).json({ error: 'Nothing to queue.', errors: plan.errors });
+                return res.status(422).json({ error: 'Nothing to queue.', errors: allErrors });
             }
             if (plan.jobs.length > MAX_JOBS) {
                 return res.status(413).json({ error: `That storyboard is ${plan.jobs.length} generations; the limit is ${MAX_JOBS}.` });
@@ -246,6 +260,8 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
                 configManager.update(cfg => {
                     cfg.workflows.activeWorkflowId = restartTo;
                     cfg.mode = 'student';
+                    // Nothing is served in admin mode: no extra lane to bring back.
+                    cfg.workflows.extraLaneWorkflowIds = [];
                     return cfg;
                 });
                 console.log(`[Storyboard] starting the queue — serving "${restartTo}" (first workflow in the batch)`);
@@ -264,7 +280,7 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
                 startingWorkflowId: restartTo,
                 restarting: !!restartTo,
                 warnings: [...parsed.warnings, ...plan.warnings],
-                errors: plan.errors,
+                errors: allErrors,
                 jobs: created
             });
         } catch (e) {
@@ -392,7 +408,12 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
                 if (sm.isInFlight(job.status)) {
                     // Only a live executor can interrupt ComfyUI. In admin mode
                     // there is nothing running, so the row is simply retired.
-                    if (c.executor) await c.executor.cancelJob(job.id);
+                    // ★ The job's OWN lane: the main executor only cancels a job
+                    // it is running itself, so a shot rendering on a second lane
+                    // went on to the end and wrote its files after the cleanup
+                    // below. Same rule as RealtimeBus._executorFor.
+                    const ex = runtime?.lanes?.get?.(job.workflowId)?.executor || c.executor;
+                    if (ex) await ex.cancelJob(job.id);
                     else { try { c.queue.transitionStatus(job.id, sm.STATES.CANCELLED); } catch { /* terminal */ } }
                     cancelled++;
                 } else if (job.status === sm.STATES.SCHEDULED) {

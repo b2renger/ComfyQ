@@ -8,6 +8,7 @@ const path = require('path');
 const {
     markNextBootStudent, consumeStudentBootFlag,
     setServingIntent, isServingIntended, resolveBootMode,
+    noteServeError, readServeError,
 } = require('./servingFlags');
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'comfyq-flags-'));
@@ -62,6 +63,17 @@ check('a failed student boot does not loop', boot() === 'admin');
 // /activate-workflow uses on a machine that was in admin).
 markNextBootStudent(BOOT);
 check('the one-shot flag alone serves once', boot() === 'student');
+
+// Why serving failed reaches the admin panel, and a new attempt clears it.
+{
+    const NOTE = path.join(dir, '.serve-error');
+    assert.strictEqual(readServeError(NOTE), '');
+    noteServeError('port taken', NOTE);
+    assert.strictEqual(readServeError(NOTE), 'port taken');
+    noteServeError('', NOTE);
+    assert.strictEqual(readServeError(NOTE), '');
+    assert.ok(!fs.existsSync(NOTE));
+}
 
 fs.rmSync(dir, { recursive: true, force: true });
 console.log(`servingFlags: all ${ok.length} checks passed`);

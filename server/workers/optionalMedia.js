@@ -9,6 +9,9 @@
 //
 // When the param is gated with `disabledWhen` and its toggle is ON, the image
 // is genuinely needed: that is an error, not a placeholder.
+//
+// A param with `whenEmpty: "unlink"` is never filled: its loader is removed
+// from the graph instead (unlinkEmptyMedia below).
 
 const PLACEHOLDER_TYPES = new Set(['image', 'mask']);
 
@@ -44,6 +47,11 @@ function fillOptionalImages({ exposedParameters = [], paramValues = {}, placehol
             errors.push(`"${p.label || p.key}" is switched on${ctrl ? ` by "${ctrl.label || ctrl.key}"` : ''} but no image was uploaded — upload one or switch it off.`);
             continue;
         }
+        // ★ A `whenEmpty: "unlink"` slot is taken out of the graph instead
+        // (unlinkEmptyMedia). Filling it here made it non-empty, so the unlink
+        // and its `whenEmptySet` never ran and the model was handed a black
+        // picture as a reference / first / last frame.
+        if (p.whenEmpty === 'unlink') continue;
         out[p.key] = placeholderName;
         filled++;
     }

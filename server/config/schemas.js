@@ -75,11 +75,14 @@ const ExposedParameter = z.object({
     min: z.number().optional(),
     max: z.number().optional(),
     step: z.number().optional(),
-    // For image/video params: longest-edge pixel cap the client applies
-    // before upload. Resizing client-side saves LAN bandwidth and matches
-    // the workflow's expected working resolution (most diffusion / i2v
-    // workflows degrade past 1280–2048 anyway). Undefined → client uses
-    // its built-in defaults (1024 for image, 1280 for video).
+    // For image/mask params: a pixel cap the client applies before upload
+    // (client/src/components/capture/uploadBox.js → utils/imageResize.js).
+    // Undefined → the picture is fitted into a 1920×1080 box in either
+    // orientation, the most server/routes/uploads.js accepts. A value caps
+    // both edges at that many pixels, clamped into that same box, so it can
+    // only make the upload smaller (1024 → 1024×1024, 1376 → 1376×1080, 2048
+    // → still 1920×1080). Video and audio are uploaded as-is, so the field has
+    // no effect on them.
     maxInputEdge: z.number().int().positive().optional(),
     // Conditional gray-out: this field renders disabled when another exposed
     // param's current value equals `equals`. Used for either/or fields gated by
@@ -290,8 +293,10 @@ const AppConfig = z.object({
     }).default({ dir: './workflows', activeWorkflowId: null, extraLaneWorkflowIds: [] }),
     // Directory of sample media (images / videos / audio) used to auto-calibrate
     // workflows without any admin upload: the BenchmarkService picks a file
-    // matching each exposed input's type and feeds it through a real cold+warm
-    // run. Empty → image inputs fall back to a built-in reference PNG and
+    // matching each exposed input's type and feeds it through a real calibration
+    // run (one run, split at the first sampler step into model load and
+    // generation; no second "warm" run, which ComfyUI's result cache would
+    // answer in ~1 s). Empty → image inputs fall back to a built-in reference PNG and
     // video/audio inputs can't be calibrated without meta.warmupParams.
     assets: z.object({
         dir: z.string().default('')
@@ -311,15 +316,17 @@ const AppConfig = z.object({
         // written. Still read; it just no longer protects. See scanFolders.js.
         scanDirsOff: z.array(z.string()).default([]),
         // Where a pruned model is MOVED to. Empty means <drive>\_model_quarantine
-        // beside the install, which is also where _maintenance/prune-models.ps1
-        // puts its own — so the two agree. Must be on the same volume as the
-        // models, or a 40 GB prune becomes a 40 GB copy.
+        // beside the install, the same folder tools/maintenance/model-audit/
+        // prune-models.ps1 uses (it lays its batches out differently; read that
+        // script before running its -Purge or -Restore). Must be on the same
+        // volume as the models, or a 40 GB prune becomes a 40 GB copy.
         quarantineDir: z.string().default('')
     }).default({ workflowScanDirs: [], scanDirsOff: [] }),
     // Federation (Phase F) — persistent identity for this machine, captured at
     // boot (see server/federation/systemInfo.js) and broadcast on the LAN status
     // beacon. All optional/defaulted so an existing config.json validates
-    // unchanged; load() re-saves with these filled in on first boot.
+    // unchanged; detectSystemInfo() (federation/systemInfo.js) fills them in
+    // and saves them on first boot.
     instance: z.object({
         id: z.string().default(''),          // uuid v4, regenerated if this config lands on another machine
         name: z.string().default(''),        // label shown in the fleet monitor; tracks the hostname unless nameCustom

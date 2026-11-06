@@ -30,8 +30,18 @@ class ComfyRestClient {
         return r.data; // { [promptId]: { outputs: { [nodeId]: {...} }, status: {...} } }
     }
 
-    async interrupt() {
-        await this.http.post('/interrupt');
+    // With a prompt id, stop THAT prompt only (ComfyUI ignores the call when
+    // it is not the one running). Without one, ComfyUI stops whatever is
+    // running — the admin emergency stop wants exactly that, a job's cancel
+    // never does: with LAN access on, the run might be somebody else's.
+    async interrupt(promptId) {
+        if (promptId) await this.http.post('/interrupt', { prompt_id: promptId });
+        else await this.http.post('/interrupt');
+    }
+
+    // Take prompts that have not started yet out of ComfyUI's queue.
+    async deleteFromQueue(promptIds) {
+        await this.http.post('/queue', { delete: promptIds });
     }
 
     async free({ unloadModels = true, freeMemory = true } = {}) {
@@ -42,16 +52,6 @@ class ComfyRestClient {
             if (e.response?.status === 404) return;
             throw e;
         }
-    }
-
-    async uploadImage(buffer, filename, { subfolder = '', overwrite = '1' } = {}) {
-        const FormData = require('form-data');
-        const fd = new FormData();
-        fd.append('image', buffer, { filename });
-        fd.append('subfolder', subfolder);
-        fd.append('overwrite', overwrite);
-        const r = await this.http.post('/upload/image', fd, { headers: fd.getHeaders() });
-        return r.data;
     }
 }
 

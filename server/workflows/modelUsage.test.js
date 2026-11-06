@@ -631,5 +631,70 @@ check('and the reclaimable total is that one file',
         snap2.models.find(m => m.name === 'old_snapshot_only.safetensors').unused === false);
 }
 
+// 23. ★ What a booking FORM can hand a loader, beyond the graph. A `lora` param
+//     needs no optionsFilter — the form then lists its whole folder — and a
+//     `select` can list weight files outright. Both used to be invisible here,
+//     one editor save away from offering a model students pick for deletion.
+{
+    const { invalidateModelIndex, buildModelIndex } = require('./vramEstimate');
+    const { bundleModelNames } = require('./modelUsage');
+    put('loras', 'opendd_top.safetensors');                  // offered by the open dropdown
+    put('loras', 'zz_dup_lora.safetensors');                 // offered, though a nested copy
+    put(path.join('loras', 'a_first'), 'zz_dup_lora.safetensors');   //   of it may be met first
+    put(path.join('loras', 'nested'), 'opendd_nested.safetensors');  // listModelFiles does not recurse
+    put('checkpoints', 'opendd_ckpt.safetensors');           // another folder entirely
+    put('checkpoints', 'style_ckpt.safetensors');            // matches runs_it's `style_` prefix
+    put('upscale_models', 'pick_me.pth');                    // a select option
+    put('upscale_models', 'override_pick.pth');              // an admin override default
+    put('upscale_models', 'never_offered.pth');
+    bundle('open_dropdown', {
+        api: { 1: { class_type: 'LoraLoaderModelOnly', inputs: { lora_name: 'opendd_top.safetensors' } } },
+        meta: { id: 'open_dropdown', exposedParameters: [
+            { key: 'lora', nodeId: '1', field: 'lora_name', type: 'lora', default: 'opendd_top.safetensors' },
+        ] },
+    });
+    bundle('select_weights', {
+        api: { 1: { class_type: 'UpscaleModelLoader', inputs: { model_name: 'pick_me.pth' } } },
+        meta: { id: 'select_weights', exposedParameters: [
+            { key: 'up', nodeId: '1', field: 'model_name', type: 'select', default: 'pick_me.pth',
+              options: ['pick_me.pth', 'alt_pick.pth'] },
+        ] },
+    });
+    fs.writeFileSync(path.join(wf, 'select_weights', 'select_weights.config.meta.json'), JSON.stringify({
+        schemaVersion: 1, id: 'select_weights', parameterOverrides: { up: { default: 'override_pick.pth' } },
+    }));
+    put('upscale_models', 'alt_pick.pth');
+    invalidateModelIndex();
+    const f = run();
+    const at = (n) => f.models.find(m => m.name === n);
+    check('an UNFILTERED lora dropdown protects every LoRA directly in its folder',
+        at('opendd_top.safetensors').dropdowns.includes('open_dropdown')
+        && at('style_red.safetensors').dropdowns.includes('open_dropdown'));
+    check('...including one whose basename also sits in a subfolder',
+        at('zz_dup_lora.safetensors').dropdowns.includes('open_dropdown') && !at('zz_dup_lora.safetensors').unused);
+    check('...but not a LoRA in a subfolder, which the form never lists',
+        !at('opendd_nested.safetensors').dropdowns.length && at('opendd_nested.safetensors').unused);
+    check('...nor a weight in another folder (an empty prefix must not claim the disk)',
+        !at('opendd_ckpt.safetensors').dropdowns.length && at('opendd_ckpt.safetensors').unused);
+    check('a FILTERED dropdown no longer claims a same-prefix file outside its folder',
+        !at('style_ckpt.safetensors').dropdowns.includes('runs_it'));
+    check('a select option that names a weight protects it',
+        at('alt_pick.pth').dropdowns.includes('select_weights') && !at('alt_pick.pth').unused);
+    check("an admin override's default that names a weight protects it",
+        at('override_pick.pth').dropdowns.includes('select_weights') && !at('override_pick.pth').unused);
+    check('a weight no form offers is still prunable', at('never_offered.pth').unused);
+
+    const onDisk = buildModelIndex(comfy);
+    const n4 = bundleModelNames(path.join(wf, 'open_dropdown'), { onDisk });
+    check('removing an unfiltered dropdown records the LoRAs it offered',
+        n4.includes('opendd_top.safetensors') && n4.includes('style_red.safetensors'));
+    check('...and nothing it did not', !n4.includes('opendd_nested.safetensors') && !n4.includes('opendd_ckpt.safetensors'));
+    const n5 = bundleModelNames(path.join(wf, 'select_weights'), { onDisk });
+    check('removing a bundle records its select options and override default',
+        n5.includes('alt_pick.pth') && n5.includes('override_pick.pth'));
+    fs.rmSync(path.join(wf, 'open_dropdown'), { recursive: true, force: true });
+    fs.rmSync(path.join(wf, 'select_weights'), { recursive: true, force: true });
+}
+
 fs.rmSync(root, { recursive: true, force: true });
 console.log(`modelUsage: all ${ok.length} checks passed`);

@@ -9,6 +9,13 @@ const path = require('path');
 
 const { LaneManager, CARD_HEADROOM_GB } = require('./laneManager');
 
+// _nextPort also counts as taken any port the process registry
+// (.comfyq-lanes/processes.json) records with a live PID. The real file says
+// what THIS machine is doing — on a rig serving a second lane, 8189 — so the
+// port checks below would pass or fail with it. Give them an empty registry.
+const launcher = require('../workers/comfyLauncher');
+launcher.readRegistry = () => ({ procs: {}, history: [] });
+
 // A fake ComfyUI install holding four models of known size.
 const root = fs.mkdtempSync(path.join(os.tmpdir(), 'comfyq-lanes-'));
 const put = (kind, name, gb) => {
@@ -98,6 +105,11 @@ check('what is refused on a small card is allowed on a large one', big.fit('enor
 check('the first lane uses the configured port', m._nextPort() === 8189);
 pretendLane(m, 'light', 8189);
 check('each extra lane takes the next free port', m._nextPort() === 8190);
+launcher.readRegistry = () => ({ procs: { 8190: { pid: process.pid } }, history: [] });
+check('a port another ComfyUI of ours still holds is skipped', m._nextPort() === 8191);
+launcher.readRegistry = () => ({ procs: { 8190: { pid: 0 } }, history: [] });
+check('...but not one whose process is gone', m._nextPort() === 8190);
+launcher.readRegistry = () => ({ procs: {}, history: [] });
 
 const primaryCfg = m._laneComfyConfig('heavy', 8188, true);
 check('the first lane keeps the install\'s own directories',
@@ -120,5 +132,88 @@ const masked = new LaneManager({
 check('a lane drops the speed-ups its workflow cannot run with',
     masked._laneComfyConfig('x', 8190, false).use_sage_attention === false);
 
-fs.rmSync(root, { recursive: true, force: true });
-console.log(`laneManager: all ${ok.length} checks passed`);
+// --- closing lanes -------------------------------------------------------
+// Stub lanes that record what close() does to them, on a config that can be
+// written, so closeAll's effect on activeWorkflowId can be read back.
+const closing = () => {
+    let config = {
+        instance: { vramGb: 96 }, comfy_ui: { root_path: root, api_port: 8188 }, queue: {},
+        workflows: { activeWorkflowId: 'heavy', extraLaneWorkflowIds: ['light', 'opaque'] },
+    };
+    const configManager = {
+        load: () => ({ config }),
+        update: (fn) => { config = fn(JSON.parse(JSON.stringify(config))) || config; return config; },
+    };
+    const registry = { get: (id) => ({ id, summary: { name: id }, meta: {} }) };
+    const events = [];
+    const mgr = new LaneManager({ queue: {}, registry, configManager });
+    const lane = (workflowId, port, base, runningJob = null) => mgr.lanes.set(workflowId, {
+        id: `${workflowId}:${port}`, workflowId, port, base, vramGb: 1, startedAt: Date.now(),
+        executor: {
+            _currentJobId: runningJob,
+            stop() { events.push(`stop ${workflowId}`); },
+            async abortCurrent(reason) {
+                events.push(`abort ${workflowId} ${this._currentJobId}`);
+                this.reason = reason; this._currentJobId = null; return true;
+            },
+        },
+        worker: {
+            async shutdown() { events.push(`shutdown ${workflowId}`); },
+            rest: { async free() { events.push(`unload ${workflowId}`); } },
+            process: { async stop() { events.push(`kill ${workflowId}`); } },
+        },
+    });
+    return { mgr, lane, events, config: () => config };
+};
+
+(async () => {
+    const quiet = console.log; console.log = () => {};
+    try {
+        // Stop serving with three lanes: the main one must stay the active workflow.
+        const a = closing();
+        a.lane('heavy', 8188, true); a.lane('light', 8189, false); a.lane('opaque', 8190, false);
+        await a.mgr.closeAll();
+        check('Stop serving keeps the main workflow as the active one', a.config().workflows.activeWorkflowId === 'heavy');
+        check('...and forgets the extra lanes', a.config().workflows.extraLaneWorkflowIds.length === 0);
+        check('...and every lane was closed', a.mgr.lanes.size === 0);
+        const stops = a.events.filter(e => e.startsWith('stop '));
+        check('...the main lane last', stops[stops.length - 1] === 'stop heavy');
+
+        // Closing a lane under a running job stops that job instead of orphaning it.
+        const b = closing();
+        b.lane('heavy', 8188, true, 'job-1');
+        const exec = b.mgr.get('heavy').executor;
+        await b.mgr.close('heavy');
+        check('closing a lane stops the job it is running', b.events.includes('abort heavy job-1'));
+        check('...after its executor stopped taking jobs', b.events.indexOf('stop heavy') < b.events.indexOf('abort heavy job-1'));
+        check('...and before its worker lets go of ComfyUI', b.events.indexOf('abort heavy job-1') < b.events.indexOf('shutdown heavy'));
+        check('...with a reason a student can read', /stopped being served/.test(exec.reason || ''));
+        check("...and the install's ComfyUI only has its models unloaded", b.events.includes('unload heavy') && !b.events.includes('kill heavy'));
+
+        const c = closing();
+        c.lane('light', 8189, false);
+        await c.mgr.close('light');
+        check('an idle lane is closed without stopping anything', !c.events.some(e => e.startsWith('abort')));
+        check('...and a lane on its own port has its ComfyUI stopped', c.events.includes('kill light'));
+    } finally { console.log = quiet; }
+
+    // cancelPrompts names each prompt on every lane, and one dead lane stops nothing.
+    {
+        const calls = [];
+        const fakeLane = (name, dead) => ({ worker: { rest: {
+            deleteFromQueue: async (ids) => { if (dead) throw new Error('down'); calls.push([name, 'queue', ids.join()]); },
+            interrupt: async (id) => { if (dead) throw new Error('down'); calls.push([name, 'interrupt', id]); },
+        } } });
+        const lm = Object.create(LaneManager.prototype);
+        lm.lanes = new Map([['a', fakeLane('a', true)], ['b', fakeLane('b', false)]]);
+        await lm.cancelPrompts(['p1', 'p2']);
+        assert.deepStrictEqual(calls, [['b', 'queue', 'p1,p2'], ['b', 'interrupt', 'p1'], ['b', 'interrupt', 'p2']]);
+        assert.ok(calls.every(c => c[2] !== undefined), 'an interrupt with no id would stop whatever is running');
+        await lm.cancelPrompts([]);
+        assert.strictEqual(calls.length, 3);
+        ok.push('cancelPrompts');
+    }
+
+    fs.rmSync(root, { recursive: true, force: true });
+    console.log(`laneManager: all ${ok.length} checks passed`);
+})().catch((e) => { console.error(e); process.exit(1); });

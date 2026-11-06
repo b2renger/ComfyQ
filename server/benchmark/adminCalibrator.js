@@ -53,6 +53,11 @@ class AdminCalibrator {
         // opener extension installed (so its "Open in ComfyUI" auto-open works).
         // False for an attached external instance or before we've spawned.
         this._openerLoaded = false;
+        // The workflow a calibration is running for, claimed before anything is
+        // awaited — see calibrate() and _refuseRestartUnderRun().
+        this._calibrating = null;
+        // Held by a library sweep for its whole run — see reserve().
+        this._reservation = null;
     }
 
     // Always reflect the latest saved config (config.json is the source of truth).
@@ -73,6 +78,25 @@ class AdminCalibrator {
         return `${this._pathSig(cfg)}|${this._flagSig(cfg)}`;
     }
 
+    /**
+     * Refuse to stop ComfyUI while a calibration is using it.
+     *
+     * ★ A restart under a running calibration kills it, and the library sweep then
+     * records a bundle that is fine as FAILED ("comfyui-process-exited") — in the
+     * very report that decides whether a drive is worth imaging. A gauge click on
+     * another card during a sweep did exactly that whenever the two workflows want
+     * different perf flags. The calibration that holds the claim may restart for
+     * its own flags (`workflowId` is the one it claimed).
+     */
+    _refuseRestartUnderRun(why, workflowId = null) {
+        const busy = this.worker?.getStatus?.().state === 'busy';
+        const other = !!this._calibrating && this._calibrating !== workflowId;
+        if (!busy && !other) return;
+        const what = this._calibrating ? `a calibration of ${this._calibrating}` : 'a calibration';
+        throw new Error(`ComfyUI is running ${what} (the library sweep?) — ${why} would stop it. `
+            + 'Wait for it to finish, or stop the sweep first.');
+    }
+
     // `workflowId` (calibration): run ComfyUI with exactly the perf flags that
     // workflow will be served with — its `disabledPerfFlags` forced off, so the
     // gauge neither saves black images nor times a different configuration.
@@ -80,6 +104,14 @@ class AdminCalibrator {
         const base = this.comfyConfig; // fresh read for this call
         const entry = workflowId ? this.registry.get(workflowId) : null;
         const cfg = entry && !entry.unavailable ? effectiveComfyConfig(base, entry.meta) : base;
+        if (this.worker && this.worker.getStatus().state === 'down') {
+            // ★ Its ComfyUI exited (a crash mid-run: this worker does not respawn on
+            // its own). Shut it down before replacing it: overwriting it left its
+            // WebSocket client reconnecting to the port for ever, one more for every
+            // crash in an admin session. Stopping a process that already exited is
+            // a no-op.
+            await this._stopWorker();
+        }
         if (this.worker && this.worker.getStatus().state !== 'down') {
             // Already up. Restart a ComfyUI we own when (a) the caller now needs a
             // network-bound backend but the running instance is loopback, (b) the
@@ -97,6 +129,7 @@ class AdminCalibrator {
                 const why = pathsChanged ? 'ComfyUI paths changed'
                     : flagsChanged ? `ComfyUI performance flags differ (${this._flagSig(cfg)})`
                     : 'rebinding ComfyUI to the network';
+                this._refuseRestartUnderRun(`restarting it (${why})`, workflowId);
                 console.log(`[AdminCalibrator] ${why} — restarting it…`);
                 network = network || this._workerNetwork;
                 await this._stopWorker();
@@ -104,6 +137,7 @@ class AdminCalibrator {
                 // doesn't find the dying instance still answering and attach to it.
                 await this._waitForPortFree(base.api_port);
             } else if (blockers.length > 0) {
+                this._refuseRestartUnderRun('replacing the external ComfyUI', workflowId);
                 console.log(`[AdminCalibrator] the external ComfyUI runs with ${blockers.map(k => PERF_FLAG_LABELS[k]).join(' + ')}, which "${workflowId}" can't use — replacing it…`);
                 network = network || !!base.lan_access;
                 await this._replaceExternal();
@@ -238,6 +272,7 @@ class AdminCalibrator {
             return { ...this.comfyStatus(), openerLoaded: true };
         }
         if (!this._openerLoaded && !this._external) {
+            this._refuseRestartUnderRun('restarting it to load the ComfyQ opener extension');
             console.log('[AdminCalibrator] restarting ComfyUI to load the ComfyQ opener extension…');
             try { ensureOpenerInstalled(this.comfyConfig.root_path); } catch (e) { console.warn(`[AdminCalibrator] opener install skipped: ${e.message}`); }
             await this._stopWorker();
@@ -250,14 +285,46 @@ class AdminCalibrator {
     /** What the last calibration was actually fed — prompts, params, asset paths. */
     lastRunDetails() { return this.bench?.lastRun || null; }
 
+    /**
+     * Hold the calibrator for a run of several calibrations (the library sweep).
+     * Only calls that pass the returned object as `opts.reservation` get through
+     * until it is released.
+     * @param {string} by  who holds it, as a person should read it
+     */
+    reserve(by) {
+        if (this._reservation) throw new Error(`${this._reservation.by} is already using the calibrator`);
+        const r = { by, release: () => { if (this._reservation === r) this._reservation = null; } };
+        this._reservation = r;
+        return r;
+    }
+
     /** @param {object} [opts]  passed through: a test suite's params and input notes */
     async calibrate(workflowId, opts = {}) {
-        await this._ensureWorker({ workflowId });
-        this._clearIdle();
+        // ★ Claimed before the first await, because _ensureWorker may restart
+        // ComfyUI for this workflow's perf flags — and a second calibration that
+        // got that far would kill the first one's run. BenchmarkService has its
+        // own claim, but it is reached only after the restart.
+        if (this._calibrating) {
+            throw new Error(`Another calibration is running (${this._calibrating}) — wait for it to finish`);
+        }
+        // A library sweep holds the calibrator from its first bundle to its last:
+        // between two bundles nothing is running, so a gauge click there used to be
+        // accepted, and the sweep's next bundle was then refused and recorded as
+        // FAILED.
+        if (this._reservation && opts.reservation !== this._reservation) {
+            throw new Error(`${this._reservation.by} is running — calibrate after it finishes, or stop it first`);
+        }
+        this._calibrating = workflowId;
         try {
-            return await this.bench.calibrate(workflowId, opts);
+            await this._ensureWorker({ workflowId });
+            this._clearIdle();
+            try {
+                return await this.bench.calibrate(workflowId, opts);
+            } finally {
+                this._scheduleIdleFree();
+            }
         } finally {
-            this._scheduleIdleFree();
+            this._calibrating = null;
         }
     }
 

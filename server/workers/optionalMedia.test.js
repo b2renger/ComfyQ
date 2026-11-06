@@ -209,5 +209,107 @@ test('whenEmpty and whenEmptySet survive the meta schema', () => {
     assert.deepStrictEqual(parsed.whenEmptySet, [{ nodeId: '68', field: 'switch', value: true }]);
 });
 
-if (fails) { console.error(`\n${fails} failing`); process.exit(1); }
-console.log('\nall optional-media tests passed');
+// --- fill → unlink → whenEmptySet, in the order submit() runs them --------
+// ★ Each function above passed on its own while the three in sequence did
+// nothing: fillOptionalImages ran first and put the black placeholder in every
+// `whenEmpty: "unlink"` slot, so the slot was no longer empty, nothing was
+// unlinked, and FastH3 i2v clips started or ended on a black frame.
+test('an unlink slot is never placeholder-filled', () => {
+    const p = { key: 'ref', nodeId: '2', type: 'image', required: false, whenEmpty: 'unlink' };
+    const r = fillOptionalImages({ exposedParameters: [p], paramValues: {}, placeholderName: PH });
+    assert.strictEqual(r.paramValues.ref, undefined);
+    assert.strictEqual(r.filled, 0);
+});
+
+test('an unlink slot switched ON with no upload is still an error', () => {
+    const p = { ...startImage, whenEmpty: 'unlink' };
+    const r = fillOptionalImages({ exposedParameters: [video, toggle, p], paramValues: { vid: 'a.mp4', use_start: true }, placeholderName: PH });
+    assert.strictEqual(r.errors.length, 1);
+});
+
+const fs = require('fs');
+const os = require('os');
+const path = require('path');
+const { LocalComfyUIWorker } = require('./localComfyUIWorker');
+
+// The worker's uploader creates <root>/input, so the root is a temp dir of
+// this run's own, removed at the end — never a folder in the repo.
+const TMP = fs.mkdtempSync(path.join(os.tmpdir(), 'comfyq-optmedia-'));
+
+const bundle = (id) => {
+    const dir = path.join(__dirname, '..', '..', 'workflows', id);
+    return {
+        api: JSON.parse(fs.readFileSync(path.join(dir, `${id}.api.json`), 'utf8')),
+        params: JSON.parse(fs.readFileSync(path.join(dir, `${id}.meta.json`), 'utf8')).exposedParameters,
+    };
+};
+
+// The real submit() with its transport stubbed: the graph it would POST is
+// captured, and nothing on this machine can be reached.
+async function submitted(id, paramValues, editParams = (p) => p) {
+    const { api } = bundle(id);
+    const params = editParams(bundle(id).params);
+    const w = new LocalComfyUIWorker({
+        comfyConfig: { api_host: '127.0.0.1', api_port: 1, root_path: path.join(TMP, 'comfy') },
+        queueConfig: { inputRetentionMinutes: 30 },
+    });
+    const refuse = async () => { throw new Error('no network in tests'); };
+    w.rest.http = { get: refuse, post: refuse };
+    let sent = null;
+    w.rest.submitPrompt = async (wf) => { sent = wf; return { prompt_id: 'p1', number: 0 }; };
+    w.lifecycle.beforeJob = async () => ({ freed: false });
+    w.uploader.ensurePlaceholderImage = () => {};
+    w._state = 'idle';
+    await w.submit('job12345', api, { exposedParameters: params, paramValues, filenamePrefix: 'test' });
+    return { sent, api, params };
+}
+
+const loadersOf = (wf) => Object.entries(wf).filter(([, n]) => n.class_type === 'LoadImage').map(([k]) => k);
+const danglingLinks = (wf) => Object.entries(wf).flatMap(([id, n]) => Object.entries(n.inputs || {})
+    .filter(([, v]) => Array.isArray(v) && !wf[String(v[0])]).map(([f, v]) => `${id}.${f} -> ${v[0]}`));
+
+async function asyncTests() {
+    await atest('submit, Qwen 2.1 edit with only image 1: the 15 other slots leave the graph', async () => {
+        const { sent } = await submitted('image_qwen_image_2_1_image_edit', { loadimage_image_470: 'me.png', prompt: 'x' });
+        assert.ok(sent, 'a graph was submitted');
+        assert.deepStrictEqual(loadersOf(sent), ['470']);
+        assert.strictEqual(sent['470'].inputs.image, 'me.png');
+        assert.ok(!JSON.stringify(sent).includes(PH), 'no placeholder anywhere in the graph');
+        assert.deepStrictEqual(danglingLinks(sent), []);
+        assert.strictEqual(sent['459:468'].inputs.switch, false, 'image 1 given: the latent follows it');
+    });
+
+    await atest('submit, Qwen 2.1 edit with no pictures: all 16 unlinked and the aspect-ratio switch flipped', async () => {
+        const { sent } = await submitted('image_qwen_image_2_1_image_edit', { prompt: 'x' });
+        assert.deepStrictEqual(loadersOf(sent), []);
+        assert.ok(!JSON.stringify(sent).includes(PH));
+        assert.deepStrictEqual(danglingLinks(sent), []);
+        assert.strictEqual(sent['459:468'].inputs.switch, true);
+    });
+
+    await atest('submit, FastH3 i2v with a first frame only: no last frame, and no black one', async () => {
+        const { sent } = await submitted('video_fastvideo_fasth3_i2v', { loadimage_image_136: 'first.png' });
+        assert.deepStrictEqual(loadersOf(sent), ['136']);
+        assert.ok(!JSON.stringify(sent).includes(PH));
+        assert.deepStrictEqual(danglingLinks(sent), []);
+    });
+
+    await atest('submit: a plain optional image (no unlink) still gets the placeholder', async () => {
+        // Same bundle with the opt-in taken off one slot.
+        const { sent } = await submitted('video_fastvideo_fasth3_i2v', {},
+            (params) => params.map(p => p.key === 'loadimage_image_300' ? { ...p, whenEmpty: undefined } : p));
+        assert.strictEqual(sent['300'].inputs.image, PH);
+        assert.strictEqual(sent['136'], undefined, 'the unlink slot beside it is still removed');
+    });
+}
+
+async function atest(name, fn) {
+    try { await fn(); console.log(`  ok   ${name}`); }
+    catch (e) { console.error(`  FAIL ${name}\n       ${e.message}`); fails++; }
+}
+
+asyncTests().then(() => {
+    fs.rmSync(TMP, { recursive: true, force: true });
+    if (fails) { console.error(`\n${fails} failing`); process.exit(1); }
+    console.log('\nall optional-media tests passed');
+});

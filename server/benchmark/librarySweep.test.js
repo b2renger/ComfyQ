@@ -175,6 +175,11 @@ global.fetch = async () => ({ ok: false, status: 503, json: async () => ({}) });
             && lines[lines.length - 1].type === 'summary');
         ok('and the machine context is recorded up front, not only at the end',
             Object.prototype.hasOwnProperty.call(lines[0], 'machine'));
+        // ★ The planned ids, not only their count: a rescue of an interrupted run
+        // tells "planned but never reached" (offered again) from "never planned".
+        ok('the start line names the bundles the run planned',
+            Array.isArray(lines[0].ids) && lines[0].ids.length === lines[0].bundles
+            && lines[0].ids.length === 2);
     }
 
     console.log('\na failing bundle does not stop the sweep');
@@ -356,6 +361,102 @@ console.log('\nclearing the results, because a half report is worse than none');
     ok('...and leaves nothing behind in the data dir',
         !fs.readdirSync(dataDir).some(n => n.startsWith('library-sweep-')));
     ok('clearing again is harmless', sweep.clear().ok === true);
+}
+
+console.log('\na sweep that is stopping is still running');
+{
+    // ★ stop() lets the loop finish the workflow it is on. A start in that window
+    // reset the cancel flag and swapped the run under the old loop, which carried
+    // on with its own bundles into the new run beside the new loop.
+    let release = null;
+    const calibrator = { calibrate: () => new Promise(res => { release = () => res({ estimatedDurationSec: 5 }); }) };
+    const { sweep } = make({ entries: [entry('one'), entry('two')], calibrator });
+    await sweep.start();
+    for (let i = 0; i < 100 && !release; i++) await new Promise(res => setTimeout(res, 5));
+    ok('stop is accepted mid-bundle', sweep.stop().ok === true && sweep.status().state === 'stopping');
+    const again = await sweep.start();
+    ok('a start while it is stopping is refused, and says why', again.ok === false && /still finishing/.test(again.error));
+    ok('...and so is clear', sweep.clear().ok === false);
+    release();
+    for (let i = 0; i < 100 && sweep.status().state === 'stopping'; i++) await new Promise(res => setTimeout(res, 10));
+    ok('the stopped sweep ran only the bundle it was on', sweep.status().state === 'stopped' && sweep.status().results.length === 1);
+    sweep.clear();
+}
+
+console.log('\nthe newer seed shapes are labelled calibration too');
+{
+    // A primitive seed (`seed_7` on `7.value`, the 360 panorama) and one inside a
+    // widget group (`sampling_mode.seed`, the Gemma captioners) were read as the
+    // suite's or the graph's — while calibration had replaced them.
+    const { sweep } = make({ entries: [entry('one')], calibrator: { calibrate: async () => ({}) } });
+    const e = entry('s', {
+        effective: { exposedParameters: [
+            { key: 'seed_7', label: 'Seed', type: 'number', nodeId: '7', field: 'value' },
+            { key: 'seed_1', label: 'Seed', type: 'number', nodeId: '1', field: 'sampling_mode.seed' },
+        ] },
+        apiWorkflow: { 7: { class_type: 'PrimitiveInt', inputs: { value: 360001 } }, 1: { class_type: 'TextGenerate', inputs: { 'sampling_mode.seed': 0 } } },
+    });
+    const rows = sweep._ingredients(e, { paramValues: { seed_7: 111, seed_1: 222 }, suiteKeys: ['seed_1'] });
+    const by = Object.fromEntries(rows.map(r => [r.key, r]));
+    ok('a primitive seed is labelled calibration', by.seed_7.from === 'calibration' && by.seed_7.value === 111);
+    ok('a seed in a widget group the suite named is labelled calibration', by.seed_1.from === 'calibration' && by.seed_1.value === 222);
+}
+
+console.log('\na sweep holds the calibrator from its first bundle to its last');
+{
+    const log = [];
+    let held = null;
+    const calibrator = {
+        reserve: (by) => { held = { by, release: () => { log.push('release'); held = null; } }; log.push(`reserve:${by}`); return held; },
+        calibrate: async (id, opts) => { log.push(`${id}:${opts.reservation && opts.reservation === held ? 'held' : 'NOT HELD'}`); return { estimatedDurationSec: 5 }; },
+    };
+    const { sweep } = make({ entries: [entry('one'), entry('two')], calibrator });
+    await sweep.start();
+    for (let i = 0; i < 100 && sweep.status().state === 'running'; i++) await new Promise(res => setTimeout(res, 20));
+    await new Promise(res => setTimeout(res, 20));
+    ok('every bundle is calibrated under the sweep\'s reservation, released at the end',
+        log.join(' ') === 'reserve:the library sweep one:held two:held release');
+    sweep.clear();
+}
+
+console.log('\na suite run tells the calibrator where it writes derived inputs');
+{
+    // ★ With --data-dir the derived inputs land outside server/data, and the
+    // calibrator refused every one of them and fed the run a random asset.
+    let seen = null;
+    const calibrator = { calibrate: async (id, opts) => { seen = opts; return { estimatedDurationSec: 5 }; } };
+    const { sweep } = make({ entries: [entry('one')], calibrator });
+    await sweep.start({ suite: { name: 't', runs: [{ workflow: 'one', stage: 'S', params: {} }] } });
+    for (let i = 0; i < 100 && sweep.status().state === 'running'; i++) await new Promise(res => setTimeout(res, 20));
+    ok('the sweep\'s own suite-inputs folder is an allowed input root',
+        Array.isArray(seen?.inputRoots) && seen.inputRoots.includes(path.join(dataDir, 'suite-inputs')));
+    sweep.clear();
+}
+
+console.log('\na suite remainder that names a bundle the suite does not still runs it');
+{
+    // ★ "Run the remaining N" is computed from the library, so it can name a
+    // bundle added after the suite file was written. Filtered by the suite alone
+    // it was skipped in silence, or the whole run refused as "no workflows to run".
+    let planned = null;
+    const calibrator = { calibrate: async () => ({ estimatedDurationSec: 5 }) };
+    const { sweep } = make({ entries: [entry('a'), entry('b')], calibrator });
+    const origExecute = sweep._execute.bind(sweep);
+    sweep._execute = (wanted, cal) => { planned = wanted; return origExecute(wanted, cal); };
+    const r = await sweep.start({ suite: { name: 't', runs: [{ workflow: 'a', stage: 'S', params: {} }] }, ids: ['a', 'b'] });
+    for (let i = 0; i < 100 && sweep.status().state === 'running'; i++) await new Promise(res => setTimeout(res, 20));
+    ok('both the suite bundle and the one it does not name are planned, suite first',
+        r.ok === true && r.total === 2 && planned.map(w => w.entry.id).join(',') === 'a,b');
+    ok('...the suite bundle keeps its run, the other runs as a plain calibration',
+        planned[0].run?.workflow === 'a' && planned[1].run === null);
+    ok('...and the start result names it', Array.isArray(r.notInSuite) && r.notInSuite.join(',') === 'b');
+    sweep.clear();
+
+    const only = make({ entries: [entry('a'), entry('b')], calibrator });
+    const r2 = await only.sweep.start({ suite: { name: 't', runs: [{ workflow: 'a', stage: 'S', params: {} }] }, ids: ['b'] });
+    ok('a remainder of only an unnamed bundle is not refused as "no workflows to run"', r2.ok === true && r2.total === 1);
+    for (let i = 0; i < 100 && only.sweep.status().state === 'running'; i++) await new Promise(res => setTimeout(res, 20));
+    only.sweep.clear();
 }
 
 console.log('\nthe recorder\'s absence must be visible, not read as "nothing was opened"');

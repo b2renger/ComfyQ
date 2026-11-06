@@ -18,7 +18,7 @@ const { execFileSync } = require('child_process');
 // route serves it, so a test that writes into it reports on the machine rather
 // than on the code.
 
-const { Updater, tagRank, newestTag, comfyVerdict } = require('./updater');
+const { Updater, tagRank, newestTag, comfyVerdict, comfyStoppedVerdict } = require('./updater');
 
 let pass = 0;
 const ok = (what, cond) => { assert.ok(cond, what); pass++; console.log(`  ok  ${what}`); };
@@ -90,6 +90,23 @@ ok('a real update does not say nothing moved', !/nothing moved/i.test(moved.text
 // version changing, so equal labels must still be reportable as an update.
 ok('an update with an unchanged version string is still reported as one',
     /^Updated/.test(comfyVerdict({ before: '0.39.1', after: '0.39.1', moved: true }).text));
+
+// ★ A STOPPED update is not "nothing happened": update.py checks out master and
+// pulls before it checks out the newest tag, so a stop in between can leave the
+// install on untagged master — with the same version string it started on.
+const stoppedMoved = comfyStoppedVerdict({
+    before: { label: '0.43.2', head: 'aaa1111' }, after: { label: '0.43.2', head: 'bbb2222' }, moved: true,
+});
+ok('a stop that moved HEAD names both commits, not just the unchanged version',
+    stoppedMoved.includes('aaa1111') && stoppedMoved.includes('bbb2222'));
+ok('...says it stopped part-way and asks for a restart',
+    /stopped part-way/i.test(stoppedMoved) && /restarted/i.test(stoppedMoved));
+ok('...and warns that local edits may already be stashed', /stash/i.test(stoppedMoved));
+const stoppedStill = comfyStoppedVerdict({
+    before: { label: '0.43.2', head: 'aaa1111' }, after: { label: '0.43.2', head: 'aaa1111' }, moved: false,
+});
+ok('a stop before HEAD moved says so, and asks for no restart',
+    /before anything moved/i.test(stoppedStill) && !/restart/i.test(stoppedStill));
 
 // ---------------------------------------------------------------------------
 console.log('\nreading the state of the install');
@@ -202,8 +219,19 @@ console.log('\nrefusing to update ComfyUI over work it would stash');
     ok('the incoming commit is named, so it can be read before pulling',
         (clean.incoming[0] || '').includes('upstream moved on'));
 
-    up = await u.updatePack('pack-clean');
+    // ★ Fired together, the way two quick clicks arrive: the first one's fetch
+    // takes seconds, and the run slot used to be claimed only after it — so the
+    // second Update (and Update ComfyUI) slipped in and the runs overwrote each
+    // other's status.
+    const fired = await Promise.all([
+        u.updatePack('pack-clean'), u.updatePack('pack-clean'), u.updateComfy({ acceptStash: true }),
+    ]);
+    up = fired[0];
     ok('the pull starts', up.ok === true);
+    ok('★ a second Update fired during the first one\'s fetch is refused',
+        fired[1].ok === false && /being checked|already being updated/.test(fired[1].error));
+    ok('★ ...and so is Update ComfyUI, with that reason rather than a later one',
+        fired[2].ok === false && /being checked|already being updated/.test(fired[2].error));
     await new Promise(r => setTimeout(r, 2500));
     const run = u.status();
     ok('it finishes', run.status === 'done');
@@ -219,6 +247,55 @@ console.log('\nrefusing to update ComfyUI over work it would stash');
     // the ComfyUI verdict above.
     ok('a second update says it is already up to date', again.upToDate === true);
     ok('and does not claim to have updated anything', !/updated/i.test(again.verdict));
+
+    // -----------------------------------------------------------------------
+    console.log('\nStop is a cancel, not a failure with an invented cause');
+    fs.writeFileSync(path.join(origin, 'nodes.py'), 'x\nnew upstream line\nand another\n');
+    git(origin, 'commit', '-aqm', 'upstream moved again');
+    const stopper = updaterFor(install);
+    const realSpawn = stopper._spawn.bind(stopper);
+    // The pull hangs until it is killed; the fetch before it is real.
+    stopper._spawn = (cmd, args, opts) => (args.includes('pull')
+        ? new Promise((resolve) => { stopper._child = { kill: () => resolve(1) }; })
+        : realSpawn(cmd, args, opts));
+    ok('the pull starts', (await stopper.updatePack('pack-clean')).ok === true);
+    ok('Stop is accepted', stopper.stop().ok === true);
+    await new Promise(r => setTimeout(r, 50));
+    ok('★ a stopped pack update reads as cancelled', stopper.status().status === 'cancelled');
+    // The old message blamed a diverged history for every non-zero exit.
+    ok('...and does not claim the history diverged', !/diverged/i.test(stopper.status().error || ''));
+    ok('a stop before the pull moved anything says so', /before anything moved/i.test(stopper.status().verdict || ''));
+    ok('...and asks for no restart', stopper.status().needsRestart === false);
+
+    // ★ A killed pull can already have moved HEAD. The run must say where the
+    // pack landed and ask for a restart — and must stay 'running' until the
+    // child has exited, or the panel stops polling before that is known.
+    const packDir = path.join(cn, 'pack-clean');
+    const headBefore = git(packDir, 'rev-parse', '--short', 'HEAD');
+    const mover = updaterFor(install);
+    const moverSpawn = mover._spawn.bind(mover);
+    mover._spawn = (cmd, args, opts) => (args.includes('pull')
+        ? new Promise((resolve) => {
+            mover._child = {
+                kill: () => setTimeout(() => { git(packDir, 'pull', '-q', '--ff-only'); resolve(1); }, 30),
+            };
+        })
+        : moverSpawn(cmd, args, opts));
+    ok('the pull starts again', (await mover.updatePack('pack-clean')).ok === true);
+    ok('Stop is accepted', mover.stop().ok === true);
+    ok('★ until the child exits the run is still running, so the panel keeps polling',
+        mover.status().status === 'running' && mover.status().stopping === true);
+    ok('...and says it is stopping', /stopping/i.test(mover.status().step || ''));
+    await new Promise(r => setTimeout(r, 400));
+    const stopped = mover.status();
+    const headAfter = git(packDir, 'rev-parse', '--short', 'HEAD');
+    ok('the stub really moved HEAD', headAfter !== headBefore);
+    ok('★ a stopped pull that moved HEAD reads as cancelled', stopped.status === 'cancelled');
+    ok('★ ...and is recorded as having moved', stopped.moved === true);
+    ok('★ ...and asks for a ComfyUI restart', stopped.needsRestart === true);
+    ok('★ ...and its verdict names where it was and where it is now',
+        /stopped part-way/i.test(stopped.verdict || '')
+        && stopped.verdict.includes(headBefore) && stopped.verdict.includes(headAfter));
 
     // -----------------------------------------------------------------------
     console.log('\nthe folder never reaches git as a path from the request');
@@ -252,6 +329,88 @@ console.log('\nrefusing to update ComfyUI over work it would stash');
     // act rather than anything derived from the danger itself.
     const accepted = await u.updateComfyDeps({ acceptRisky: true });
     ok('accepting it gets past that gate', !/Say so explicitly/.test(accepted.error || ''));
+
+    // -----------------------------------------------------------------------
+    console.log('\n★ an install AHEAD of the newest release is not offered a "newer" one');
+    // update_comfyui.bat (the non-stable one, beside the stable one) leaves the
+    // install on master past the newest tag. The stable updater would check
+    // the tag out — a downgrade — so calling that "a newer release" is wrong.
+    const comfyOrigin = repo('comfy-origin', { 'comfyui_version.py': '__version__ = "0.43.2"\n' });
+    git(comfyOrigin, 'tag', 'v0.43.2');
+    const ahead = path.join(TMP, 'comfy-ahead');
+    execFileSync('git', ['clone', '-q', comfyOrigin, ahead], { windowsHide: true });
+    fs.writeFileSync(path.join(ahead, 'master.txt'), 'past the release\n');
+    git(ahead, 'add', '-A');
+    git(ahead, 'commit', '-qm', 'master moved on, untagged');
+    const au = updaterFor(ahead);
+    const ast = au.comfyState();
+    ok('it is not on the newest tag', ast.onNewestLocalTag === false);
+    ok('it is recognised as AHEAD of it', ast.aheadOfNewestTag === true);
+    let achk = await au.checkComfy();
+    ok('the check reached the remote', achk.fetched === true);
+    ok('★ no update is offered', achk.updateAvailable === false);
+    ok('the verdict says it is ahead, and that the stable updater would go back',
+        /ahead/i.test(achk.verdict) && /back/i.test(achk.verdict) && !/newer release is available/i.test(achk.verdict));
+    // ...while a real new release past it is still reported as one.
+    fs.writeFileSync(path.join(comfyOrigin, 'comfyui_version.py'), '__version__ = "0.44.0"\n');
+    git(comfyOrigin, 'commit', '-aqm', 'release');
+    git(comfyOrigin, 'tag', 'v0.44.0');
+    achk = await au.checkComfy();
+    ok('a newer tag that is not in the install is still offered',
+        achk.updateAvailable === true && /v0\.44\.0/.test(achk.verdict) && achk.aheadOfNewestTag === false);
+
+    // -----------------------------------------------------------------------
+    console.log('\n★ a folder git refuses over its owner says so, with the fix');
+    // A drive cloned onto another machine belongs to another Windows user, and
+    // git then refuses every read ("dubious ownership"). The pack used to show
+    // no commit and, after a check, "could not reach its remote". Simulated with
+    // git's own test switch; the global and system config are kept out of it,
+    // since this rig's global config already trusts "*".
+    {
+        const ru = updaterFor(install);
+        const emptyCfg = path.join(TMP, 'empty.gitconfig');
+        fs.writeFileSync(emptyCfg, '');
+        const env = { GIT_TEST_ASSUME_DIFFERENT_OWNER: '1', GIT_CONFIG_GLOBAL: emptyCfg, GIT_CONFIG_NOSYSTEM: '1' };
+        const saved = {};
+        for (const k of Object.keys(env)) { saved[k] = process.env[k]; process.env[k] = env[k]; }
+        try {
+            const row = (await ru.packStates({ fetch: true, only: 'pack-clean' })).packs[0];
+            ok('the pack names the refusal and the one-line fix',
+                /git refuses this folder/.test(row.blocked || '') && /safe\.directory "\*"/.test(row.blocked));
+            ok('...not an unreachable remote', !/remote/.test(row.blocked || ''));
+            ok('...and claims no commit it could not read', row.head === null);
+            const upr = await ru.updatePack('pack-clean');
+            ok('updating it is refused with that reason', upr.ok === false && /safe\.directory/.test(upr.error));
+            ok('ComfyUI itself carries the same reason', /safe\.directory/.test(ru.comfyState().gitRefused || ''));
+            const rchk = await ru.checkComfy();
+            ok('checking ComfyUI says why, rather than "could not reach the remote"',
+                /safe\.directory/.test(rchk.verdict) && !/reach the remote/i.test(rchk.verdict)
+                && rchk.updateAvailable === false);
+            // ★ The vendor updater switches git's ownership check off for itself,
+            // so it would stash and pull here — while neither the stash warning
+            // nor before/after could be read, and a real update read "Nothing moved".
+            const rup = await ru.updateComfy();
+            ok('updating ComfyUI is refused with that reason', rup.ok === false && /safe\.directory/.test(rup.error));
+            ok('...and nothing was started', ru.status() === null);
+            // A check over refused packs must not call them unreachable.
+            ok('a check can start', ru.checkAll().ok === true);
+            for (let i = 0; i < 400 && ru.scan().status === 'running'; i++) {
+                await new Promise(r => setTimeout(r, 50));
+            }
+            const rscan = ru.scan();
+            ok('the check finished', rscan.status === 'done');
+            ok('★ refused packs are not counted as unreachable', rscan.unreachable === 0);
+            ok('...they are counted as refused, one per git pack',
+                rscan.refused > 0 && rscan.refused === rscan.packs.filter(p => p.isGit).length);
+        } finally {
+            for (const k of Object.keys(env)) {
+                if (saved[k] === undefined) delete process.env[k]; else process.env[k] = saved[k];
+            }
+        }
+        ok('once git reads the folder again, the reason is gone', ru.comfyState().gitRefused === undefined);
+        ru._gitSync(TMP, ['rev-parse', 'HEAD']);
+        ok('an ordinary failed read is not taken for an ownership refusal', ru._gitRefusedDir === null);
+    }
 
     // -----------------------------------------------------------------------
     console.log('\nan install that is not a git checkout at all');

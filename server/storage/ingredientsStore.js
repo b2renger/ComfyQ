@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const { isSeedParam } = require('../benchmark/benchmarkService');
 
 // Durable per-job "ingredients" store.
 //
@@ -24,11 +25,12 @@ function inputDir(comfyConfig) {
     return path.resolve(comfyConfig.root_path, 'input');
 }
 
-// Mirrors the client's isSeedParam: a param whose key is `seed` or ends in
-// `seed` (e.g. `noise_seed`, `sampling_mode.seed`).
+// The server's seed rule (benchmarkService.isSeedParam), key only: a job record
+// carries keys, not fields. `seed` is the last word, then only node-id numbers
+// (`seed_7`, `ksampler_seed_3`). The old "ends in seed" test missed those, so
+// the settings.json seed block came out empty on almost every bundle.
 function isSeedKey(key) {
-    const s = String(key || '').toLowerCase();
-    return s === 'seed' || s.endsWith('_seed') || s.endsWith('.seed') || s.endsWith('seed');
+    return isSeedParam({ key });
 }
 
 function sanitizeName(name) {

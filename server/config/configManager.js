@@ -49,8 +49,18 @@ function load() {
     const raw = fs.readFileSync(CONFIG_PATH, 'utf8');
     let parsed;
     try { parsed = JSON.parse(raw); } catch (e) {
-        console.warn('[Config] config.json is not valid JSON, starting fresh in admin mode');
+        // ★ Keep the broken file. It holds both password hashes, the paths, the
+        // HF token and the machine's name, and a trailing comma typed into it
+        // must not cost all of that -- the beacon re-reads this file every few
+        // seconds, so a running server got here within moments of the typo.
         const cfg = defaultConfig();
+        const aside = keepBrokenCopy(CONFIG_PATH);
+        if (!aside) {
+            console.error(`[Config] config.json is not valid JSON (${e.message}) and no copy of it could be kept — `
+                + 'leaving it as it is and using the defaults until it is fixed');
+            return { config: cfg, fresh: true };
+        }
+        console.warn(`[Config] config.json is not valid JSON (${e.message}) — kept as ${path.basename(aside)}, starting fresh in admin mode`);
         save(cfg);
         return { config: cfg, fresh: true };
     }
@@ -80,7 +90,40 @@ function save(config) {
         console.error('[Config] Refusing to write invalid config:', result.error.issues);
         throw new Error('Invalid config object');
     }
-    fs.writeFileSync(CONFIG_PATH, JSON.stringify(result.data, null, 2), 'utf8');
+    writeAtomic(CONFIG_PATH, JSON.stringify(result.data, null, 2));
+}
+
+// Written to a temporary file and renamed over the real one, so a power cut in
+// the middle of a save leaves the old file or the new one, never half of one
+// (half a config.json is not valid JSON, and the next boot would reset it).
+function writeAtomic(file, text) {
+    const tmp = `${file}.tmp`;
+    try {
+        fs.writeFileSync(tmp, text, 'utf8');
+    } catch (e) {
+        // The temporary file could not be written (a full volume, say). The
+        // real file is untouched, and must stay so: writing it directly would
+        // truncate it first and then fail the same way, leaving half of it.
+        try { fs.unlinkSync(tmp); } catch { /* not there */ }
+        throw e;
+    }
+    try {
+        fs.renameSync(tmp, file);
+    } catch {
+        // On Windows the rename fails (EPERM/EBUSY) while another program has
+        // the file open; a direct write is still better than not saving.
+        try { fs.unlinkSync(tmp); } catch { /* not there */ }
+        fs.writeFileSync(file, text, 'utf8');
+    }
+}
+
+// Move a file that cannot be read out of the way, so that writing defaults in
+// its place does not destroy it. Returns where it went, or null when no copy
+// could be kept -- and then the caller must not overwrite it.
+function keepBrokenCopy(file, now = Date.now()) {
+    const aside = `${file}.broken-${now}.bak`;   // .bak: gitignored, it holds secrets
+    try { fs.renameSync(file, aside); return aside; } catch { /* held open by an editor? */ }
+    try { fs.copyFileSync(file, aside); return aside; } catch { return null; }
 }
 
 function update(mutator) {
@@ -94,16 +137,55 @@ function setMode(mode) {
     return update(c => { c.mode = mode; return c; });
 }
 
-function setActiveWorkflow(workflowId) {
-    return update(c => { c.workflows.activeWorkflowId = workflowId; return c; });
+// Where to look for ComfyUI, in order, one path at a time (a drive is only
+// listed when the search reaches it, as before).
+//
+// ★ The install beside this checkout, then the drive ComfyQ runs from, come
+// FIRST. Scanning C..Z in order meant a clone mounted as K: on a rig with its
+// own D:\ComfyUI_windows_portable_nvidia was repointed at THAT install -- its
+// models, its node packs -- with one log line to say so.
+function* comfyCandidates(drives, projectRoot, listDir) {
+    const seen = new Set();
+    function* once(...paths) {
+        for (const p of paths) {
+            const k = p.toLowerCase();
+            if (seen.has(k)) continue;
+            seen.add(k);
+            yield p;
+        }
+    }
+    const parent = path.dirname(projectRoot);
+    yield* once(
+        path.join(parent, 'ComfyUI_windows_portable_nvidia', 'ComfyUI_windows_portable', 'ComfyUI'),
+        path.join(parent, 'ComfyUI_windows_portable', 'ComfyUI'),
+    );
+    const own = (String(projectRoot).match(/^([A-Za-z]):/) || [])[1]?.toUpperCase();
+    const ordered = own && drives.includes(own) ? [own, ...drives.filter(d => d !== own)] : drives;
+    for (const drive of ordered) {
+        yield* once(
+            `${drive}:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI`,
+            `${drive}:\\ComfyUI_windows_portable\\ComfyUI`,
+            `${drive}:\\ComfyUI\\ComfyUI`,
+            `${drive}:\\ComfyUI`,
+        );
+        // Plus a shallow scan of the drive root for any ComfyUI* folder.
+        let names = [];
+        try { names = listDir(`${drive}:\\`); } catch { /* unreadable drive (empty CD, disconnected) — skip */ }
+        for (const name of names) {
+            if (!/comfyui/i.test(name)) continue;
+            const base = path.join(`${drive}:\\`, name);
+            yield* once(path.join(base, 'ComfyUI_windows_portable', 'ComfyUI'), path.join(base, 'ComfyUI'), base);
+        }
+    }
 }
 
-// Best-effort auto-detection of a local ComfyUI install (Windows). Scans mounted
-// drives for the portable layout — a directory containing main.py, ideally with a
-// sibling python_embeded\python.exe. Returns { root_path, python_executable,
+// Best-effort auto-detection of a local ComfyUI install (Windows). Looks for the
+// portable layout — a directory containing main.py, ideally with a sibling
+// python_embeded\python.exe — beside this checkout first, then on ComfyQ's own
+// drive, then on the other drives. Returns { root_path, python_executable,
 // output_dir, assets_dir, installation_type } for the first match, or null.
 // Bounded: a readdir per drive + a handful of existsSync — no deep filesystem walk.
-function detectComfyPaths() {
+function detectComfyPaths({ projectRoot = PROJECT_ROOT } = {}) {
     if (process.platform !== 'win32') return null;
     const exists = (p) => { try { return fs.existsSync(p); } catch { return false; } };
 
@@ -113,39 +195,18 @@ function detectComfyPaths() {
         if (exists(`${letter}:\\`)) drives.push(letter);
     }
 
-    for (const drive of drives) {
-        const candidates = [
-            `${drive}:\\ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI`,
-            `${drive}:\\ComfyUI_windows_portable\\ComfyUI`,
-            `${drive}:\\ComfyUI\\ComfyUI`,
-            `${drive}:\\ComfyUI`,
-        ];
-        // Plus a shallow scan of the drive root for any ComfyUI* folder.
-        try {
-            for (const name of fs.readdirSync(`${drive}:\\`)) {
-                if (!/comfyui/i.test(name)) continue;
-                const base = path.join(`${drive}:\\`, name);
-                candidates.push(
-                    path.join(base, 'ComfyUI_windows_portable', 'ComfyUI'),
-                    path.join(base, 'ComfyUI'),
-                    base,
-                );
-            }
-        } catch { /* unreadable drive (empty CD, disconnected) — skip */ }
-
-        for (const root of candidates) {
-            if (!exists(path.join(root, 'main.py'))) continue;
-            const portablePy = path.resolve(root, '..', 'python_embeded', 'python.exe');
-            const hasPortablePy = exists(portablePy);
-            const assets = `${drive}:\\_assets`;
-            return {
-                root_path: root,
-                python_executable: hasPortablePy ? portablePy : 'python',
-                output_dir: path.join(root, 'output'),
-                assets_dir: exists(assets) ? assets : '',
-                installation_type: hasPortablePy ? 'portable' : 'system',
-            };
-        }
+    for (const root of comfyCandidates(drives, projectRoot, (d) => fs.readdirSync(d))) {
+        if (!exists(path.join(root, 'main.py'))) continue;
+        const portablePy = path.resolve(root, '..', 'python_embeded', 'python.exe');
+        const hasPortablePy = exists(portablePy);
+        const assets = path.join(path.parse(root).root, '_assets');
+        return {
+            root_path: root,
+            python_executable: hasPortablePy ? portablePy : 'python',
+            output_dir: path.join(root, 'output'),
+            assets_dir: exists(assets) ? assets : '',
+            installation_type: hasPortablePy ? 'portable' : 'system',
+        };
     }
     return null;
 }
@@ -210,9 +271,11 @@ module.exports = {
     save,
     update,
     setMode,
-    setActiveWorkflow,
     resolvePaths,
     defaultConfig,
     detectComfyPaths,
-    followDriveLetter
+    comfyCandidates,
+    followDriveLetter,
+    writeAtomic,
+    keepBrokenCopy
 };

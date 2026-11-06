@@ -1,5 +1,6 @@
 // API-format-only validator. v2 deliberately does NOT auto-convert Litegraph
-// workflows; the user must save with "Save (API Format)" from ComfyUI dev mode.
+// workflows; the user must export with File → Export (API) in ComfyUI (older
+// menus: "Save (API Format)" after enabling dev mode).
 
 function detectFormat(json) {
     if (!json || typeof json !== 'object') return 'invalid';
@@ -16,7 +17,7 @@ function validateApiWorkflow(json) {
         return {
             valid: false,
             format,
-            error: 'Litegraph format detected. ComfyQ v2 requires API format. In ComfyUI: enable Settings → Dev mode Options, then click "Save (API Format)".'
+            error: 'Litegraph format detected. ComfyQ v2 requires API format. In ComfyUI: File → Export (API) (older menus: enable Settings → Dev mode Options, then click "Save (API Format)").'
         };
     }
     if (format === 'invalid') {

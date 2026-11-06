@@ -135,14 +135,16 @@ function collectFromHistory(historyEntry, comfyConfig) {
 /**
  * Drop a text output that is a node's internal plumbing rather than the answer.
  *
- * ★ Found by running the whole library: SEVEN production bundles were publishing a
- * result tile to students that read `"3"`, `"8"`, `"11"`, `"150"`, `"1x512x512"` or
- * `"128x1024x1024"`. The Bernini editors tap a combo's line index through a
+ * ★ Found by running the whole library: SEVEN production bundles were emitting a
+ * plumbing string beside their real result — `"3"`, `"8"`, `"11"`, `"150"`,
+ * `"1x512x512"` or `"128x1024x1024"`. The Bernini editors tap a combo's line index through a
  * `PreviewAny` to coerce it to a string (an IN-PATH node — its value is consumed by
  * the graph, so it cannot simply be deleted), LivePortrait previews two tensor
  * shapes, Stable Audio a sample count. All reach `outputs` as a `text` array and
- * were rendered beside the real picture. A June rig-watch note had suspected the
- * Bernini one; the sweep proved it, on seven bundles.
+ * were collected beside the real picture (the client never drew text next to a
+ * file, since ImageLightbox only treats a job with no result_filename as a text
+ * job; the strings rode on the wire and in sweep rows). A June rig-watch note had
+ * suspected the Bernini one; the sweep proved it, on seven bundles.
  *
  * The rule needs no knowledge of the workflow, which is why it is safe:
  *   - text that reads as prose (it contains whitespace) is an answer — keep it;

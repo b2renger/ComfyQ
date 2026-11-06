@@ -13,6 +13,8 @@ const { listModelFiles, prettyModelLabel } = require('../workflows/modelOptions'
 const { buildModelUsage } = require('../workflows/modelUsage');
 const { listInstalledPacks, missingNodePacks, readRequirements, refreshCachedObjectInfo } = require('../workflows/nodePacks');
 const { renderSweepReport } = require('../benchmark/sweepReport');
+const { sweepBlocksRestart, SWEEP_RUNNING_MESSAGE } = require('./sweepGuard');
+const { readServeError } = require('../config/servingFlags');
 const { revealPath } = require('../maintenance/revealPath');
 const {
     scoreDeletable, auditRedownload, invalidateReferenceNames,
@@ -20,7 +22,7 @@ const {
 const { invalidatePackCode, bundleModelNames, recordRemovedWorkflow } = require('../workflows/modelUsage');
 const { invalidateAccessLog } = require('../workflows/modelAccessLog');
 const { LibrarySweep } = require('../benchmark/librarySweep');
-const { loadSuite, validateSuite } = require('../benchmark/suitePlan');
+const { loadSuite, validateSuite, suitePath } = require('../benchmark/suitePlan');
 const jobCleanup = require('../storage/jobCleanup');
 const { stagedCopiesOf, bundleTemplateFingerprint, removeStagedCopies } = require('../workflows/stagedCopies');
 const { scanSetup, cleanOffList } = require('../workflows/scanFolders');
@@ -66,8 +68,91 @@ function _openQueueAdHoc(resolvedConfig) {
     }
 }
 
+// ★ Express 4 ignores the promise an async handler returns. A throw inside one
+// (POST /nodepacks/pip with no folder did it) became an unhandled rejection,
+// and Node exits on those -- taking a serving rig down with the admin panel.
+// makeRouter passes every handler through this, so a throw answers 500 with
+// its message instead. Error middleware (4 arguments) is left as it is.
+function guardAsync(fn) {
+    if (typeof fn !== 'function' || fn.length > 3) return fn;
+    return function guarded(req, res, next) {
+        const out = fn.call(this, req, res, next);
+        if (out && typeof out.then === 'function') {
+            out.then(undefined, (e) => {
+                console.error(`[Admin] ${req.method} ${req.originalUrl} failed:`, e);
+                if (!res.headersSent) res.status(500).json({ error: e?.message || String(e) });
+            });
+        }
+        return out;
+    };
+}
+
+// What the workflow editor is handed: every primitive detected in the graph,
+// with the stored settings of the ones already exposed folded in.
+//
+// ★ The stored KEY is kept. The detected row carries the parser's automatic
+// key (`<class>_<field>_<node>`); handing that back made every save rename the
+// hand-written ones (`prompt`, `place_2`, ...), so jobs already queued, a
+// disabledWhen, warmupParams and the test suite all pointed at a key that no
+// longer existed -- and a job whose value is missing runs on the graph's own
+// literal, reporting success. A hidden row whose automatic key happens to equal
+// a stored one gets a suffix, so enabling it cannot create a duplicate key.
+function mergeEditData(detected, exposedParameters) {
+    const exposedByKey = new Map();
+    for (const p of exposedParameters || []) exposedByKey.set(`${p.nodeId}:${p.field}`, p);
+    const storedKeys = new Set((exposedParameters || []).map(p => p.key));
+    const merged = detected.map(d => {
+        const found = exposedByKey.get(`${d.nodeId}:${d.field}`);
+        if (found) {
+            return {
+                ...d,
+                key: found.key,
+                type: found.type,
+                label: found.label,
+                default: found.default,
+                options: found.options ?? d.options,
+                optionLabels: found.optionLabels,
+                optionsDir: found.optionsDir,
+                optionsFilter: found.optionsFilter,
+                camera: found.camera,
+                min: found.min,
+                max: found.max,
+                step: found.step,
+                maxInputEdge: found.maxInputEdge,
+                disabledWhen: found.disabledWhen,
+                linkedValues: found.linkedValues,
+                // whenEmpty/whenEmptySet were missing here: a re-save
+                // silently dropped `unlink`, which turns an unused
+                // reference slot back into a black placeholder the
+                // model actually LOOKS at.
+                whenEmpty: found.whenEmpty,
+                whenEmptySet: found.whenEmptySet,
+                format: found.format,
+                required: found.required ?? d.required,
+                order: found.order ?? d.order,
+                enabled: true
+            };
+        }
+        let key = d.key;
+        for (let n = 2; storedKeys.has(key); n++) key = `${d.key}_${n}`;
+        storedKeys.add(key);
+        return { ...d, key, enabled: false };
+    });
+    // Exposed params first, in the order students see them; the rest keep
+    // graph order. The editor saves `order` from list position, so without
+    // this its preview (and any re-save) followed graph order instead.
+    merged.sort((a, b) => (a.enabled === b.enabled)
+        ? (a.enabled ? (a.order ?? 0) - (b.order ?? 0) : 0)
+        : (a.enabled ? -1 : 1));
+    return merged;
+}
+
 function makeRouter({ configManager, registry, adminGate, exitForRestart, runtime }) {
     const router = express.Router();
+    for (const method of ['get', 'post', 'put', 'delete']) {
+        const register = router[method].bind(router);
+        router[method] = (routePath, ...handlers) => register(routePath, ...handlers.map(guardAsync));
+    }
     const memUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
 
     router.get('/mode', (req, res) => {
@@ -86,11 +171,16 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         if (safe.comfy_ui) delete safe.comfy_ui.hf_token;
         const hasAdminPassword = !!config.auth.adminPasswordHash;
         const hasAccessPassword = !!config.auth.accessPasswordHash;
-        res.json({ config: safe, hasHfToken, hasAdminPassword, hasAccessPassword });
+        res.json({ config: safe, hasHfToken, hasAdminPassword, hasAccessPassword, lastServeError: readServeError() });
     });
 
     // First-run / admin: set ComfyUI paths and server settings.
-    router.put('/comfy', express.json(), (req, res) => {
+    //
+    // ★ Every write below is adminGate'd: the paths saved here are the programs
+    // ComfyQ later runs (ComfyUI, the maintenance scripts, pip, the updater), so
+    // an open route would let anyone on the LAN choose them. With no admin
+    // password set the gate lets everything through, so first-run setup works.
+    router.put('/comfy', adminGate, express.json(), (req, res) => {
         try {
             const { root_path, python_executable, output_dir, api_host, api_port, lan_access, autoStart, vramBudgetGb, installation_type, assets_dir, use_sage_attention, fp16_accumulation } = req.body || {};
             configManager.update(c => {
@@ -119,7 +209,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     // Federation: toggle this machine's presence on the LAN status beacon.
     // Takes effect live (the beacon re-reads enabled state each tick; kick()
     // sends one immediately so enabling shows up right away in the monitor).
-    router.put('/federation', express.json(), (req, res) => {
+    router.put('/federation', adminGate, express.json(), (req, res) => {
         try {
             const { enabled } = req.body || {};
             if (typeof enabled !== 'boolean') return res.status(400).json({ error: 'enabled must be a boolean' });
@@ -140,7 +230,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     //
     // Takes effect live: buildSnapshot() reads config.instance directly, so the
     // next beacon tick — kicked immediately below — already carries the new name.
-    router.put('/instance', express.json(), (req, res) => {
+    router.put('/instance', adminGate, express.json(), (req, res) => {
         try {
             const raw = req.body?.name;
             if (raw !== undefined && typeof raw !== 'string') {
@@ -265,8 +355,8 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
 
     // The extra workflow folders to count as USING a model.
     //
-    // ★ adminGate, unlike the sibling config PUTs, because emptying this list
-    // is precisely how a model that is in use becomes "unused": the prune route
+    // ★ adminGate, like every config write, and here it matters twice: emptying
+    // this list is precisely how a model that is in use becomes "unused": the prune route
     // re-derives usage from this same config, so an ungated write would let a
     // caller widen what the destructive route is willing to delete.
     router.put('/maintenance/scan-dirs', adminGate, express.json(), (req, res) => {
@@ -413,7 +503,16 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     router.post('/nodepacks/pip', adminGate, express.json(), async (req, res) => {
         const p = runtime?.packs;
         if (!p) return res.status(503).json({ error: 'the installer is not available' });
-        const out = await p.pipInstall(req.body?.folder, req.body?.acceptRisky === true);
+        // A pack is a folder NAME that exists in custom_nodes, never a path:
+        // pipInstall joins it onto custom_nodes and runs `pip install -r` on
+        // the requirements.txt it finds there. Matched against what is on
+        // disk, the way the updater matches its pack names.
+        const folder = req.body?.folder;
+        const comfyRoot = configManager.load().config.comfy_ui?.root_path || '';
+        if (typeof folder !== 'string' || !listInstalledPacks(comfyRoot).some(pk => pk.name === folder)) {
+            return res.status(400).json({ ok: false, error: 'no installed node pack has that name' });
+        }
+        const out = await p.pipInstall(folder, req.body?.acceptRisky === true);
         res.status(out.ok ? 200 : 400).json(out);
     });
 
@@ -503,12 +602,12 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
 
     // ---- Run the whole library once, and write down what happened ---------
     // The one button that answers "does every workflow still work, and which
-    // models does the library actually open". ~2 h for 61 bundles here.
+    // models does the library actually open". ~2½–3 h for the 80-bundle library here.
     router.get('/library-sweep', (req, res) => {
         const sw = runtime?.sweep;
         if (!sw) return res.json({ available: false });
         // The full id list too, so the card can offer to run only what a cut-short
-        // sweep never reached — which is the normal case at two hours per run.
+        // sweep never reached — which is the normal case at 2½–3 hours per run.
         const bundles = registry.list({ includeUnavailable: false, includeHidden: true })
             .filter(e => e.apiWorkflow).map(e => e.id);
         // ★ Only the library that exists NOW. A report still listing workflows
@@ -528,8 +627,13 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         if (!sw) return res.status(503).json({ error: 'the sweep is not available' });
         // `suite`: the NAME of a committed test suite (tools/test-suite/<name>.suite.json),
         // never a path or a body of params — the configuration lives in the repo.
+        // loadSuite also takes a path (the CLI uses that), so the name is checked
+        // here first: a path from a browser would read any JSON the server can see.
         let suite;
         if (req.body?.suite) {
+            try { suitePath(String(req.body.suite)); } catch (e) {
+                return res.status(400).json({ error: e.message });
+            }
             try { suite = loadSuite(String(req.body.suite)); } catch (e) {
                 return res.status(400).json({ error: `cannot read suite "${req.body.suite}": ${e.message}` });
             }
@@ -571,7 +675,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     router.get('/library-sweep/report.txt', (req, res) => {
         const sw = runtime?.sweep;
         if (!sw) return res.status(503).type('text/plain').send('the sweep is not available');
-        // While a sweep is in flight, render what it has so far — a two-hour run
+        // While a sweep is in flight, render what it has so far — a 2½–3 hour run
         // should be readable at bundle 30. Once it has finished, the file on disk is
         // the better answer: it is the MERGE of this run over the previous one, so
         // re-running a single bundle to check a fix corrects one line of the report
@@ -633,10 +737,18 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
 
     router.post('/models/quarantine/restore', adminGate, express.json(), (req, res) => {
         const { config } = configManager.load();
+        // A batch is a folder NAME in the quarantine and `rel` a path inside it;
+        // a malformed one is refused here with a plain 400. restoreFile also
+        // refuses a source outside the quarantine or a destination outside models/.
+        const { batch, rel } = req.body || {};
+        if (typeof batch !== 'string' || !batch || /[\\/]/.test(batch) || batch === '.' || batch === '..'
+            || typeof rel !== 'string' || !rel || rel.split(/[\\/]/).includes('..')) {
+            return res.status(400).json({ ok: false, error: 'that is not a file in the quarantine' });
+        }
         const out = restoreFile({
             root: qRootNow(),
-            batch: req.body?.batch,
-            rel: req.body?.rel,
+            batch,
+            rel,
             comfyRoot: config.comfy_ui?.root_path || '',
         });
         // The file is back under models/, so every cached view is now wrong.
@@ -872,7 +984,10 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     // Read-only — runs filesystem checks and tries `python --version` with a
     // 5s timeout. Returns a per-check breakdown so the UI can show exactly
     // which path is wrong.
-    router.post('/check-paths', express.json(), async (req, res) => {
+    //
+    // ★ adminGate: "tries python --version" means it RUNS the program named in
+    // the request, so open to the LAN it would run any .exe a caller points at.
+    router.post('/check-paths', adminGate, express.json(), async (req, res) => {
         const { root_path, python_executable, output_dir, assets_dir } = req.body || {};
         const checks = [];
 
@@ -1119,7 +1234,9 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         }
     });
 
-    router.post('/activate-workflow', express.json(), (req, res) => {
+    // adminGate: it switches what every student is booking, and from admin mode
+    // it restarts the server.
+    router.post('/activate-workflow', adminGate, express.json(), (req, res) => {
         try {
             const { workflowId } = req.body || {};
             if (!workflowId) return res.status(400).json({ error: 'workflowId required' });
@@ -1173,9 +1290,18 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 });
                 return;
             }
+            // From admin mode this restarts the server, which would kill a
+            // library sweep mid-bundle and lose its results.
+            if (sweepBlocksRestart(runtime)) {
+                return res.status(409).json({ error: SWEEP_RUNNING_MESSAGE });
+            }
             configManager.update(c => {
                 c.workflows.activeWorkflowId = workflowId;
                 c.mode = 'student';
+                // Nothing is served in admin mode, so no extra lane is either:
+                // a list left over from before must not be reopened beside
+                // this workflow without being sized against it.
+                c.workflows.extraLaneWorkflowIds = [];
                 return c;
             });
             console.log(`[Admin] config updated; restarting…`);
@@ -1386,7 +1512,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 }
             }
             // Best-effort interrupt, then kill the spawned ComfyUI. If we're
-            // attached to an external ComfyUI (process.proc === null) the
+            // attached to an external ComfyUI (process.owned is false) the
             // stop() is a no-op and we leave that process alone.
             // Every lane, not only the main one.
             const laneWorkers = runtime.lanes?.lanes ? [...runtime.lanes.lanes.values()].map(l => l.worker) : [runtime.worker];
@@ -1401,8 +1527,11 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                     console.warn('[admin] emergency-stop kill err:', e.message);
                 }
             }
-            // Flip to admin mode and restart so we don't auto-relaunch ComfyUI.
-            configManager.update(c => { c.mode = 'admin'; return c; });
+            // Flip to admin mode and restart; the admin boot starts a fresh ComfyUI unless comfy_ui.autoStart is off.
+            // The extra lanes are forgotten, as "Reset to admin" forgets them:
+            // a deliberate stop is not something the next "Activate & serve"
+            // should undo by reopening them unchecked.
+            configManager.update(c => { c.mode = 'admin'; c.workflows.extraLaneWorkflowIds = []; return c; });
             res.json({ ok: true, ...result, restarting: true });
             // Emergency stop is a deliberate halt — do not resume on the
             // next boot.
@@ -1471,49 +1600,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             if (!entry) return res.status(404).json({ error: 'unknown workflow' });
             if (entry.unavailable) return res.status(409).json({ error: entry.reason });
             const detected = parseWorkflow(entry.apiWorkflow).parameters;
-            const exposedByKey = new Map();
-            for (const p of entry.meta.exposedParameters) {
-                exposedByKey.set(`${p.nodeId}:${p.field}`, p);
-            }
-            const merged = detected.map(d => {
-                const found = exposedByKey.get(`${d.nodeId}:${d.field}`);
-                if (found) {
-                    return {
-                        ...d,
-                        type: found.type,
-                        label: found.label,
-                        default: found.default,
-                        options: found.options ?? d.options,
-                        optionLabels: found.optionLabels,
-                        optionsDir: found.optionsDir,
-                        optionsFilter: found.optionsFilter,
-                        camera: found.camera,
-                        min: found.min,
-                        max: found.max,
-                        step: found.step,
-                        maxInputEdge: found.maxInputEdge,
-                        disabledWhen: found.disabledWhen,
-                        linkedValues: found.linkedValues,
-                        // whenEmpty/whenEmptySet were missing here: a re-save
-                        // silently dropped `unlink`, which turns an unused
-                        // reference slot back into a black placeholder the
-                        // model actually LOOKS at.
-                        whenEmpty: found.whenEmpty,
-                        whenEmptySet: found.whenEmptySet,
-                        format: found.format,
-                        required: found.required ?? d.required,
-                        order: found.order ?? d.order,
-                        enabled: true
-                    };
-                }
-                return { ...d, enabled: false };
-            });
-            // Exposed params first, in the order students see them; the rest keep
-            // graph order. The editor saves `order` from list position, so without
-            // this its preview (and any re-save) followed graph order instead.
-            merged.sort((a, b) => (a.enabled === b.enabled)
-                ? (a.enabled ? (a.order ?? 0) - (b.order ?? 0) : 0)
-                : (a.enabled ? -1 : 1));
+            const merged = mergeEditData(detected, entry.meta.exposedParameters);
             // apiWorkflow lets the editor offer a "Download JSON" (drag it into
             // the ComfyUI canvas to inspect the node graph) without a second route.
             // When the bundle also ships the original UI-format export, hand that
@@ -1658,7 +1745,8 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
 
 
     // Delete a workflow folder bundle. Refuses to delete the currently-active
-    // workflow — caller must activate another (or reset to admin) first.
+    // workflow — caller must activate another workflow first. (Reset to admin
+    // keeps the last-served one as the active workflow, so it does not help.)
     router.delete('/workflows/:id', adminGate, (req, res) => {
         try {
             const id = req.params.id;
@@ -1668,7 +1756,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             const cfg = configManager.load().config;
             if (cfg.workflows.activeWorkflowId === id) {
                 return res.status(409).json({
-                    error: 'cannot delete the active workflow; activate another first or reset to admin mode'
+                    error: 'cannot delete the active workflow; activate another workflow first'
                 });
             }
             const baseDir = cfg.workflows.dir.startsWith('.')
@@ -1679,7 +1767,12 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 return res.status(400).json({ error: 'path traversal rejected' });
             }
             if (!fs.existsSync(folder)) return res.status(404).json({ error: 'workflow not found' });
-            if ((cfg.workflows.extraLaneWorkflowIds || []).includes(id) || runtime?.lanes?.get?.(id)) {
+            // The remembered list counts only while serving (a lane may still
+            // be on its way back after a restart). In admin mode nothing is
+            // served and there is no lane to close, so a left-over list must
+            // not make the workflow impossible to delete.
+            const remembered = cfg.mode === 'student' && (cfg.workflows.extraLaneWorkflowIds || []).includes(id);
+            if (remembered || runtime?.lanes?.get?.(id)) {
                 return res.status(409).json({ error: 'this workflow is being served in a lane; close the lane first' });
             }
             const comfyRoot = cfg.comfy_ui?.root_path || '';
@@ -1824,4 +1917,4 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     return router;
 }
 
-module.exports = { makeRouter };
+module.exports = { makeRouter, mergeEditData };

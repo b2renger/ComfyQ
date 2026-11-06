@@ -29,12 +29,14 @@ class JobExecutor {
         this.onSageIncompatible = onSageIncompatible;
         this._sageRecoveryDone = false;
         this._recovering = false;
+        this._heldFor = null;          // why _tick last held the queue (logged once)
         this.running = false;
         this.tickMs = 1000;
         this._listeners = new Set();
         this._currentJobId = null;
         this._historyStartedAt = null;
         this._wsHasFired = false;
+        this._collecting = null;       // { jobId, settled } of the last output collection
         this._jobStartedAt = null;
         this._lastProgressLogAt = 0;
         this._lastLoggedNodeId = null;
@@ -75,10 +77,16 @@ class JobExecutor {
                 this._recoverFromSage(jobId, errorReason);
                 return;
             }
-            try { this.queue.transitionStatus(jobId, sm.STATES.FAILED, { payload: { errorReason, errorPhase } }); } catch { /* already terminal */ }
+            // worker.cancel() reports a stop the user asked for through this
+            // same event. Record it as cancelled, as the Cancel dialog promises:
+            // a storyboard retry re-runs failed shots, and must not re-run one
+            // somebody stopped. Dependents cascade either way (failBlockedJobs).
+            const cancelled = errorReason === 'cancelled';
+            const to = cancelled ? sm.STATES.CANCELLED : sm.STATES.FAILED;
+            try { this.queue.transitionStatus(jobId, to, { payload: { errorReason, errorPhase } }); } catch { /* already terminal, or deleted */ }
             const dur = this._jobStartedAt ? ((Date.now() - this._jobStartedAt) / 1000).toFixed(1) : '?';
             const truncReason = String(errorReason).split('\n')[0].slice(0, 200);
-            console.warn(`[Executor] job ${jobId.slice(0, 8)} FAILED after ${dur}s — ${errorPhase}: ${truncReason}`);
+            console.warn(`[Executor] job ${jobId.slice(0, 8)} ${cancelled ? 'CANCELLED' : 'FAILED'} after ${dur}s — ${errorPhase}: ${truncReason}`);
             this._currentJobId = null;
             this._wsHasFired = false;
             this._jobStartedAt = null;
@@ -188,14 +196,24 @@ class JobExecutor {
             await this._pollHistoryIfStale();
             return;
         }
-        // Hold the queue while ComfyUI is down or coming back up. Submitting
-        // now would throw "Worker not idle" and the catch below marks the job
-        // FAILED — so a single crash used to burn every job still waiting,
-        // one per tick, instead of just delaying them.
+        // Hold the queue while ComfyUI is down, coming back up, or busy with a
+        // run that is not this executor's (an admin calibrating the served
+        // workflow uses the same worker). Submitting now would throw "Worker
+        // not idle" and the catch below marks the job FAILED — so a single
+        // crash used to burn every job still waiting, one per tick, and a
+        // calibration failed whatever came due while it ran.
         // Hold while ComfyUI is being restarted out from under us.
         if (this._recovering) return;
         const workerState = this.worker.getStatus?.().state;
-        if (workerState === 'down' || workerState === 'starting') return;
+        if (workerState && workerState !== 'idle') {
+            if (this._heldFor !== workerState) {
+                this._heldFor = workerState;
+                console.log(`${this._tag()} holding the queue: ComfyUI is ${workerState}` +
+                    (workerState === 'busy' ? ' with a run that is not a queued job (a calibration?)' : ''));
+            }
+            return;
+        }
+        this._heldFor = null;
 
         // Collapse any job whose chained input can never arrive (its source
         // failed, was cancelled, or was deleted) before looking for work —
@@ -289,10 +307,18 @@ class JobExecutor {
                     payload: { errorReason: e.message, errorPhase: 'submit' }
                 });
             } catch { /* may already be terminal */ }
+            // Some failures inside worker.submit happen after it marked itself
+            // busy with this job and before it could reset. Release it, or the
+            // hold in _tick (worker not idle) would stall the queue for ever.
+            try {
+                if (this.worker.getStatus?.().currentJobId === job.id) this.worker.finalize({ success: false });
+            } catch { /* nothing to release */ }
             this._currentJobId = null;
             this._notify();
         }
     }
+
+    _tag() { return this.label ? `[Executor ${this.label}]` : '[Executor]'; }
 
     _buildFilenamePrefix(job) {
         // A storyboard job carries its own prefix — a folder plus a name built
@@ -328,10 +354,25 @@ class JobExecutor {
         }
     }
 
-    async _collectAndComplete(jobId, promptId) {
+    // Recorded so abortCurrent can let a finished render finish collecting
+    // instead of failing a job that is already done.
+    _collectAndComplete(jobId, promptId) {
+        const run = this._collectOnce(jobId, promptId);
+        this._collecting = { jobId, settled: run.then(() => {}, () => {}) };
+        return run;
+    }
+
+    async _collectOnce(jobId, promptId) {
         let history;
         try { history = await this.worker.rest.getHistory(promptId); }
-        catch (e) { return this._failCurrent(`history fetch failed: ${e.message}`, 'collecting-outputs'); }
+        catch (e) {
+            if (this._currentJobId !== jobId) return;
+            return this._failCurrent(`history fetch failed: ${e.message}`, 'collecting-outputs');
+        }
+        // The job may have been settled while this waited (abortCurrent, when
+        // its lane closed): then it is not ours to complete, and the worker may
+        // already be on another job — touch neither.
+        if (this._currentJobId !== jobId) return;
         const entry = history?.[promptId];
         if (!entry) return; // not ready yet
 
@@ -429,6 +470,42 @@ class JobExecutor {
             return true;
         }
         return false;
+    }
+
+    /**
+     * The lane running this executor is closing (a live switch, a lane closed,
+     * Stop serving): stop the job it is running on ComfyUI and fail it with
+     * `reason`. Call stop() first so no new job is picked up meanwhile.
+     * Without this, closing the lane on the install's ComfyUI — which stays up
+     * — left its job "processing" until the next restart: ComfyUI went on
+     * rendering it and nothing was left to collect the result or to cancel it.
+     *
+     * ★ Stops THIS job's prompt, never whatever ComfyUI is running, in the
+     * same order as worker.cancel(): the install's ComfyUI stays up and, with
+     * LAN access on, the run in progress may be an admin's while ours still
+     * waits behind it — a body-less interrupt killed theirs and left ours in
+     * the queue to render with nobody collecting it. With no prompt id yet the
+     * job is still inside worker.submit and there is nothing to stop by id: it
+     * is only failed, which releases the worker — a prompt ComfyUI accepts
+     * after that is the worker's to drop.
+     */
+    async abortCurrent(reason) {
+        const id = this._currentJobId;
+        if (!id) return false;
+        if (this._collecting?.jobId !== id) {           // still rendering, or not submitted yet
+            const st = this.worker.getStatus?.() || {};
+            const promptId = st.currentJobId === id ? st.currentPromptId : null;
+            if (promptId) {
+                try { await this.worker.rest?.deleteFromQueue?.([promptId]); } catch { /* ComfyUI already gone */ }
+                try { await this.worker.rest?.interrupt?.(promptId); } catch { /* ComfyUI already gone */ }
+            }
+        }
+        // A render that has finished is being collected: let that complete the
+        // job rather than fail one that is done.
+        if (this._collecting?.jobId === id) await this._collecting.settled;
+        if (this._currentJobId !== id) return true;        // finished or failed meanwhile
+        this._failCurrent(reason, 'executing');
+        return true;
     }
 }
 

@@ -136,9 +136,10 @@ test('every api.json node class appears in its template', () => {
 // 2026-11-04: 3DREAL (fal/LTX-2.3-3DREAL-LoRA), both Krea 2 sheet LoRAs
 // (Alissonerdx/CharacterSheet) and the ID-V2V int8 build (Kijai/Wan_ID_V2V_comfy)
 // were traced to their repos and verified, and left the list.
-const UNSOURCED_OK = new Set([
-    'qwen-image-edit-2511-multiple-angles-lora.safetensors',
-]);
+// 2026-11-05: the last one, the Qwen 2511 multiple-angles LoRA, now carries its
+// url and source (fal/Qwen-Image-Edit-2511-Multiple-Angles-LoRA). No declared
+// model is left unsourced; keep it that way.
+const UNSOURCED_OK = new Set([]);
 
 test('every declared model says where it comes from', () => {
     const base = (v) => String(v || '').split('\\').join('/').split('/').pop();
@@ -158,6 +159,114 @@ test('every declared model says where it comes from', () => {
         `no url/source for:\n       ${gaps.join('\n       ')}\n`
         + '       Add it to tools/model-provenance/known-sources.json, then run\n'
         + '       node tools/model-provenance/harvest.cjs --write');
+});
+
+const readMeta = (id) => {
+    const mp = path.join(WORKFLOWS, id, `${id}.meta.json`);
+    return fs.existsSync(mp) ? JSON.parse(fs.readFileSync(mp, 'utf8')) : null;
+};
+
+// ★ A meta refers to its own parameters by KEY in several places, and nothing
+// fails when one of those keys stops existing: a dangling disabledWhen never
+// greys its field out, a dangling warmupParams key is skipped so calibration
+// times a different job, a dangling preset value is dropped. Found 2026-11-05
+// when the meta editor's save renamed 186 hand-written keys in 31 bundles. A
+// renamed key must fail here rather than quietly switch a feature off.
+// linkedValues / whenEmptySet name graph nodes instead; a renumbered node
+// leaves them writing into nothing, so those ids are checked against the
+// api.json the same way.
+test('every key a meta refers to names one of its own exposed parameters', () => {
+    const dangling = [];
+    for (const id of ids) {
+        const meta = readMeta(id);
+        if (!meta) continue;
+        const keys = new Set((meta.exposedParameters || []).map(p => p.key));
+        const api = JSON.parse(fs.readFileSync(path.join(WORKFLOWS, id, `${id}.api.json`), 'utf8'));
+        for (const p of meta.exposedParameters || []) {
+            if (p.disabledWhen && !keys.has(p.disabledWhen.param)) {
+                dangling.push(`${id}: ${p.key}.disabledWhen.param "${p.disabledWhen.param}"`);
+            }
+            for (const [what, list] of [['linkedValues', p.linkedValues], ['whenEmptySet', p.whenEmptySet]]) {
+                for (const l of list || []) {
+                    if (!(l.nodeId in api)) dangling.push(`${id}: ${p.key}.${what} node "${l.nodeId}" (not in api.json)`);
+                }
+            }
+        }
+        for (const k of Object.keys(meta.warmupParams || {})) {
+            if (!keys.has(k)) dangling.push(`${id}: warmupParams "${k}"`);
+        }
+        for (const [name, preset] of Object.entries(meta.presets || {})) {
+            for (const k of Object.keys(preset?.values || {})) {
+                if (!keys.has(k)) dangling.push(`${id}: presets.${name} "${k}"`);
+            }
+        }
+        // Per-deployment overrides are keyed the same way (none ship today).
+        const cp = path.join(WORKFLOWS, id, `${id}.config.meta.json`);
+        if (fs.existsSync(cp)) {
+            const cfg = JSON.parse(fs.readFileSync(cp, 'utf8'));
+            for (const k of Object.keys(cfg.parameterOverrides || {})) {
+                if (!keys.has(k)) dangling.push(`${id}: config.meta parameterOverrides "${k}"`);
+            }
+        }
+    }
+    assert.deepStrictEqual(dangling, [],
+        `${dangling.length} reference(s) to a parameter or node that does not exist:\n       `
+        + dangling.join('\n       '));
+});
+
+// ★ A calibration warmup must run the card's DEFAULT job: runtime.json is what
+// the timeline books, and a warmup cheaper than the default rewrites it the next
+// time anyone presses Calibrate or runs a plain library sweep. That is how the
+// FLUX.2 Klein cards came to be booked a third of their real slot. So a
+// warmupParams value may differ from its param's default only where the
+// difference cannot change the job's cost or is a named exception:
+//   - media inputs (calibration has to stage SOME file), seeds (calibration
+//     replaces every one anyway), prompts (text does not change the cost),
+//     and null (= "leave this optional slot empty", the default form);
+//   - WARMUP_DIFF_OK below, each with its reason.
+// Shrink the list, never grow it without knowing why.
+const WARMUP_DIFF_OK = new Set([
+    // The LTX 2.5 IC-LoRA trio calibrates with the start image OFF, because the
+    // calibrator would otherwise stage a random picture as the first frame
+    // (documented 2026-09-14). The start image changes no step count or size.
+    'video_edit_ltx2_5_iclora_canny_control:primitiveboolean_value_5014_5506',
+    'video_edit_ltx2_5_iclora_pose_control:primitiveboolean_value_5014_5506',
+    'video_edit_ltx2_5_iclora_union_control:primitiveboolean_value_5014_5506',
+]);
+const NOT_COMPARED_TYPES = new Set(['image', 'video', 'audio', 'mask', 'model3d', 'text', 'textarea']);
+
+test('calibration warmups run the card\'s default job', () => {
+    const { isSeedParam } = require('../benchmark/benchmarkService');
+    const cheaper = [];
+    for (const id of ids) {
+        const meta = readMeta(id);
+        if (!meta) continue;
+        const byKey = new Map((meta.exposedParameters || []).map(p => [p.key, p]));
+        for (const [k, v] of Object.entries(meta.warmupParams || {})) {
+            const p = byKey.get(k);
+            if (!p) continue;                          // reported by the check above
+            if (v === null || NOT_COMPARED_TYPES.has(p.type) || isSeedParam(p)) continue;
+            if (WARMUP_DIFF_OK.has(`${id}:${k}`)) continue;
+            if (JSON.stringify(v) !== JSON.stringify(p.default)) {
+                cheaper.push(`${id}: ${k} warms up at ${JSON.stringify(v)}, card default ${JSON.stringify(p.default)}`);
+            }
+        }
+    }
+    assert.deepStrictEqual(cheaper, [],
+        'warmupParams differ from the card defaults — runtime.json would describe a job nobody books.\n       '
+        + cheaper.join('\n       ')
+        + '\n       Use the default, or measure the cheaper run with keepRuntime so it does not write runtime.json.');
+});
+
+test('every warmup exception still names a warmup that exists', () => {
+    // A stale exception would quietly re-allow a cheaper warmup if one ever came
+    // back under that key, so an entry must go when its warmup goes.
+    const stale = [...WARMUP_DIFF_OK].filter(entry => {
+        const [id, k] = entry.split(':');
+        const meta = ids.includes(id) ? readMeta(id) : null;
+        return !meta || !Object.prototype.hasOwnProperty.call(meta.warmupParams || {}, k);
+    });
+    assert.deepStrictEqual(stale, [], `remove from WARMUP_DIFF_OK: ${stale.join(', ')}`);
 });
 
 console.log(`\n${passed} checks passed over ${ids.length} bundles`);
