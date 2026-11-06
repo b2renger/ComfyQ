@@ -4,7 +4,7 @@
   "name": "Wan 2.2 Bernini-R — image editing with a reference image",
   "title": "Replace an object using a reference",
   "summary": "Upload a picture and a second picture of an object (a car, a shirt, a lamp), then say what it replaces; the new object takes the old one's place and the rest stays untouched. It swaps things — it does not copy a style.",
-  "description": "Edit an image guided by a second reference image. Upload the image to edit, a reference image (a look, subject, or object to bring in), and a text instruction — the Bernini-R model (Wan 2.2) regenerates the image following the prompt and the reference while keeping the composition.\n\n• **Edit type**: \"Image Editing\" edits the first image guided by the reference; \"Subject to Image\" brings the reference subject into the scene.\n• **Fast mode** (Turbo LoRA) is on by default — ~6 steps. Turn it off for slower, higher-quality 40-step runs.\n\nFor editing by text alone (no reference image), use the plain image-editing version instead.",
+  "description": "Edit an image guided by a second reference image. Upload the image to edit, a reference image (an object or subject to put in place of one in your picture), and a text instruction — the Bernini-R model (Wan 2.2) regenerates the image following the prompt and the reference while keeping the composition.\n\n• **Edit type**: \"Image Editing\" edits the first image guided by the reference; \"Subject to Image\" asks for a new picture composed from the reference subject, rather than an edit of your picture.\n• **Fast mode** (Turbo LoRA) is on by default — ~6 steps. Turn it off for slower, higher-quality 40-step runs.\n\nFor editing by text alone (no reference image), use the plain image-editing version instead.",
   "category": "image-edit",
   "tags": [
     "wan",
@@ -83,7 +83,7 @@
       "field": "value",
       "type": "textarea",
       "label": "Edit instruction",
-      "default": "Restyle the image to match the reference image.",
+      "default": "Replace the main object in the picture with the object from the reference image, in the same spot, at the same size and in the same light, keeping everything else exactly as it is.",
       "required": false,
       "order": 2
     },
@@ -144,7 +144,7 @@
     {
       "label": "Bernini — official example edits",
       "url": "https://github.com/bytedance/Bernini/tree/main/assets/testcases",
-      "tip": "One clear instruction: say what changes and what must stay the same. Match the clip's shape — the video is centre-cropped to width × height."
+      "tip": "One clear instruction: say what changes and what must stay the same. The result keeps your picture's shape (longer side 1280 px)."
     }
   ]
 }

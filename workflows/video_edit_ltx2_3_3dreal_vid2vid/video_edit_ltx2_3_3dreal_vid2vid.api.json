@@ -48,63 +48,6 @@
       "title": "Video Slice"
     }
   },
-  "697:13": {
-    "inputs": {
-      "resolution_level": 9,
-      "fov_x_degrees": 0,
-      "batch_size": 4,
-      "force_projection": true,
-      "apply_mask": true,
-      "refine_steps": 3,
-      "moge_model": [
-        "697:32",
-        0
-      ],
-      "image": [
-        "697:53",
-        0
-      ]
-    },
-    "class_type": "MoGeInference",
-    "_meta": {
-      "title": "Run MoGe Inference"
-    }
-  },
-  "697:23": {
-    "inputs": {
-      "output": "depth_colored",
-      "moge_geometry": [
-        "697:13",
-        0
-      ]
-    },
-    "class_type": "MoGeRender",
-    "_meta": {
-      "title": "Render MoGe Geometry"
-    }
-  },
-  "697:25": {
-    "inputs": {
-      "output": "depth",
-      "moge_geometry": [
-        "697:13",
-        0
-      ]
-    },
-    "class_type": "MoGeRender",
-    "_meta": {
-      "title": "Render MoGe Geometry"
-    }
-  },
-  "697:32": {
-    "inputs": {
-      "model_name": "moge_2_vitl_normal_fp16.safetensors"
-    },
-    "class_type": "LoadMoGeModel",
-    "_meta": {
-      "title": "Load MoGe Model"
-    }
-  },
   "697:36": {
     "inputs": {
       "expression": "a > 2048",
@@ -163,19 +106,6 @@
       "title": "Switch"
     }
   },
-  "697:45": {
-    "inputs": {
-      "output": "mask",
-      "moge_geometry": [
-        "697:13",
-        0
-      ]
-    },
-    "class_type": "MoGeRender",
-    "_meta": {
-      "title": "Render MoGe Geometry"
-    }
-  },
   "697:53": {
     "inputs": {
       "switch": true,
@@ -191,19 +121,6 @@
     "class_type": "ComfySwitchNode",
     "_meta": {
       "title": "Switch"
-    }
-  },
-  "697:696": {
-    "inputs": {
-      "channel": "red",
-      "image": [
-        "697:45",
-        0
-      ]
-    },
-    "class_type": "ImageToMask",
-    "_meta": {
-      "title": "Convert Image to Mask"
     }
   },
   "697:70": {

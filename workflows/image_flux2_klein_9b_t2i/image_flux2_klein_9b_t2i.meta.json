@@ -154,8 +154,7 @@
     }
   ],
   "warmupParams": {
-    "primitivestringmultiline_value_76": "calibration",
-    "flux2scheduler_steps_75_62": 8
+    "primitivestringmultiline_value_76": "calibration"
   },
   "presets": {}
 }

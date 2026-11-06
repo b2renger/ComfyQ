@@ -4,7 +4,7 @@
   "name": "Wan 2.2 — key-frame animation (4 frames to video)",
   "title": "Animate through four key frames",
   "summary": "Give it four pictures in order and a sentence on how to move from each one to the next; it draws the motion in between and returns one smooth silent clip. Pick it when two pictures (a start and an end) are not enough.",
-  "description": "Turn four still key frames into one continuous video. Wan 2.2 generates a smooth animated transition between each consecutive pair of frames (frame 1→2, 2→3, 3→4) and stitches the three segments into a single clip.\n\nIf you are targetting an animation you need to provide a detailled prompt, with context (see the default prompts); leave a box empty to just morph between those two frames. \n\n Runs the fast 4-step Lightning path at 720×720.\n\nTip: use frames that share the same subject and framing so the transitions stay coherent.",
+  "description": "Turn four still key frames into one continuous video. Wan 2.2 generates a smooth animated transition between each consecutive pair of frames (frame 1→2, 2→3, 3→4) and stitches the three segments into a single clip.\n\nIf you are targetting an animation you need to provide a detailled prompt, with context (see the default prompts); leave a box empty to just morph between those two frames. \n\n Runs the fast 4-step Lightning path, by default at 720×720. Your four pictures are center-cropped to Width × Height, so set those to your pictures' shape (for example 624×832 for a 3:4 portrait) or their edges are cut off.\n\nTip: use frames that share the same subject and framing so the transitions stay coherent.",
   "category": "i2v",
   "tags": [
     "wan",
@@ -139,7 +139,7 @@
       "nodeId": "283",
       "field": "value",
       "type": "number",
-      "label": "Width (px)",
+      "label": "Width (px — your pictures are center-cropped to width × height)",
       "default": 720,
       "min": 256,
       "max": 1280,

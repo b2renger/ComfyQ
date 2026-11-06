@@ -646,7 +646,7 @@
   },
   "76:114": {
     "inputs": {
-      "value": "Restyle the video to match the look of the reference image."
+      "value": "Replace the person's clothing with the outfit from the reference image. Keep the face, hair, background, lighting, camera and all motion unchanged."
     },
     "class_type": "PrimitiveStringMultiline",
     "_meta": {

@@ -3263,7 +3263,7 @@
               "Node name for S&R": "PrimitiveStringMultiline"
             },
             "widgets_values": [
-              "Replace the gray studio backdrop with a daytime urban street: brick buildings, shop windows, sidewalk, and soft overcast light. Keep the model's outfit, accessories, body pose, motion, and full-body framing unchanged. Only the environment behind the subject should change."
+              "Replace the person's clothing with the outfit from the reference image. Keep the face, hair, background, lighting, camera and all motion unchanged."
             ]
           }
         ],

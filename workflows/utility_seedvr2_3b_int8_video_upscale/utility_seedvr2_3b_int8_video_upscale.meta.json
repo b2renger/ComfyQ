@@ -3,8 +3,8 @@
   "id": "utility_seedvr2_3b_int8_video_upscale",
   "name": "SeedVR2 3B (int8) — video upscale & restore",
   "title": "Restore and enlarge a video ×2",
-  "summary": "Give it a short video and get it back up to twice as wide and tall with lost detail rebuilt. It can trim the clip first and match the original colours.",
-  "description": "Upload a video and SeedVR2 rebuilds every frame at a larger size, restoring real detail (textures, edges, blocky compression) instead of just stretching the pixels. The original frame rate and audio are kept. This is the light int8 build of the 3B model, running on ComfyUI's built-in SeedVR2 support.\n\nUpscale factor multiplies the size of your clip, up to ×2: 540p becomes 1080p, and 1080p becomes 4K, which is already very heavy. Time grows with the output size times the number of frames, so keep clips short and the factor modest. Turn on Trim to process just a few seconds (start time + length), and turn on \"Process in chunks\" if a longer clip fails for lack of memory.\n\nIf the colours drift away from the original, pick a colour correction (\"lab\" is the most faithful). Change the seed to re-roll the generated detail.\n\nThe time estimate shown is from the last calibration; longer or larger clips take proportionally longer.",
+  "summary": "Give it a short video and get it back up to twice as wide and tall, with compression blocks and blur cleaned up and edges sharpened — texture the copy lost completely is not invented back. It can trim the clip first and match the original colours.",
+  "description": "Upload a video and SeedVR2 rebuilds every frame at a larger size, restoring real detail (textures, edges, blocky compression) instead of just stretching the pixels. The original frame rate and audio are kept. It is a faithful restorer: on a damaged test clip it removed every compression block and sharpened edges and hair, but a sweater knit the copy had lost entirely did not come back. This is the light int8 build of the 3B model, running on ComfyUI's built-in SeedVR2 support.\n\nUpscale factor multiplies the size of your clip, up to ×2: 540p becomes 1080p, and 1080p becomes 4K, which is already very heavy. Time grows with the output size times the number of frames, so keep clips short and the factor modest. Turn on Trim to process just a few seconds (start time + length), and turn on \"Process in chunks\" if a longer clip fails for lack of memory.\n\nIf the colours drift away from the original, pick a colour correction (\"lab\" is the most faithful). Change the seed to re-roll the generated detail.\n\nThe time estimate shown is from the last calibration; longer or larger clips take proportionally longer.",
   "category": "preprocessor",
   "tags": [
     "seedvr2",
@@ -147,9 +147,6 @@
     }
   ],
   "warmupParams": {
-    "comfyswitchnode_switch_66_81": true,
-    "video_slice_start_time_66_79": 0,
-    "video_slice_duration_66_79": 3,
     "loadvideo_file_73": "asset:original.mp4"
   },
   "presets": {}

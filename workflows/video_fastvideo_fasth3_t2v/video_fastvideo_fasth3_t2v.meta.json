@@ -110,7 +110,7 @@
       "nodeId": "143",
       "field": "megapixels",
       "type": "number",
-      "label": "Size in megapixels (0.4 ≈ 848×480, 1.0 ≈ 1376×768)",
+      "label": "Size in megapixels (at 16:9: 0.4 ≈ 864×480, 1.0 ≈ 1376×768)",
       "default": 0.4,
       "min": 0.2,
       "max": 1,

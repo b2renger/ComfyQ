@@ -4,7 +4,7 @@
   "name": "Qwen Image-Edit 2511 - reshoot from another angle (place the camera)",
   "title": "See your subject from another angle",
   "summary": "Upload one photo of an object or character and place the camera around it — behind, above, closer — and you get the same subject seen from there in a few seconds. The hidden side is invented, so keep the seed fixed to build a matching set.",
-  "description": "Upload one photo and reshoot the same subject from somewhere else: walk the camera round it, raise or lower it, and come in closer.\n\nPLACE THE CAMERA, don't describe it. Drag the stage to orbit, scroll to zoom, or use the three sliders. The subject stays put and the camera moves, so what you see in the little scene is where the shot is taken from.\n\nWHAT THE MODEL ACTUALLY RECEIVES is the line of chips under the stage - something like 'right side view / elevated shot / medium shot'. That is the whole instruction, and it is worth understanding because the control is coarser than it looks: there are 8 positions around the subject, 4 heights and 3 framings - 96 shots in all. Nudging the slider a few degrees usually changes nothing, and the chips are what tell you when it does. Move until a chip changes.\n\nFAST MODE (on by default) runs the 4-step Lightning adapter: a few seconds a shot, which is what makes it practical to try a dozen angles. Turn it off for the slow 40-step path if a particular shot is worth the wait.\n\nWHAT TO EXPECT: it invents the side of the subject it has never seen, so a back view is a plausible back rather than the truth. Keep the seed fixed while you move the camera and the invented details stay consistent from shot to shot, which is what makes a usable turnaround. The result comes back at about 1 megapixel whatever you upload.\n\nLicence: the Qwen-Image-Edit base is Qwen Research - research and evaluation, not commercial work.",
+  "description": "Upload one photo and reshoot the same subject from somewhere else: walk the camera round it, raise or lower it, and come in closer.\n\nPLACE THE CAMERA, don't describe it. Drag the stage to orbit, scroll to zoom, or use the three sliders. The subject stays put and the camera moves, so what you see in the little scene is where the shot is taken from.\n\nWHAT THE MODEL ACTUALLY RECEIVES is the line of chips under the stage - something like 'right side view / elevated shot / medium shot'. That is the whole instruction, and it is worth understanding because the control is coarser than it looks: there are 8 positions around the subject, 4 heights and 3 framings - 96 shots in all. Nudging the slider a few degrees usually changes nothing, and the chips are what tell you when it does. Move until a chip changes.\n\nFAST MODE (on by default) runs the 4-step Lightning adapter: a few seconds a shot, which is what makes it practical to try a dozen angles. Turning it off runs the slow 40-step path, about 2½ minutes a shot; on a test shot here it looked no better.\n\nWHAT TO EXPECT: it invents the side of the subject it has never seen, so a back view is a plausible back rather than the truth. Keep the seed fixed while you move the camera and the invented details stay consistent from shot to shot, which is what makes a usable turnaround. The result comes back at about 1 megapixel whatever you upload.\n\nLicence: the Qwen-Image-Edit base is Qwen Research - research and evaluation, not commercial work.",
   "category": "image-edit",
   "tags": [
     "qwen",
@@ -31,8 +31,8 @@
       {
         "type": "clip",
         "file": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
-        "url": "https://huggingface.co/Comfy-Org/Hunyuan-Video-1.5/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
-        "source": "https://huggingface.co/Comfy-Org/Hunyuan-Video-1.5"
+        "url": "https://huggingface.co/Comfy-Org/Qwen-Image/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen-Image"
       },
       {
         "type": "vae",
@@ -173,7 +173,7 @@
       "nodeId": "219:168",
       "field": "value",
       "type": "checkbox",
-      "label": "Fast mode (4-step adapter - seconds instead of a minute)",
+      "label": "Fast mode (4-step adapter - seconds instead of over two minutes)",
       "default": true,
       "required": false,
       "order": 2

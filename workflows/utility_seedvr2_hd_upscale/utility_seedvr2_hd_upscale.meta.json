@@ -3,8 +3,8 @@
   "id": "utility_seedvr2_hd_upscale",
   "name": "SeedVR2 — video upscale to HD (1080p)",
   "title": "Restore a video to 1080p",
-  "summary": "Give it a short, soft or low-quality video and get it back at 1080p with real detail rebuilt; the sound and frame rate are kept.",
-  "description": "Upscale and restore a video to HD with SeedVR2, a diffusion-based super-resolution model that rebuilds detail frame-by-frame with temporal consistency. Upload a clip and it's re-rendered at the target resolution, keeping the original frame rate and audio.\n\nVery heavy — processing every frame at HD takes a while, so keep clips short. Change the seed to re-roll the generated detail.",
+  "summary": "Give it a short, soft or low-quality video and get it back at 1080p, cleaned of blur and compression blocks with edges sharpened — texture lost completely is not invented back; the sound and frame rate are kept.",
+  "description": "Upscale and restore a video to HD with SeedVR2, a diffusion-based super-resolution model that restores detail frame-by-frame with temporal consistency. Upload a clip and it's re-rendered at the target resolution, keeping the original frame rate and audio. It is a faithful restorer: on a damaged test clip it removed every compression block and sharpened edges and hair, but a sweater knit the copy had lost entirely did not come back.\n\nVery heavy — processing every frame at HD takes a while, so keep clips short. Change the seed to re-roll the generated detail.",
   "category": "preprocessor",
   "tags": [
     "seedvr2",

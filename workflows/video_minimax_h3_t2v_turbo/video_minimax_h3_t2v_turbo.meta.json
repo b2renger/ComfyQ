@@ -4,7 +4,7 @@
   "name": "MiniMax H3 — text to video + audio (4-step turbo)",
   "title": "Make a quick video with sound",
   "summary": "Describe a scene and what it sounds like; quickly you get a 5-second clip whose soundtrack is made together with the picture. The fastest way to try an idea.",
-  "description": "Type a prompt and MiniMax H3 generates a short video **with a matching audio track** — no input image needed. Describe the scene, what happens over time, the camera move, and the sounds you want to hear.\n\nThis bundle runs the 4-step turbo LoRA, which makes it roughly 4x faster than the plain 20-step path with no other change. Leave \"Fast mode\" on for classroom use; turn it off if you want the slower, higher-fidelity 20-step render.\n\nSize and length drive the cost far more than anything else — the time grows roughly with width x height x frames. 848x480 at 124 frames (about 5 s at 24 fps) is a good default; 1344x768 is the resolution the turbo LoRA was trained at and looks better, but takes noticeably longer. Frame count snaps to the model's own grid, so a nearby value may be used.",
+  "description": "Type a prompt and MiniMax H3 generates a short video **with a matching audio track** — no input image needed. Describe the scene, what happens over time, the camera move, and the sounds you want to hear.\n\nThis bundle runs the 4-step turbo LoRA, which makes it roughly 4x faster than the plain 20-step path with no other change. Leave \"Fast mode\" on for classroom use; turn it off if you want the slower, higher-fidelity 20-step render.\n\nSize and length drive the cost far more than anything else — the time grows roughly with width x height x frames. 864x480 at 124 frames (about 5 s at 24 fps) is a good default; 1344x768 is the resolution the turbo LoRA was trained at and looks better, but takes noticeably longer. Frame count snaps to the model's own grid, so a nearby value may be used.",
   "category": "i2v",
   "tags": [
     "minimax",
@@ -95,7 +95,7 @@
       "field": "width",
       "type": "number",
       "label": "Width",
-      "default": 848,
+      "default": 864,
       "min": 256,
       "max": 1344,
       "step": 32,
@@ -144,7 +144,7 @@
   ],
   "warmupParams": {
     "minimaxh3imagetovideo_prompt_11": "a calm sunlit forest, gentle wind",
-    "minimaxh3imagetovideo_width_11": 848,
+    "minimaxh3imagetovideo_width_11": 864,
     "minimaxh3imagetovideo_height_11": 480,
     "minimaxh3imagetovideo_length_11": 124
   }

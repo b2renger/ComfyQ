@@ -3073,7 +3073,7 @@
               "Node name for S&R": "PrimitiveStringMultiline"
             },
             "widgets_values": [
-              "make it night"
+              "Replace the main object in the picture with the object from the reference image, in the same spot, at the same size and in the same light, keeping everything else exactly as it is."
             ]
           }
         ],

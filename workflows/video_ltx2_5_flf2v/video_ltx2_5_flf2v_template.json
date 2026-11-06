@@ -246,7 +246,7 @@
         false,
         5,
         1280,
-        720,
+        704,
         873293130933086,
         24,
         "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
@@ -260,7 +260,7 @@
         "value_1": false,
         "value_2": 5,
         "value_3": 1280,
-        "value_4": 720,
+        "value_4": 704,
         "noise_seed": 873293130933086,
         "value_5": 24,
         "unet_name": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
@@ -2972,11 +2972,11 @@
               "secondTabWidth": 65
             },
             "widgets_values": [
-              720,
+              704,
               "fixed"
             ],
             "widgets_values_named": {
-              "value": 720,
+              "value": 704,
               "fixed": "fixed"
             }
           },

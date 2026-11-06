@@ -10,8 +10,7 @@
     "upscale",
     "unblur",
     "restore",
-    "lora",
-    "experimental"
+    "lora"
   ],
   "thumbnail": null,
   "author": "ComfyQ",

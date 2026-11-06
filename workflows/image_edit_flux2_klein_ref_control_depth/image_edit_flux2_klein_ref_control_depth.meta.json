@@ -47,7 +47,7 @@
         "type": "lora",
         "file": "flux2_klein_9b_refcontrol_depth.safetensors",
         "source": "https://huggingface.co/thedeoxen/refcontrol-FLUX.2-klein-9B-reference-depth-lora",
-        "note": "Comfy-Org's Klein repack. The exact path inside the repo is not recorded; the constructed split_files/loras/ guess 404s.",
+        "note": "From the adapter author's own repo (thedeoxen). Comfy-Org's FLUX.2 Klein repack does not hold this file.",
         "url": "https://huggingface.co/thedeoxen/refcontrol-FLUX.2-klein-9B-reference-depth-lora/resolve/main/flux2_klein_9b_refcontrol_depth.safetensors"
       },
       {

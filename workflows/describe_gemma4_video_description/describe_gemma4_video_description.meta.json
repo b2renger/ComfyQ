@@ -3,8 +3,8 @@
   "id": "describe_gemma4_video_description",
   "name": "Gemma 4 — describe a video (caption)",
   "title": "Describe a video in words",
-  "summary": "Give it a short video and it writes what happens, second by second. It looks at about one frame per second and does not hear the sound.",
-  "description": "Ask Gemma 4 (a vision-language model running in ComfyUI) to describe a video in words. Upload a clip and the model writes a description / caption as text — useful on its own, or to turn a video into a prompt for another workflow.\n\nEdit the instruction to steer the output, e.g. \"Describe the video.\" / \"List what happens, step by step.\" / \"Write a short caption.\" / \"Describe the mood, motion and lighting.\" Change the seed to re-roll the wording.\n\nTip: keep clips short — every frame is read by the model, so long or high-resolution videos are slower and use more memory.",
+  "summary": "Give it a short video and it writes what happens, second by second. It looks at one frame in every 24 and does not hear the sound, so its times are true seconds only for a 24 fps clip.",
+  "description": "Ask Gemma 4 (a vision-language model running in ComfyUI) to describe a video in words. Upload a clip and the model writes a description / caption as text — useful on its own, or to turn a video into a prompt for another workflow.\n\nEdit the instruction to steer the output, e.g. \"Describe the video.\" / \"List what happens, step by step.\" / \"Write a short caption.\" / \"Describe the mood, motion and lighting.\" Change the seed to re-roll the wording.\n\nTip: keep clips short. The whole clip is decoded first, then the model looks at one frame in every 24 (one a second for a 24 fps clip), each shrunk small, and it does not hear the sound. So very long or 4K clips take longer and use more memory, and quick events between those frames can be missed. The times it writes (00:01, 00:02…) count those frames, so they are real seconds only for a 24 fps clip: on a 30 fps phone clip, \"00:10\" is really about 8 seconds in.",
   "category": "description",
   "tags": [
     "gemma",

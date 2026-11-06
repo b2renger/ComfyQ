@@ -4,7 +4,7 @@
   "name": "Qwen Image 2.1 — text to image",
   "title": "Draw busy scenes exactly as described",
   "summary": "Describe a scene in full sentences — where each thing sits and what every label or sign says — and it draws all of it, up to large 2K prints. Pick it when a picture has many parts or small writing; it can also make cut-outs with a see-through background.",
-  "description": "Make an image from a written description with Qwen Image 2.1. It is unusually good at TEXT inside the picture — signs, posters, packaging, handwriting — in Latin and Chinese alike, so put the words you want rendered in quotes and say where they sit.\n\nSize: the default 1 megapixel is 1024×1024. This model is trained for 2K, so for a big print set the size to 4 megapixels (2048×2048 at 1:1). Pick the aspect ratio first; the width and height follow.\n\nTransparent PNG: wrap your prompt exactly like this and the model returns a cut-out with a real alpha channel —\n\"This is an RGBA format image with transparency. <your subject>. The image has an alpha channel and a transparent background.\"\n\nSteps: 25 is a quick pass. Qwen's own pipeline uses 40–50, which is worth it for detailed scenes and for clean lettering. There is no negative prompt: guidance is fixed at 1, which is how this model is meant to run.",
+  "description": "Make an image from a written description with Qwen Image 2.1. It is unusually good at TEXT inside the picture — signs, posters, packaging, handwriting — so put the words you want rendered in quotes and say where they sit.\n\nSize: the default 1 megapixel is 1024×1024. This model is trained for 2K, so for a big print set the size to 4 megapixels (2048×2048 at 1:1). Pick the aspect ratio first; the width and height follow.\n\nTransparent PNG: wrap your prompt exactly like this (the wording Qwen's model card gives) and the model returns a cut-out with a real alpha channel —\n\"This is an RGBA image with transparency. <your subject>. The image has alpha channel and the background is transparent.\"\n\nSteps: 25 is a quick pass. Qwen's own pipeline uses 40–50, which is worth it for detailed scenes and for clean lettering. There is no negative prompt: guidance is fixed at 1, which is how this model is meant to run.",
   "category": "t2i",
   "tags": [
     "qwen",
@@ -19,7 +19,7 @@
     {
       "label": "Qwen-Image-2.1 — official model card",
       "url": "https://huggingface.co/Qwen/Qwen-Image-2.1",
-      "tip": "Describe the scene in full sentences and put any words to be rendered in \"quotes\", saying where they appear. For a transparent PNG, use the RGBA wording in the description above — it is the phrasing Qwen documents."
+      "tip": "Describe the scene in full sentences and put any words to be rendered in \"quotes\", saying where they appear. For a transparent PNG, use the RGBA wording in the description above — it is the phrasing Qwen's model card gives."
     },
     {
       "label": "Comfy-Org/Qwen-Image-2.1 — the models this bundle runs",

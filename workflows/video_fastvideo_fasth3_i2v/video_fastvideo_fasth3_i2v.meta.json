@@ -4,7 +4,7 @@
   "name": "FastVideo FastH3 — video with sound, from a first and/or last frame (8 steps)",
   "title": "Start or end on your picture",
   "summary": "Give a first picture, a last picture, or both, and describe what happens: the video starts there, lands there, or travels between them, with sound. Use it to make a clip finish exactly on a poster or a frame you designed.",
-  "description": "Write a scene and get a short film back with its own soundtrack — and optionally pin how it starts, how it ends, or both.\n\nGive a FIRST frame and the clip begins there. Give a LAST frame and it arrives there. Give both and the model travels between them, which is the way to animate between two stills. Give neither and it is plain text-to-video. A slot you leave empty is removed from the graph, so it cannot influence the result.\n\n★ Pick the shape that matches your first frame. The model stretches the first frame to fill the video, so a portrait picture in a widescreen video comes out squashed. The LAST frame is treated differently — it is cropped to fit rather than stretched, so its shape matters less.\n\nWrite the prompt the way this model expects: bind the picture to the timeline first, then describe the shot. The default prompt shows the form —\n\"For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\" followed by \"integrated_multimodal_description: [Shot 1] …\".\n\nThen describe camera, action and sound in that one block. Naming the audio (\"we hear rain on metal, a distant siren\") is what earns a deliberate soundtrack rather than an invented one. With no frames at all you can drop the binding line and write the description alone.\n\nThis is MiniMax H3 distilled by FastVideo to 8 sampling steps, so it is several times quicker than the full model. Multi-reference conditioning was not distilled — for that use the base MiniMax H3 bundles.",
+  "description": "Write a scene and get a short film back with its own soundtrack — and optionally pin how it starts, how it ends, or both.\n\nGive a FIRST frame and the clip begins there. Give a LAST frame and it arrives there. Give both and the model travels between them, which is the way to animate between two stills. Give neither and it is plain text-to-video. A slot you leave empty is removed from the graph, so it cannot influence the result.\n\n★ Pick the shape that matches your first frame. The model stretches the first frame to fill the video, so a portrait picture in a widescreen video comes out squashed. The LAST frame is treated differently — it is cropped to fit rather than stretched, so its shape matters less.\n\nWrite the prompt the way this model expects: bind each picture to its moment in the clip first, then describe the shot. Pictures are numbered in the order they are given, so the first frame is <Picture 1>, and the last frame is <Picture 2> when there is a first frame but <Picture 1> when it is alone.\n• First frame only (the default prompt): \"For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\"\n• Last frame only: \"How the reference pictures align with the target video — <Picture 1> (from [Shot 1]) aligns with the 5.17-second mark of the target video.\"\n• Both: \"How the reference pictures align with the target video — <Picture 1> (from [Shot 1]) aligns with the 0.00-second mark of the target video; <Picture 2> (from [Shot 1]) aligns with the 5.17-second mark of the target video.\"\nThe end mark is the clip's real length: the duration is rounded up to the model's frame grid, so 5 seconds gives 124 frames, which is 5.17 s (124 ÷ 24). Then write \"integrated_multimodal_description: [Shot 1] …\".\n\nThen describe camera, action and sound in that one block. Naming the audio (\"we hear rain on metal, a distant siren\") is what earns a deliberate soundtrack rather than an invented one. With no frames at all you can drop the binding line and write the description alone.\n\nThis is MiniMax H3 distilled by FastVideo to 8 sampling steps, so it is several times quicker than the full model. This checkpoint was not distilled for reference pictures. For several reference pictures, use the \"Put your pictures in a video\" card (FastH3 OmniRef, also 8 steps) or the slower, more polished Pika H3 Flex card \"Make a polished film from pictures\".",
   "category": "i2v",
   "tags": [
     "minimax",
@@ -21,7 +21,7 @@
     {
       "label": "MiniMax H3 — official video prompt guide",
       "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_base_en.md",
-      "tip": "Bind the picture to a time first (\"at 0.00 seconds … <Picture 1> is fully referenced\"), then write one block covering framing, camera move, action and the sound."
+      "tip": "Bind each picture to its time first (a first frame at 0.00 s, a last frame at the clip's end: 5.17 s for 5 s), then write one block covering framing, camera move, action and the sound."
     },
     {
       "label": "FastVideo FastH3 8-Step V2 — the distilled checkpoint",
@@ -69,7 +69,7 @@
       "nodeId": "105:104",
       "field": "prompt",
       "type": "textarea",
-      "label": "Prompt — bind the picture to 0.00 s, then the shot, action and sound",
+      "label": "Prompt — bind each picture to its time (first frame 0.00 s, last frame the clip's end), then the shot, action and sound",
       "default": "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\nintegrated_multimodal_description: [Shot 1] The camera pushes in slowly as the subject turns towards the lens, natural light, handheld feel. We hear a quiet room tone, fabric movement, and a distant street outside.",
       "required": true,
       "order": 0
@@ -121,7 +121,7 @@
       "nodeId": "143",
       "field": "megapixels",
       "type": "number",
-      "label": "Size in megapixels (0.4 ≈ 848×480, 1.0 ≈ 1376×768)",
+      "label": "Size in megapixels (at 16:9: 0.4 ≈ 864×480, 1.0 ≈ 1376×768)",
       "default": 0.4,
       "min": 0.2,
       "max": 1,

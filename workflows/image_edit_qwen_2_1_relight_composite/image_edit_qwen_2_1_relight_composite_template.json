@@ -23,7 +23,7 @@
       "title": "ComfyQ bundle",
       "properties": {},
       "widgets_values": [
-        "image_edit_qwen_2_1_relight_composite\n\nThe editable version of a ComfyQ bundle, generated from its .api.json\nthrough ComfyUI's own frontend (tools/api-to-ui).\n\nComfyQ RUNS the .api.json, not this file. Edit here, then re-export\nthrough tools/ui-to-api/convert.mjs to change what actually runs."
+        "image_edit_qwen_2_1_relight_composite\n\nThe editable version of a ComfyQ bundle, generated from its .api.json\nthrough ComfyUI's own frontend (tools/api-to-ui).\n\nComfyQ RUNS the .api.json, not this file: saving an edit here changes\nnothing ComfyQ runs. To make it run your edit, follow \"After editing a\ngraph in ComfyUI\" in tools/api-to-ui/README.md (convert with\ntools/ui-to-api into a scratch folder, check, then replace <id>.api.json)."
       ],
       "color": "#432",
       "bgcolor": "#653"

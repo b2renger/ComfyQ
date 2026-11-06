@@ -2,9 +2,9 @@
   "schemaVersion": 1,
   "id": "utility_pid_image_upscale",
   "name": "PiD — image upscale ×4 (up to 33 MP)",
-  "title": "Make a picture poster-sized, exactly 4×",
-  "summary": "Give it a clean, sharp picture and get it back exactly 4 times wider and taller (up to 33 megapixels) with the same colours and content. Pick it for printing or zooming in, not for damaged photos.",
-  "description": "Upload an image and NVIDIA's PiD pixel decoder rebuilds it 4× wider and 4× taller: a 1920×1080 picture becomes 7680×4320 (33 MP), a 1024×1024 one becomes 4096×4096. It adds real fine detail (fabric, foliage, stone, skin) instead of just enlarging the pixels, and keeps the original colours. The image is processed in overlapping tiles, so there are no visible seams.\n\nBig photos are first shrunk to fit 1920×1080 by the upload form, so the largest result is 7680×4320.\n\nClean, sharp images give the best results. Tiny, blurry or heavily compressed pictures (for example ones saved from a messaging app) can come back with invented texture or odd-looking small faces. The result files are very large (tens of MB), so opening and downloading them takes a moment. Change the seed to re-roll the fine detail.",
+  "title": "Make a picture poster-sized, 4× bigger",
+  "summary": "Give it a clean, sharp picture and get it back 4 times wider and taller (up to 33 megapixels) with the same colours and content. Pick it for printing or zooming in, not for damaged photos.",
+  "description": "Upload an image and NVIDIA's PiD pixel decoder rebuilds it 4× wider and 4× taller: a 1920×1080 picture becomes 7680×4320 (33 MP), a 1024×1024 one becomes 4096×4096. Each side is first trimmed to a multiple of 8 pixels (at most 7 pixels, shared between opposite edges), so the result is exactly 4× of that: a 1234×567 picture comes back 4928×2240. It adds real fine detail (fabric, foliage, stone, skin) instead of just enlarging the pixels, and keeps the original colours. The image is processed in overlapping tiles, so there are no visible seams.\n\nBig photos are first shrunk to fit 1920×1080 by the upload form, so the largest result is 7680×4320.\n\nClean, sharp images give the best results. Tiny, blurry or heavily compressed pictures (for example ones saved from a messaging app) can come back with invented texture or odd-looking small faces. The result files are very large (tens of MB), so opening and downloading them takes a moment. Change the seed to re-roll the fine detail.",
   "category": "i2i",
   "tags": [
     "pid",
@@ -34,7 +34,7 @@
         "type": "unet",
         "file": "pid_1.5_qwenimage_1024_to_4096_4step_bf16.safetensors",
         "source": "https://huggingface.co/Comfy-Org/PixelDiT",
-        "note": "Released with the PiD node pack rather than on HuggingFace; follow the pack's own download instructions.",
+        "note": "Comfy-Org's PixelDiT repack. Running it also needs the ComfyUI-Latent-Tiled-PiD node pack, which is installed separately.",
         "url": "https://huggingface.co/Comfy-Org/PixelDiT/resolve/main/diffusion_models/pid_1.5_qwenimage_1024_to_4096_4step_bf16.safetensors"
       },
       {

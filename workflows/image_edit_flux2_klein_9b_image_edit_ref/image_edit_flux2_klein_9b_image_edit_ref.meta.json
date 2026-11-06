@@ -153,8 +153,7 @@
     }
   ],
   "warmupParams": {
-    "cliptextencode_text_92_113": "calibration",
-    "flux2scheduler_steps_92_115": 8
+    "cliptextencode_text_92_113": "calibration"
   },
   "presets": {}
 }

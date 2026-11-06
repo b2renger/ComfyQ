@@ -4,7 +4,7 @@
   "name": "TripoSplat — image to 3D",
   "title": "Turn a picture into 3D, fast",
   "summary": "Give it one picture of an object and get a soft 3D 'splat' in seconds, plus a rough mesh. Great for fluffy, leafy or stylised things; less good for people.",
-  "description": "Upload a single image of an object and get back a 3D Gaussian splat plus an extracted polygon mesh. Use a clean, well-lit photo with the subject centered. Leave 'Auto-remove background' on for photos with a busy background; turn it off if your image already has a clean or transparent background. Outputs: a Gaussian splat (.spz) you can spin in the splat viewer, a .ply splat export, and a .glb mesh.",
+  "description": "Upload a single image of an object and get back a 3D Gaussian splat plus an extracted polygon mesh. Use a clean, well-lit photo with the subject centered. Leave 'Auto-remove background' on for photos with a busy background; turn it off only for a PNG whose background is already transparent (a plain white or grey backdrop is kept as part of the 3D object). 'Number of gaussians' runs from 32,768 to 1,048,576; above 262,144 the splat gets denser but gains no new detail. Outputs: a Gaussian splat (.spz) you can spin in the splat viewer, a .ply splat export, and a .glb mesh.",
   "category": "3d",
   "tags": [
     "triposplat",
@@ -107,15 +107,13 @@
       "type": "number",
       "label": "Number of gaussians",
       "default": 1048576,
-      "min": 16384,
-      "max": 2097152,
-      "step": 16384,
+      "min": 32768,
+      "max": 1048576,
+      "step": 32768,
       "required": false,
       "order": 4
     }
   ],
-  "warmupParams": {
-    "ksampler_steps_88_6": 8
-  },
+  "warmupParams": {},
   "presets": {}
 }

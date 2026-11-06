@@ -17,7 +17,7 @@
     {
       "label": "Qwen-Image-2.1 — official model card",
       "url": "https://huggingface.co/Qwen/Qwen-Image-2.1",
-      "tip": "Describe the scene in full sentences and put any words to be rendered in \"quotes\", saying where they appear. For a transparent PNG, use the RGBA wording in the description above — it is the phrasing Qwen documents."
+      "tip": "Describe the scene in full sentences and put any words to be rendered in \"quotes\", saying where they appear."
     },
     {
       "label": "Comfy-Org/Qwen-Image-2.1 — the models this bundle runs",
@@ -60,6 +60,12 @@
         "file": "Qwen-Image-2.1-Fun-Controlnet-Union.safetensors",
         "source": "https://huggingface.co/alibaba-pai/Qwen-Image-2.1-Fun-Controlnet-Union",
         "note": "ComfyUI core cannot load this file -- it needs the ComfyUI-QwenImage21-FunControlNet pack, which is why that pack exists."
+      },
+      {
+        "type": "other",
+        "file": "da3_large.safetensors",
+        "source": "https://huggingface.co/depth-anything/DA3-LARGE-1.1",
+        "note": "The depth map model. The ComfyUI-DepthAnythingV3 node downloads it into models/depthanything3/ on first use if it is missing."
       }
     ]
   },

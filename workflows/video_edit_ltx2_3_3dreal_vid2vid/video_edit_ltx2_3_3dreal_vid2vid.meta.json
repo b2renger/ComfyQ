@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "video_edit_ltx2_3_3dreal_vid2vid",
-  "name": "LTX 2.3 3DReal — rough 3D render to photoreal (depth + audio)",
+  "name": "LTX 2.3 3DReal — rough 3D render to photoreal (render-guided + audio)",
   "title": "Turn a rough 3D render photoreal",
   "summary": "Upload a rough grey 3D animation plus one finished-looking picture of its first frame; it turns the animation into realistic footage with the same camera move, and adds sound. Pick it to preview a 3D scene as if it had been filmed.",
   "description": "Turn a rough 3D render into a photorealistic clip. Upload a rough 3D render as the source video and a reference image that sets the look; the render itself is the control the 3DREAL IC-LoRA reads (as in fal's own workflow for it), and the clip comes back photoreal with a matching audio track — keeping the render's motion, camera and layout, at the render's own frame rate. Start the prompt with the trigger word 3DREAL (\"3DREAL. Make it photorealistic. …\"). The source is sliced to ~5 s. (Until 2026-11-04 this card fed a MoGe depth map of the render instead, and played a 30 fps render at 25 fps.)\n\nTwo prompt boxes: with \"Enhance prompt with AI\" OFF, the \"Prompt (used as-is)\" box drives generation. With it ON, the \"Prompt (AI-enhanced)\" box is rewritten by an in-graph LLM using your reference image. The inactive box is greyed out.",
@@ -13,7 +13,6 @@
     "3dreal",
     "3d-to-real",
     "vid2vid",
-    "depth",
     "video",
     "audio"
   ],
@@ -21,7 +20,7 @@
     {
       "label": "LTX IC-LoRA guide — Lightricks",
       "url": "https://docs.ltx.io/open-source-model/usage-guides/ic-lo-ra",
-      "tip": "Describe the photoreal look you want — materials, lighting, lens, atmosphere — not the depth map: the layout and motion come from your render."
+      "tip": "Start with 3DREAL, then describe the photoreal look you want — materials, lighting, lens, atmosphere — and the sound; the layout and motion come from your render."
     },
     {
       "label": "LTX-2.3 prompt guide — Lightricks blog",
@@ -64,12 +63,6 @@
         "file": "gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
         "url": "https://huggingface.co/Comfy-Org/ltx-2/resolve/main/split_files/loras/gemma-3-12b-it-abliterated_lora_rank64_bf16.safetensors",
         "source": "https://huggingface.co/Comfy-Org/ltx-2"
-      },
-      {
-        "type": "other",
-        "file": "moge_2_vitl_normal_fp16.safetensors",
-        "url": "https://huggingface.co/Comfy-Org/MoGe/resolve/main/geometry_estimation/moge_2_vitl_normal_fp16.safetensors",
-        "source": "https://huggingface.co/Comfy-Org/MoGe"
       }
     ]
   },

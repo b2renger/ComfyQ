@@ -22,7 +22,7 @@
     {
       "label": "Qwen-Image-2.1 — official model card",
       "url": "https://huggingface.co/Qwen/Qwen-Image-2.1",
-      "tip": "Describe the scene in full sentences and put any words to be rendered in \"quotes\", saying where they appear. For a transparent PNG, use the RGBA wording in the description above — it is the phrasing Qwen documents."
+      "tip": "Describe the scene in full sentences and put any words to be rendered in \"quotes\", saying where they appear."
     },
     {
       "label": "Comfy-Org/Qwen-Image-2.1 — the models this bundle runs",

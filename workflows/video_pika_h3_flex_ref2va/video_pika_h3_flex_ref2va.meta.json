@@ -20,7 +20,7 @@
     {
       "label": "Pika H3 Flex — prompt guide",
       "url": "https://github.com/Pika-Labs/Pika-H3-Flex/blob/main/docs/prompt-guidance.md",
-      "tip": "Say what is in frame and what must stay the same, then give the camera moves with timestamps (0–3 s, 3–5 s…), then the sound and the music. Ask for real-time motion if you do not want slow motion."
+      "tip": "Say what is in frame and what must stay the same, then the shots: start with [Shot 1] (no time), give each later shot one cut time ([Shot 2] At 00:02.000, …) rather than a range, and describe the camera moves in words; then the sound and the music. Ask for real-time motion if you do not want slow motion."
     },
     {
       "label": "MiniMax H3 — reference-video prompt guide",

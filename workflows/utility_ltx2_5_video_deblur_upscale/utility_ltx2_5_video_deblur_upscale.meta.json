@@ -1,10 +1,10 @@
 {
   "schemaVersion": 1,
   "id": "utility_ltx2_5_video_deblur_upscale",
-  "name": "LTX 2.5 — video deblur & detail upscale (keeps original audio)",
+  "name": "LTX 2.5 — 2× generative video upscale (keeps original audio)",
   "title": "Enlarge a video 2×, adding detail",
   "summary": "Upload a small video that has sound; it redraws it at up to twice the size with new fine detail, keeping the original sound. Pick it to finish a quick draft — it invents detail, so it is not for exact restoration.",
-  "description": "Enlarge a small video up to 2× with new, sharp detail. Upload a clip and LTX 2.5 re-renders every frame with Lightricks' Pixel Spatial Upscaler IC-LoRA (a generative 2× upscaler — it invents detail, it is not a deblur or restoration model), keeping the original motion and the original soundtrack untouched. For heavy blur or compression damage, the SeedVR2 video cards are the faithful choice. Your clip must have a sound track — silent videos fail.\n\n\"Output size\" is the short side of the result (576 ≈ 1024×576 for a 16:9 clip). The model reads your video at half that size and rebuilds the detail, so raise it to 704 or 1088 for a bigger, sharper result — it gets slower. The prompt is optional: a short description of what's in the clip, or just the look you want, can help.\n\nYou can also tick \"Use a start image\" and upload a sharp still of the first frame to anchor the result to it; leave it unticked to skip it. Only the start of your clip is used (\"Clip length used\", default 5 s). This is a fast single 8-step pass.",
+  "description": "Enlarge a small video up to 2× with new, sharp detail. Upload a clip and LTX 2.5 re-renders every frame with Lightricks' Pixel Spatial Upscaler IC-LoRA (a generative 2× upscaler — it invents detail, it is not a deblur or restoration model), keeping the original motion and the original soundtrack (the sound is passed through the model's audio decoder, not regenerated, and the last fraction of a second — sound included — can be trimmed to fit LTX's frame grid). For heavy blur or compression damage, the SeedVR2 video cards are the faithful choice. Your clip must have a sound track — silent videos fail.\n\n\"Output size\" is the short side of the result (576 ≈ 1024×576 for a 16:9 clip). The model reads your video at half that size and rebuilds the detail, so raise it to 704 or 1088 for a bigger, sharper result — it gets slower. The prompt is optional: a short description of what's in the clip, or just the look you want, can help.\n\nYou can also tick \"Use a start image\" and upload a sharp still of the first frame to anchor the result to it; leave it unticked to skip it. Only the start of your clip is used (\"Clip length used\", default 5 s). This is a fast single 8-step pass.",
   "category": "preprocessor",
   "tags": [
     "ltx",
@@ -87,7 +87,7 @@
       "nodeId": "5001",
       "field": "file",
       "type": "video",
-      "label": "Video to clean up (must have a sound track)",
+      "label": "Video to enlarge (must have a sound track)",
       "default": "",
       "required": true,
       "order": 0
