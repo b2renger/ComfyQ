@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { isSeedParam } = require('../benchmark/benchmarkService');
+const { splitMaskFile } = require('../media/maskPng');
 
 // Durable per-job "ingredients" store.
 //
@@ -105,6 +106,27 @@ function collectMedia(comfyConfig, job) {
     return { present, missing };
 }
 
+// A painted mask is one file for ComfyUI; here it is also kept as what it is made
+// of, the picture and the mask, so either can be used again on its own. Only for a
+// `mask` param, read from the card, and pure apart from reading the file.
+// → [{ param, file, role, data }]
+function maskParts(job, registry, present) {
+    let params = [];
+    try { params = registry?.get(job.workflowId)?.effective?.exposedParameters || []; } catch { /* no longer in the library */ }
+    const isMask = new Set(params.filter(p => p.type === 'mask').map(p => p.key));
+    const out = [];
+    for (const m of present) {
+        if (!isMask.has(m.param)) continue;
+        let parts = null;
+        try { parts = splitMaskFile(fs.readFileSync(m.src)); } catch { /* unreadable: the file itself is still there */ }
+        if (!parts) continue;
+        const stem = path.basename(m.file, path.extname(m.file));
+        out.push({ param: m.param, file: `${stem}.picture.png`, role: 'picture', data: parts.picture });
+        out.push({ param: m.param, file: `${stem}.mask.png`, role: 'mask', data: parts.mask });
+    }
+    return out;
+}
+
 // The zip's README. It names exactly the imported files that could not be
 // included, and only those — a job with no imported media, or with all of it
 // still on disk, gets the plain README.
@@ -156,6 +178,8 @@ const README = [
     'Everything used to (re)create one generation:',
     '  settings.json   workflow id + all parameters (incl. the seed) + prompt',
     '  media/          the input files that were imported for this job',
+    '                  (a painted mask is one file for ComfyUI, and also comes as',
+    '                  <name>.picture.png and <name>.mask.png, white = repainted)',
     '',
     'To re-run it: open the same workflow in ComfyQ, upload the files from media/,',
     'and copy the values from settings.json into the booking form.',
@@ -176,6 +200,10 @@ function persist({ comfyConfig, job, registry }) {
             fs.copyFileSync(m.src, path.join(mediaDir, m.file));
             mediaIndex.push({ param: m.param, file: m.file, original: m.original });
         }
+        for (const p of maskParts(job, registry, present)) {
+            fs.writeFileSync(path.join(mediaDir, p.file), p.data);
+            mediaIndex.push({ param: p.param, file: p.file, role: p.role });
+        }
         if (!mediaIndex.length) { try { fs.rmdirSync(mediaDir); } catch { /* not empty / ignore */ } }
         fs.writeFileSync(path.join(dir, 'settings.json'), JSON.stringify(buildSettings(job, registry, mediaIndex), null, 2));
         fs.writeFileSync(path.join(dir, 'README.txt'), readmeFor(missing));
@@ -186,4 +214,4 @@ function persist({ comfyConfig, job, registry }) {
     }
 }
 
-module.exports = { baseDir, jobDir, buildSettings, persist, mediaRefs, collectMedia, readmeFor };
+module.exports = { baseDir, jobDir, buildSettings, persist, mediaRefs, collectMedia, maskParts, readmeFor };

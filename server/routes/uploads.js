@@ -26,6 +26,8 @@ const IMAGE_MAX_BYTES = 30 * 1024 * 1024;   // 30 MB for a still image
 const IMAGE_MAX_LONG = 2048;
 const IMAGE_MAX_SHORT = 2048;
 
+const { splitMaskFile } = require('../media/maskPng');
+
 const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif']);
 const HEIC_EXTS = new Set(['.heic', '.heif']);
 
@@ -163,6 +165,13 @@ function makeRouter({ comfyConfig }) {
         // browser keep it instead of re-fetching a phone video every time a
         // recalled job's preview is rendered.
         res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        // A painted mask is one file for ComfyUI. Re-editing it needs the two apart.
+        const part = req.query.part;
+        if (part === 'picture' || part === 'mask') {
+            const parts = splitMaskFile(fs.readFileSync(full));
+            if (!parts) return res.status(404).end();
+            return res.type('png').send(parts[part]);
+        }
         res.sendFile(full, { cacheControl: false });
     });
 

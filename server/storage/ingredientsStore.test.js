@@ -50,6 +50,9 @@ const put = (name, body) => fs.writeFileSync(path.join(input, name), body);
 put('comfyq_session__1_2__Woman.png', 'PNG-woman');
 put('comfyq_session__1_3__clip.mp4', 'MP4-clip');
 put('comfyq_session__1_4__Woman.png', 'PNG-other-woman');
+// A painted mask: the colour under the transparent pixel is the original picture.
+const { encode, RGBA, decodeRgba } = require('../media/maskPng');
+put('comfyq_session__1_5__mask-base.png', encode(2, 1, RGBA, Buffer.from([10, 20, 30, 255, 200, 100, 50, 0])));
 // A file outside the input folder that a crafted value would try to reach.
 fs.writeFileSync(path.join(root, 'config.json'), 'SECRET');
 
@@ -70,10 +73,14 @@ const jobs = {
         id: 'same-0001', userId: 'ana', workflowId: 'image_x',
         paramValues: { a: 'comfyq_session__1_2__Woman.png', b: 'comfyq_session__1_4__Woman.png' },
     },
+    masked: { id: 'mask-0001', userId: 'ana', workflowId: 'image_inpaint', paramValues: { base: 'comfyq_session__1_5__mask-base.png', other: 'comfyq_session__1_3__clip.mp4' } },
     snapshot: { id: 'snap-0001', userId: 'ana', workflowId: 'image_x', paramValues: { image: 'comfyq_session__1_2__Woman.png' } },
 };
 const queue = { get: (id) => Object.values(jobs).find(j => j.id === id) || null };
-const registry = { get: (id) => ({ summary: { name: 'Card ' + id, category: 'i2v' } }) };
+const registry = { get: (id) => ({
+    summary: { name: 'Card ' + id, category: 'i2v' },
+    effective: { exposedParameters: id === 'image_inpaint' ? [{ key: 'base', type: 'mask' }, { key: 'other', type: 'video' }] : [] },
+}) };
 
 (async () => {
     const app = express();
@@ -162,6 +169,23 @@ const registry = { get: (id) => ({ summary: { name: 'Card ' + id, category: 'i2v
             }
         }, registry);
         assert.deepStrictEqual(s.seed, { ksampler_seed_3: 5, seed_7: 1, seed_52_3: 9, randomnoise_noise_seed_75_73: 11 });
+    });
+
+    await test('a painted mask also comes as its picture and its mask, in the zip and the snapshot', async () => {
+        const check = (entries) => {
+            assert.ok(entries.has('media/mask-base.png'), 'the file ComfyUI got is still there');
+            assert.ok(entries.has('media/mask-base.picture.png'), 'the picture');
+            assert.ok(entries.has('media/mask-base.mask.png'), 'the mask');
+            assert.ok(![...entries.keys()].some(k => k.startsWith('media/clip.')&& k !== 'media/clip.mp4'), 'only a mask param is split');
+        };
+        
+        const live = await zipOf('mask-0001');
+        check(live);
+        const settings = JSON.parse(live.get('settings.json').toString());
+        assert.deepStrictEqual(settings.imported_media.filter(m => m.role).map(m => m.role), ['picture', 'mask']);
+        ingredients.persist({ comfyConfig, job: jobs.masked, registry });
+        const dir = path.join(ingredients.jobDir(comfyConfig, 'mask-0001'), 'media');
+        assert.ok(fs.existsSync(path.join(dir, 'mask-base.picture.png')) && fs.existsSync(path.join(dir, 'mask-base.mask.png')));
     });
 
     await test('an unknown job is a 404', async () => {

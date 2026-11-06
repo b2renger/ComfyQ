@@ -3,14 +3,19 @@ import { createPortal } from 'react-dom';
 import { Upload, X, Brush, Eraser, Undo2, Trash2, Loader2, AlertTriangle, RotateCw, Pencil, Check, Contrast } from 'lucide-react';
 import { resizeImageFile } from '../../utils/imageResize';
 import { uploadBox } from './uploadBox';
+import { joinPictureAndMask, encodeRgbaPng } from './maskPng';
+import { getInputUrl } from '../../utils/api';
 
 // MaskDrawField — paint-a-mask input widget for BookingDialog (param type
 // 'mask'). The user uploads a base image, brushes over the region they want
-// the workflow to REPLACE, and we composite that into a single RGBA PNG where
-// the painted area is TRANSPARENT. ComfyUI's LoadImage derives its MASK output
-// as `1 - alpha`, so transparent (alpha 0) → mask 1.0 → "inpaint here", and
-// opaque (alpha 255) → mask 0.0 → "keep". The IMAGE output (0) is the RGB base.
-// One file carries both the picture and the mask — no graph rewiring needed.
+// the workflow to REPLACE, and we join that into a single RGBA PNG where the
+// painted area is TRANSPARENT. ComfyUI's LoadImage derives its MASK output as
+// `1 - alpha`, so transparent (alpha 0) → mask 1.0 → "inpaint here", and opaque
+// (alpha 255) → mask 0.0 → "keep". The IMAGE output (0) is the RGB base, the
+// original picture everywhere, under the painted area too (maskPng.js says why a
+// canvas cannot write that). One file carries both — no graph rewiring needed —
+// and the server can take it apart again: a job's ingredients hold the picture
+// and the mask separately, and a mask reused from a job can be edited.
 //
 // Painting happens in a NEAR-FULLSCREEN modal (opened on upload, reopened via
 // "Edit mask") so the canvas gets the whole viewport instead of being squashed
@@ -24,16 +29,15 @@ import { uploadBox } from './uploadBox';
 // the final, box-fitted resolution and do NOT re-run resizeImageFile on the
 // result — a second canvas pass would antialias the hard mask edges.
 //
-// Mask convention is enforced here via globalCompositeOperation:
-//  - paint:   strokes drawn opaque (red) onto an offscreen mask canvas
-//  - export:  drawImage(base) then destination-out drawImage(maskCanvas), which
-//             erases the base's alpha wherever the mask is opaque → transparency
-//             exactly under the painted region.
+// Mask convention:
+//  - paint:   strokes drawn opaque onto an offscreen mask canvas
+//  - export:  the picture's pixels, with alpha lowered wherever the mask is opaque
+//             (joinPictureAndMask) → transparency exactly under the painted region.
 
 const MAX_UNDO = 24;
 // The brush colour is purely for on-screen visibility — pick whatever contrasts
-// with the picture. On export only the ALPHA matters (destination-out), so the
-// colour never changes the produced mask.
+// with the picture. On export only the ALPHA matters, so the colour never changes
+// the produced mask.
 const DEFAULT_MASK_COLOR = '#ef4444'; // red-500
 const MASK_COLOR_PRESETS = ['#ef4444', '#22c55e', '#3b82f6', '#eab308', '#ffffff'];
 
@@ -57,6 +61,7 @@ const MaskDrawField = ({
     maxInputEdge,   // optional long-edge cap; falls back to the 1920×1080 box
     preview,        // data/server URL — used only to thumbnail a recalled mask
     recalledName,   // set when a mask from a prior job is being reused
+    recalledFile,   // that mask's stored file name, to fetch its picture and mask
     onChange,       // (file: File) => void — the composited RGBA PNG
     onRemove        // () => void
 }) => {
@@ -111,21 +116,22 @@ const MaskDrawField = ({
         }
     }, []);
 
-    // Composite base + mask into an RGBA PNG (painted → transparent) and emit it.
-    const commit = useCallback(() => {
+    // Join the picture and the mask into an RGBA PNG (painted → transparent) and
+    // emit it. Once when a picture loads and once on leaving the editor, not per
+    // stroke: encoding 4 MP takes a moment, and the editor covers the booking
+    // button, so the file is always current by the time anything can be booked.
+    const commit = useCallback(async () => {
         const base = baseRef.current, mask = maskRef.current;
         if (!base || !mask) return;
-        const out = document.createElement('canvas');
-        out.width = base.width; out.height = base.height;
-        const ctx = out.getContext('2d');
-        ctx.drawImage(base, 0, 0);
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.drawImage(mask, 0, 0); // erase base alpha where the mask is opaque
-        ctx.globalCompositeOperation = 'source-over';
-        out.toBlob((blob) => {
-            if (!blob) return;
-            onChange(new File([blob], `mask-${paramKey}.png`, { type: 'image/png' }));
-        }, 'image/png');
+        const w = mask.width, h = mask.height;
+        const flat = document.createElement('canvas');
+        flat.width = w; flat.height = h;
+        const fctx = flat.getContext('2d', { willReadFrequently: true });
+        fctx.drawImage(base, 0, 0);
+        const picture = fctx.getImageData(0, 0, w, h).data;
+        const painted = mask.getContext('2d').getImageData(0, 0, w, h).data;
+        const blob = await encodeRgbaPng(w, h, joinPictureAndMask(picture, painted));
+        onChange(new File([blob], `mask-${paramKey}.png`, { type: 'image/png' }));
     }, [onChange, paramKey]);
 
     // Build the small inline preview (base + translucent mask overlay) shown in
@@ -150,11 +156,14 @@ const MaskDrawField = ({
         redraw();
     }, [dims, editing, redraw]);
 
-    const closeEditor = useCallback(() => {
+    const closeEditor = useCallback(async () => {
         hoverPt.current = null;
         renderPreview();
-        setEditing(false);
-    }, [renderPreview]);
+        setProcessing(true);
+        try { await commit(); }
+        catch (e) { setError(e?.message || 'Couldn’t save this mask. Try a smaller picture.'); }
+        finally { setProcessing(false); setEditing(false); }
+    }, [renderPreview, commit]);
 
     // While the modal is open: Escape closes it, and the background doesn't scroll.
     useEffect(() => {
@@ -189,11 +198,50 @@ const MaskDrawField = ({
             // Emit the image right away (empty mask → base unchanged) so the field
             // is satisfied like a normal upload, render its preview, and drop the
             // user straight into the big paint modal.
-            commit();
+            await commit();
             renderPreview();
             setEditing(true);
         } catch (e) {
             setError(e?.message || 'Couldn’t process this image. Use a smaller JPEG or PNG.');
+        } finally {
+            setProcessing(false);
+        }
+    };
+
+    // Back in the editor with a mask from a prior job: the server takes the stored
+    // file apart, and the mask's grey level becomes the painted layer.
+    const editRecalled = async () => {
+        if (!recalledFile) return;
+        setError('');
+        setProcessing(true);
+        try {
+            const [picture, painted] = await Promise.all(['picture', 'mask'].map(async (part) => {
+                const res = await fetch(getInputUrl(recalledFile, part));
+                if (!res.ok) throw new Error('This mask can’t be edited. Draw a new one.');
+                return fileToBitmap(await res.blob());
+            }));
+            const w = picture.width, h = picture.height;
+            const layer = document.createElement('canvas');
+            layer.width = w; layer.height = h;
+            const lctx = layer.getContext('2d', { willReadFrequently: true });
+            lctx.drawImage(painted, 0, 0);
+            const px = lctx.getImageData(0, 0, w, h);
+            const [r, g, b] = [1, 3, 5].map(i => parseInt(brushColor.slice(i, i + 2), 16));
+            for (let i = 0; i < px.data.length; i += 4) {
+                const alpha = px.data[i];   // grey: white = repaint
+                px.data[i] = r; px.data[i + 1] = g; px.data[i + 2] = b; px.data[i + 3] = alpha;
+            }
+            lctx.putImageData(px, 0, 0);
+            baseRef.current = picture;
+            maskRef.current = layer;
+            undoStack.current = [];
+            setStrokes(1);
+            setDims({ w, h });
+            await commit();
+            renderPreview();
+            setEditing(true);
+        } catch (e) {
+            setError(e?.message || 'This mask can’t be edited. Draw a new one.');
         } finally {
             setProcessing(false);
         }
@@ -252,7 +300,6 @@ const MaskDrawField = ({
         drawing.current = false;
         lastPt.current = null;
         setStrokes((n) => n + 1);
-        commit();
     };
     const onPointerLeave = () => {
         hoverPt.current = null;
@@ -269,13 +316,12 @@ const MaskDrawField = ({
         else ctx.clearRect(0, 0, mask.width, mask.height);
         setStrokes((n) => Math.max(0, n - 1));
         redraw();
-        commit();
     };
 
     // Change the mask colour. Recolours the already-painted strokes too, via
     // source-in (result = newColour where the mask is opaque, alpha preserved),
     // so the whole region stays one colour. Cosmetic only: the alpha geometry —
-    // and therefore the exported PNG — is unchanged, so no re-commit is needed.
+    // and therefore the exported PNG — is unchanged.
     const applyColor = (color) => {
         setBrushColor(color);
         const mask = maskRef.current;
@@ -313,7 +359,6 @@ const MaskDrawField = ({
         ctx.drawImage(tmp, 0, 0);
         setStrokes((n) => n + 1); // an undoable op — keeps undo/clear enabled
         redraw();
-        commit();
     };
 
     const clearMask = () => {
@@ -323,7 +368,6 @@ const MaskDrawField = ({
         undoStack.current = [];
         setStrokes(0);
         redraw();
-        commit(); // empty mask: a valid (no-op) file so the field stays satisfied
     };
 
     const reset = () => {
@@ -449,8 +493,8 @@ const MaskDrawField = ({
             </label>
 
             {reusing ? (
-                // A mask reused from a prior job ("Use these settings"). We can't
-                // re-edit the baked-in mask, so show it and offer a fresh start.
+                // A mask reused from a prior job ("Use these settings"): show it,
+                // and offer to go on painting it or to start again.
                 <div className="relative border-2 border-dashed border-primary/50 bg-primary/5 rounded-xl p-3">
                     <div className="relative aspect-video rounded-lg overflow-hidden bg-background">
                         <span className="absolute top-1.5 left-1.5 z-10 px-1.5 py-0.5 rounded-md bg-primary/90 text-on-primary text-[9px] font-semibold inline-flex items-center gap-1" title={recalledName}>
@@ -458,13 +502,25 @@ const MaskDrawField = ({
                         </span>
                         {preview && <img src={preview} alt="Reused mask" className="w-full h-full object-contain" />}
                     </div>
-                    <button
-                        type="button"
-                        onClick={reset}
-                        className="mt-2 w-full text-xs font-medium py-2 rounded-lg border border-border bg-surface/60 hover:border-primary/40 hover:bg-surface transition-colors text-foreground"
-                    >
-                        Draw a new mask
-                    </button>
+                    <div className="mt-2 flex gap-2">
+                        {recalledFile && (
+                            <button
+                                type="button"
+                                onClick={editRecalled}
+                                disabled={processing}
+                                className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs font-semibold py-2 rounded-lg bg-primary text-on-primary hover:opacity-90 transition-opacity disabled:opacity-50"
+                            >
+                                {processing ? <Loader2 size={13} className="animate-spin" /> : <Pencil size={13} />} Edit this mask
+                            </button>
+                        )}
+                        <button
+                            type="button"
+                            onClick={reset}
+                            className="flex-1 text-xs font-medium py-2 rounded-lg border border-border bg-surface/60 hover:border-primary/40 hover:bg-surface transition-colors text-foreground"
+                        >
+                            Draw a new mask
+                        </button>
+                    </div>
                 </div>
             ) : !dims ? (
                 // Stage 1 — pick a base image.
@@ -564,10 +620,11 @@ const MaskDrawField = ({
                         <button
                             type="button"
                             onClick={closeEditor}
-                            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:opacity-90 transition-opacity"
+                            disabled={processing}
+                            className="ml-auto inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-on-primary text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60"
                             title="Done — back to the booking form"
                         >
-                            <Check size={15} /> Done
+                            {processing ? <Loader2 size={15} className="animate-spin" /> : <Check size={15} />} Done
                         </button>
                     </div>
 

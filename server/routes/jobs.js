@@ -78,6 +78,10 @@ function makeRouter({ queue, comfyConfig, registry }) {
             const { present, missing } = ingredients.collectMedia(comfyConfig, job);
             for (const m of present) archive.file(m.src, { name: `media/${m.file}` });
             const index = present.map(m => ({ param: m.param, file: m.file, original: m.original }));
+            for (const p of ingredients.maskParts(job, registry, present)) {
+                archive.append(p.data, { name: `media/${p.file}` });
+                index.push({ param: p.param, file: p.file, role: p.role });
+            }
             archive.append(JSON.stringify(ingredients.buildSettings(job, registry, index), null, 2), { name: 'settings.json' });
             archive.append(ingredients.readmeFor(missing), { name: 'README.txt' });
         }

@@ -161,7 +161,7 @@ const DynamicParamFields = ({
                 );
 
                 // Mask input — the user paints a region on an uploaded image;
-                // MaskDrawField composites it into an RGBA PNG and hands that
+                // MaskDrawField joins them into an RGBA PNG and hands that
                 // File up the SAME path as a normal upload.
                 if (type === 'mask') {
                     return (
@@ -172,6 +172,7 @@ const DynamicParamFields = ({
                             maxInputEdge={config.maxInputEdge}
                             preview={mediaPreviews[key]}
                             recalledName={recalledMedia[key] ? prettyInputName(recalledMedia[key]) : null}
+                            recalledFile={recalledMedia[key] || null}
                             onChange={onMedia(key)}
                             onRemove={onMediaRemove(key)}
                         />

@@ -32,6 +32,17 @@ function png(name, w, h) {
 }
 function file(name, buf) { const p = path.join(dir, name); fs.writeFileSync(p, buf); return p; }
 
+{
+    // A painted mask comes apart again, for its ingredients and for re-editing.
+    const { splitMaskFile, decodeRgba, encode, RGBA } = require('../media/maskPng');
+    const px = Buffer.from([10, 20, 30, 255, 200, 100, 50, 0, 1, 2, 3, 128, 9, 8, 7, 255]);
+    const parts = splitMaskFile(encode(2, 2, RGBA, px));
+    check('a painted file splits', !!parts?.picture && !!parts?.mask);
+    check('a non-RGBA PNG is not a painted file', splitMaskFile(png('rgb.png', 2, 2) && fs.readFileSync(path.join(dir, 'rgb.png'))) === null);
+    check('a file that is no PNG is not a painted file', splitMaskFile(Buffer.from('nope')) === null);
+    check('decoding gives back the same bytes', decodeRgba(encode(2, 2, RGBA, px)).pixels.equals(px));
+}
+
 check('the box is 2048×2048', IMAGE_MAX_LONG === 2048 && IMAGE_MAX_SHORT === 2048);
 check('a 2048×2048 picture is accepted', inspectUpload(png('a.png', 2048, 2048), 'a.png').ok === true);
 check('a 2048×1536 picture is accepted', inspectUpload(png('b.png', 2048, 1536), 'b.png').ok === true);

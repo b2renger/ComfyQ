@@ -25,7 +25,9 @@ export const getDownloadUrl = (filename) => `${SERVER_URL}/download/${filename}`
 // an asset reused from a prior job in "Use these settings".
 // The token rides in the query, not a header: this URL is used directly as an
 // <img>/<video> src, and the browser issues that request for us.
-export const getInputUrl = (filename) => withAccessToken(`${SERVER_URL}/input-media/${encodeURIComponent(filename)}`);
+// `part` asks for one side of a painted mask: 'picture' or 'mask'.
+export const getInputUrl = (filename, part = null) => withAccessToken(
+    `${SERVER_URL}/input-media/${encodeURIComponent(filename)}${part ? `?part=${part}` : ''}`);
 // Download a job's "ingredients" — imported media + a settings.json snapshot
 // (workflow id, every parameter, the seed, the prompt) — as one .zip, to
 // relaunch the job later even after the machine switched to another workflow.
