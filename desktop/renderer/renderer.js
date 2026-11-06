@@ -185,18 +185,37 @@ function stateLabel(p, kind) {
 }
 
 function jobRow(j, running) {
-    const isTimer = running && j.startedAt;
+    // Beacon fields come from any host on the LAN, so anything that lands in
+    // the card's HTML is escaped or coerced to a number, never put in raw.
+    const startedAt = Number(j.startedAt);
+    const isTimer = running && Number.isFinite(startedAt) && startedAt > 0;
     const time = running
-        ? (j.startedAt ? `running · ${mmss(Date.now() - j.startedAt)}` : 'running')
+        ? (isTimer ? `running · ${mmss(Date.now() - startedAt)}` : 'running')
         : `at ${clock(j.scheduledAt)}`;
     return `
         <div class="job${running ? ' running' : ''}">
             <div class="job-top">
                 <span class="job-user">${esc(j.user || 'someone')}</span>
-                <span class="job-time${isTimer ? ' job-timer' : ''}"${isTimer ? ` data-start="${j.startedAt}"` : ''}>${esc(time)}</span>
+                <span class="job-time${isTimer ? ' job-timer' : ''}"${isTimer ? ` data-start="${startedAt}"` : ''}>${esc(time)}</span>
             </div>
             <div class="job-prompt">${esc(j.prompt || '(no prompt)')}</div>
         </div>`;
+}
+
+// The jobs that belong on one card. A machine serving several models sends one
+// queue for all of them; newer servers tag every job with its `workflowId` and
+// list every job in flight in `runningAll` (one per lane), so each card shows
+// only its own model's queue. Older servers send neither — then every card
+// shows the machine-wide queue, as before.
+function jobsFor(p, wf) {
+    const jobs = (p && p.jobs) || {};
+    const scheduled = Array.isArray(jobs.scheduled) ? jobs.scheduled : [];
+    const machineWide = { running: jobs.running ? [jobs.running] : [], scheduled };
+    if (!wf || !wf.id || !Array.isArray(jobs.runningAll)) return machineWide;
+    const tagged = (j) => !!j && typeof j === 'object' && Object.prototype.hasOwnProperty.call(j, 'workflowId');
+    if (![...scheduled, ...jobs.runningAll].every(tagged)) return machineWide;
+    const mine = (j) => j.workflowId === wf.id;
+    return { running: jobs.runningAll.filter(mine), scheduled: scheduled.filter(mine) };
 }
 
 // One card per served model. A machine can run several at once (each in its own
@@ -217,7 +236,7 @@ function cardHtml(p, selfIps, wf) {
     const isSelf = (p.ips || []).some(x => (selfIps || []).includes(x));
 
     const hw = [];
-    if (p.gpu) hw.push(`<span class="chip">${esc(p.gpu)}${p.vramGb ? ` · ${p.vramGb} GB` : ''}</span>`);
+    if (p.gpu) hw.push(`<span class="chip">${esc(p.gpu)}${p.vramGb ? ` · ${esc(p.vramGb)} GB` : ''}</span>`);
     if (p.ramGb) hw.push(`<span class="chip">${esc(p.ramGb)} GB RAM</span>`);
     // Reserved by its admin: you need the access password to book on it.
     // Older servers don't send accessLocked at all — absent simply means open.
@@ -226,7 +245,7 @@ function cardHtml(p, selfIps, wf) {
     const u = p.usage || {};
     const usageHtml = `
         <div class="usage">
-            <span class="usage-item"><b>${u.usersConnected || 0}</b> connected</span>
+            <span class="usage-item"><b>${Number(u.usersConnected) || 0}</b> connected</span>
             <span class="dotsmall">·</span>
             <span class="usage-item">${esc(idleText(u.idleSec))}</span>
         </div>`;
@@ -245,14 +264,14 @@ function cardHtml(p, selfIps, wf) {
     // Lower block: description + queue + schedule (serving) or standby note.
     let workHtml = '';
     if (isServing) {
-        const jobs = p.jobs || {};
+        const jobs = jobsFor(p, wf);
         const parts = [];
-        if (jobs.running) parts.push(jobRow(jobs.running, true));
-        for (const j of (jobs.scheduled || [])) parts.push(jobRow(j, false));
+        for (const j of jobs.running) parts.push(jobRow(j, true));
+        for (const j of jobs.scheduled) parts.push(jobRow(j, false));
         workHtml = `
             ${(wf.summary || wf.description) ? `<div class="wf-desc">${esc(wf.summary || wf.description)}</div>` : ''}
             <div class="jobs">
-                <div class="jobs-label">Queue${jobs.scheduled && jobs.scheduled.length ? ` · ${jobs.scheduled.length} waiting` : ''}</div>
+                <div class="jobs-label">Queue${jobs.scheduled.length ? ` · ${jobs.scheduled.length} waiting` : ''}</div>
                 ${parts.length ? parts.join('') : '<div class="no-jobs">Nothing queued</div>'}
             </div>
             <div class="open-hint">${p.accessLocked ? `${LOCK_SVG} Click to schedule — you'll be asked for this machine's password` : 'Click this card to schedule a job ↗'}</div>`;
@@ -274,9 +293,11 @@ function cardHtml(p, selfIps, wf) {
     const host = p.hostname && p.hostname !== p.name ? `<div class="machine-host" title="Computer name">${esc(p.hostname)}</div>` : '';
     // Two machines broadcasting the same instance id (a config.json copied with
     // a cloned drive image). They're shown as separate cards, but say why the
-    // names may look identical — the fix is to rename one in its admin panel.
+    // names may look identical. Renaming under Network presence does NOT change
+    // the id: only a missing instance.id or a different Windows hostname makes
+    // the server mint a new one at boot (server/federation/systemInfo.js).
     const clash = p._idClash
-        ? `<div class="id-clash" title="Two machines report the same ComfyQ identity — open this machine's admin panel (Network presence) and give it its own name">⚠ Shares its identity with another machine</div>`
+        ? `<div class="id-clash" title="Two machines report the same ComfyQ instance id. On one of them, close ComfyQ, delete instance.id from ComfyQ\\config.json (or give the computer a different Windows name), and start ComfyQ again. Renaming under Network presence does not change the id.">⚠ Shares its identity with another machine</div>`
         : '';
 
     return `
@@ -368,7 +389,12 @@ function cardsSignature(peers, selfIps) {
         p.usage && p.usage.usersConnected, !!p.accessLocked,
         Math.floor(((p.usage && p.usage.idleSec) || 0) / 30),
         p._stale, p._source,
-        p.jobs && [(p.jobs.running && p.jobs.running.id) || null, (p.jobs.scheduled || []).map(j => [j.id, j.user, j.prompt, j.scheduledAt])],
+        // Each card's own queue (see jobsFor): a job moving between models, or
+        // starting on one lane while another is busy, rebuilds the right card.
+        servedOf(p).map(w => {
+            const j = jobsFor(p, w || {});
+            return [j.running.map(r => [r.id, r.user, r.prompt, r.startedAt]), j.scheduled.map(s => [s.id, s.user, s.prompt, s.scheduledAt])];
+        }),
         (selfIps || []).some(x => (p.ips || []).includes(x))
     ]));
 }

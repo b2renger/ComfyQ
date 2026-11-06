@@ -55,8 +55,9 @@ let cfgFile = null;
 // 1270 probes on top of the local subnet — well under MAX_SCAN_HOSTS, and a
 // sweep at 48-way concurrency still finishes inside the 60s SCAN_MS cadence
 // (and scanRange_sweep() skips a tick while one is already running anyway).
-// Override per machine with COMFYQ_FED_SCAN (comma-separated CIDRs/ranges) or a
-// "scanRanges" array in fleet-config.json — or edit this list for your deployment.
+// Add to it per machine with COMFYQ_FED_SCAN (comma-separated CIDRs/ranges) or a
+// "scanRanges" array in fleet-config.json (both are appended in extraRanges();
+// neither removes this default — edit this list to change it).
 const DEFAULT_EXTRA_SCAN = ['10.10.14-18.1-254'];
 
 // Adapter names we never derive a scan range from: Hyper-V/WSL "Default Switch",
@@ -155,12 +156,34 @@ function parseHost(entry) {
     return { host: host.trim(), port: Number(port) || DEFAULT_API_PORT };
 }
 
-// Candidate IPs to probe = every real local subnet + the user override range +
-// any seeded extra ranges (own IPs excluded), de-duplicated and capped.
+// The part of an interface's subnet that shares its third octet: its own /24
+// (or the whole subnet when that is smaller than a /24).
+function ownSliceFromInterface(me) {
+    const r = rangeFromInterface(me);
+    const t = Number(me.address.split('.')[2]);
+    return { ...r, third: [t, t] };
+}
+
+// Candidate IPs to probe, de-duplicated (own IPs excluded) and capped at
+// MAX_SCAN_HOSTS, in this order:
+//   1. the /24 around each local address — always probed, whatever else is set;
+//   2. the user's Search range;
+//   3. the seeded extra ranges (built-in default, COMFYQ_FED_SCAN, scanRanges);
+//   4. the rest of each local subnet.
+// A list past the cap is cut short at its end, so the order decides what a
+// sweep loses: a /20 or wider local network no longer pushes the explicit
+// ranges out, and a huge Search range no longer pushes out the machine's own
+// /24. What can be cut is the far part of a big local subnet, or of an
+// oversized Search range.
 function scanCandidates() {
     const mine = new Set(localIPv4s().map(i => i.address));
     const set = new Set();
-    const ranges = [...localRanges(), ...(scanRange ? [scanRange] : []), ...extraRanges()];
+    const ranges = [
+        ...localIPv4s().map(ownSliceFromInterface),
+        ...(scanRange ? [scanRange] : []),
+        ...extraRanges(),
+        ...localRanges()
+    ];
     for (const r of ranges) {
         const [t0, t1] = r.third, [f0, f1] = r.fourth;
         for (let t = Math.min(t0, t1); t <= Math.max(t0, t1); t++) {
@@ -184,6 +207,12 @@ function fetchSelf(host, port, timeoutMs) {
         });
         req.on('timeout', () => req.destroy());
         req.on('error', () => resolve(null));
+        // A response cut off after its headers (body over 1 MB, an idle stall
+        // past the timeout, a dropped connection) ends with 'close' and no
+        // 'end' or 'error' — without this the probe never settled and the
+        // sweep stayed "searching" until the app restarted. On a normal reply
+        // 'close' comes after 'end', and a second resolve() is a no-op.
+        req.on('close', () => resolve(null));
     });
 }
 
@@ -209,16 +238,20 @@ function keyFor(snap, fallbackHost) {
     if (!id) return `ip:${primary}`;
 
     const base = peers.get(id);
-    if (!base || sameMachine(base.snap.ips, ips)) return id;
-    // The uuid's current holder is a different box — if it has gone quiet, take
-    // the slot over (a plain DHCP address change) rather than duplicating it.
-    if (Date.now() - base.lastSeen > STALE_MS) return id;
+    if (base && sameMachine(base.snap.ips, ips)) return id;
 
-    // Already-disambiguated sibling for this machine?
+    // Already-disambiguated sibling for this machine? Looked up BEFORE the
+    // takeover below: a clone that already has its own `uuid#ip` card keeps it,
+    // so when the other clone holding the plain uuid goes quiet, that card dims
+    // ("Not responding") and expires instead of being overwritten — and this
+    // machine is not listed twice (its sibling card plus the taken-over slot).
     const prefix = id + '#';
     for (const [k, rec] of peers) {
         if (k.startsWith(prefix) && sameMachine(rec.snap.ips, ips)) return k;
     }
+    // The uuid's slot is free, or its holder is a different box that has gone
+    // quiet (a plain DHCP address change): take it rather than duplicating it.
+    if (!base || Date.now() - base.lastSeen > STALE_MS) return id;
     return prefix + primary;
 }
 
@@ -403,10 +436,6 @@ ipcMain.handle('app:check-for-updates', async () => {
 });
 ipcMain.handle('app:quit-and-install', () => { if (autoUpdater) autoUpdater.quitAndInstall(); });
 
-ipcMain.handle('open-url', (_e, url) => {
-    if (typeof url === 'string' && /^https?:\/\//i.test(url)) return shell.openExternal(url);
-    return false;
-});
 ipcMain.handle('copy-text', (_e, text) => {
     if (typeof text === 'string') { clipboard.writeText(text); return true; }
     return false;
@@ -428,7 +457,6 @@ ipcMain.handle('set-auto-scan', (_e, on) => {
     if (autoScan) scanRange_sweep();
     return autoScan;
 });
-ipcMain.handle('get-scan-range', () => scanRange);
 ipcMain.handle('set-scan-range', (_e, r) => {
     if (r && typeof r.base === 'string' && Array.isArray(r.third) && Array.isArray(r.fourth)) {
         const clamp = (n) => Math.max(0, Math.min(255, Math.round(Number(n) || 0)));

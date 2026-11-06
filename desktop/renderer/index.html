@@ -5,7 +5,8 @@
     <!-- No CSP meta: this is a fully local file:// app (opaque origin, where a
          `script-src 'self'` policy can block same-folder scripts in Chromium).
          The renderer makes no network requests and all beacon-derived text is
-         HTML-escaped (esc() in renderer.js); contextIsolation + nodeIntegration:false
+         HTML-escaped (esc() in renderer.js) or coerced to a number — pinned by
+         desktop/discovery.test.js; contextIsolation + nodeIntegration:false
          (main.js) remain the real isolation boundary. -->
     <title>ComfyQ – Discovery</title>
     <link rel="stylesheet" href="styles.css" />

@@ -5,15 +5,15 @@
     "main": "main.js",
     "private": true,
     "engines": {
-        "node": ">=22.0.0 <25.0.0"
+        "node": "^22.0.0 || ^24.0.0"
     },
     "scripts": {
         "start": "electron .",
         "_comment_dist": "`npm run dist` builds an unsigned installer for the host OS only (no upload). Releases for all platforms are cut by CI: `npm run release:patch` bumps the version, tags it, and pushes — .github/workflows/release.yml then builds + publishes to GitHub Releases.",
         "dist": "electron-builder",
-        "release:patch": "npm version patch --no-git-tag-version && node scripts/release.mjs",
-        "release:minor": "npm version minor --no-git-tag-version && node scripts/release.mjs",
-        "release:major": "npm version major --no-git-tag-version && node scripts/release.mjs"
+        "release:patch": "node scripts/release.mjs patch",
+        "release:minor": "node scripts/release.mjs minor",
+        "release:major": "node scripts/release.mjs major"
     },
     "dependencies": {
         "electron-updater": "^6.6.2"
