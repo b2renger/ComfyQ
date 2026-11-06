@@ -1,5 +1,7 @@
 # Which workflows are best — an assessment of the whole library
 
+> The verdicts below come from the 2026-11-04 suite (commit `24e8251`), which gave cards the same inputs. Stage 6 of the suite brings those comparisons back.
+
 *Measured 2026-11-03 on AN-5090-2 (RTX 5090, 32 GB), ComfyUI 0.43.2, one run of the
 [library test suite](../tools/test-suite/README.md) — 80 bundles — then again on 2026-11-04
 with the suite rebuilt as a showcase (one example per card that shows what it is best at;
