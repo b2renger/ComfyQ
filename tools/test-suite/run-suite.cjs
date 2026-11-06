@@ -8,10 +8,7 @@
  *   --check   validate the suite against the library, list every asset it names
  *             that is not in the assets folder, and stop
  *   --dry     validate, then print every run and where each input will come from
- *   --only    run just these bundles, in the suite's order (an input from a
- *             bundle that does not run here comes from the last report in the
- *             data dir: server/data, or --data-dir's folder; a bundle that
- *             failed here supplies nothing, and the run it feeds is skipped)
+ *   --only    run just these bundles and their variants, in the suite's order
  *   --from    start at this bundle and run the rest of the suite
  *   --data-dir write the report somewhere else (an experiment that must not
  *             replace the published report, and so the examples). Inputs from

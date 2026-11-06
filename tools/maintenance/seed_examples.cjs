@@ -86,7 +86,7 @@ const captionFor = (r) => {
     if (!name) return null;
     if (!suiteRuns.has(name)) {
         const m = new Map();
-        try { for (const run of loadSuite(name).runs) m.set(run.workflow, run); }
+        try { for (const run of loadSuite(name).runs) if (!run.variant) m.set(run.workflow, run); }
         catch { /* the suite file is gone: keep the run's own notes */ }
         suiteRuns.set(name, m);
     }
@@ -142,12 +142,13 @@ const skipped = [];
 // Replace rather than add: drop the example of every bundle this run seeds,
 // decided BEFORE inserting so a bundle whose new row fails is not left empty
 // for nothing -- it keeps its old example.
-const seeding = rows.filter(r => (!ONLY || ONLY.has(r.id)) && r.ok && (r.outputs || []).length).map(r => r.id);
+const seeding = rows.filter(r => !r.variantOf && (!ONLY || ONLY.has(r.id)) && r.ok && (r.outputs || []).length).map(r => r.id);
 if (REPLACE && seeding.length && !DRY) {
     const del = db.prepare("DELETE FROM jobs WHERE user_id = ? AND workflow_id = ?");
     for (const id of seeding) replaced += del.run(USER, id).changes;
 }
 for (const r of rows) {
+    if (r.variantOf) continue;     // a test-only run: it never replaces a card's example
     if (ONLY && !ONLY.has(r.id)) continue;
     if (!r.ok) { failedRow++; skipped.push(r.id + (r.skipped ? ' (a test-suite input was missing)' : ' (the sweep run failed)')); continue; }
 

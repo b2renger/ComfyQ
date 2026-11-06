@@ -308,5 +308,42 @@ const entry = { id: 'edit', effective: { exposedParameters: [
         assert.strictEqual(sameRun(loopRuns.get('a'), ra, { rows: [ra, rb], fileRuns: loopRuns }), false, 'a cycle terminates, as no match');
     }
 
+    // --- variants: a second run of one card -----------------------------------
+    {
+        const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'suite-variant-'));
+        const f = path.join(dir, 'v.suite.json');
+        fs.writeFileSync(f, JSON.stringify({ name: 'v', stages: [{ name: 's', runs: [
+            { workflow: 'a', params: {} },
+            { workflow: 'a', variant: 'fast-off', params: {} },
+        ] }] }));
+        const suite = loadSuite(f);
+        assert.deepStrictEqual(suite.runs.map(r => r.id), ['a', 'a@fast-off']);
+        assert.strictEqual(suite.runs[1].keepRuntime, true, 'a variant never writes runtime.json');
+        const reg = { get: () => ({ effective: { exposedParameters: [] } }) };
+        assert.deepStrictEqual(validateSuite(suite, reg).errors, [], 'a variant is not a duplicate');
+        const twice = { runs: [...suite.runs, { ...suite.runs[1] }] };
+        assert.ok(validateSuite(twice, reg).errors.some(e => /appears twice/.test(e)), 'two of one variant are');
+        const bad = { runs: [{ workflow: 'a', variant: 'Fast Off', id: 'a@Fast Off', params: {} }] };
+        assert.ok(validateSuite(bad, reg).errors.some(e => /variant name/.test(e)));
+        fs.rmSync(dir, { recursive: true, force: true });
+
+        const live = LibrarySweep.forLibrary({ results: [{ id: 'a' }, { id: 'a@x', variantOf: 'a' }, { id: 'gone@x', variantOf: 'gone' }] }, ['a']);
+        assert.deepStrictEqual(live.results.map(r => r.id), ['a', 'a@x'], 'a variant lives and dies with its card');
+    }
+
+    // Every run of the library suite stands alone: nothing it reads depends on an
+    // earlier run or on the last report, so --only gives the same result as a full run.
+    {
+        const lib = loadSuite('library');
+        const chained = [];
+        for (const run of lib.runs) {
+            for (const [key, spec] of Object.entries(run.params)) {
+                const m = spec && typeof spec === 'object' || typeof spec === 'string' ? parseMediaSpec(spec) : null;
+                if (m?.from?.some(id => !id.startsWith('asset:'))) chained.push(`${run.id}.${key}`);
+            }
+        }
+        assert.deepStrictEqual(chained, [], 'a run must read only from the assets folder');
+    }
+
     console.log('suitePlan: all checks passed');
 })().catch(e => { console.error(e); process.exit(1); });

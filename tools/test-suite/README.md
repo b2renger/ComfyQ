@@ -32,7 +32,7 @@ them into the `examples` jobs students can browse in **All jobs**.
 
 | file | what it is |
 |---|---|
-| [`library.suite.json`](library.suite.json) | every workflow in the library, in five stages, each with a showcase example (rebuilt 2026-11-04 from per-family research; the previous one-story version is in git history) |
+| [`library.suite.json`](library.suite.json) | every workflow in the library, in five stages with a showcase example each, then the comparisons and the options (rebuilt 2026-11-04 from per-family research; the previous one-story version is in git history) |
 | [`run-suite.cjs`](run-suite.cjs) | runs a suite from the command line |
 | [`suiteAssets.cjs`](suiteAssets.cjs) | lists every assets-folder file a suite names and which are missing, so `--check` and `--dry` can show them before the GPU is booked (tested by `suiteAssets.test.cjs`) |
 | [`derive_input.py`](derive_input.py) | makes an input from an output or an asset: a frame, a crop, a hole, a circle, a paste-in, damage (blur, noise, JPEG), a trimmed / shrunk / muted clip |
@@ -115,19 +115,19 @@ randomises every seed.
       } } ] } ] }
 ```
 
-- **Each bundle appears once** — the report is keyed by bundle id.
-- **Order matters.** An `output:` reference is resolved when the run starts, from
-  this run's results. When this run has no row for that bundle — it is not in
-  this run (`--only`, `--from`) — the input comes from the last published report
-  instead (with `--data-dir`, the last report in that folder). A bundle that
-  failed or was skipped in this run supplies nothing, so a run downstream of it
-  is skipped with the reason, not fed an older result. A run whose input cannot
-  be found at all is **skipped with the reason** — never fed a random asset
-  instead, which would make an example that pretends to follow from a result it
-  never saw. The same goes for a file from the assets folder: a plain `asset:`
-  that is not there skips the run, and so does a `fallback` that is not there
-  when it is needed. `--check` (and `--dry`) list every asset the suite names
-  that is missing, before the GPU is booked.
+- **Each bundle's main run appears once**, since the report is keyed by bundle id. A
+  run with a `variant` is a further run of the same card, reported as
+  `<bundle>@<variant>`. It keeps `runtime.json` as it was and is never seeded as an
+  example. Stage 6 compares cards on one input, and stage 7 exercises options a
+  default run never reaches.
+- **Every run stands alone.** The library suite reads only from the assets folder,
+  so `--only` gives the same result as a full run, whatever ran before. Results that
+  feed other cards were frozen in `suite-inputs/` in the assets folder on 2026-11-06.
+  A test fails if an `output:` input comes back. The sweep still understands
+  `output:`, for a suite of your own.
+- A run whose input cannot be found is **skipped with the reason**, never fed a
+  random asset. `--check` (and `--dry`) list every asset the suite names that is
+  missing, before the GPU is booked.
 - `from` can name a bundle (its output) or `asset:<file>` (a file in the assets
   folder, sub-folders allowed); `ops` is accepted for `derive`.
 - **Image** `derive` ops (`derive_input.py`, the result is a PNG): `frame {index}`,

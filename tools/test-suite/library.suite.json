@@ -193,7 +193,7 @@
             "megapixels": 1,
             "steps": 50,
             "cfg": 3.5,
-            "image": "output:image_flux3_klein_t2i"
+            "image": "asset:suite-inputs/image_flux3_klein_t2i.png"
           }
         },
         {
@@ -264,7 +264,7 @@
                     0.645,
                     0.865,
                     0.81,
-                    1.0
+                    1
                   ]
                 }
               ]
@@ -302,7 +302,7 @@
           "params": {
             "cliptextencode_text_113": "refcontrol, the young woman from the reference image dancing in exactly this pose, with her round tortoiseshell glasses, short copper-tipped coily hair, mustard-yellow utility jumpsuit, teal canvas tool belt, coral-red backpack and white high-top sneakers with red laces, on a plain light-grey studio floor with soft even light",
             "cliptextencode_text_114": "",
-            "loadimage_image_81": "output:image_flux3_klein_distilled_t2i",
+            "loadimage_image_81": "asset:suite-inputs/image_flux3_klein_distilled_t2i.png",
             "loadimage_image_119": "asset:controlNet_demo_image.jpg"
           }
         },
@@ -313,7 +313,7 @@
             "krea2editmodelpatch_ref_boost_120": 1,
             "ksampler_steps_53": 10,
             "ksampler_seed_53": 43,
-            "loadimage_image_72": "output:image_flux3_klein_distilled_t2i"
+            "loadimage_image_72": "asset:suite-inputs/image_flux3_klein_distilled_t2i.png"
           }
         },
         {
@@ -324,7 +324,7 @@
             "krea2editmodelpatch_ref_boost_120": 1,
             "ksampler_steps_53": 10,
             "ksampler_seed_53": 42,
-            "loadimage_image_72": "output:image_flux3_klein_distilled_t2i"
+            "loadimage_image_72": "asset:suite-inputs/image_flux3_klein_distilled_t2i.png"
           }
         },
         {
@@ -472,7 +472,7 @@
           "params": {
             "latenttiledpiddecode_seed_7": 42,
             "loadimage_image_1": {
-              "from": "image_qwen_image_2_1_t2i",
+              "from": "asset:suite-inputs/image_qwen_image_2_1_t2i.png",
               "kind": "image",
               "derive": [
                 {
@@ -569,7 +569,7 @@
             "primitiveboolean_value_3": true,
             "primitiveint_value_4": 2,
             "primitivefloat_value_5": 45,
-            "load3dadvanced_model_file_6": "output:3d_pixal3d_trellis2_image_to_model"
+            "load3dadvanced_model_file_6": "asset:suite-inputs/3d_pixal3d_trellis2_image_to_model.glb"
           }
         },
         {
@@ -582,7 +582,7 @@
             "primitiveint_value_3": 4,
             "primitiveint_value_4": 128,
             "primitivefloat_value_5": 1,
-            "load3dadvanced_model_file_6": "output:3d_mesh_remesh_decimate"
+            "load3dadvanced_model_file_6": "asset:suite-inputs/3d_mesh_remesh_decimate.glb"
           }
         },
         {
@@ -605,7 +605,7 @@
             "primitiveint_value_288": 4096,
             "ksampler_seed_3": 56,
             "loadimage_image_364": {
-              "from": "image_edit_krea2_quadview",
+              "from": "asset:suite-inputs/image_edit_krea2_quadview.png",
               "kind": "image",
               "derive": [
                 {
@@ -620,7 +620,7 @@
               ]
             },
             "loadimage_image_378": {
-              "from": "image_edit_krea2_quadview",
+              "from": "asset:suite-inputs/image_edit_krea2_quadview.png",
               "kind": "image",
               "derive": [
                 {
@@ -635,7 +635,7 @@
               ]
             },
             "loadimage_image_380": {
-              "from": "image_edit_krea2_quadview",
+              "from": "asset:suite-inputs/image_edit_krea2_quadview.png",
               "kind": "image",
               "derive": [
                 {
@@ -650,7 +650,7 @@
               ]
             },
             "loadimage_image_379": {
-              "from": "image_edit_krea2_quadview",
+              "from": "asset:suite-inputs/image_edit_krea2_quadview.png",
               "kind": "image",
               "derive": [
                 {
@@ -683,7 +683,7 @@
         },
         {
           "workflow": "audio_yue2_music_cover",
-          "note": "ComfyUI's own example song (upbeat indie pop, female voice) sung again as bluegrass by a male voice, with the same words and the same tune. Play both one after the other and hum along.",
+          "note": "ComfyUI's own example song (upbeat indie pop, female voice) sung again as bluegrass by a male voice, Listen for the same words and the same tune: play both one after the other and hum along.",
           "params": {
             "yue2generatemusic_style_33_25": "English, bluegrass, warm male lead vocal with close two-part harmony on the chorus, fast banjo rolls, fiddle, mandolin, upright bass, acoustic guitar, lively front-porch atmosphere, live acoustic recording",
             "yue2generatemusic_lyrics_33_25": "[Verse]\nMorning light across the window\nCity waking down below\nI can hear the streets are calling\nFeels like somewhere we should go\n\n[Chorus]\nRun with me into the sunlight\nLeave the shadows far behind\nWe don't need to know tomorrow\nTonight the whole world feels alive\n\n[Verse]\nRadio playing through the open door\nLaughing like we did before\nEvery mile becomes a memory\nAnd I just want a little more\n\n[Chorus]\nRun with me into the sunlight\nLeave the shadows far behind\nWe don't need to know tomorrow\nTonight the whole world feels alive",
@@ -700,10 +700,7 @@
           "params": {
             "instruction_1": "Look carefully at this image and answer in five numbered sections.\n1. What it is, in one sentence.\n2. Text: copy every piece of text you can see exactly as written (same spelling, capitals and accents), one item per line, each followed by where it is (top, centre, bottom, left, right). If there is no text, say so.\n3. Translation: translate any text that is not in English into English.\n4. Design: three or four short bullet points on the layout, the colour palette, the typography and the illustration style.\n5. Prompt: one paragraph that could be given to an image generator to recreate this image.\nDescribe only what you can see; do not invent details.",
             "seed_1": 0,
-            "source_image_2": {
-              "from": "image_ideogram4_t2i",
-              "fallback": "asset:agora_ecole_de_design1.jpg"
-            }
+            "source_image_2": "asset:suite-inputs/image_ideogram4_t2i.png"
           }
         }
       ]
@@ -713,14 +710,14 @@
       "runs": [
         {
           "workflow": "video_minimax_h3_t2v_turbo",
-          "note": "One paragraph of text became both the picture and the drumming, at the same time. Listen with the sound on: every boom and clang should land on a stick hit you can see.",
+          "note": "One paragraph of text became both the picture and the drumming, at the same time. Listen with the sound on, for each boom and clang landing on a stick hit you can see.",
           "params": {
             "minimaxh3imagetovideo_prompt_11": "integrated_multimodal_description: [Shot 1] Live-action, cinematic, a medium shot in a white-tiled subway corridor at rush hour. A young street drummer in a red beanie and a faded denim jacket sits on a low wooden crate behind three upturned white plastic buckets and a dented metal pot lid, a drumstick in each hand. He plays a fast, tight beat: the right stick strikes the big centre bucket on every beat with a deep hollow boom, the left stick snaps against the bucket rims with sharp plastic clicks and hits the pot lid with a bright metallic clang on the off-beat, his shoulders bouncing in time. At about two seconds he twirls the left stick between his fingers without missing a beat and then hits the pot lid twice, hard. Commuters in coats stream past behind him, slightly out of focus, and one of them tosses a coin into the open instrument case at his feet. The camera pushes in with small amplitude at slow speed from waist height, ending on his hands and the buckets.\n\noverall_soundscape: The drum hits echo off the tiled walls over a steady murmur of the crowd and hurried footsteps; a coin clinks into the case, and a train rumbles through the station in the distance.\n\nnon_diegetic_music: N/A"
           }
         },
         {
           "workflow": "video_fastvideo_fasth3_t2v",
-          "note": "Ten seconds, three shots and a narrator, all from one prompt. Notice where the cuts fall (about 4 and 7.5 seconds, as written) and that the voice-over and the music were generated with the pictures.",
+          "note": "Ten seconds, three shots and a narrator, all from one prompt. Notice where the cuts fall (about 4 and 7.5 seconds, as written) and listen for the voice-over and the music, generated with the pictures.",
           "keepRuntime": true,
           "params": {
             "minimaxh3imagetovideo_prompt_105_104": "integrated_multimodal_description: [Shot 1] Live-action nature documentary, cinematic, soft blue dawn light. A wide aerial shot glides slowly forward over a misty pine forest in a deep valley; low clouds drift between the treetops and a silver river winds along the valley floor. The camera pushes in with small amplitude at slow speed. A calm, deep male narrator (S1) says in an off-screen voiceover: <d>[English] Every morning, the valley wakes up slowly.</d> [Shot 2] At 00:04.000, the camera cuts to a close-up of a red fox stepping out of the ferns onto a mossy fallen log, its breath steaming in the cold air; it stops and lifts its head toward the light. The camera holds a static shot. [Shot 3] At 00:07.500, the camera cuts to a low wide shot over the river, where mist rolls across the water and the first golden sunbeams break through the pines. The narrator (S1) continues in the same off-screen voiceover: <d>[English] And then, the light arrives.</d> The camera tilts up with small amplitude at slow speed toward the rising sun.\n\noverall_soundscape: Soft forest dawn ambience with distant birdsong, a light breeze in the pines, the crunch of moss and twigs under the fox's paws, and the gentle rush of the river.\n\nnon_diegetic_music: A slow, warm orchestral score with sustained strings and a soft French horn, swelling gently in the final shot.",
@@ -730,21 +727,21 @@
         },
         {
           "workflow": "video_ltx2_5_t2v",
-          "note": "One prompt, two shots: a wide shot of the food truck, then a hard cut to a close-up as she orders. Notice that the same woman and jacket carry across the cut, the neon word \"TACOS\", and her spoken line in the soundtrack.",
+          "note": "One prompt, two shots: a wide shot of the food truck, then a hard cut to a close-up as she orders. Notice that the same woman and jacket carry across the cut, and the neon word \"TACOS\". Listen for her spoken line.",
           "params": {
-            "primitivestringmultiline_value_405_376": "A wide shot frames a narrow, rain-soaked street at night, cobblestones shining under the glow of a small food truck parked at the curb, a red neon sign on its roof spelling \"TACOS\" in bold capital letters, steam drifting from its lit service window. A young woman with a short black bob and a teal rain jacket hurries toward the truck under a clear umbrella, her boots splashing through puddles. Rain drums on the umbrella and a cheerful accordion tune plays from the truck's radio. A hard cut transitions to a medium close-up of the same woman at the counter, red neon light on her face and raindrops beading on the umbrella above her; the accordion tune continues across the cut, softer now. She lowers the umbrella, smiles at the cook and says, \"Two, please — extra lime!\" Steam rises between them as the rain keeps falling."
+            "primitivestringmultiline_value_405_376": "Live-action film footage, shot on a 35mm camera with natural skin and real rain. A wide shot frames a narrow, rain-soaked street at night, cobblestones shining under the glow of a small food truck parked at the curb, a red neon sign on its roof spelling \"TACOS\" in bold capital letters, steam drifting from its lit service window. A young woman with a short black bob and a teal rain jacket hurries toward the truck under a clear umbrella, her boots splashing through puddles. Rain drums on the umbrella and a cheerful accordion tune plays from the truck's radio. A hard cut transitions to a medium close-up of the same woman at the counter, red neon light on her face and raindrops beading on the umbrella above her; the accordion tune continues across the cut, softer now. She lowers the umbrella, smiles at the cook and says, \"Two, please — extra lime!\" Steam rises between them as the rain keeps falling."
           }
         },
         {
           "workflow": "video_pika_h3_flex_t2v",
-          "note": "Three shots, two characters, two lines of dialogue and a little accordion tune, all from one prompt. Watch the cuts land where the prompt asked (about 2 and 3.5 seconds) and read the chalkboard.",
+          "note": "Three shots and two characters, all from one prompt. Watch the cuts land where the prompt asked (about 2 and 3.5 seconds), read the chalkboard, and listen for the two lines of dialogue and the little accordion tune.",
           "params": {
             "prompt_231": "integrated_multimodal_description: [Shot 1] Live-action, warm cinematic 35mm look with fine grain, normal real-time speed with no slow motion. A medium-wide shot inside a tiny Parisian bakery in the morning: a young baker with flour on her navy apron stands behind a wooden counter piled with golden croissants, a small chalkboard on the counter reading \"CROISSANTS\", and an elderly man in a tweed cap and a long grey coat stands in front of the counter holding a single coin. The elderly man with a slow, gravelly voice (S1) taps the coin on the counter and says: <d>[English] One croissant. The best one.</d> [Shot 2] At 00:02.000, the camera cuts to a close-up of the baker's hands lifting the largest, glossiest croissant with silver tongs; flakes of pastry fall onto the counter. [Shot 3] At 00:03.500, the camera cuts to a medium close-up of the baker, who winks as she slides it into a paper bag, and the young baker with a bright, cheerful voice (S2) says: <d>[English] They're all the best.</d> The camera remains fixed.\n\noverall_soundscape: Small bakery ambience: the shop-door bell, the clink of the coin on wood, the crackle of the paper bag, pastry flakes pattering on the counter and the low hum of the oven.\n\nnon_diegetic_music: A light accordion waltz at a moderate tempo, quiet under the dialogue, ending on a single bright note."
           }
         },
         {
           "workflow": "video_minimax_h3_i2v_4step",
-          "note": "A still photo from the 1950s turns to you and speaks French: the voice, the lip movements and the laugh were all made from one line of text. Notice that the earring, the jacket and the black-and-white look never change.",
+          "note": "A still photo from the 1950s turns to you and speaks. Listen for the French line and the laugh, both made from one line of text, against the lips. Notice that the earring, the jacket and the black-and-white look never change.",
           "params": {
             "minimaxh3imagetovideo_prompt_105_104": "For the target video, at 0.00 seconds into the target video, <Picture 1> (from [Shot 1]) is fully referenced.\n\nintegrated_multimodal_description: [Shot 1] Black-and-white 1950s studio portrait photography with fine film grain, the young woman shown in <Picture 1> keeps her short swept dark hair, pearl stud earring, houndstooth jacket, soft key light and plain grey backdrop. She holds her smile for a moment, then her eyes widen slightly as if she has just noticed the viewer, she tilts her head and leans a little toward the lens. The young woman with a warm, bright voice (S1) says: <d>[French] Oh! Vous êtes enfin là. Je vous attendais.</d> She lets out a short, soft laugh, glances to the side and back, and settles into her original smile. The camera pushes in with small amplitude at slow speed, ending on a close-up of her face. The image stays black-and-white throughout.\n\noverall_soundscape: Quiet studio room tone with the faint crackle of an old film soundtrack, the soft rustle of her jacket as she leans forward, and her short breathy laugh.\n\nnon_diegetic_music: A gentle 1950s jazz piano with brushed snare at a slow tempo, very quiet under her voice.",
             "loadimage_image_114": "asset:Woman.png"
@@ -752,7 +749,7 @@
         },
         {
           "workflow": "video_ltx2_5_i2v",
-          "note": "A still claymation portrait wakes up: she opens her eyes and speaks a line, and the clay look holds in every frame. Everything you hear — the voice, the birds, the breeze — was made from the prompt.",
+          "note": "A still claymation portrait wakes up: she opens her eyes and speaks a line, and the clay look holds in every frame. Listen for the voice, the birds and the breeze, all made from the prompt.",
           "params": {
             "primitivestringmultiline_value_398_376": "Use the provided start image as the first frame. One continuous close-up: the clay girl slowly opens her eyes, blinks twice and lifts her head toward the camera, her sculpted lips parting into a sleepy smile. She says softly, in a warm, sleepy voice, \"Is it morning already?\" A light breeze lifts a few strands of her orange and yellow clay hair, and the clay hills behind her stay softly out of focus. The camera pushes in very slowly on her face. The whole scene stays handmade plasticine stop-motion, with fingerprints in the clay and slightly jittery stop-motion movement. Sound: birdsong, a soft breeze and the faint squish of clay as she moves.",
             "loadimage_image_395": "asset:01-portrait_remix.png"
@@ -764,10 +761,7 @@
           "params": {
             "minimaxh3imagetovideo_prompt_105_104": "How the reference pictures align with the target video — <Picture 1> (from [Shot 1]) aligns with the 5.17-second mark of the target video.\n\nintegrated_multimodal_description: [Shot 1] Animated graphic-design reveal, one continuous shot, the camera remains fixed and frontal. The video opens on a blank sheet of off-white paper filling the frame. At about one second, large flat shapes of coloured paper slide in from the edges of the frame and snap into place one after another, each casting a small soft shadow, and the main picture of the poster assembles in the middle from cut and torn pieces. At about three seconds the title letters drop in from the top one by one, bouncing slightly as they land, and the smaller lines of text slide in underneath. In the last second every piece settles and the composition locks exactly into the finished poster of <Picture 1>, which holds still to the end.\n\noverall_soundscape: Crisp paper sounds throughout: a quick whoosh and a soft slap as each cut-paper shape lands, a light rustle of paper, and a small cardboard thump for every falling letter, in a quiet room.\n\nnon_diegetic_music: A punchy, minimal electronic beat at a moderate tempo whose kicks land on the falling letters, ending on a single held chord on the finished poster.",
             "resolutionselector_aspect_ratio_143": "2:3 (Portrait Photo)",
-            "loadimage_image_300": {
-              "from": "image_ideogram4_t2i",
-              "fallback": "asset:Screenshot 2025-03-06 105700.png"
-            },
+            "loadimage_image_300": "asset:suite-inputs/image_ideogram4_t2i.png",
             "loadimage_image_136": null
           }
         },
@@ -829,7 +823,7 @@
         },
         {
           "workflow": "video_minimax_h3_seamless_loop_fasth3",
-          "note": "One still picture became a world that moves forever: the creatures bob and breathe, and the clip has no visible start or end. Compare it with the picture: the moss terraces, the pink bubble creatures and the balloon-like organisms all come from it; the tall blue crystals are the prompt's addition.",
+          "note": "One still picture became a world that moves forever: the creatures bob and breathe, and it repeats, with a small jump you can see at the join. Compare it with the picture: the moss terraces, the pink bubble creatures and the balloon-like organisms all come from it; the tall blue crystals are the prompt's addition.",
           "params": {
             "prompt_8": "Locked-off static camera, no pan, no zoom. The dreamlike alien valley of <Picture 1>: soft yellow-green moss terraces, tall blue crystal spires and a misty violet horizon under a pale turquoise sky. The large iridescent bubble creatures from <Picture 1> float above the moss, each one bobbing gently up and down in a slow, steady rhythm, their glassy pink-and-silver domes pulsing softly as if breathing and the thin tendrils below them swaying. High above, the tall balloon-like organisms drift in a slow, steady circle around the spires. Tiny glowing specks float slowly upward through soft shafts of light. Steady, unchanging light. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: a soft, steady airy drone, a faint continuous shimmer like distant glass chimes, a gentle constant breeze over the moss.\n\nnon_diegetic_music: N/A",
             "ref_image_7": "asset:a-landscape-of-a-futuristic-land-of-aerial-waves-with-living-organisms-floating-in-the-air-and-incr-159032455.png"
@@ -938,21 +932,15 @@
           "note": "One sheet — the clockmaker, his watch and his workshop, tiled edge to edge — and a scene description: he opens the watch at his bench under the green lamp, lifts it and smiles, and his face, spectacles and apron, the watch and the wall of clocks all match the sheet. Look past his shoulder: a small copy of the full-body panel stands in the room — the sheet still shows through. (A first sheet with panels floating on black came back as itself; the layout is what made the difference.)",
           "params": {
             "comfyswitchnode_on_false_129_211": "Reference sheet: Five panels tiled edge to edge. Top left, a close-up portrait of an elderly clockmaker — a man in his seventies with a bald head, a bushy white moustache and round gold-rimmed spectacles, in a white shirt with rolled sleeves and a dark green leather apron. Next to it, a product view of an ornate brass pocket watch with an engraved lid and a plain white enamel dial. Bottom left and next to it, the same clockmaker standing full-body seen from the front and from the back, in his white shirt, dark green leather apron, brown trousers and brown leather shoes. The right half, a wide shot of his clock-repair workshop: a wooden workbench under a green-shaded brass lamp and a wall covered with wooden pendulum clocks.\n\nGenerated video: A cinematic medium shot inside the clock-repair workshop. The clockmaker sits at the wooden workbench under the green-shaded lamp, the wall of pendulum clocks swinging behind him. He picks up the brass pocket watch, flips its engraved lid open with his thumb, raises it to his ear and listens, then breaks into a satisfied smile and gently snaps it shut. The camera slowly pushes in from the medium shot to a close-up of his face and the watch in his hand. Warm afternoon light falls through a dusty window. Sound: dozens of clocks ticking out of step, a soft click as the lid opens, and one wall clock striking three deep chimes.",
-            "loadimage_image_724": {
-              "from": "image_moss_image_base_t2i",
-              "fallback": "asset:Pose_sheet_v02.png"
-            }
+            "loadimage_image_724": "asset:suite-inputs/image_moss_image_base_t2i.png"
           }
         },
         {
           "workflow": "video_liveportrait_image2video",
-          "note": "A photo made by \"Make a true-to-life photo\", driven by a video of someone pulling faces: every eye dart, frown and grimace is copied onto her, while her face, light and background stay her own.",
+          "note": "A painted portrait driven by a video of someone pulling faces: every eye dart, frown and grimace is copied onto the painting, while its brushwork, its cracks and its dark background stay as they were.",
           "params": {
             "vhs_loadvideo_frame_load_cap_8": 128,
-            "loadimage_image_196": {
-              "from": "image_flux2_klein_9b_t2i",
-              "fallback": "asset:0 (1).png"
-            },
+            "loadimage_image_196": "asset:suite-inputs/painted_portrait.png",
             "vhs_loadvideo_video_8": "asset:d6.mp4"
           }
         }
@@ -1002,7 +990,7 @@
         },
         {
           "workflow": "video_edit_minimax_h3_v2v_video_reference",
-          "note": "Same rooftop, same handheld camera, same dance — only the dancer changed, into a knight whose armour clanks on every move. Compare with the pose card's example from the same clip, which keeps only the moves.",
+          "note": "Same rooftop, same handheld camera, same dance — only the dancer changed, into a knight. Listen for his armour clanking on each move. Compare with the pose card's example from the same clip, which keeps only the moves.",
           "params": {
             "resolutionselector_aspect_ratio_115": "1:1 (Square)",
             "primitivestringmultiline_value_138": "subject_definitions:\n<Video 1> is the source video for the edit: one continuous handheld shot of a man dancing on a flat grey rooftop under an overcast sky, with brick factory buildings, a tall brick chimney and a city skyline behind him.\n<Subject 1> is the dancer in <Video 1>: a bearded man in a black tracksuit with red stripes on the sleeves and black sneakers, selected for replacement.\n<Subject 2> is a knight in full polished steel plate armour with a closed visor helmet topped by a red plume and a red cloth tabard over the breastplate, replacing <Subject 1>.\n\nsummary:\n[video editing] The target video is an edited version of <Video 1>. <Subject 2> replaces <Subject 1> and performs exactly the same dance on the same rooftop, while the rooftop, the brick buildings, the chimney, the cloudy sky, the handheld camera and the timing of <Video 1> are kept.\n\nretention_analysis:\n<Video 1> (rooftop setting, camera movement and timing): partially_preserved - keep the rooftop, the background buildings, the chimney, the overcast light, the framing, the handheld camera movement and the exact timing of every move; change only the dancer.\n<Subject 1>: removed - the man in the black tracksuit does not appear in any frame of the target video.\n<Subject 2> (appears in [Shot 1]): attribute_transfer - the knight takes over every step, arm wave, body pop, squat and pose of the dance of <Subject 1>, in the same positions and at the same moments.\n\ndetailed_description:\nThe target video keeps the live-action, overcast, slightly desaturated look of <Video 1>.\n[Shot 1] Follow the framing, the handheld camera movement and the action timing of <Video 1>. On the grey rooftop, in front of the brick factory buildings and the tall chimney, <Subject 2> dances in place of <Subject 1>: the knight in polished steel plate armour, closed visor and red-plumed helmet sweeps his armoured arms out wide, pops his chest, raises one gauntlet high, drops into a wide squat and steps from side to side exactly as the original dancer does, the red tabard swinging with each move and the cloudy daylight sliding across the steel. Only the knight is visible, from the first frame to the last.\n\noverall_soundscape:\nMetal plates clank and scrape in time with every step and arm movement, steel boots ring on the rooftop, and a steady city wind blows over the roof with distant traffic far below.\n\nnon_diegetic_music:\nAn upbeat hip-hop drum beat at a moderate tempo with a deep kick and a crisp snare that hits on the sharpest moves.",
@@ -1145,10 +1133,7 @@
             "primitiveint_value_245": 640,
             "primitiveint_value_246": 640,
             "vhs_loadvideo_video_33": "asset:3044160-uhd_3840_2160_24fps_5_1.mp4",
-            "loadimage_image_189": {
-              "from": "image_edit_flux3_klein_distilled_image_edit",
-              "fallback": "asset:idv2v_demo_style.png"
-            }
+            "loadimage_image_189": "asset:suite-inputs/image_edit_flux3_klein_distilled_image_edit.png"
           }
         },
         {
@@ -1169,14 +1154,7 @@
           "params": {
             "primitivestringmultiline_value_5508": "Sharp, highly detailed footage with clean textures, natural colours and crisp edges.",
             "resizeimagemasknode_resize_type_shorter_size_5548_5026": 960,
-            "loadvideo_file_5001": {
-              "from": [
-                "video_minimax_h3_t2v_turbo",
-                "video_fastvideo_fasth3_t2v"
-              ],
-              "kind": "video",
-              "fallback": "asset:d6.mp4"
-            },
+            "loadvideo_file_5001": "asset:suite-inputs/video_minimax_h3_t2v_turbo.mp4",
             "loadimage_image_2004": null
           }
         },
@@ -1303,13 +1281,315 @@
           "params": {
             "instruction_1": "Watch this video from start to end.\n1. Timeline: write one line per second, starting with the time (00:00, 00:01, ...), saying what you can see at that moment and what has changed since the previous second: the subject, any action and its direction relative to the camera, the camera, the light, the weather and the style of the picture.\n2. Summary: describe the whole clip in two sentences.\nDescribe only what is visible in the frames. If something is unclear, write 'unclear' instead of guessing. Do not describe sound.",
             "seed_1": 0,
-            "source_video_6": {
-              "from": [
-                "video_wan22_4_key_frames",
-                "video_ltx2_5_t2v"
-              ],
-              "kind": "video"
+            "source_video_6": "asset:suite-inputs/video_wan22_4_key_frames.mp4"
+          }
+        }
+      ]
+    },
+    {
+      "name": "6 — Comparisons: one input, several cards",
+      "runs": [
+        {
+          "workflow": "image_qwen_image_2_1_t2i",
+          "variant": "compare",
+          "note": "Same prompt, size and card family as the Fix run: the owner plans to keep one of the two.",
+          "params": {
+            "textencodeqwenimage21_prompt_459_452": "A red-and-white striped lighthouse stands on a dark granite cliff in the right third of the frame, above a rough green sea at golden hour. On the left the open sea stretches to the horizon. A small white keeper's cottage with a red door sits at the foot of the tower, and a winding gravel path leads up to it through heather. Waves break white against the rocks, three seagulls glide in the sky, and the low warm sun lights everything from the left. Photographed with a 35mm lens, realistic, crisp detail, natural colours.",
+            "resolutionselector_aspect_ratio_13": "16:9 (Widescreen)"
+          }
+        },
+        {
+          "workflow": "image_qwen_image_2_1_t2i_fix",
+          "variant": "compare",
+          "note": "Same prompt, size and card family as the plain run.",
+          "params": {
+            "textencodeqwenimage21_prompt_459_452": "A red-and-white striped lighthouse stands on a dark granite cliff in the right third of the frame, above a rough green sea at golden hour. On the left the open sea stretches to the horizon. A small white keeper's cottage with a red door sits at the foot of the tower, and a winding gravel path leads up to it through heather. Waves break white against the rocks, three seagulls glide in the sky, and the low warm sun lights everything from the left. Photographed with a 35mm lens, realistic, crisp detail, natural colours.",
+            "resolutionselector_aspect_ratio_13": "16:9 (Widescreen)"
+          }
+        },
+        {
+          "workflow": "video_ltx2_5_t2v",
+          "variant": "compare",
+          "note": "The lighthouse keeper, on the four text-to-video cards.",
+          "params": {
+            "primitivestringmultiline_value_405_376": "A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern. Sound: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle."
+          }
+        },
+        {
+          "workflow": "video_fastvideo_fasth3_t2v",
+          "variant": "compare",
+          "note": "The lighthouse keeper, on the four text-to-video cards.",
+          "params": {
+            "minimaxh3imagetovideo_prompt_105_104": "[Shot 1] A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern. We hear waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle.",
+            "resolutionselector_aspect_ratio_143": "16:9 (Widescreen)"
+          }
+        },
+        {
+          "workflow": "video_minimax_h3_t2v_turbo",
+          "variant": "compare",
+          "note": "The lighthouse keeper, on the four text-to-video cards.",
+          "params": {
+            "minimaxh3imagetovideo_prompt_11": "A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern.\nAudio: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle, no music."
+          }
+        },
+        {
+          "workflow": "video_pika_h3_flex_t2v",
+          "variant": "compare",
+          "note": "The lighthouse keeper, on the four text-to-video cards.",
+          "params": {
+            "prompt_231": "integrated_multimodal_description: [Shot 1] A lighthouse keeper in a bright yellow raincoat and black rubber boots walks along a wet stone pier toward the camera at dusk, her whole body in frame, with a steady stride, swinging a lit brass lantern in her right hand. Behind her a red-and-white striped lighthouse stands on rocks and its beam sweeps slowly over a dark green sea; waves break against the pier and throw spray. Medium-wide shot, the camera dollies back slowly to keep her in frame. Cool blue evening light with the warm glow of the lantern.\n\noverall_soundscape: waves crashing, wind gusts, gulls crying, her boots on the wet stone and the creak of the lantern handle.\n\nnon_diegetic_music: N/A"
+          }
+        },
+        {
+          "workflow": "video_ltx2_5_flf2v",
+          "variant": "compare",
+          "note": "One picture pair, on the three first-and-last-frame cards.",
+          "params": {
+            "primitivestringmultiline_value_251_252": "Use the provided start image as the first frame and the provided end image as the final frame anchor. One continuous shot with a fixed camera on a sunlit street corner. The flat roof of the pink building trembles, its seams split, and huge white daisy petals push up and unfold one after another, while the yellow taxi and the street stay exactly where they are.",
+            "loadimage_image_31": "asset:Screenshot 2025-03-06 105726.png",
+            "loadimage_image_39": "asset:Screenshot 2025-03-06 105700.png"
+          }
+        },
+        {
+          "workflow": "video_pika_h3_flex_fl2va",
+          "variant": "compare",
+          "note": "One picture pair, on the three first-and-last-frame cards. The same run as the card's example, kept here so the three sit together.",
+          "params": {
+            "prompt_231": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the 5.17-second mark of the target video.\n\nintegrated_multimodal_description: [Shot 1] Sunlit, softly faded 1970s film photography with gentle grain, one continuous shot, normal real-time speed, the camera remains fixed. Begin aligned with <Picture 1>: a two-storey pink stucco building with a heavy overhanging flat roof stands on a quiet street corner under a deep teal sky, a yellow taxi parked at the kerb in front of it, telephone poles on the left and a mountain on the right. At about one second the flat roof starts to tremble and bulge, its seams split, and soft white fabric balloons out of the cracks. At about two seconds huge rounded white petals push up and unfold one after another, inflating with a whoosh until each blossom shows a round knitted yellow centre. At about three and a half seconds the last daisies swell into a towering bouquet that completely replaces the roof, the petals bobbing gently and settling, while the taxi, the street and the poles never move. End aligned with <Picture 2>.\n\noverall_soundscape: Quiet sunny street ambience with a car passing far away, then a creak and a crack as the roof splits, a series of deep, soft airy whooshes and fabric rustles as each daisy inflates, and a gentle rubbery squeak as the petals settle; a single bird chirps at the end.\n\nnon_diegetic_music: A playful pizzicato string figure at a moderate tempo that climbs with the inflating flowers and lands on one bright chord on the final frame.",
+            "first_frame_148": "asset:Screenshot 2025-03-06 105726.png",
+            "last_frame_147": "asset:Screenshot 2025-03-06 105700.png"
+          }
+        },
+        {
+          "workflow": "video_fastvideo_fasth3_i2v",
+          "variant": "compare",
+          "note": "One picture pair, on the three first-and-last-frame cards.",
+          "params": {
+            "minimaxh3imagetovideo_prompt_105_104": "How the reference pictures align with the target video — Picture 1 (from Shot 1) aligns with the 0.00-second mark of the target video; Picture 2 (from Shot 1) aligns with the 5.17-second mark of the target video.\n\nintegrated_multimodal_description: [Shot 1] Sunlit, softly faded 1970s film photography with gentle grain, one continuous shot, normal real-time speed, the camera remains fixed. Begin aligned with <Picture 1>: a two-storey pink stucco building with a heavy overhanging flat roof stands on a quiet street corner under a deep teal sky, a yellow taxi parked at the kerb in front of it, telephone poles on the left and a mountain on the right. At about one second the flat roof starts to tremble and bulge, its seams split, and soft white fabric balloons out of the cracks. At about two seconds huge rounded white petals push up and unfold one after another, inflating with a whoosh until each blossom shows a round knitted yellow centre. At about three and a half seconds the last daisies swell into a towering bouquet that completely replaces the roof, the petals bobbing gently and settling, while the taxi, the street and the poles never move. End aligned with <Picture 2>.\n\noverall_soundscape: Quiet sunny street ambience with a car passing far away, then a creak and a crack as the roof splits, a series of deep, soft airy whooshes and fabric rustles as each daisy inflates, and a gentle rubbery squeak as the petals settle; a single bird chirps at the end.\n\nnon_diegetic_music: A playful pizzicato string figure at a moderate tempo that climbs with the inflating flowers and lands on one bright chord on the final frame.",
+            "loadimage_image_136": "asset:Screenshot 2025-03-06 105726.png",
+            "loadimage_image_300": "asset:Screenshot 2025-03-06 105700.png"
+          }
+        }
+      ]
+    },
+    {
+      "name": "7 — Options: what a default run never reaches",
+      "runs": [
+        {
+          "workflow": "video_edit_bernini_r_video_editing",
+          "variant": "fast-off",
+          "note": "Fast mode off, against the same edit with it on.",
+          "params": {
+            "customcombo_choice_76_54": "Video Editing",
+            "primitiveboolean_value_76_70": false,
+            "primitivestringmultiline_value_76_114": "Replace the person's cream cable-knit cropped sweater with a bright red knit sweater of the same chunky texture, cut and loose fit, its sleeves, folds and frayed edges moving exactly as the original does while the person sways and stretches their arms in the wind. A person with long dark wavy hair stands in tall dry grass under an overcast grey sky, seen from a low angle, wearing the bright red knit sweater over a dark floral shirt with black sleeves and a few thin necklaces. Keep the person's face, long hair, the floral shirt, the necklaces, the grass, the sky, the lighting, the camera framing and all motion exactly unchanged.",
+            "video_slice_duration_109": 5,
+            "berniniconditioning_width_76_50": 832,
+            "berniniconditioning_height_76_50": 832,
+            "loadvideo_file_47": "asset:original.mp4"
+          }
+        },
+        {
+          "workflow": "video_edit_bernini_r_video_editing",
+          "variant": "style",
+          "note": "The style edit type: the dropdown must reach the graph as its index.",
+          "params": {
+            "customcombo_choice_76_54": "Video Editing (Style / Motion)",
+            "primitiveboolean_value_76_70": true,
+            "primitivestringmultiline_value_76_114": "Restyle the video in the style of a frame by frame claymotion animation",
+            "video_slice_duration_109": 5,
+            "berniniconditioning_width_76_50": 832,
+            "berniniconditioning_height_76_50": 832,
+            "loadvideo_file_47": "asset:original.mp4"
+          }
+        },
+        {
+          "workflow": "video_edit_bernini_r_video_editing",
+          "variant": "action",
+          "note": "The action edit type.",
+          "params": {
+            "customcombo_choice_76_54": "Video Editing (Action / Position)",
+            "primitiveboolean_value_76_70": true,
+            "primitivestringmultiline_value_76_114": "The person raises both arms above their head and holds them there.",
+            "video_slice_duration_109": 5,
+            "berniniconditioning_width_76_50": 832,
+            "berniniconditioning_height_76_50": 832,
+            "loadvideo_file_47": "asset:original.mp4"
+          }
+        },
+        {
+          "workflow": "video_edit_bernini_r_video_editing",
+          "variant": "propagation",
+          "note": "The content propagation edit type.",
+          "params": {
+            "customcombo_choice_76_54": "Video Editing (Content Propagation)",
+            "primitiveboolean_value_76_70": true,
+            "primitivestringmultiline_value_76_114": "Replace the person's cream cable-knit cropped sweater with a bright red knit sweater of the same chunky texture, cut and loose fit, its sleeves, folds and frayed edges moving exactly as the original does while the person sways and stretches their arms in the wind. A person with long dark wavy hair stands in tall dry grass under an overcast grey sky, seen from a low angle, wearing the bright red knit sweater over a dark floral shirt with black sleeves and a few thin necklaces. Keep the person's face, long hair, the floral shirt, the necklaces, the grass, the sky, the lighting, the camera framing and all motion exactly unchanged.",
+            "video_slice_duration_109": 5,
+            "berniniconditioning_width_76_50": 832,
+            "berniniconditioning_height_76_50": 832,
+            "loadvideo_file_47": "asset:original.mp4"
+          }
+        },
+        {
+          "workflow": "video_edit_bernini_r_video_editing_with_reference",
+          "variant": "ads",
+          "note": "The second edit type of the reference card.",
+          "params": {
+            "primitiveboolean_value_76_70": true,
+            "customcombo_choice_76_54": "Ads / Content Insertion",
+            "primitivestringmultiline_value_76_114": "Replace the person's cream knit sweater and dark floral shirt with the outfit from the reference image: a black leather biker jacket worn open over a yellow-and-black plaid shirt, appearing naturally worn on the body with realistic leather creases and fabric drape that follow every arm movement. A person with long dark wavy hair sways and stretches their arms in tall dry grass under an overcast grey sky, seen from a low angle, now wearing the black leather biker jacket with silver zips over the yellow plaid shirt. Keep the person's face, long hair, the grass, the sky, the lighting, the camera framing and all motion exactly unchanged.",
+            "video_slice_duration_109": 5,
+            "berniniconditioning_width_76_50": 832,
+            "berniniconditioning_height_76_50": 832,
+            "loadvideo_file_47": "asset:original.mp4",
+            "loadimage_image_104": {
+              "from": "asset:3044160-uhd_3840_2160_24fps_5_1.mp4",
+              "kind": "video",
+              "derive": [
+                {
+                  "op": "frame",
+                  "index": 0
+                },
+                {
+                  "op": "crop",
+                  "box": [
+                    0.12,
+                    0.25,
+                    0.8,
+                    0.62
+                  ]
+                }
+              ]
             }
+          }
+        },
+        {
+          "workflow": "video_edit_bernini_r_video_editing_ref_autoprompt",
+          "variant": "ads",
+          "note": "The second edit type of the auto-prompt card.",
+          "params": {
+            "primitiveboolean_value_117_70": true,
+            "customcombo_choice_117_54": "Ads / Content Insertion",
+            "video_slice_duration_124": 3,
+            "berniniconditioning_width_117_50": 832,
+            "berniniconditioning_height_117_50": 832,
+            "loadvideo_file_115": "asset:3044160-uhd_3840_2160_24fps_5_1.mp4",
+            "loadimage_image_123": "asset:input.jpg"
+          }
+        },
+        {
+          "workflow": "image_edit_bernini_r_image_editing",
+          "variant": "fast-off",
+          "note": "Fast mode off, against the same edit with it on.",
+          "params": {
+            "edit_instruction_76_120": "Delete the giant cluster of puffy white daisies sitting on top of the pink building. Fill in the area with the continuation of the building's flat pink roof and parapet and the clear blue sky behind it, matching the existing perspective, the hard sunlight and the shadow softness so the removal is seamless. The pink building, its windows and door, the yellow car, the street, the telegraph poles and wires, the mountains and the clouds remain completely unchanged.",
+            "task_type_76_54": "Image Editing",
+            "source_image_114": "asset:Screenshot 2025-03-06 105700.png",
+            "fast_mode_76_70": false
+          }
+        },
+        {
+          "workflow": "image_edit_bernini_r_image_editing_with_reference",
+          "variant": "subject",
+          "note": "The second task type of the reference card.",
+          "params": {
+            "edit_instruction_76_120": "Replace the small yellow car parked in front of the pink building with the red sports car from the reference image, parked in exactly the same spot, at the same size and facing the same direction along the kerb, with a soft shadow on the asphalt beneath it, while keeping the pink building, its windows and doors, the telegraph poles and wires, the road markings, the mountains, the clouds and the blue sky exactly as they are. The car is now a low glossy red two-door sports coupé with slim LED headlights, black alloy wheels and a dark tinted windscreen, lit by the same hard sunlight as the building, and all other scene elements remain unchanged.",
+            "task_type_76_54": "Subject to Image",
+            "source_image_114": "asset:Screenshot 2025-03-06 105726.png",
+            "reference_image_104": "asset:sports_car.png"
+          }
+        },
+        {
+          "workflow": "image_minimax_h3_t2i",
+          "variant": "fast-off",
+          "note": "Fast mode off, against the same picture with it on.",
+          "params": {
+            "prompt_112": "Live-action, cinematic film still in anamorphic widescreen. A low wide shot at night on a rain-soaked tram street in an old European city: in the foreground a cyclist courier in a bright yellow rain cape pedals hard through a deep puddle, an arc of water droplets frozen mid-air off her front wheel, while behind her a passing tram is a long horizontal streak of motion-blurred warm window light. Neon shop signs in red and teal, showing only shapes and no words, reflect in the wet cobblestones; fine rain falls in diagonal streaks lit by a streetlamp at frame-right. The camera sits at puddle level with a 40mm anamorphic lens, shallow depth of field softening the buildings, a thin blue horizontal lens flare across the frame, Kodak Vision3 500T film grain, teal-and-amber colour grade.",
+            "fast_mode_200": false,
+            "aspect_ratio_79": "21:9 (Ultrawide)",
+            "megapixels_79": 1
+          }
+        },
+        {
+          "workflow": "image_krea2_turbo_t2i_lora",
+          "variant": "style",
+          "note": "Another LoRA from the dropdown, with its linked trigger word.",
+          "params": {
+            "primitivestringmultiline_value_30_19": "A small red cable car crossing a deep alpine valley on a single cable stretched between two snowy peaks. Far below, a village of chalets with glowing windows sits beside a winding blue river, pine forests climb the slopes, and a few soft clouds wrap the summits.",
+            "primitiveboolean_value_30_24": true,
+            "textgenerate_thinking_30_16": true,
+            "resolutionselector_aspect_ratio_49": "3:2 (Photo)",
+            "primitiveboolean_value_30_23": true,
+            "loraloadermodelonly_lora_name_30_15": "krea2_darkbrush.safetensors",
+            "loraloadermodelonly_strength_model_30_15": 1
+          }
+        },
+        {
+          "workflow": "audio_yue2_music_cover",
+          "variant": "full",
+          "note": "The second transcription mode.",
+          "params": {
+            "yue2generatemusic_style_33_25": "English, bluegrass, warm male lead vocal with close two-part harmony on the chorus, fast banjo rolls, fiddle, mandolin, upright bass, acoustic guitar, lively front-porch atmosphere, live acoustic recording",
+            "yue2generatemusic_lyrics_33_25": "[Verse]\nMorning light across the window\nCity waking down below\nI can hear the streets are calling\nFeels like somewhere we should go\n\n[Chorus]\nRun with me into the sunlight\nLeave the shadows far behind\nWe don't need to know tomorrow\nTonight the whole world feels alive\n\n[Verse]\nRadio playing through the open door\nLaughing like we did before\nEvery mile becomes a memory\nAnd I just want a little more\n\n[Chorus]\nRun with me into the sunlight\nLeave the shadows far behind\nWe don't need to know tomorrow\nTonight the whole world feels alive",
+            "sheetsage2audiotoabc_mode_33_41": "full",
+            "yue2generatemusic_max_duration_33_25": 360,
+            "yue2generatemusic_temperature_33_25": 1,
+            "seednode_seed_33_34": 0,
+            "loadaudio_audio_45": "asset:yue2_reference_song.flac"
+          }
+        },
+        {
+          "workflow": "image_qwen_image_2_1_image_edit",
+          "variant": "no-pictures",
+          "note": "Every picture left empty: the aspect ratio must still hold, through whenEmptySet.",
+          "params": {
+            "textencodeqwenimage21_prompt_459_474": "A tidy bakery counter at dawn, trays of fresh bread, soft window light.",
+            "loadimage_image_470": null,
+            "loadimage_image_475": null,
+            "loadimage_image_476": null
+          }
+        },
+        {
+          "workflow": "video_edit_ltx2_5_iclora_canny_control",
+          "variant": "start-image",
+          "note": "With a start image: the branch whenEmptySet switches off.",
+          "params": {
+            "primitivestringmultiline_value_5508": "A glossy plastic toy cargo ship built from interlocking toy bricks: its stacked containers are bright red, yellow, blue and green bricks with little round studs on top, the hull is navy-blue plastic and the bridge tower is white plastic with tiny yellow windows. It sits on a smooth light-grey tabletop in a sunny kids' playroom, soft window light and a shallow macro-lens depth of field, like a toy photograph. Sound: a child humming nearby, the soft clatter of plastic bricks and a tiny toy ship horn that toots twice.",
+            "loadvideo_file_5001": "asset:rough3Drender.mp4",
+            "loadimage_image_2004": "asset:Flux2-Klein_00003_.png"
+          }
+        },
+        {
+          "workflow": "video_edit_ltx2_5_iclora_pose_control",
+          "variant": "start-image",
+          "note": "With a start image: the branch whenEmptySet switches off.",
+          "params": {
+            "primitivestringmultiline_value_5508": "A knight in polished silver plate armour with a flowing crimson cape and an open-faced helmet dances in a grand stone castle hall at night, tall red banners and flickering wall torches behind him, warm firelight glinting on the steel, cinematic lighting and a shallow depth of field. Sound: a lively medieval dance tune of drums and lute echoing through the hall, and the clank of armour plates with every step.",
+            "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
+            "loadimage_image_2004": "asset:Flux2-Klein_00003_.png"
+          }
+        },
+        {
+          "workflow": "video_edit_ltx2_5_iclora_union_control",
+          "variant": "no-start-image",
+          "note": "With no start image: whenEmptySet switches the branch off.",
+          "params": {
+            "primitivestringmultiline_value_5508": "A hand-crafted claymation stop-motion film: a bearded clay man with sculpted brown hair, a black plasticine hoodie with red sleeve bands and black clay trousers dances on a sage-green clay rooftop. Behind him puffy white clay clouds hang over a miniature clay town with red roofs, round green clay trees, a clay chimney and sagging clay wires. Visible fingerprints and plasticine texture on every surface, soft warm studio lighting, slightly jittery stop-motion movement. Sound: a playful bass-and-drums dance groove and soft squishy clay footsteps.",
+            "resizeimagemasknode_resize_type_shorter_size_5548_5026": 512,
+            "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
+            "loadimage_image_2004": null
+          }
+        },
+        {
+          "workflow": "utility_ltx2_5_video_deblur_upscale",
+          "variant": "start-image",
+          "note": "With a start image: the branch whenEmptySet switches off.",
+          "params": {
+            "primitivestringmultiline_value_5508": "Sharp, highly detailed footage with clean textures, natural colours and crisp edges.",
+            "resizeimagemasknode_resize_type_shorter_size_5548_5026": 960,
+            "loadvideo_file_5001": "asset:suite-inputs/video_minimax_h3_t2v_turbo.mp4",
+            "loadimage_image_2004": "asset:Flux2-Klein_00003_.png"
           }
         }
       ]

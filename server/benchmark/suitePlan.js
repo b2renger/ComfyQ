@@ -32,7 +32,11 @@ const path = require('path');
 //             "<media key>": null                           // leave an optional input empty
 //         } } ] } ] }
 //
-// Each bundle may appear once: the sweep report is keyed by bundle id.
+// The report is keyed by bundle id, so a bundle's main run appears once. A run with
+// a `variant` is a second run of the same card, to exercise an option or to compare
+// cards on the same input: its row is "<bundle>@<variant>". It never writes
+// runtime.json, since it is not the job the card describes, and it is never seeded
+// as an example.
 
 const SUITE_DIR = path.resolve(__dirname, '..', '..', 'tools', 'test-suite');
 const MEDIA_TYPES = ['image', 'video', 'audio', 'mask', 'model3d'];
@@ -108,12 +112,16 @@ function loadSuite(nameOrPath) {
     const runs = [];
     for (const [si, stage] of (raw.stages || []).entries()) {
         for (const run of (stage.runs || [])) {
+            const workflow = String(run.workflow || '');
+            const variant = run.variant ? String(run.variant) : null;
             runs.push({
-                workflow: String(run.workflow || ''),
+                workflow,
+                variant,
+                id: variant ? `${workflow}@${variant}` : workflow,
                 stage: stage.name || `Stage ${si + 1}`,
                 stageIndex: si,
                 note: run.note || null,
-                keepRuntime: !!run.keepRuntime,
+                keepRuntime: !!run.keepRuntime || !!variant,
                 params: run.params || {},
             });
         }
@@ -135,9 +143,11 @@ function validateSuite(suite, registry) {
     const warnings = [];
     const seen = new Map();
     suite.runs.forEach((run, i) => {
-        const where = `${run.stage} › ${run.workflow || '(no workflow)'}`;
-        if (seen.has(run.workflow)) errors.push(`${where}: appears twice (the report is keyed by bundle id)`);
-        seen.set(run.workflow, i);
+        const id = run.id || run.workflow;
+        const where = `${run.stage} › ${id || '(no workflow)'}`;
+        if (seen.has(id)) errors.push(`${where}: appears twice (the report is keyed by bundle id)`);
+        seen.set(id, i);
+        if (run.variant && !/^[a-z0-9-]+$/.test(run.variant)) errors.push(`${where}: a variant name is lower-case letters, digits and -`);
         const entry = registry.get(run.workflow);
         if (!entry) { errors.push(`${where}: not in the library`); return; }
         if (entry.unavailable) { warnings.push(`${where}: unavailable — ${entry.reason || 'it will be skipped'}`); }

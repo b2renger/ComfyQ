@@ -321,26 +321,27 @@ console.log('\na failure must still say what it was fed, and why it broke');
     ok('...with the failing node and exception type', r.failedNode === '42 (KSampler)' && r.exceptionType === 'RuntimeError');
 }
 
-console.log('\na seed the suite named but calibration replaced is labelled calibration');
+console.log('\na seed the suite named is the seed that ran, and one it did not name says so');
 {
-    // Found in the 2026-11-04 showcase run: every suite seed (42, 0, 56...) was
-    // overwritten by a fresh one, and the example still said "the test suite".
+    // Since 2026-11-06 a suite run keeps its seeds, so an example can be repeated.
     const { sweep } = make({ entries: [entry('one')], calibrator: { calibrate: async () => ({}) } });
     const e = entry('s', {
         effective: { exposedParameters: [
             { key: 'ksampler_seed_3', label: 'Seed', type: 'number', nodeId: '3', field: 'seed' },
+            { key: 'seed_9', label: 'Other seed', type: 'number', nodeId: '9', field: 'seed' },
             { key: 'prompt_6', label: 'Prompt', type: 'textarea', nodeId: '6', field: 'text' },
             { key: 'steps_3', label: 'Steps', type: 'number', nodeId: '3', field: 'steps' },
         ] },
         apiWorkflow: { 3: { class_type: 'KSampler', inputs: { seed: 1, steps: 20 } }, 6: { class_type: 'CLIPTextEncode', inputs: { text: 'x' } } },
     });
     const rows = sweep._ingredients(e, {
-        paramValues: { ksampler_seed_3: 123456, prompt_6: 'a lighthouse' },
+        paramValues: { ksampler_seed_3: 123456, seed_9: 777, prompt_6: 'a lighthouse' },
         suiteKeys: ['ksampler_seed_3', 'prompt_6'],
     });
     const by = Object.fromEntries(rows.map(r => [r.key, r]));
-    ok('the seed is labelled calibration, not the test suite', by.ksampler_seed_3.from === 'calibration');
-    ok('...and carries the value that actually ran', by.ksampler_seed_3.value === 123456);
+    ok('a seed the suite chose says so', by.ksampler_seed_3.from === 'the test suite');
+    ok('...and carries the value that ran', by.ksampler_seed_3.value === 123456);
+    ok('a seed drawn for the run says calibration', by.seed_9.from === 'calibration' && by.seed_9.value === 777);
     ok('a prompt the suite named still says the test suite', by.prompt_6.from === 'the test suite');
     ok('an untouched field still says the graph default', by.steps_3.from === 'the graph default' && by.steps_3.value === 20);
 }
@@ -399,7 +400,7 @@ console.log('\nthe newer seed shapes are labelled calibration too');
     const rows = sweep._ingredients(e, { paramValues: { seed_7: 111, seed_1: 222 }, suiteKeys: ['seed_1'] });
     const by = Object.fromEntries(rows.map(r => [r.key, r]));
     ok('a primitive seed is labelled calibration', by.seed_7.from === 'calibration' && by.seed_7.value === 111);
-    ok('a seed in a widget group the suite named is labelled calibration', by.seed_1.from === 'calibration' && by.seed_1.value === 222);
+    ok('a seed in a widget group the suite named says so', by.seed_1.from === 'the test suite' && by.seed_1.value === 222);
 }
 
 console.log('\na sweep holds the calibrator from its first bundle to its last');

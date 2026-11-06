@@ -155,7 +155,7 @@ class LibrarySweep {
         try {
             exists = new Set(this.registry.list({ includeUnavailable: true, includeHidden: true }).map(e => e.id));
         } catch { /* a registry that cannot list keeps everything */ }
-        const kept = prev.results.filter(r => !now.has(r.id) && (!exists || exists.has(r.id)));
+        const kept = prev.results.filter(r => !now.has(r.id) && (!exists || exists.has(r.variantOf || r.id)));
         return [...kept, ...fresh].sort((a, b) => String(a.id).localeCompare(String(b.id)));
     }
 
@@ -170,9 +170,10 @@ class LibrarySweep {
     static forLibrary(report, liveIds) {
         if (!report || !Array.isArray(report.results)) return report;
         const live = new Set(liveIds);
-        const kept = report.results.filter(r => live.has(r.id));
+        const isLive = (r) => live.has(r.variantOf || r.id);
+        const kept = report.results.filter(isLive);
         if (kept.length === report.results.length) return report;
-        const removed = report.results.filter(r => !live.has(r.id)).map(r => r.id);
+        const removed = report.results.filter(r => !isLive(r)).map(r => r.id);
         return {
             ...report,
             results: kept,
@@ -192,7 +193,7 @@ class LibrarySweep {
         const prev = this.lastReport();
         let dropped = 0;
         if (prev && Array.isArray(prev.results)) {
-            const kept = prev.results.filter(r => !gone.has(r.id));
+            const kept = prev.results.filter(r => !gone.has(r.variantOf || r.id));
             dropped = prev.results.length - kept.length;
             if (dropped) {
                 prev.results = kept;
@@ -202,7 +203,7 @@ class LibrarySweep {
         }
         // A finished run still held in memory would otherwise be served instead.
         if (this._run && this._run.state !== 'running' && Array.isArray(this._run.results)) {
-            this._run.results = this._run.results.filter(r => !gone.has(r.id));
+            this._run.results = this._run.results.filter(r => !gone.has(r.variantOf || r.id));
         }
         return { dropped };
     }
@@ -284,7 +285,7 @@ class LibrarySweep {
             state: 'running',
             startedAt: new Date().toISOString(),
             finishedAt: null,
-            ids: wanted.map(w => w.entry.id),
+            ids: wanted.map(w => w.run?.id || w.entry.id),
             suite: opts.suite ? { name: opts.suite.name, file: opts.suite.file, description: opts.suite.description } : null,
             results: [],
             current: null,
@@ -384,7 +385,7 @@ class LibrarySweep {
             // { entry, run } from start(); a bare registry entry from an older caller
             const { entry, run } = item && item.entry ? item : { entry: item, run: null };
             if (this._cancelled) break;
-            this._run.current = { id: entry.id, name: entry.summary?.name || entry.id, startedAt: new Date().toISOString() };
+            this._run.current = { id: run?.id || entry.id, name: entry.summary?.name || entry.id, startedAt: new Date().toISOString() };
 
             // The window this bundle's loads will fall inside. Attribution is by
             // time, not by a before/after name diff — see the note where the models
@@ -401,7 +402,8 @@ class LibrarySweep {
             const prevRuntime = entry.runtime && (entry.runtime.source === 'manual' || run?.keepRuntime) ? entry.runtime : null;
 
             const rec = {
-                id: entry.id,
+                id: run?.id || entry.id,
+                ...(run?.variant ? { variantOf: entry.id, variant: run.variant } : {}),
                 name: entry.summary?.name || entry.id,
                 category: entry.summary?.category || null,
                 experimental: !!entry.summary?.experimental,
