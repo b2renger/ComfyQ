@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, Sparkles, X, Download } from 'lucide-react';
+import { Clock, Sparkles, X, Download, AlertTriangle } from 'lucide-react';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
 import MediaPreview from './ui/MediaPreview';
@@ -7,7 +7,7 @@ import WorkflowChip from './ui/WorkflowChip';
 import ProgressViz from './ui/ProgressViz';
 import { getDownloadUrl } from '../utils/api';
 import { getUserColor } from '../utils/userColor';
-import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
+import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText, statusBadgeVariant, failureText } from '../utils/jobDisplay';
 import { computeEtaSeconds } from '../utils/jobEta';
 
 // One result card in the Scheduler grid.
@@ -24,6 +24,8 @@ const JobCard = React.memo(function JobCard({
 }) {
     const isScheduled = job.status === 'scheduled';
     const isProcessing = job.status === 'processing';
+    const isFailed = job.status === 'failed';
+    const isCancelled = job.status === 'cancelled';
     const isCompletedOrFailed = job.status === 'completed' || job.status === 'failed' || job.status === 'cancelled';
     const hasAction = isScheduled || isProcessing || isCompletedOrFailed;
     const prompt = getDisplayPrompt(job);
@@ -101,7 +103,7 @@ const JobCard = React.memo(function JobCard({
                             <Clock size={12} className="text-muted" />
                             <span className="text-[10px] font-mono text-muted">{new Date(job.time_slot).toLocaleTimeString()}</span>
                         </div>
-                        <Badge variant={job.status === 'completed' ? 'success' : isProcessing ? 'warning' : 'primary'}>
+                        <Badge variant={statusBadgeVariant(job.status)}>
                             {job.status}
                         </Badge>
                     </div>
@@ -127,10 +129,27 @@ const JobCard = React.memo(function JobCard({
                         </div>
                     ) : (
                         <div className="flex flex-col items-center text-muted/20 w-full px-4">
-                            <Sparkles size={32} className={isProcessing ? 'animate-pulse text-primary/50' : ''} />
-                            <span className="text-[10px] mt-2 font-medium">
-                                {isProcessing ? (job.current_node ? `Executing: ${job.current_node}` : 'Generating...') : 'Pending'}
+                            {isFailed
+                                ? <AlertTriangle size={32} className="text-danger/60" />
+                                : <Sparkles size={32} className={isProcessing ? 'animate-pulse text-primary/50' : ''} />}
+                            <span className={`text-[10px] mt-2 font-medium ${isFailed ? 'text-danger' : isCancelled ? 'text-muted' : ''}`}>
+                                {isProcessing
+                                    ? (job.current_node ? `Executing: ${job.current_node}` : 'Generating...')
+                                    : isFailed ? 'Failed' : isCancelled ? 'Cancelled' : 'Pending'}
                             </span>
+                            {/* Why it failed, in plain words: ComfyUI's errors
+                                are rewritten on the server where ComfyQ knows
+                                the case (errorMessages.humanizeFailure), and
+                                ComfyQ's own reason codes (server-restart, …) by
+                                failureText. The raw reason stays in the tooltip. */}
+                            {isFailed && job.error_reason && (
+                                <span
+                                    className="text-[10px] mt-1 text-danger/80 text-center line-clamp-3 break-words"
+                                    title={job.error_reason}
+                                >
+                                    {failureText(job.error_reason)}
+                                </span>
+                            )}
                             {isProcessing && job.progress && (
                                 <div className="w-full mt-4">
                                     <ProgressViz

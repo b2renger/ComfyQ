@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { Upload, X, Brush, Eraser, Undo2, Trash2, Loader2, AlertTriangle, RotateCw, Pencil, Check, Contrast } from 'lucide-react';
 import { resizeImageFile } from '../../utils/imageResize';
+import { uploadBox } from './uploadBox';
 
 // MaskDrawField — paint-a-mask input widget for BookingDialog (param type
 // 'mask'). The user uploads a base image, brushes over the region they want
@@ -29,8 +30,6 @@ import { resizeImageFile } from '../../utils/imageResize';
 //             erases the base's alpha wherever the mask is opaque → transparency
 //             exactly under the painted region.
 
-const DEFAULT_IMAGE_MAX_LONG = 1920;
-const DEFAULT_IMAGE_MAX_SHORT = 1080;
 const MAX_UNDO = 24;
 // The brush colour is purely for on-screen visibility — pick whatever contrasts
 // with the picture. On export only the ALPHA matters (destination-out), so the
@@ -82,8 +81,8 @@ const MaskDrawField = ({
     const [editing, setEditing] = useState(false);   // is the paint modal open?
     const [previewUrl, setPreviewUrl] = useState(''); // inline composited preview
 
-    const maxLong = maxInputEdge ?? DEFAULT_IMAGE_MAX_LONG;
-    const maxShort = maxInputEdge ?? DEFAULT_IMAGE_MAX_SHORT;
+    // Never larger than the 1920×1080 box the server accepts (uploadBox.js).
+    const { maxLong, maxShort } = uploadBox(maxInputEdge);
     const reusing = !!recalledName && !dims;
 
     useEffect(() => { brushRef.current = brush; }, [brush]);

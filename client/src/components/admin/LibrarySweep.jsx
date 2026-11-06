@@ -97,12 +97,19 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
     if (!data || data.available === false) return null;
 
     // A finished run in memory, else the last one off disk — so the results
-    // survive a server restart, which a two-hour run makes likely.
+    // survive a server restart, which a 2½–3 hour run makes likely.
     // ★ The in-memory run only while it is RUNNING. Once finished it holds just the
     // bundles THAT run covered — "Run the remaining 3" left a 3-row card — whereas
     // the file on disk is the merge over every earlier run, i.e. the record.
     const run = (running ? data.run : (data.last || data.run)) || null;
-    const suiteName = run?.suite?.name || (run?.results || []).find(r => r.suite?.name)?.suite?.name || null;
+    // ★ Two different questions. `continueSuite` — did the LAST run use a suite? —
+    // decides what "Run the remaining" sends, and only the record's top-level
+    // `suite` answers it: the published report is a merge that keeps old rows, so
+    // after one suite run some row carries `suite` for ever, and reading the rows
+    // sent every later remainder (a plain sweep's included) through the suite.
+    // `suiteName` — did any row come from a suite? — is only the banner's.
+    const continueSuite = run?.suite?.name || null;
+    const suiteName = continueSuite || (run?.results || []).find(r => r.suite?.name)?.suite?.name || null;
     const results = run?.results || [];
     const s = run?.summary || null;
     const serving = mode === 'student';
@@ -124,12 +131,12 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
                         produced. It answers two things nothing else does: <strong>does each bundle
                         still work</strong>, and <strong>which model files the library actually
                         opens</strong> — which is what lets pruning rest on observation instead of
-                        inference. About <strong>2 hours</strong> for the whole library on this card.
+                        inference. About <strong>2½–3 hours</strong> for the whole library on this card.
                     </p>
                 </div>
                 <div className="shrink-0 flex gap-2">
                     {/* ★ The report is the deliverable, so offer it wherever a run exists —
-                        including the last one off disk, since a two-hour run is usually read
+                        including the last one off disk, since a 2½–3 hour run is usually read
                         after a restart. Copy rather than download is the common case: it is
                         meant to be pasted into a chat. */}
                     {(results.length > 0) && (
@@ -176,20 +183,26 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
                         </>
                     ) : (
                         <>
-                            {/* ★ A sweep is two hours long and ComfyQ restarts on any server
+                            {/* ★ A sweep takes 2½–3 hours and ComfyQ restarts on any server
                                 edit under nodemon, so an interrupted run is the normal case,
                                 not the exception — the first real sweep here stopped at 32 of
                                 61 that way. Offer the remainder rather than making someone
-                                re-run what already passed. */}
+                                re-run what already passed.
+                                ★ When the last run was the test suite, the remainder continues
+                                THAT suite: sent without it, the second half ran as a plain
+                                calibration — no suite prompts, inputs or notes — and the merged
+                                report mixed captioned rows with uncaptioned ones. */}
                             {remaining.length > 0 && remaining.length < (data.bundleCount || Infinity) && (
                                 <Button variant="secondary" disabled={busy || serving}
-                                    onClick={() => post('run', { ids: remaining })}
-                                    title={`Run only the ${remaining.length} bundle(s) the last sweep did not reach.`}>
-                                    <Play size={14} /> Run the remaining {remaining.length}
+                                    onClick={() => post('run', continueSuite ? { ids: remaining, suite: continueSuite } : { ids: remaining })}
+                                    title={continueSuite
+                                        ? `Continue test suite "${continueSuite}" with the ${remaining.length} bundle(s) the last run did not reach — each is fed the suite's prompts and inputs.`
+                                        : `Run only the ${remaining.length} bundle(s) the last sweep did not reach.`}>
+                                    <Play size={14} /> Run the remaining {remaining.length}{continueSuite ? ' of the test suite' : ''}
                                 </Button>
                             )}
                             <Button variant="secondary" onClick={() => setConfirming('all')} disabled={busy || serving}
-                                title={serving ? 'Stop serving first — a sweep holds the GPU for about two hours.' : undefined}>
+                                title={serving ? 'Stop serving first — a sweep holds the GPU for about 2½–3 hours.' : undefined}>
                                 <Play size={14} /> Run every workflow
                             </Button>
                             {/* The committed test suite (tools/test-suite/library.suite.json):
@@ -208,7 +221,7 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
             {serving && !running && (
                 <p className="text-xs text-warning flex items-start gap-2 mb-3">
                     <AlertTriangle size={14} className="mt-0.5 shrink-0" />
-                    This machine is serving students. The sweep holds the GPU for about two hours and
+                    This machine is serving students. The sweep holds the GPU for about 2½–3 hours and
                     restarts ComfyUI between workflows that need different performance flags, so it runs
                     from admin mode only — use <strong>Stop serving</strong> first.
                 </p>
@@ -216,8 +229,10 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
 
             {confirming && (
                 <p className="text-xs text-warning mb-3">
-                    This occupies the GPU for roughly {confirming === 'suite' ? 'three and a half hours' : 'two hours'},
-                    recalibrates every bundle's timing and VRAM figures, and writes sample outputs into
+                    This occupies the GPU for roughly 2½–3 hours,
+                    recalibrates every bundle's timing and VRAM figures{confirming === 'suite' && <> —
+                    except the runs marked <code>keepRuntime</code> (15 in <code>library.suite.json</code>),
+                    whose figures are kept</>}, and writes sample outputs into
                     ComfyUI's output folder. It can be stopped between workflows. Hand-measured timings
                     (<code>source: manual</code>) are put back afterwards.
                     {confirming === 'suite' && <> The test suite feeds each workflow the prompts in{' '}
@@ -434,7 +449,11 @@ const Inspect = ({ r, headers, onToast }) => {
             onToast?.(`Opened on the rig — ${out.how}`);
         } catch (e) { onToast?.(e.message, 'err'); }
     };
-    const PathLink = ({ p }) => (
+    // ★ A plain function, called as {pathLink(p)} — not a component. Declared in a
+    // render body, a <PathLink/> was a new component TYPE on every render, so React
+    // threw the buttons away and rebuilt them each time the card re-rendered:
+    // keyboard focus dropped, and a click straddling a re-render was lost.
+    const pathLink = (p) => (
         <span className="flex items-start gap-1.5 flex-wrap">
             <button onClick={() => reveal(p)} title="Open this file in the file browser ON THE RIG"
                 className="text-primary hover:underline inline-flex items-center gap-1 shrink-0">
@@ -466,7 +485,7 @@ const Inspect = ({ r, headers, onToast }) => {
                             <dd className="text-[11px] break-words">
                                 {g.sourcePath ? (
                                     <>
-                                        <PathLink p={g.sourcePath} />
+                                        {pathLink(g.sourcePath)}
                                         {g.staged && <div className="text-muted/60">staged as {g.staged}</div>}
                                     </>
                                 ) : (g.value === null || g.value === undefined || g.value === '')
@@ -497,11 +516,12 @@ const Inspect = ({ r, headers, onToast }) => {
                                 as text through a PreviewAny node and touches no file, so
                                 showing it is the only way to read what the bundle exists to
                                 produce. */}
-                            {/* ⚠ A stray is NOT the result. Seven production bundles
-                                publish a bare string — a combo's line index, a tensor
-                                shape, a sample count — as a result tile beside the real
-                                picture. Labelled as the defect it is, so an inspector
-                                does not read "3" as what the bundle produced. */}
+                            {/* ⚠ A stray is NOT the result. Several bundles' nodes
+                                report a bare string — a combo's line index, a tensor
+                                shape, a sample count — beside the real file. A real
+                                job's collector drops it (outputCollector._keepResultText),
+                                so students never see it; it is labelled here so an
+                                inspector does not read "3" as what the bundle produced. */}
                             {o.kind === 'text' && o.stray && (
                                 <div className="rounded border border-warning/40 bg-warning/5 p-2">
                                     <div className="text-[10px] uppercase tracking-wider text-warning mb-1">
@@ -509,8 +529,8 @@ const Inspect = ({ r, headers, onToast }) => {
                                     </div>
                                     <p className="text-[11px] leading-relaxed">
                                         This node published <code className="px-1 bg-background/60 rounded">{o.text}</code> as
-                                        a result, so a student sees it beside the picture. It is the node's own
-                                        plumbing, not an answer.
+                                        text beside the file. It is the node's own plumbing; real jobs drop it,
+                                        so students never see it.
                                     </p>
                                 </div>
                             )}
@@ -551,7 +571,7 @@ const Inspect = ({ r, headers, onToast }) => {
                                 {o.bytes != null ? ` · ${(o.bytes / 1024 ** 2).toFixed(2)} MB` : ''}
                                 {(o.flags || []).length ? <span className="text-danger"> · {o.flags.join(', ')}</span> : null}
                             </div>
-                            {o.path && <PathLink p={o.path} />}
+                            {o.path && pathLink(o.path)}
                             {o.kind !== 'text' && (
                                 <a className="text-[11px] text-primary hover:underline"
                                     href={`${SERVER_URL}/images/${encodeURIComponent(o.file)}?download=1`}>

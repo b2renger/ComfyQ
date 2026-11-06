@@ -1,12 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
-import { Sparkles, Layers, Maximize, Clock, AlertTriangle, ChevronLeft, ChevronRight, Upload, X, Image as ImageIcon, Video as VideoIcon, Info } from 'lucide-react';
+import { Sparkles, Clock, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useSocket } from '../context/SocketContext';
 import { SERVER_URL, getInputUrl } from '../utils/api';
 import { accessHeaders } from '../utils/access';
-import DynamicParamFields, { isSeedParam, randomSeed, isMediaNeeded } from './DynamicParamFields';
-import PromptGuideLinks from './PromptGuideLinks';
+import DynamicParamFields, { isSeedParam, randomSeed, isMediaNeeded, clampToBounds } from './DynamicParamFields';
 import WorkflowInfoCard from './WorkflowInfoCard';
 import { acquireIdleHold } from '../utils/idleHold';
 
@@ -14,6 +13,10 @@ import { acquireIdleHold } from '../utils/idleHold';
 // + recall), as opposed to a plain form value. 'mask' is an image the user
 // paints in-browser (MaskDrawField) but is otherwise an image upload.
 const MEDIA_TYPES = ['image', 'video', 'audio', 'mask', 'model3d'];
+
+// Statuses that no longer hold a slot on the timeline — the server's
+// collision check skips the same ones (jobQueue.findCollisions).
+const FINISHED_STATUSES = new Set(['completed', 'failed', 'cancelled']);
 
 /**
  * Booking Dialog Component
@@ -63,8 +66,9 @@ function pickHeadlinePrompt(finalParams, parameterMap = {}) {
     return '';
 }
 
-// isSeedParam / randomSeed / prettyInputName now live in DynamicParamFields.jsx
-// (the shared field renderer). isSeedParam + randomSeed are imported above for
+// randomSeed / prettyInputName live in DynamicParamFields.jsx (the shared field
+// renderer), which also re-exports isSeedParam from utils/seedParam.js (the
+// server's rule, tested against the same fixture). Both are imported above for
 // the form-init effect; the field rendering itself uses the shared component.
 
 // A recalled (or default) dropdown value the workflow no longer offers would
@@ -76,6 +80,18 @@ const normalizeChoice = (value, config) => {
     if (opts.includes(value)) return value;
     if (opts.includes(config.default)) return config.default;
     return opts[0];
+};
+
+// A recalled (or default) number can sit off the grid the workflow now declares
+// (an example seeded at width 848 against a 256-min, 32-step field). The field is
+// an <input type=number min step> inside a validating <form>, so the browser
+// would refuse to submit it. Snap it the way the server does (clampParamValue);
+// a value that is not a number is left alone, as before, so an empty field still
+// falls back to the graph's own literal.
+const snapNumber = (value, config) => {
+    if (config?.type !== 'number' || value === '' || value === null || value === undefined) return value;
+    const n = typeof value === 'number' ? value : parseFloat(value);
+    return Number.isFinite(n) ? clampToBounds(n, config) : value;
 };
 
 const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams }) => {
@@ -162,11 +178,11 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
                 // no re-upload needed. The user can still Replace it.
                 if (typeof recalled === 'string' && recalled) recalledM[key] = recalled;
             } else if (recalled !== undefined) {
-                next[key] = normalizeChoice(recalled, config);
+                next[key] = normalizeChoice(snapNumber(recalled, config), config);
             } else if (isSeedParam(key, config)) {
-                next[key] = randomSeed();
+                next[key] = randomSeed(config);
             } else {
-                next[key] = normalizeChoice(config.default !== undefined ? config.default : '', config);
+                next[key] = normalizeChoice(snapNumber(config.default !== undefined ? config.default : '', config), config);
             }
         });
         // Show the reused asset right away: its file is still served from
@@ -181,7 +197,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         setMediaPreviews(recalledPreviews);
         setUploadError('');
         setRecallNote(switched
-            ? `This machine switched to “${state.workflow_info?.name || workflowId}” — the form was rebuilt with its settings.`
+            ? `This machine switched to “${wfInfo?.title || wfInfo?.name || workflowId}” — the form was rebuilt with its settings.`
             : '');
         setScheduledTime(initialTimeRef.current);
 
@@ -216,23 +232,33 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         setScheduledTime(initialTime);
     }, [initialTime]);
 
+    // How long a job of the booked lane takes. benchmark_ms is the machine's
+    // MAIN workflow only; a tab booking another lane must use that lane's own
+    // duration, as the server does (realtimeBus book_job).
+    const laneDurationSec = selectedLane?.estimatedDurationSec || null;
+
     /**
      * Collision Detection Effect
-     * 
-     * Checks if the selected time slot overlaps with any existing jobs.
-     * Uses the global job state and benchmark duration to calculate start/end times.
+     *
+     * Checks if the selected time slot overlaps with a job that can still be in
+     * the way, by the same rule the server applies when it books
+     * (jobQueue.findCollisions): unfinished jobs of this lane only, with the
+     * booked workflow's duration.
      */
     useEffect(() => {
         // ASAP mode (no slot picked) can't collide — the server queues it next.
         if (!scheduledTime) { setIsCollision(false); return; }
+        // A time already past is queued ASAP by the server too, never refused.
+        if (scheduledTime <= Date.now()) { setIsCollision(false); return; }
 
-        const duration = state.benchmark_ms || 30000;
+        const duration = (laneDurationSec ? laneDurationSec * 1000 : state.benchmark_ms) || 30000;
         const endTime = scheduledTime + duration;
 
         // Only this lane's jobs can be in the way: another lane runs its own
-        // workflow on its own ComfyUI, beside this one (the server applies the
-        // same rule when it books).
+        // workflow on its own ComfyUI, beside this one. A finished, failed or
+        // cancelled job holds no slot, whatever time it was booked for.
         const collision = state.jobs.some(job => {
+            if (FINISHED_STATUSES.has(job.status)) return false;
             if (workflowId && job.workflow_id && job.workflow_id !== workflowId) return false;
             const jobStart = job.time_slot;
             const jobEnd = jobStart + duration;
@@ -241,15 +267,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         });
 
         setIsCollision(collision);
-    }, [scheduledTime, state.jobs, state.benchmark_ms, workflowId]);
-
-    const resolutions = [
-        { label: 'Square (1024x1024)', value: '1024x1024' },
-        { label: 'Portrait (832x1216)', value: '832x1216' },
-        { label: 'Landscape (1216x832)', value: '1216x832' },
-        { label: 'Smartphone (768x1344)', value: '768x1344' },
-        { label: 'Cinematic (1408x768)', value: '1408x768' },
-    ];
+    }, [scheduledTime, state.jobs, state.benchmark_ms, laneDurationSec, workflowId]);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

@@ -4,17 +4,28 @@ import Card from './ui/Card';
 import Button from './ui/Button';
 import { UserCircle2, ArrowRight } from 'lucide-react';
 
+// The library's showcase jobs live under this user (tools/maintenance/
+// seed_examples.cjs). A job's owner is just the name typed here, so a student
+// who took it could delete the examples and the result files they point to.
+// The server refuses it too; this only says so before anything is sent.
+const RESERVED_NAMES = new Set(['examples', 'storyboard']);
+
 const UsernameModal = () => {
     const { username, registerUser } = useSocket();
     const [name, setName] = useState('');
+    const [error, setError] = useState('');
 
     if (username) return null;
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        if (name.trim()) {
-            registerUser(name.trim());
+        const n = name.trim();
+        if (!n) return;
+        if (RESERVED_NAMES.has(n.toLowerCase())) {
+            setError(`“${n}” is reserved for ComfyQ's own jobs — please choose another name.`);
+            return;
         }
+        registerUser(n);
     };
 
     return (
@@ -41,9 +52,12 @@ const UsernameModal = () => {
                                     className="w-full bg-background border border-border rounded-xl px-4 py-3 text-white focus:ring-2 focus:ring-primary focus:border-transparent outline-none transition-all placeholder:text-muted/30"
                                     placeholder="e.g. Alex"
                                     value={name}
-                                    onChange={(e) => setName(e.target.value)}
+                                    onChange={(e) => { setName(e.target.value); setError(''); }}
                                     required
                                 />
+                                {error && (
+                                    <p className="text-xs text-danger ml-1">{error}</p>
+                                )}
                             </div>
 
                             <Button

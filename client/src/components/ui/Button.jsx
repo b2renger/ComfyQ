@@ -6,6 +6,7 @@ const Button = ({
     size = 'md',
     className = '',
     isLoading = false,
+    disabled = false,
     icon: Icon,
     ...props
 }) => {
@@ -24,11 +25,14 @@ const Button = ({
         lg: 'px-6 py-3 text-base',
     };
 
+    // A loading button is always disabled: a caller's disabled={false} must not
+    // switch it back on mid-request (a second click on the storyboard's Queue
+    // button queued the whole batch twice).
     return (
         <button
             className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
-            disabled={isLoading}
             {...props}
+            disabled={isLoading || disabled}
         >
             {isLoading ? (
                 <svg className="animate-spin -ml-1 mr-2 h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

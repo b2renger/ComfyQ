@@ -52,6 +52,15 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
 
     useEffect(() => { load(); }, [load]);
 
+    // ★ A tick acknowledges ONE list. When the list it was given changes — the
+    // updater stashed the files, or new ones were modified — the tick goes, the
+    // same way ModelPrune drops allowLow. Above the early returns below, or the
+    // hook order changes between renders.
+    const dirtyKey = JSON.stringify(data?.comfy?.dirty || []);
+    const riskyKey = JSON.stringify(data?.comfyRequirements?.risky || []);
+    useEffect(() => { setAcceptStash(false); }, [dirtyKey]);
+    useEffect(() => { setAcceptDeps(false); }, [riskyKey]);
+
     const run = data?.run;
     const scan = data?.scan;
     const working = run?.status === 'running' || scan?.status === 'running';
@@ -146,9 +155,22 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                                     on {comfy.newestLocalTag}
                                 </Badge>
                             )}
+                            {/* ★ Not on the newest tag can mean AHEAD of it (master past the
+                                release). The stable updater would then move the install back. */}
+                            {comfy.isGit && comfy.aheadOfNewestTag && comfy.newestLocalTag && (
+                                <span title="This install is on a commit newer than the newest release.">
+                                    <Badge variant="default" className="!px-1.5 !py-0">
+                                        ahead of {comfy.newestLocalTag}
+                                    </Badge>
+                                </span>
+                            )}
                         </div>
                         <div className="text-xs text-muted mt-0.5 break-all">
-                            {comfy.head ? `commit ${comfy.head}` : 'not a git checkout'}
+                            {/* ★ A checkout git refuses to read (folder owned by another
+                                account) is still a checkout: say why, not "not a git checkout". */}
+                            {comfy.head ? `commit ${comfy.head}`
+                                : comfy.gitRefused ? <span className="text-warning">{comfy.gitRefused}</span>
+                                : 'not a git checkout'}
                             {comfy.branch && comfy.branch !== 'HEAD' ? ` · branch ${comfy.branch}` : ''}
                             {comfy.newestLocalTag ? ` · newest release seen: ${comfy.newestLocalTag}` : ''}
                         </div>
@@ -168,12 +190,21 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                     </div>
                     <div className="shrink-0">
                         <Button variant="secondary"
-                            disabled={serving || working || !comfy.updaterPresent
+                            disabled={serving || working || !!busy || !comfy.updaterPresent
+                                || !!comfy.gitRefused
                                 || (comfy.dirty?.length > 0 && !acceptStash)}
-                            title={comfy.dirty?.length > 0 && !acceptStash
-                                ? "ComfyUI's own files are modified — tick the box below first."
-                                : undefined}
-                            onClick={() => post('comfyui', { acceptStash }, 'comfyui')}>
+                            title={comfy.gitRefused
+                                ? `${comfy.gitRefused} — until then, whether ComfyUI's files are modified and where it stands cannot be read.`
+                                : comfy.dirty?.length > 0 && !acceptStash
+                                    ? "ComfyUI's own files are modified — tick the box below first."
+                                    : undefined}
+                            onClick={async () => {
+                                // Derived at send time: a tick with no listed files behind
+                                // it (they were stashed, the checkbox is gone) is not an
+                                // acknowledgement of whatever is modified next.
+                                await post('comfyui', { acceptStash: acceptStash && comfy.dirty?.length > 0 }, 'comfyui');
+                                setAcceptStash(false);
+                            }}>
                             <Download size={14} /> Update ComfyUI
                         </Button>
                     </div>
@@ -193,8 +224,13 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                 {!scan && (
                     <p className="text-xs text-muted mt-2">
                         Nothing has been asked of the network yet — press <em>Check for updates</em> to
-                        find out whether a newer release exists. Updating without checking is
-                        safe, it simply lands on the newest release, which may be this one.
+                        find out whether a newer release exists.{' '}
+                        {comfy.aheadOfNewestTag && comfy.newestLocalTag
+                            ? <>This install is <strong>ahead of</strong> {comfy.newestLocalTag}, the newest
+                                release seen locally. Unless a newer release has been published since,{' '}
+                                <em>Update ComfyUI</em> would move it <strong>back</strong> to that release.
+                                Press <em>Check for updates</em> to know.</>
+                            : 'Updating without checking is safe, it simply lands on the newest release, which may be this one.'}
                     </p>
                 )}
 
@@ -228,9 +264,12 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                                 itself at boot, so this is rarely needed.
                             </p>
                             <Button variant="ghost" className="shrink-0"
-                                disabled={serving || working
+                                disabled={serving || working || !!busy
                                     || (deps.risky.length > 0 && !acceptDeps)}
-                                onClick={() => post('comfyui-deps', { acceptRisky: acceptDeps }, 'deps')}>
+                                onClick={async () => {
+                                    await post('comfyui-deps', { acceptRisky: acceptDeps && deps.risky.length > 0 }, 'deps');
+                                    setAcceptDeps(false);
+                                }}>
                                 <Terminal size={13} /> Run pip
                             </Button>
                         </div>
@@ -296,7 +335,19 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                     </p>
                 )}
 
-                {checked && withUpdates.length === 0 && scan.unreachable === 0 && (
+                {checked && scan.refused > 0 && (
+                    <p className="text-xs text-warning mt-1 flex items-start gap-1.5">
+                        <AlertTriangle size={13} className="mt-0.5 shrink-0" />
+                        <span>
+                            git refuses {scan.refused} pack folder{scan.refused === 1 ? '' : 's'} on this
+                            machine (another Windows user owns them — the normal state of a cloned drive),
+                            so whether they have updates is unknown. Run{' '}
+                            <code>git config --global --add safe.directory "*"</code> once, then check again.
+                        </span>
+                    </p>
+                )}
+
+                {checked && withUpdates.length === 0 && scan.unreachable === 0 && !scan.refused && (
                     <p className="text-xs text-muted mt-1 flex items-start gap-1.5">
                         <CheckCircle2 size={13} className="mt-0.5 shrink-0 text-success" />
                         Every pack that can be updated is level with its remote.
@@ -352,7 +403,7 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                                         <div className="shrink-0">
                                             {behind > 0 && !p.blocked && (
                                                 <Button variant="secondary"
-                                                    disabled={serving || working || busy === p.name}
+                                                    disabled={serving || working || !!busy}
                                                     onClick={() => post('pack', { folder: p.name }, p.name)}>
                                                     <Download size={13} /> Update
                                                 </Button>
@@ -424,6 +475,16 @@ const InstallUpdates = ({ headers, onToast, mode, pollMs = 1500 }) => {
                             ComfyUI has to be restarted before it runs this. Nothing restarts by
                             itself here — use <em>Restart ComfyUI</em> under the backend card when the
                             machine is free.
+                        </p>
+                    )}
+                    {/* After an update that moved something, the install repair and
+                        the custom-node patches may have to be applied again. */}
+                    {run.status === 'done' && run.moved
+                        && (run.key === 'comfyui' || run.key?.startsWith('pack:')) && (
+                        <p className="text-xs text-warning mt-1">
+                            Now run <em>Repair the ComfyUI install</em> and <em>Re-apply the
+                            custom-node fixes</em> under Maintenance scripts below, then restart
+                            ComfyUI.
                         </p>
                     )}
                     {run.requirementsChanged && (

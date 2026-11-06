@@ -5,16 +5,12 @@ import MaskDrawField from './capture/MaskDrawField';
 import CameraAngleField from './capture/CameraAngleField';
 import { IdeogramPromptTools, MossLayoutTools } from './capture/IdeogramComposer';
 
-// A param qualifies as a "seed" if its key or field looks like one. Catches
-// both KSampler.seed (Flux1) and RandomNoise.noise_seed (Flux2), plus any
-// custom node that exposes a *_seed field.
-export const isSeedParam = (key, config) => {
-    const k = String(key || '').toLowerCase();
-    const f = String(config?.field || '').toLowerCase();
-    return k === 'seed' || k.endsWith('_seed')
-        || f === 'seed' || f.endsWith('_seed');
-};
-export const randomSeed = () => Math.floor(Math.random() * 4294967295);
+import { isSeedParam, randomSeed } from '../utils/seedParam';
+
+// Which params are seeds (the server's rule) and a fresh seed inside a param's
+// bounds, kept in utils/seedParam.js and re-exported here for the booking form
+// and the workflow editor. Pass the param's config to randomSeed.
+export { isSeedParam, randomSeed };
 
 // Strip the upload prefix from a comfy input filename to show the user's
 // original name (comfyq_session__<ts>_<rand>__photo.png → photo.png).
@@ -52,8 +48,10 @@ export const clampToBounds = (raw, config = {}) => {
     if (Number.isFinite(step) && step > 0) {
         const base = Number.isFinite(min) ? min : 0;
         v = base + Math.round((v - base) / step) * step;
-        // Kill FP drift from the multiply (0.1-style steps).
-        v = Math.round(v * 1e6) / 1e6;
+        // Kill FP drift from the multiply (0.1-style steps). Only there: on whole
+        // numbers it is harmful, since a seed above ~9e9 loses integer precision
+        // times 1e6 and comes back fractional. Same rule as the server's clamp.
+        if (!Number.isInteger(step) || !Number.isInteger(base)) v = Math.round(v * 1e6) / 1e6;
     }
     if (Number.isFinite(min) && v < min) v = min;
     if (Number.isFinite(max) && v > max) v = max;
@@ -345,10 +343,16 @@ const DynamicParamFields = ({
                                         const v = e.target.value;
                                         setVal(key, v === '' ? '' : parseInt(v, 10) || 0);
                                     }}
+                                    // A typed seed past the declared max would run
+                                    // at max on the server; show the one that runs.
+                                    onBlur={() => {
+                                        const v = values[key];
+                                        if (v !== '' && v !== null && v !== undefined) setVal(key, clampToBounds(v, config));
+                                    }}
                                 />
                                 <button
                                     type="button"
-                                    onClick={() => setVal(key, randomSeed())}
+                                    onClick={() => setVal(key, randomSeed(config))}
                                     className="p-2.5 rounded-lg bg-surface border border-border hover:bg-white/5 text-muted hover:text-primary transition-colors"
                                     title="Randomize seed"
                                 >

@@ -7,9 +7,11 @@ import { Music } from 'lucide-react';
 // volume, and download across every browser — no waveform lib needed.
 //
 // Used both in the lightbox gallery (full size) and in grid/sidebar cards
-// (`compact`). Pointer events on the controls are stopped so scrubbing or
-// hitting play inside a Scheduler card doesn't bubble up and open the lightbox
-// (same trick as the 3D viewers).
+// (`compact`). Click and pointerdown on the controls are stopped so scrubbing
+// or hitting play inside a Scheduler card doesn't bubble up and open the
+// lightbox. Stopping pointerdown is safe here because nothing listens for the
+// drag on the document. The 3D viewers are different: they must stop `click`
+// only, or OrbitControls never sees the drag end (see ModelViewer.jsx).
 const AudioPlayer = ({ url, filename, className = '', compact = false }) => {
     const stop = (e) => e.stopPropagation();
     const base = filename ? filename.split('/').pop() : '';

@@ -2,13 +2,13 @@ import React, { useMemo, useState } from 'react';
 import { useSocket } from '../context/SocketContext';
 import Card from './ui/Card';
 import Badge from './ui/Badge';
-import { Sparkles, Clock, CheckCircle2, AlertCircle, Image as ImageIcon, Search, X, Download } from 'lucide-react';
+import { Clock, Search, X, Download } from 'lucide-react';
 import MediaPreview from './ui/MediaPreview';
 import WorkflowChip from './ui/WorkflowChip';
 import ProgressViz from './ui/ProgressViz';
 import { getImageUrl, getDownloadUrl } from '../utils/api';
 import { getUserColor } from '../utils/userColor';
-import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration } from '../utils/jobDisplay';
+import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, statusBadgeVariant, failureText } from '../utils/jobDisplay';
 import { computeEtaSeconds } from '../utils/jobEta';
 
 /**
@@ -137,7 +137,7 @@ const MyJobsPanel = ({ onClose }) => {
                                         </span>
                                     </div>
                                     <Badge
-                                        variant={job.status === 'completed' ? 'success' : job.status === 'processing' ? 'warning' : 'primary'}
+                                        variant={statusBadgeVariant(job.status)}
                                         className="text-[9px] uppercase font-bold py-0 h-4"
                                     >
                                         {job.status}
@@ -189,6 +189,13 @@ const MyJobsPanel = ({ onClose }) => {
                                     </p>
                                 );
                             })()}
+                            {/* Why it failed — same message as the result card
+                                (a lane closing or a live switch stops a job with one). */}
+                            {job.status === 'failed' && job.error_reason && (
+                                <p className="text-[10px] text-danger/80 line-clamp-3 break-words mt-1" title={job.error_reason}>
+                                    {failureText(job.error_reason)}
+                                </p>
+                            )}
                             <div className="mt-2 flex items-center justify-between gap-2">
                                 <WorkflowChip workflowId={job.workflow_id} workflowsById={workflowsById} />
                                 {(() => {

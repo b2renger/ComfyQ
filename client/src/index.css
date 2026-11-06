@@ -176,8 +176,9 @@ body {
 }
 
 /* Status-driven item backgrounds. Greys for scheduled (sober default),
-   semantic colors retained for processing/completed/cancelled so users
-   can still spot the running job at a glance. */
+   semantic colors for processing/completed/failed so users can spot the
+   running job at a glance; a failed job must never look scheduled, and a
+   cancelled one is drawn muted and dashed. */
 .vis-item-scheduled {
     background-color: var(--primary) !important;
     border: 1px solid var(--primary) !important;
@@ -194,6 +195,18 @@ body {
     background-color: var(--success) !important;
     border: 1px solid var(--success) !important;
     color: #ffffff !important;
+}
+
+.vis-item-failed {
+    background-color: var(--danger) !important;
+    border: 1px solid var(--danger) !important;
+    color: #ffffff !important;
+}
+
+.vis-item-cancelled {
+    background-color: var(--surface) !important;
+    border: 1px dashed var(--muted) !important;
+    color: var(--muted) !important;
 }
 
 .vis-item-mine {

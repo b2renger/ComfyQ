@@ -90,9 +90,12 @@ const MediaPreview = ({ filename, className = '', alt = 'Preview', showPlayIcon 
     // 3D models render an interactive viewer right in the card — same
     // ModelViewer component as the lightbox, in compact mode (no help-text
     // overlay, no big loader). Render-on-demand keeps idle GPU draws at
-    // zero. Pointer events are swallowed by ModelViewer so drag-to-rotate
-    // doesn't trigger parent click handlers (eg the Scheduler card click
-    // that opens the lightbox — user clicks outside the viewer for that).
+    // zero. ModelViewer stops only the `click` event, so a tap inside it does
+    // not reach a parent click handler (eg the Scheduler card click that opens
+    // the lightbox — user clicks outside the viewer for that). It must NOT stop
+    // pointer or wheel events: OrbitControls needs pointerup to reach the
+    // document, or a drag never ends (see the comment above `stop` in
+    // ModelViewer.jsx).
     if (is3d) {
         return <LazyModel url={url} className={className} />;
     }

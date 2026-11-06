@@ -61,13 +61,13 @@ src/
 
 ## Admin vs student
 
-The mode is decided server-side from `config.json`; the client reads `/api/mode` at startup and routes accordingly:
+The server decides the mode when it boots, and `mode` in `config.json` does not choose it. A boot starts in admin mode. It starts in student mode only right after **Activate & serve** (or after a storyboard batch is queued while the machine is in admin mode, which serves the batch's first workflow), or when it finds the `server/data/.serving` marker that either leaves behind, so a machine that crashes or restarts while serving comes back serving the same workflow. **Stop serving** (Reset to admin) and the emergency stop remove that marker. The client asks `GET /admin/mode` for the running mode at startup and routes accordingly:
 
-- **Admin mode** (no config or `mode: "admin"`): `AdminConfig` is the landing page. Upload a workflow JSON, pick which parameters students can edit, set an admin password (optional), save — the server restarts in student mode.
-- **Student mode** (`mode: "student"`): user is prompted for a name, lands on the Scheduler, can book jobs and watch them progress on the Dashboard.
+- **Admin mode**: `AdminConfig` is the landing page. Upload a workflow or pick one from the library, choose which parameters students can edit (Edit), optionally set an admin password, then press **Activate & serve** on its card (or *Activate & start student mode* at the bottom). Saving metadata or a password restarts nothing. Activate & serve from admin mode restarts the server in student mode. While the machine is already serving, select another card and press *Activate & start student mode* to switch the main workflow in place, without a restart (a card's *Serve alongside* adds a parallel lane instead). Stop serving / Reset to admin and Stop & kill all restart the server in admin mode.
+- **Student mode**: the user is asked for a name and lands on the Scheduler, where they book jobs and follow them live on the result cards and the timeline. The Session Dashboard lists the jobs as a table you can filter and export.
 
 ## Notes for client development
 
 - Live updates flow through `SocketContext` — don't poll the API for queue/job state, subscribe to socket events.
 - Timeline collision detection runs on the client off `estimatedDurationSec` from `runtime.json` (server keeps that file warm via calibration runs).
-- All paths inside the bundle assume `/` as base; the dev proxy and the prod static serve are both at the root of the Express server.
+- All paths inside the bundle assume `/` as base. The client is served by Vite, which proxies the backend routes to the Express server on `:3000`; Express does not serve the client build.

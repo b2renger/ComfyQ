@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 
 // Is this element on (or near) the screen?
 //
@@ -10,13 +10,18 @@ import { useEffect, useRef, useState } from 'react';
 //
 // `rootMargin` starts the work slightly before the card scrolls in, so it is
 // ready by the time it is visible.
+//
+// The ref it returns is a CALLBACK ref: the observer follows the element as it
+// mounts and unmounts. With an object ref read once in an effect, an element
+// rendered later than the hook (the results grid's "load more" sentinel, which
+// only exists once the jobs have arrived) was never observed at all.
 export function useInView({ rootMargin = '300px', once = false } = {}) {
-    const ref = useRef(null);
+    const [el, setEl] = useState(null);
     const [inView, setInView] = useState(false);
 
     useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
+        // Gone from the page: it is not in view (a `once` result stays as seen).
+        if (!el) { if (!once) setInView(false); return; }
         // No IntersectionObserver (very old browser): show everything rather
         // than nothing.
         if (typeof IntersectionObserver === 'undefined') { setInView(true); return; }
@@ -27,9 +32,7 @@ export function useInView({ rootMargin = '300px', once = false } = {}) {
         }, { rootMargin });
         io.observe(el);
         return () => io.disconnect();
-    }, [rootMargin, once]);
+    }, [el, rootMargin, once]);
 
-    return [ref, inView];
+    return [setEl, inView];
 }
-
-export default useInView;

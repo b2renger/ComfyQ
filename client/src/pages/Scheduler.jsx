@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Timeline, DataSet } from 'vis-timeline/standalone';
 import 'vis-timeline/styles/vis-timeline-graph2d.css';
 import { useSocket } from '../context/SocketContext';
-import { Clock, Tag, Image as ImageIcon, Sparkles, AlertCircle, CheckCircle2, User, Download, X, Crosshair, Users, Search, ChevronDown, ChevronRight, Layers, Monitor } from 'lucide-react';
+import { Clock, Sparkles, User, X, Crosshair, Users, Search, ChevronDown, ChevronRight, Layers, Monitor } from 'lucide-react';
 import BookingDialog from '../components/BookingDialog';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -11,15 +11,9 @@ import MyJobsPanel from '../components/MyJobsPanel';
 import JobCard from '../components/JobCard';
 import { useInView } from '../hooks/useInView';
 import ImageLightbox from '../components/ImageLightbox';
-import MediaPreview from '../components/ui/MediaPreview';
-import WorkflowChip from '../components/ui/WorkflowChip';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
-import ProgressViz from '../components/ui/ProgressViz';
-import { getImageUrl, getDownloadUrl } from '../utils/api';
 import { getUserColor } from '../utils/userColor';
-import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
-import { computeEtaSeconds } from '../utils/jobEta';
-import PromptGuideLinks from '../components/PromptGuideLinks';
+import { getDisplayPrompt } from '../utils/jobDisplay';
 import WorkflowInfoCard from '../components/WorkflowInfoCard';
 
 /**
@@ -223,10 +217,11 @@ const SchedulerPage = () => {
     const confirmBooking = useCallback(({ prompt, params, time, workflowId }) => bookJob(time, prompt, params, workflowId), [bookJob]);
 
     // A recalled parameter set belongs to the workflow it came from; drop it
-    // when the machine starts serving another one so the booking form doesn't
-    // prefill values the new workflow has no use for.
-    const servedWorkflowId = state.workflow_info?.id;
-    useEffect(() => { setPrefillParams(null); }, [servedWorkflowId]);
+    // when this tab's model changes so the booking form doesn't prefill values
+    // the new workflow has no use for. Keyed on the tab's own lane (the one the
+    // booking form books), not the machine's main workflow: switching the main
+    // lane leaves a ?workflow= tab booking the same model.
+    useEffect(() => { setPrefillParams(null); }, [myLaneId]);
 
     const slideToNow = () => {
         if (!timelineRef.current) return;
@@ -270,7 +265,36 @@ const SchedulerPage = () => {
             onMove: (item, callback) => {
                 const job = stateRef.current.jobs.find(j => j.id === item.id);
                 if (job && job.user_id === usernameRef.current && job.status === 'scheduled') {
-                    reorderJob(item.id, item.start.getTime());
+                    // The server refuses a slot in the past (it would run the
+                    // job ahead of every earlier booking), and a refused move
+                    // brings no update, so the bar would stay where it was
+                    // dropped. Put it back here instead.
+                    if (item.start.getTime() < Date.now()) {
+                        alert('Pick a time in the future.');
+                        callback(null);
+                        return;
+                    }
+                    // The bar moves at once; the server's answer decides. A
+                    // refusal (a collision, the job gone or started) changes
+                    // nothing on the server, so no update would move the bar
+                    // back — put it where the server still has the job. The
+                    // refusal itself is shown by reorderJob. No answer at all
+                    // is left alone: the server may have taken the move.
+                    const before = itemsRef.current?.get(item.id);
+                    const length = before?.start && before?.end
+                        ? before.end - before.start
+                        : (item.end ? item.end - item.start : 0);
+                    reorderJob(item.id, item.start.getTime()).then((res) => {
+                        if (!res || res.ok || res.timeout) return;
+                        const items = itemsRef.current;
+                        const current = stateRef.current.jobs.find(j => j.id === item.id);
+                        if (!items || !current || !items.get(item.id)) return;
+                        items.update({
+                            id: item.id,
+                            start: new Date(current.time_slot),
+                            end: new Date(current.time_slot + length),
+                        });
+                    });
                     callback(item);
                 } else {
                     alert("You can only move your own scheduled jobs.");
@@ -312,6 +336,9 @@ const SchedulerPage = () => {
         });
 
         timeline.on('doubleClick', (properties) => {
+            // onAdd fires on the same double-click and has already said why a
+            // booking on another model's row is refused; don't open the form anyway.
+            if (properties.group && properties.group !== myLaneIdRef.current) return;
             if (!properties.item) {
                 setBookingTime(properties.time.getTime());
                 setIsBookingOpen(true);
@@ -383,7 +410,7 @@ const SchedulerPage = () => {
      * Effect to synchronize server state with the Timeline DataSet.
      * 
      * Maps global job state to vis-timeline items:
-     * - Status determines color/class (scheduled, processing, completed)
+     * - Status determines color/class (scheduled, processing, completed, failed, cancelled)
      * - Ownership determines editability (can only move own jobs)
      * - Updates existing items to preserve animation state
      */
@@ -408,6 +435,13 @@ const SchedulerPage = () => {
                 const shortId = (job.user_id || '???').substring(0, 3).toUpperCase();
                 const color = getUserColor(job.user_id);
                 const promptText = getDisplayPrompt(job);
+                // A failed or cancelled job must not read as still waiting.
+                const statusClass = {
+                    processing: 'vis-item-processing',
+                    completed: 'vis-item-completed',
+                    failed: 'vis-item-failed',
+                    cancelled: 'vis-item-cancelled',
+                }[job.status] || 'vis-item-scheduled';
 
                 return {
                     id: job.id,
@@ -421,8 +455,7 @@ const SchedulerPage = () => {
                     start: new Date(job.time_slot),
                     end: new Date(job.time_slot + durationMsOf(job)),
                     ...(grouped ? { group: servedIds.has(job.workflow_id) ? job.workflow_id : '__other' } : {}),
-                    className: `${isMine ? 'vis-item-mine' : ''} ${job.status === 'processing' ? 'vis-item-processing' :
-                        (job.status === 'completed' ? 'vis-item-completed' : 'vis-item-scheduled')}`,
+                    className: `${isMine ? 'vis-item-mine' : ''} ${statusClass}`,
                     // Left stripe = user color. Background tint is intentionally
                     // skipped — the status-driven className already drives bg.
                     style: `border-left: 3px solid ${color.dot};`,
@@ -618,7 +651,7 @@ const SchedulerPage = () => {
                     onClose={() => setLightboxJob(null)}
                     job={lightboxJob}
                     onReuse={reuseJob}
-                    activeWorkflowId={state.workflow_info?.id}
+                    activeWorkflowId={myLaneId}
                 />
 
                 <div className="space-y-6 pt-4">

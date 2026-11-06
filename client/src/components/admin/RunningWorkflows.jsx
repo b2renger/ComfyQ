@@ -24,6 +24,12 @@ import LinkOut from '../ui/ExternalLink';
  * panel was opened on, so they work from a laptop too — except the ComfyUI one
  * when ComfyUI listens on localhost only, which is said rather than linked.
  */
+
+// Closing a lane stops a job it is generating (laneManager.close aborts it), so
+// both stop buttons say what the student will see. Same text as the server's.
+const JOB_STOPPED_NOTE = ' A job that is generating is stopped and fails with'
+    + ' "Stopped: this workflow stopped being served on this machine while the job was running."';
+
 const RunningWorkflows = ({
     lanes = [], card = null, serving = false,
     onCloseLane = null, closingLaneId = null,
@@ -131,7 +137,7 @@ const RunningWorkflows = ({
                                                 disabled={deactivating}
                                                 onClick={() => onDeactivate(l.workflowId)}
                                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-background border border-border hover:border-danger/50 text-muted hover:text-danger transition-colors disabled:opacity-60 disabled:cursor-wait"
-                                                title="Stop serving — puts the server back in admin mode, so students can no longer book on this machine."
+                                                title={'Stop serving — puts the server back in admin mode, so students can no longer book on this machine.' + JOB_STOPPED_NOTE}
                                             >
                                                 {deactivating ? <RefreshCw size={13} className="animate-spin" /> : <Power size={13} />}
                                                 <span>{deactivating ? 'Stopping…' : 'Stop serving'}</span>
@@ -143,9 +149,9 @@ const RunningWorkflows = ({
                                             disabled={closing}
                                             onClick={() => onCloseLane(l.workflowId)}
                                             className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-background border border-border hover:border-danger/50 text-muted hover:text-danger transition-colors disabled:opacity-60 disabled:cursor-wait"
-                                            title={l.base
+                                            title={(l.base
                                                 ? "Stop serving this workflow and give its VRAM back. The machine keeps serving the others; this ComfyUI stays up (models unloaded) and is reused by the next workflow you serve."
-                                                : 'Stop this lane and give its VRAM back. The machine keeps serving the others.'}
+                                                : 'Stop this lane and give its VRAM back. The machine keeps serving the others.') + JOB_STOPPED_NOTE}
                                         >
                                             {closing ? <RefreshCw size={13} className="animate-spin" /> : <Square size={13} />}
                                             <span>{closing ? 'Closing…' : 'Close lane'}</span>

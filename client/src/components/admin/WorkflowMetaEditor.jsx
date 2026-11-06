@@ -533,14 +533,16 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                                                                 Max input edge (px)
                                                             </label>
                                                             <input type="number" min="64" step="64"
-                                                                placeholder={p.type === 'video' ? '1280 (default)' : '1024 (default)'}
+                                                                placeholder={p.type === 'video' ? 'no effect for video' : 'blank = fit 1920×1080'}
                                                                 value={p.maxInputEdge ?? ''}
                                                                 onChange={e => updateParam(idx, {
                                                                     maxInputEdge: e.target.value === '' ? undefined : parseInt(e.target.value, 10)
                                                                 })}
                                                                 className="w-full bg-background border border-border rounded px-2 py-1.5 text-sm text-white" />
                                                             <p className="text-[10px] text-muted leading-snug">
-                                                                Client downsizes the longer edge to this many pixels before upload — saves LAN bandwidth and matches the workflow's working resolution. Leave blank to use the {p.type === 'video' ? '1280' : '1024'}px default. Aspect ratio is preserved; never upscales.
+                                                                {p.type === 'video'
+                                                                    ? 'Has no effect: videos (and audio) are uploaded as they are, never resized in the browser.'
+                                                                    : 'Pictures are shrunk in the browser before upload — aspect ratio kept, never enlarged. Blank (recommended): fit a 1920×1080 box in either orientation, the largest the server accepts. A value caps both edges at that many pixels, inside that box: 1376 gives 1376×1080, and anything above 1920 behaves like blank.'}
                                                             </p>
                                                         </div>
                                                     )}
@@ -653,7 +655,7 @@ const StudentPreview = ({ params, headers }) => {
         setValues(prev => {
             const next = {};
             for (const [k, c] of Object.entries(paramMap)) {
-                next[k] = isSeedParam(k, c) ? (k in prev ? prev[k] : randomSeed()) : (c.default ?? '');
+                next[k] = isSeedParam(k, c) ? (k in prev ? prev[k] : randomSeed(c)) : (c.default ?? '');
             }
             return next;
         });

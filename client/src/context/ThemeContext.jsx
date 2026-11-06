@@ -51,16 +51,12 @@ export const ThemeProvider = ({ children }) => {
         try { localStorage.setItem(STORAGE_KEY, theme); } catch { /* ignore */ }
     }, [theme]);
 
-    const setTheme = useCallback((next) => {
-        setThemeState(next === 'light' ? 'light' : 'dark');
-    }, []);
-
     const toggleTheme = useCallback(() => {
         setThemeState(prev => prev === 'dark' ? 'light' : 'dark');
     }, []);
 
     return (
-        <ThemeContext.Provider value={{ theme, setTheme, toggleTheme }}>
+        <ThemeContext.Provider value={{ theme, toggleTheme }}>
             {children}
         </ThemeContext.Provider>
     );

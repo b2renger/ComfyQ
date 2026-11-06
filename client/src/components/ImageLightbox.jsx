@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Download, User, Clock, Sparkles, RotateCw, Wand2, Box, Copy, Check, Package, Maximize2, Globe, Image as ImageIcon } from 'lucide-react';
 import Modal from './ui/Modal';
 import Button from './ui/Button';
@@ -10,7 +10,10 @@ import ImageGallery from './ui/ImageGallery';
 import ImageZoomViewer from './ui/ImageZoomViewer';
 import PanoramaViewer from './ui/PanoramaViewer';
 import { useSocket } from '../context/SocketContext';
-import { getImageUrl, getDownloadUrl, getIngredientsUrl, isVideo, isModel3d, isSplat, isAudio, isImage } from '../utils/api';
+import { SERVER_URL, getImageUrl, getDownloadUrl, getIngredientsUrl, isVideo, isModel3d, isSplat, isAudio, isImage } from '../utils/api';
+import { accessHeaders } from '../utils/access';
+import { liveParamMap, labelMapFromExposed } from '../utils/paramLabels';
+import { isSeedParam } from '../utils/seedParam';
 import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
 
 const downloadFile = (filename) => {
@@ -38,7 +41,7 @@ const deriveViewLabel = (filename) => {
 };
 
 const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
-    const { workflowsById } = useSocket();
+    const { workflowsById, state } = useSocket();
     // Gallery tab for 3D jobs that ship both a splat and a mesh (TripoSplat).
     const [view, setView] = useState('splat'); // 'splat' | 'mesh'
     const [copied, setCopied] = useState(false); // transient "Copied!" feedback for text jobs
@@ -47,6 +50,26 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
     // Both are keyed by job id so they reset when the lightbox shows another job.
     const [wideJob, setWideJob] = useState(null);
     const [panoJob, setPanoJob] = useState(null);
+    // Field labels for the Relaunch info panel. A served workflow's come from
+    // its lane's parameter_map; any other's are fetched once per workflow id
+    // (the library list carries no parameters). See utils/paramLabels.js.
+    const [fetchedLabels, setFetchedLabels] = useState({});
+    const jobWorkflowId = job?.workflow_id || null;
+    const liveMap = liveParamMap(state, jobWorkflowId);
+    const needLabels = !!isOpen && !!jobWorkflowId && !liveMap && !(jobWorkflowId in fetchedLabels);
+    useEffect(() => {
+        if (!needLabels) return undefined;
+        let cancelled = false;
+        fetch(`${SERVER_URL}/workflows/${encodeURIComponent(jobWorkflowId)}/parameters`, { headers: accessHeaders() })
+            // 404: the workflow is gone or broken — remember that, the keys stay as they are.
+            .then(r => (r.ok ? r.json() : r.status === 404 ? { parameters: [] } : null))
+            .then(data => {
+                if (cancelled || !data) return;
+                setFetchedLabels(prev => ({ ...prev, [jobWorkflowId]: labelMapFromExposed(data.parameters) }));
+            })
+            .catch(() => { /* offline — the raw keys still identify each field */ });
+        return () => { cancelled = true; };
+    }, [needLabels, jobWorkflowId]);
     if (!job) return null;
     const wf = workflowsById?.[job.workflow_id];
     const displayPrompt = getDisplayPrompt(job);
@@ -55,10 +78,12 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
     const params = job.params || {};
     const importedMedia = job.input_files || [];
     const mediaByParam = Object.fromEntries(importedMedia.map(m => [m.param, m.name]));
-    const isSeedKey = (k) => { const s = String(k).toLowerCase(); return s === 'seed' || s.endsWith('seed'); };
+    const pmap = liveMap || fetchedLabels[job.workflow_id] || {};
+    // The key alone decides on every bundle (seed_7, ksampler_seed_3…); the
+    // field, when the label map has it, only confirms.
+    const isSeedKey = (k) => isSeedParam(k, pmap[k]);
     const seedEntries = Object.entries(params).filter(([k]) => isSeedKey(k));
     const paramEntries = Object.entries(params).filter(([k]) => !isSeedKey(k));
-    const pmap = wf?.parameter_map || {};
     const labelFor = (k) => pmap[k]?.label || k;
     const prettyVal = (k, v) => {
         if (mediaByParam[k]) return mediaByParam[k];                       // original upload name, not comfyq_*
@@ -69,8 +94,10 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
         return v == null ? '' : String(v);
     };
     // "Use these settings" only recalls correctly when THIS job's workflow is the
-    // one currently loaded on the machine (the booking form's parameter_map must
-    // match). Otherwise the .zip below is the portable, cross-workflow path.
+    // one this tab books (the booking form is built from that lane's
+    // parameter_map, so the keys must match). `activeWorkflowId` is that lane —
+    // the ?workflow= one, else the primary — not the machine's main workflow.
+    // Otherwise the .zip below is the portable, cross-workflow path.
     const canReuse = !!onReuse && !!activeWorkflowId && job.workflow_id === activeWorkflowId;
 
     // The wire job carries every output the executor collected. A TripoSplat
@@ -377,7 +404,7 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
                                 className="w-full"
                                 icon={RotateCw}
                                 onClick={() => { onReuse(job); onClose(); }}
-                                title="Open the booking dialog pre-filled with this job's prompt and parameters (this workflow is loaded)"
+                                title="Open the booking dialog pre-filled with this job's prompt and parameters (this tab books this workflow)"
                             >
                                 Use these settings
                             </Button>

@@ -36,7 +36,7 @@ const PRESET_PYTHON_HINTS = [
     { label: 'System Python (Windows)', value: 'python' }
 ];
 
-const AdminConfig = ({ currentMode }) => {
+const AdminConfig = () => {
     // Which tab is open. Remembered because activating a workflow restarts the
     // server, and an admin thrown back to the first tab every time would curse us.
     const [tab, setTab] = useState(() => {
@@ -53,6 +53,10 @@ const AdminConfig = ({ currentMode }) => {
     const [pathDraft, setPathDraft] = useState({});
     const [pickedWorkflow, setPickedWorkflow] = useState(null);
     const [activatingId, setActivatingId] = useState(null);
+    // Reported by the library's own sweep poll (WorkflowSelector), so the
+    // bottom "Activate" button greys out like the card buttons do: activating
+    // from admin mode restarts the server, and the server refuses it mid-sweep.
+    const [sweepRunning, setSweepRunning] = useState(false);
     const [deactivating, setDeactivating] = useState(false);
     // Workflows being served in parallel, and whether each other workflow would
     // fit alongside them on this machine's card.
@@ -69,6 +73,7 @@ const AdminConfig = ({ currentMode }) => {
     // Student access password — gates who may USE this machine (see below).
     const [hasAccessPassword, setHasAccessPassword] = useState(false);
     const [hasHfToken, setHasHfToken] = useState(false);
+    const [lastServeError, setLastServeError] = useState('');
     const [newAccessPassword, setNewAccessPassword] = useState('');
     const [accessSaving, setAccessSaving] = useState(false);
     const [toast, setToast] = useState(null);
@@ -134,6 +139,27 @@ const AdminConfig = ({ currentMode }) => {
     }, [refreshKey]);
     useEffect(() => { reloadConfig(); reloadComfyStatus(); reloadDrives(); }, []);
 
+    // The server did not answer when the panel opened. Usually that is a boot
+    // that resumes serving: it waits for ComfyUI (30–90 s) before it listens.
+    // Keep asking every 2 s; once it answers, fetch what the first try missed.
+    useEffect(() => {
+        if (loading || config) return;
+        let busy = false;
+        const t = setInterval(async () => {
+            if (busy) return;
+            busy = true;
+            try {
+                if (await reloadConfig()) {
+                    reloadComfyStatus();
+                    reloadDrives();
+                    setRefreshKey(k => k + 1);
+                }
+            } finally { busy = false; }
+        }, 2000);
+        return () => clearInterval(t);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loading, config]);
+
     // Debounced password verification — hits the no-op /admin/verify-password
     // endpoint whenever the operator pauses typing, so the "Admin password is
     // set" chip can switch green once the correct password is entered. No
@@ -160,15 +186,24 @@ const AdminConfig = ({ currentMode }) => {
         return () => { cancelled = true; clearTimeout(t); };
     }, [adminPassword, hasAdminPassword]);
 
-    const reloadConfig = async () => {
-        setLoading(true);
+    // Only the first load shows the full-page spinner (`loading` starts true and
+    // is never set again): a later reload — a live switch, a closed lane, a saved
+    // password — refreshes `config` in place, so an open metadata editor, the
+    // library search and a picked storyboard stay mounted with their unsaved work.
+    // `drafts: false` also leaves the form drafts (paths, machine name, scan
+    // folders) alone, for reloads that saved none of them.
+    // Returns whether the server answered with a config.
+    const reloadConfig = async ({ drafts = true } = {}) => {
         try {
             const res = await fetch(`${SERVER_URL}/admin/config`);
             const data = await res.json();
+            if (!data?.config) throw new Error('no config in the answer');
             setConfig(data.config);
             setHasAdminPassword(data.hasAdminPassword);
             setHasAccessPassword(!!data.hasAccessPassword);
             setHasHfToken(!!data.hasHfToken);
+            setLastServeError(data.lastServeError || '');
+            if (!drafts) return true;
             setPathDraft({
                 root_path: data.config.comfy_ui.root_path,
                 python_executable: data.config.comfy_ui.python_executable,
@@ -185,8 +220,10 @@ const AdminConfig = ({ currentMode }) => {
             // entry is exactly the kind of path a cloned drive invalidates.
             setScanDirs(data.config.maintenance?.workflowScanDirs || []);
             setScanDirsOff(data.config.maintenance?.scanDirsOff || []);
+            return true;
         } catch (e) {
             console.error(e);
+            return false;
         } finally {
             setLoading(false);
         }
@@ -335,15 +372,36 @@ const AdminConfig = ({ currentMode }) => {
             });
             if (!res.ok) throw new Error((await res.json()).error || 'Failed to update LAN exposure');
             setConfig(c => ({ ...c, comfy_ui: { ...(c?.comfy_ui || {}), lan_access: enabled } }));
-            showToast(enabled
-                ? 'ComfyUI will be exposed to the LAN — restart it to apply'
-                : 'ComfyUI LAN exposure turned off — restart it to apply');
+            // Same wording as the perf flags: while serving there is no Restart
+            // button here, and the bind is applied when a lane next opens on it.
+            showToast((enabled
+                ? 'ComfyUI will be exposed to the LAN — '
+                : 'ComfyUI LAN exposure turned off — ') + (config?.mode === 'student'
+                ? 'applies at the next switch to another workflow or the next ComfyQ restart (re-activating the served workflow does not apply it)'
+                : 'restart it to apply'));
         } catch (e) { showToast(e.message, 'err'); }
     };
 
     // Generic toggle for the two ComfyUI performance flags. They apply on the
     // next ComfyUI start/restart (they're part of the spawn signature), so the
     // toast points at Restart rather than pretending it's live.
+    // The port ComfyQ starts ComfyUI on. While serving it stays locked: a change
+    // would leave the running ComfyUI behind on the old port, holding the card.
+    const saveComfyPort = async (raw) => {
+        const port = parseInt(raw, 10);
+        if (port === config?.comfy_ui?.api_port) return;
+        if (!Number.isInteger(port) || port < 1024 || port > 65535) { showToast('The ComfyUI port must be between 1024 and 65535', 'err'); return; }
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/comfy`, {
+                method: 'PUT', headers: adminHeaders(), body: JSON.stringify({ api_port: port })
+            });
+            if (!res.ok) throw new Error((await res.json()).error || 'Failed to change the port');
+            setConfig(c => ({ ...c, comfy_ui: { ...(c?.comfy_ui || {}), api_port: port } }));
+            setPathDraft(d => ({ ...d, api_port: port }));
+            showToast(`ComfyUI port set to ${port} — restart ComfyUI to apply`);
+        } catch (e) { showToast(e.message, 'err'); }
+    };
+
     const togglePerfFlag = async (key, enabled, label) => {
         try {
             const res = await fetch(`${SERVER_URL}/admin/comfy`, {
@@ -351,7 +409,13 @@ const AdminConfig = ({ currentMode }) => {
             });
             if (!res.ok) throw new Error((await res.json()).error || `Failed to update ${label}`);
             setConfig(c => ({ ...c, comfy_ui: { ...(c?.comfy_ui || {}), [key]: enabled } }));
-            showToast(`${label} ${enabled ? 'enabled' : 'disabled'} — restart ComfyUI to apply`);
+            // While serving, ComfyUI outlives ComfyQ restarts: a changed flag is
+            // applied when a lane next opens on it — a switch to another
+            // workflow, or a ComfyQ restart. Re-activating the workflow already
+            // served only makes it the main lane, so it applies nothing.
+            showToast(`${label} ${enabled ? 'enabled' : 'disabled'} — ` + (config?.mode === 'student'
+                ? 'applies at the next switch to another workflow or the next ComfyQ restart (re-activating the served workflow does not apply it)'
+                : 'restart ComfyUI to apply'));
         } catch (e) { showToast(e.message, 'err'); }
     };
 
@@ -495,7 +559,7 @@ const AdminConfig = ({ currentMode }) => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Restart failed');
             setComfyStatus(data);
-            await reloadConfig();
+            await reloadConfig({ drafts: false });
             showToast(data.restarted === false
                 ? (data.note || 'Left external ComfyUI running')
                 : (data.tookOver ? 'Took over & restarted ComfyUI — ComfyQ now manages it' : 'ComfyUI restarted'));
@@ -525,7 +589,7 @@ const AdminConfig = ({ currentMode }) => {
             if (!res.ok) throw new Error((await res.json()).error || 'Failed to set password');
             showToast(newAdminPassword ? 'Admin password set' : 'Admin password cleared');
             setNewAdminPassword('');
-            await reloadConfig();
+            await reloadConfig({ drafts: false });
         } catch (e) {
             showToast(e.message, 'err');
         } finally {
@@ -548,7 +612,7 @@ const AdminConfig = ({ currentMode }) => {
                 ? 'Access password set — students now need it to connect'
                 : 'Access password cleared — this machine is open again');
             setNewAccessPassword('');
-            await reloadConfig();
+            await reloadConfig({ drafts: false });
         } catch (e) {
             showToast(e.message, 'err');
         } finally {
@@ -574,7 +638,7 @@ const AdminConfig = ({ currentMode }) => {
                 setActivatingId(null);
                 refreshLanes();
                 setTimeout(refreshLanes, 4000);
-                setTimeout(() => { refreshLanes(); reloadConfig(); }, 12000);
+                setTimeout(() => { refreshLanes(); reloadConfig({ drafts: false }); }, 12000);
                 return;
             }
             showToast(`Activating “${id}” and switching to student mode…`);
@@ -703,7 +767,7 @@ const AdminConfig = ({ currentMode }) => {
             showToast(data.main && data.main !== workflowId
                 ? `Lane stopped — its VRAM is free again. “${data.main}” is now the main workflow.`
                 : 'Lane stopped — its VRAM is free again.');
-            reloadConfig();
+            reloadConfig({ drafts: false });
         } catch (e) { showToast(e.message, 'err'); }
         finally { setClosingLaneId(null); refreshLanes(); }
     };
@@ -816,6 +880,21 @@ const AdminConfig = ({ currentMode }) => {
         );
     }
 
+    // Every section below reads `config`, so without it there is nothing to
+    // show yet; the effect above keeps asking.
+    if (!config) {
+        return (
+            <div className="h-screen w-full bg-background flex flex-col items-center justify-center gap-3 p-6 text-center">
+                <RefreshCw className="w-6 h-6 text-primary animate-spin" />
+                <p className="text-foreground font-medium">Waiting for the ComfyQ server…</p>
+                <p className="text-sm text-muted max-w-md">
+                    It is not answering yet. A machine that resumes serving starts ComfyUI first, which can take a minute or two.
+                    This page will open by itself as soon as the server is up.
+                </p>
+            </div>
+        );
+    }
+
     const pathsConfigured = !!(config?.comfy_ui?.root_path && config?.comfy_ui?.python_executable);
     const currentDrive = (pathDraft.root_path || '').match(/^([A-Za-z]):/)?.[1]?.toUpperCase() || '';
     // Always include the currently-configured drive even if it isn't mounted now.
@@ -823,6 +902,15 @@ const AdminConfig = ({ currentMode }) => {
 
     return (
         <div className="min-h-screen bg-background text-foreground p-4 sm:p-8 space-y-6">
+            {lastServeError && config.mode !== 'student' && (
+                <div className="flex items-start gap-3 rounded-xl border border-danger/40 bg-danger/10 p-4 text-sm">
+                    <AlertTriangle size={18} className="text-danger shrink-0 mt-0.5" />
+                    <div>
+                        <p className="font-semibold">ComfyQ could not start serving</p>
+                        <p className="text-muted mt-1">{lastServeError}</p>
+                    </div>
+                </div>
+            )}
             <header className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-surface border border-border rounded-xl flex items-center justify-center">
@@ -948,6 +1036,7 @@ const AdminConfig = ({ currentMode }) => {
                         serveAlongsideId={serveAlongsideId}
                         onCloseLane={closeLane}
                         closingLaneId={closingLaneId}
+                        onSweepRunning={setSweepRunning}
                     />
                     <div className="mt-6 flex items-center justify-end gap-2 flex-wrap">
                         {pickedWorkflow && <span className="text-xs text-muted mr-auto">Selected: <code>{pickedWorkflow.id}</code></span>}
@@ -957,7 +1046,10 @@ const AdminConfig = ({ currentMode }) => {
                             Edit metadata
                         </Button>
                         <Button variant="primary" icon={Power}
-                            disabled={!pickedWorkflow || activatingId !== null || !pathsConfigured}
+                            disabled={!pickedWorkflow || activatingId !== null || !pathsConfigured || sweepRunning}
+                            title={sweepRunning
+                                ? 'A library sweep is running, and activating restarts the server, which would stop it mid-bundle. Stop the sweep from its card under Maintenance, or wait for it to finish.'
+                                : undefined}
                             onClick={() => activate(pickedWorkflow?.id)}>
                             {activatingId !== null ? 'Activating…' : 'Activate & start student mode'}
                         </Button>
@@ -991,7 +1083,7 @@ const AdminConfig = ({ currentMode }) => {
                     </div>
                     <p className="text-sm text-muted mb-3">
                         Upload a ComfyUI workflow saved in <strong className="text-white">API Format</strong>
-                        (Settings → Dev mode → "Save (API Format)"). v2 does not auto-convert standard saves.
+                        (File → Export (API); older ComfyUI menus: Settings → Dev mode, then "Save (API Format)"). v2 does not auto-convert standard saves.
                     </p>
                     <label className="block">
                         <input type="file" accept=".json,application/json" onChange={uploadWorkflow}
@@ -1066,7 +1158,7 @@ const AdminConfig = ({ currentMode }) => {
                             : <Badge variant="warning">Hidden</Badge>}
                     </div>
                     <p className="text-sm text-muted mb-3">
-                        When on, this machine broadcasts a small status update on the LAN every ~15&nbsp;s so the
+                        When on, this machine broadcasts a small status update on the LAN every ~{config?.federation?.intervalSec || 5}&nbsp;s so the
                         <strong className="text-white"> ComfyQ Discovery</strong> app can list it (name, GPU/RAM, IP, status,
                         active workflow, planned jobs) alongside the other rigs. Turn off to hide this machine from the network.
                     </p>
@@ -1191,8 +1283,6 @@ const AdminConfig = ({ currentMode }) => {
                             onChange={v => setPathDraft({ ...pathDraft, vramBudgetGb: parseFloat(v) })} />
                         <Field label="ComfyUI API host" value={pathDraft.api_host || '127.0.0.1'}
                             onChange={v => setPathDraft({ ...pathDraft, api_host: v })} />
-                        <Field label="ComfyUI API port" type="number" value={pathDraft.api_port || 8188}
-                            onChange={v => setPathDraft({ ...pathDraft, api_port: parseInt(v, 10) })} />
                         <div className="space-y-1.5 sm:col-span-2">
                             <label className="text-xs uppercase tracking-wider text-muted font-semibold">Assets directory (calibration media)</label>
                             <input
@@ -1367,8 +1457,27 @@ const AdminConfig = ({ currentMode }) => {
 
                     <div className="mb-4 rounded-lg border border-border bg-surface/40 p-3">
                         <div className="text-[10px] uppercase tracking-wider text-muted font-semibold mb-2 flex items-center gap-1.5">
-                            <Gauge size={12} /> Performance (applies on restart)
+                            <Gauge size={12} /> Startup options (apply on restart)
                         </div>
+                        <label className="block mb-2.5">
+                            <span className="text-sm text-white">ComfyUI port</span>
+                            <input
+                                key={config?.comfy_ui?.api_port}
+                                type="number"
+                                min={1024}
+                                max={65535}
+                                defaultValue={config?.comfy_ui?.api_port ?? 8188}
+                                disabled={config?.mode === 'student'}
+                                onBlur={(e) => saveComfyPort(e.target.value)}
+                                onKeyDown={(e) => { if (e.key === 'Enter') e.currentTarget.blur(); }}
+                                className="mt-1 block w-28 rounded-lg border border-border bg-surface px-2 py-1 text-sm disabled:opacity-50"
+                            />
+                            <span className="block text-xs text-muted mt-1">
+                                {config?.mode === 'student'
+                                    ? 'Stop serving to change it.'
+                                    : 'Change it when another program or another ComfyUI already uses this port. Extra lanes use the next 31 ports.'}
+                            </span>
+                        </label>
                         <label className="flex items-start gap-2.5 cursor-pointer mb-2.5">
                             <input
                                 type="checkbox"
@@ -1524,6 +1633,7 @@ const AdminConfig = ({ currentMode }) => {
                         <li>Mark every in-flight job as failed (<code className="text-xs">emergency-stop</code>)</li>
                         <li>Kill the ComfyUI process if ComfyQ spawned it (external attached ComfyUI is left alone)</li>
                         <li>Switch the server to admin mode and restart it</li>
+                        <li>ComfyUI then starts again, empty, in admin mode (unless <code className="text-xs">comfy_ui.autoStart</code> is off), so the GPU is not freed. To keep it stopped, use Manage ComfyUI → Stop ComfyUI afterwards</li>
                     </ul>
                     <p className="text-xs text-warning">
                         Use this when something is stuck or generating something it shouldn't.

@@ -9,14 +9,20 @@ import react from '@vitejs/plugin-react'
 // HTTP removes all of that friction — uploads, downloads, the timeline,
 // and the websocket behave identically everywhere.
 //
-// The one casualty is live in-browser webcam preview (getUserMedia needs
-// a "secure context" off-localhost). The camera button falls back to the
-// phone's native camera app via a file picker — see canUseLiveCamera() in
-// MediaCaptureField.jsx, which already detects window.isSecureContext.
+// The one casualty was live in-browser webcam capture (getUserMedia needs
+// a "secure context" off-localhost), so it was removed (2026-05-19): image,
+// video and audio inputs are file uploads (MediaCaptureField.jsx), and a
+// phone's file picker still offers its camera.
 //
 // We still proxy every backend route through Vite so the page stays
-// single-origin. The Express/Socket.IO server runs on port 3000 — only
-// ever reached via this proxy.
+// single-origin. The Express/Socket.IO server runs on port 3000. Browsers
+// reach it only through this proxy, but it listens on all interfaces
+// (server.host 0.0.0.0) because ComfyQ Discovery's subnet sweep calls
+// http://<ip>:3000/federation/self directly — binding it to 127.0.0.1 would
+// hide the machine from Discovery. `xfwd` adds X-Forwarded-For with each
+// browser's own address; the server trusts that header from loopback only
+// (server/index.js, 'trust proxy'), which is what lets the admin-mode
+// "users connected" count tell browsers apart.
 const BACKEND = 'http://localhost:3000';
 
 export default defineConfig({
@@ -32,6 +38,7 @@ export default defineConfig({
       '/admin': {
         target: BACKEND,
         changeOrigin: true,
+        xfwd: true,
         secure: false,
         bypass(req) {
           const url = req.url || '';
@@ -42,19 +49,19 @@ export default defineConfig({
       },
       // Access-password handshake (/access/status, /access/login) — the client
       // asks this before it may connect to a reserved machine.
-      '/access':       { target: BACKEND, changeOrigin: true, secure: false },
-      '/workflows':    { target: BACKEND, changeOrigin: true, secure: false },
+      '/access':       { target: BACKEND, changeOrigin: true, xfwd: true, secure: false },
+      '/workflows':    { target: BACKEND, changeOrigin: true, xfwd: true, secure: false },
       // Storyboard batch upload (parse / preview / queue a whole document).
-      '/storyboard':   { target: BACKEND, changeOrigin: true, secure: false },
-      '/jobs':         { target: BACKEND, changeOrigin: true, secure: false },
-      '/upload':       { target: BACKEND, changeOrigin: true, secure: false },
-      '/upload-image': { target: BACKEND, changeOrigin: true, secure: false },
-      '/input-media':  { target: BACKEND, changeOrigin: true, secure: false },
-      '/media':        { target: BACKEND, changeOrigin: true, secure: false },
-      '/images':       { target: BACKEND, changeOrigin: true, secure: false },
-      '/download':     { target: BACKEND, changeOrigin: true, secure: false },
+      '/storyboard':   { target: BACKEND, changeOrigin: true, xfwd: true, secure: false },
+      '/jobs':         { target: BACKEND, changeOrigin: true, xfwd: true, secure: false },
+      '/upload':       { target: BACKEND, changeOrigin: true, xfwd: true, secure: false },
+      '/upload-image': { target: BACKEND, changeOrigin: true, xfwd: true, secure: false },
+      '/input-media':  { target: BACKEND, changeOrigin: true, xfwd: true, secure: false },
+      '/media':        { target: BACKEND, changeOrigin: true, xfwd: true, secure: false },
+      '/images':       { target: BACKEND, changeOrigin: true, xfwd: true, secure: false },
+      '/download':     { target: BACKEND, changeOrigin: true, xfwd: true, secure: false },
       // Socket.IO: long-poll fallback + websocket upgrade both ride this prefix.
-      '/socket.io':    { target: BACKEND, changeOrigin: true, secure: false, ws: true }
+      '/socket.io':    { target: BACKEND, changeOrigin: true, xfwd: true, secure: false, ws: true }
     }
   }
 })

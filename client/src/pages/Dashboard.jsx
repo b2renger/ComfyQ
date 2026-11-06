@@ -14,8 +14,6 @@ import {
     ChevronDown,
     Activity,
     Server,
-    CheckCircle2,
-    Settings,
     Trash2,
     Calendar,
     Download
@@ -25,7 +23,8 @@ import Badge from '../components/ui/Badge';
 import MediaPreview from '../components/ui/MediaPreview';
 import WorkflowChip from '../components/ui/WorkflowChip';
 import { getImageUrl, SERVER_URL } from '../utils/api';
-import { getDisplayPrompt } from '../utils/jobDisplay';
+import { accessHeaders } from '../utils/access';
+import { getDisplayPrompt, statusBadgeVariant } from '../utils/jobDisplay';
 
 // Range presets for the Dashboard date filter. `bounds(now)` returns the
 // {since, until} milliseconds-epoch window for that preset, or null for
@@ -82,22 +81,6 @@ const DashboardPage = () => {
         reorderJob(jobId, currentTime + delta);
     };
 
-    const handleResetConfig = async () => {
-        if (!window.confirm('Are you sure you want to reset the server to Admin Configuration mode? This will stop all current jobs and restart the server.')) {
-            return;
-        }
-
-        try {
-            await fetch(`${SERVER_URL}/admin/reset-to-admin`, { method: 'POST' });
-            // Wait for restart
-            setTimeout(() => {
-                window.location.reload();
-            }, 3000);
-        } catch (e) {
-            console.error(e);
-            alert('Failed to reset server');
-        }
-    };
 
     // Date bounds (epoch ms). Recomputed on every render so the live "Today"
     // window slides as time passes. Custom dates use the local timezone via
@@ -133,14 +116,17 @@ const DashboardPage = () => {
     // CSV export hits /jobs?since=&until= directly so we get the full history,
     // not just the broadcast cap (500). User filter is applied client-side
     // after fetch so the server route doesn't need to know about it.
+    // ★ An explicit limit: the route returns the OLDEST 1000 by default, so a
+    // longer history would silently lose its newest jobs. And the access token,
+    // because /jobs sits behind the student access password when one is set.
     const handleExportCsv = useCallback(async () => {
         setExporting(true);
         try {
-            const params = new URLSearchParams();
+            const params = new URLSearchParams({ limit: '100000' });
             if (dateBounds?.since != null) params.set('since', String(dateBounds.since));
             if (dateBounds?.until != null) params.set('until', String(dateBounds.until));
-            const url = `${SERVER_URL}/jobs${params.toString() ? `?${params}` : ''}`;
-            const res = await fetch(url);
+            const url = `${SERVER_URL}/jobs?${params}`;
+            const res = await fetch(url, { headers: accessHeaders() });
             if (!res.ok) throw new Error(`HTTP ${res.status}`);
             const { jobs } = await res.json();
             const rows = selectedUser ? jobs.filter(j => j.user_id === selectedUser) : jobs;
@@ -205,10 +191,7 @@ const DashboardPage = () => {
             header: 'Status',
             accessorKey: 'status',
             cell: info => (
-                <Badge variant={
-                    info.getValue() === 'completed' ? 'success' :
-                        info.getValue() === 'processing' ? 'warning' : 'default'
-                } className="uppercase text-[10px]">
+                <Badge variant={statusBadgeVariant(info.getValue())} className="uppercase text-[10px]">
                     {info.getValue()}
                 </Badge>
             )
@@ -294,13 +277,6 @@ const DashboardPage = () => {
                     <h2 className="text-2xl font-bold tracking-tight">Session Dashboard</h2>
                     <p className="text-muted mt-1">Real-time metrics and job history</p>
                 </div>
-                <button
-                    onClick={handleResetConfig}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg border border-white/10 transition-colors text-sm font-medium"
-                >
-                    <Settings size={16} />
-                    Reset Configuration
-                </button>
             </div>
 
             {/* Stats Cards */}

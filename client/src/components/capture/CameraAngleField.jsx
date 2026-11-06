@@ -87,16 +87,27 @@ function buildScene(mount, getPreviewTexture) {
         new THREE.LineBasicMaterial({ color: 0xf0b429, transparent: true, opacity: 0.6 }));
     scene.add(sight);
 
+    // The scene renders on demand only, so whatever changes it must redraw it.
+    let disposed = false;
+    const render = () => { if (!disposed) renderer.render(scene, view); };
+
     let texture = null;
+    let previewGen = 0;                 // bumps on every setPreview, so a late load can tell it is stale
     const setPreview = (url) => {
+        const gen = ++previewGen;
         if (texture) { texture.dispose(); texture = null; }
         if (!url) { subject.material[4].map = null; subject.material[4].needsUpdate = true; return; }
+        // The loader is asynchronous: the picture arrives after the caller's
+        // render(), so it has to draw itself — or the slab stays grey until the
+        // first drag.
         new THREE.TextureLoader().load(url, (t) => {
+            if (disposed || gen !== previewGen) { t.dispose(); return; }   // replaced or unmounted meanwhile
             t.colorSpace = THREE.SRGBColorSpace;
             texture = t;
             subject.material[4].map = t;                 // +Z face
             subject.material[4].color.set(0xffffff);
             subject.material[4].needsUpdate = true;
+            render();
         }, undefined, () => { /* a preview that will not decode is not an error */ });
     };
     setPreview(getPreviewTexture);
@@ -121,9 +132,8 @@ function buildScene(mount, getPreviewTexture) {
         view.updateProjectionMatrix();
     };
 
-    const render = () => renderer.render(scene, view);
-
     const dispose = () => {
+        disposed = true;
         if (texture) texture.dispose();
         renderer.dispose();
         scene.traverse((o) => {
@@ -202,6 +212,25 @@ const CameraAngleField = ({ paramKey, label, config, value, onChange, previewUrl
     useEffect(() => { sceneRef.current?.setPreview(previewUrl); sceneRef.current?.render(); }, [previewUrl]);
     useEffect(() => { sceneRef.current?.place(cam); sceneRef.current?.render(); }, [cam]);
 
+    // Scroll to zoom. Bound natively and NON-passive: React 18 registers its own
+    // wheel listener at the root as passive, so preventDefault() from an onWheel
+    // prop is ignored and the booking form scrolled along with the zoom, sliding
+    // the stage out from under the pointer (same reason as ImageZoomViewer).
+    // The handler is read through a ref so the listener is bound once.
+    const wheelRef = useRef(null);
+    wheelRef.current = (e) => {
+        if (disabled) return;
+        e.preventDefault();
+        setAxis('zoom', camRef.current.zoom + (e.deltaY < 0 ? 0.5 : -0.5));
+    };
+    useEffect(() => {
+        const mount = mountRef.current;
+        if (!mount) return undefined;
+        const onWheel = (e) => wheelRef.current?.(e);
+        mount.addEventListener('wheel', onWheel, { passive: false });
+        return () => mount.removeEventListener('wheel', onWheel);
+    }, []);
+
     const onPointerDown = (e) => {
         if (disabled) return;
         e.currentTarget.setPointerCapture?.(e.pointerId);
@@ -223,11 +252,6 @@ const CameraAngleField = ({ paramKey, label, config, value, onChange, previewUrl
         e.currentTarget.releasePointerCapture?.(e.pointerId);
         dragRef.current = null;
     };
-    const onWheel = (e) => {
-        if (disabled) return;
-        e.preventDefault();
-        setAxis('zoom', camRef.current.zoom + (e.deltaY < 0 ? 0.5 : -0.5));
-    };
 
     return (
         <div className="space-y-2">
@@ -246,7 +270,6 @@ const CameraAngleField = ({ paramKey, label, config, value, onChange, previewUrl
                     onPointerMove={onPointerMove}
                     onPointerUp={endDrag}
                     onPointerCancel={endDrag}
-                    onWheel={onWheel}
                 />
 
                 {/* What the model is actually told. Shown as the separate terms it

@@ -1,7 +1,8 @@
 // SERVER_URL — origin the client targets for REST + Socket.IO.
 //
 // In dev, Vite proxies all backend routes (see vite.config.js), so the page,
-// the API, and the websocket all share a single HTTPS origin. Same-origin
+// the API, and the websocket all share a single HTTP origin (plain HTTP on
+// purpose — HTTPS was tried and reverted, see vite.config.js). Same-origin
 // means we don't need to know the hostname or protocol — relative paths
 // just work, and the browser routes them through the proxy.
 //

@@ -76,3 +76,32 @@ export function formatDuration(ms) {
     const s = totalSec % 60;
     return s ? `${m}m ${s}s` : `${m}m`;
 }
+
+// The line a student reads under a failed job. ComfyUI's own errors arrive
+// already rewritten where ComfyQ knows the case (errorMessages.humanizeFailure),
+// but the reasons ComfyQ writes itself are bare codes; spell those out. Anything
+// else is shown as it came.
+const FAILURE_TEXT = {
+    'server-restart': 'ComfyQ restarted while this job was running — book it again.',
+    'comfyui-process-exited': 'The image engine (ComfyUI) stopped during this job — book it again.',
+    'emergency-stop': 'An admin stopped all running jobs.',
+    'workflow-unavailable': 'This workflow is no longer available on this machine.',
+    'cancelled': 'Cancelled.',
+};
+export function failureText(reason) {
+    if (reason == null) return '';
+    const key = String(reason).trim();
+    return FAILURE_TEXT[key] || String(reason);
+}
+
+// Badge colour for a job's wire status (scheduled / processing / completed /
+// failed / cancelled). A failed job must not share the scheduled colour, or a
+// student reads it as still waiting. Use it wherever a job's status is drawn as
+// a badge, so every view agrees.
+export function statusBadgeVariant(status) {
+    if (status === 'completed') return 'success';
+    if (status === 'processing') return 'warning';
+    if (status === 'failed') return 'danger';
+    if (status === 'cancelled') return 'default';
+    return 'primary';
+}

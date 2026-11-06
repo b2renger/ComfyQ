@@ -81,7 +81,7 @@ const IdleWarningBanner = () => {
   return (
     <div className="shrink-0 flex items-center gap-2 px-4 py-1.5 bg-amber-500/15 border-b border-amber-500/30 text-amber-500 text-xs font-medium">
       <Moon size={13} className="shrink-0" />
-      This tab has been idle and nothing of yours is queued — it will pause in {parkWarning}s. Move the mouse or press a key to keep it.
+      This tab has been idle and nothing of yours is queued — it will pause in {parkWarning}s. Click, scroll or press a key to keep it.
     </div>
   );
 };
@@ -231,9 +231,12 @@ const NavLink = ({ to, icon: Icon, label, end = false }) => {
   const location = useLocation();
   const isActive = end ? location.pathname === to : location.pathname.startsWith(to);
 
+  // Keep the query string: `?workflow=<id>` pins this tab to one lane, and
+  // SocketContext reads it from the URL only when the page loads. Dropping it
+  // here was harmless until the next reload, which then booked the main lane.
   return (
     <Link
-      to={to}
+      to={{ pathname: to, search: location.search }}
       className={`flex items-center space-x-2 px-2 sm:px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 ${isActive
         ? 'bg-primary/15 text-foreground'
         : 'text-muted hover:text-foreground hover:bg-white/5'
@@ -270,28 +273,38 @@ const App = () => {
   const [mode, setMode] = useState(null); // 'admin' | 'student' | null
   // null = not checked yet, true = may enter, false = show the gate.
   const [accessOk, setAccessOk] = useState(null);
+  // The machine's name, when /access/status tells it, so the gate can say
+  // which rig is asking for a password (a class often has several open).
+  const [machineName, setMachineName] = useState('');
 
+  // A boot can keep the server silent for a while (a boot that resumes serving
+  // waits for ComfyUI before it listens). After three quick tries the app
+  // assumes student mode so the page is not stuck on "Connecting", but it keeps
+  // asking every few seconds and corrects the mode when the server answers.
+  // Otherwise a slow admin boot left `/` on a student page that could never
+  // connect: admin mode has no Socket.IO server.
   useEffect(() => {
-    const checkMode = async (retries = 3) => {
+    let gone = false;
+    let timer = null;
+    const checkMode = async (attempt = 0) => {
       try {
         const res = await fetch(`${SERVER_URL}/admin/mode`);
-        if (res.ok) {
-          const data = await res.json();
-          setMode(data.mode);
-        } else {
-          throw new Error("Server response not OK");
-        }
+        if (!res.ok) throw new Error("Server response not OK");
+        const data = await res.json();
+        if (!gone) setMode(data.mode);
       } catch (error) {
-        if (retries > 0) {
-          console.log(`[App] Retrying mode check... (${retries} left)`);
-          setTimeout(() => checkMode(retries - 1), 1500);
-        } else {
-          console.error("Failed to check server mode after retries", error);
-          setMode('student');
+        if (gone) return;
+        if (attempt < 3) {
+          console.log(`[App] Retrying mode check... (${3 - attempt} left)`);
+        } else if (attempt === 3) {
+          console.error("Failed to check server mode after retries — assuming student mode, still asking", error);
+          setMode(m => m || 'student');
         }
+        timer = setTimeout(() => checkMode(attempt + 1), attempt < 3 ? 1500 : 3000);
       }
     };
     checkMode();
+    return () => { gone = true; clearTimeout(timer); };
   }, []);
 
   // Is this machine reserved? A stored token from a previous session is
@@ -301,6 +314,7 @@ const App = () => {
       const res = await fetch(`${SERVER_URL}/access/status`, { headers: accessHeaders() });
       if (!res.ok) throw new Error('status check failed');
       const data = await res.json();
+      setMachineName(typeof data.name === 'string' ? data.name : '');
       if (data.locked && !data.valid) clearAccessToken();   // stale token
       setAccessOk(!data.locked || !!data.valid);
     } catch {
@@ -332,7 +346,7 @@ const App = () => {
     <Router>
       <Routes>
         {/* Admin Route - Always accessible for configuration, but intended flow is based on mode */}
-        <Route path="/admin" element={<AdminConfig currentMode={mode} />} />
+        <Route path="/admin" element={<AdminConfig />} />
 
         {/* User Routes - Only fully functional in student mode */}
         <Route path="/user" element={
@@ -343,7 +357,7 @@ const App = () => {
               </SocketProvider>
             ) : (
               <div className="h-screen bg-background">
-                <AccessGate onUnlocked={() => setAccessOk(true)} />
+                <AccessGate machineName={machineName} onUnlocked={() => setAccessOk(true)} />
               </div>
             )
           ) : (

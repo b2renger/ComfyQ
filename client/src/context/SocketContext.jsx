@@ -5,11 +5,14 @@ import { SERVER_URL } from '../utils/api';
 import { getAccessToken, accessHeaders } from '../utils/access';
 import { mergeState, applyPatch } from '../utils/mergeState';
 import { idleHeld } from '../utils/idleHold';
+import { followTabWorkflow } from './tabWorkflow';
 
 const SocketContext = createContext();
 
 // How long a booking waits for the server's confirmation.
 const BOOK_TIMEOUT_MS = 15000;
+// How long a move on the timeline waits for the server's answer.
+const REORDER_TIMEOUT_MS = 10000;
 
 // A tab nobody is using still holds a socket, a job grid and its media. In a
 // workshop that means dozens of them per machine, opened from the fleet monitor
@@ -43,6 +46,23 @@ const scopedWorkflowIdFromUrl = () => {
     catch { return null; }
 };
 
+// The library's showcase jobs live under this user (tools/maintenance/
+// seed_examples.cjs); UsernameModal refuses it. A browser that stored it
+// before that rule would otherwise skip the name prompt and keep claiming it
+// on every connect, so a stored reserved name counts as no name at all.
+const USERNAME_KEY = 'comfyq_username';
+const RESERVED_USERNAMES = new Set(['examples']);
+const isReservedUsername = (name) => RESERVED_USERNAMES.has(String(name || '').trim().toLowerCase());
+const forgetStoredUsername = () => {
+    try { localStorage.removeItem(USERNAME_KEY); } catch { /* no localStorage */ }
+};
+const readStoredUsername = () => {
+    let name = '';
+    try { name = localStorage.getItem(USERNAME_KEY) || ''; } catch { return ''; }
+    if (name && isReservedUsername(name)) { forgetStoredUsername(); return ''; }
+    return name;
+};
+
 const readOnce = (key) => {
     try {
         const v = sessionStorage.getItem(key);
@@ -70,9 +90,8 @@ export const useSocket = () => useContext(SocketContext);
  * below never change identity (they read the socket and username from refs).
  */
 export const SocketProvider = ({ children, onAccessDenied }) => {
-    const [socket, setSocket] = useState(null);
     const socketRef = useRef(null);
-    const [username, setUsername] = useState(localStorage.getItem('comfyq_username') || '');
+    const [username, setUsername] = useState(readStoredUsername);
     const usernameRef = useRef(username);
     // 'connecting' until the first connect, then 'connected' / 'reconnecting'
     // / 'paused' (parked on purpose — see IDLE_PARK_MS).
@@ -138,15 +157,27 @@ export const SocketProvider = ({ children, onAccessDenied }) => {
     // for the previous workflow, whose parameters mean nothing to the new one —
     // students had to reload the page to book again. Announce the switch and
     // let the UI rebuild itself.
-    const activeWorkflowName = state.workflow_info?.name;
+    //
+    // Watched on THIS TAB's model, not the machine's main lane: a tab opened for
+    // one lane (…/user?workflow=<id>, how Discovery opens them) keeps booking that
+    // lane when the admin switches the main one, so telling it "your form has
+    // been updated" — or reloading it — would be false. While an extra lane is
+    // briefly missing (a restart reopens it after the main one) the tab waits;
+    // when the lane it was on was the MAIN one, its disappearing is the switch.
+    // The rule, and why, is in tabWorkflow.js.
+    const scopedMemoryRef = useRef({ seen: false, wasPrimary: false });
+    const { id: tabWorkflowId, name: tabWorkflowName } = followTabWorkflow(
+        { scopedWorkflowId, lanes: state.lanes, workflowInfo: state.workflow_info },
+        scopedMemoryRef.current,
+    );
     const lastWorkflowId = useRef(undefined);
     useEffect(() => {
-        const id = state.workflow_info?.id;
-        if (id === undefined) return;                       // no state yet
+        const id = tabWorkflowId;
+        if (id === undefined) return;                       // no state yet / own lane not listed
         const previous = lastWorkflowId.current;
         lastWorkflowId.current = id;
         if (previous === undefined || previous === id) return;   // first sighting / unchanged
-        const name = activeWorkflowName || id || 'no workflow';
+        const name = tabWorkflowName || id || 'no workflow';
 
         // Rebuilding the forms in place works, but a tab that lived through a
         // switch has stale everything else too — the workflow library, the
@@ -173,7 +204,7 @@ export const SocketProvider = ({ children, onAccessDenied }) => {
                 ? `This machine now serves “${name}”. The booking form has been updated — no need to reload.`
                 : 'This machine stopped serving a workflow. Booking is paused until an admin starts one.',
         }]);
-    }, [state.workflow_info?.id, activeWorkflowName]);
+    }, [tabWorkflowId, tabWorkflowName]);
 
     const dismissWorkflowChange = useCallback(() => setWorkflowChange(null), []);
 
@@ -216,7 +247,6 @@ export const SocketProvider = ({ children, onAccessDenied }) => {
         const opts = { auth: { accessToken: getAccessToken() } };
         const newSocket = SERVER_URL ? io(SERVER_URL, opts) : io(opts);
         socketRef.current = newSocket;
-        setSocket(newSocket);
         let accessDenied = false;
 
         const denyAccess = () => {
@@ -227,9 +257,20 @@ export const SocketProvider = ({ children, onAccessDenied }) => {
 
         newSocket.on('connect', () => {
             setConnection('connected');
-            const storedName = localStorage.getItem('comfyq_username');
+            const storedName = readStoredUsername();
             if (storedName) {
                 newSocket.emit('register_user', storedName);
+            }
+        });
+
+        // The server would not take this name (a reserved one, such as the
+        // library's "examples"): forget it so the name prompt shows again.
+        newSocket.on('register_refused', (info) => {
+            forgetStoredUsername();
+            usernameRef.current = '';
+            setUsername('');
+            if (info?.message) {
+                setToasts(prev => [...prev, { id: `name-${Date.now()}`, message: `⚠️ ${info.message}`, kind: 'err' }]);
             }
         });
 
@@ -366,10 +407,10 @@ export const SocketProvider = ({ children, onAccessDenied }) => {
     }, []);
 
     const registerUser = useCallback((name) => {
-        if (!name) return;
+        if (!name || isReservedUsername(name)) return;
         usernameRef.current = name;
         setUsername(name);
-        localStorage.setItem('comfyq_username', name);
+        localStorage.setItem(USERNAME_KEY, name);
         socketRef.current?.emit('register_user', name);
     }, []);
 
@@ -418,15 +459,45 @@ export const SocketProvider = ({ children, onAccessDenied }) => {
         else s.emit('cancel_job', jobId);
     }, []);
 
-    const reorderJob = useCallback((jobId, newTimeSlot) => {
-        socketRef.current?.emit('reorder_job', { jobId, newTimeSlot });
-    }, []);
+    // Resolves { ok: true } once the server has moved the job, or
+    // { ok: false, error, timeout? }. When the server can answer, a refusal
+    // (a collision, a time in the past, a job that is gone) comes in the answer
+    // only — no 'error' event — so it is shown here, for every caller. With no
+    // answer the move may still have been taken, so the caller must not undo
+    // it: the next broadcast shows where the job really is.
+    const reorderJob = useCallback((jobId, newTimeSlot) => new Promise((resolve) => {
+        const say = (message) => setToasts(prev => [...prev, {
+            id: `reorder-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+            message: `⚠️ ${message}`,
+            kind: 'err',
+        }]);
+        const s = socketRef.current;
+        // Don't queue the emit while offline: socket.io would replay it on
+        // reconnect, long after the student has moved on.
+        if (!s || !s.connected) {
+            const error = 'Not connected to the server — reconnecting. The job was not moved.';
+            say(error);
+            resolve({ ok: false, error });
+            return;
+        }
+        s.timeout(REORDER_TIMEOUT_MS).emit('reorder_job', { jobId, newTimeSlot }, (err, res) => {
+            if (err) {
+                const error = 'The server did not answer about the move. The timeline will show where the job really is.';
+                say(error);
+                resolve({ ok: false, error, timeout: true });
+                return;
+            }
+            const out = res || { ok: false, error: 'Unexpected reply from the server.' };
+            if (!out.ok) say(out.error || 'The job could not be moved.');
+            resolve(out);
+        });
+    }), []);
 
     const value = useMemo(() => ({
-        socket, connection, state, bookJob, deleteJob, cancelJob, reorderJob, username, registerUser,
+        connection, state, bookJob, deleteJob, cancelJob, reorderJob, username, registerUser,
         workflowsById, workflowChange, dismissWorkflowChange,
         paused, parkWarning, resumeSession, scopedWorkflowId,
-    }), [socket, connection, state, bookJob, deleteJob, cancelJob, reorderJob, username, registerUser,
+    }), [connection, state, bookJob, deleteJob, cancelJob, reorderJob, username, registerUser,
         workflowsById, workflowChange, dismissWorkflowChange, paused, parkWarning, resumeSession, scopedWorkflowId]);
 
     return (

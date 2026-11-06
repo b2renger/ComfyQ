@@ -1,19 +1,21 @@
 import React, { useRef, useState } from 'react';
 import { Upload, X, Image as ImageIcon, Video as VideoIcon, Music, Box, Loader2, AlertTriangle, RotateCw } from 'lucide-react';
 import { resizeImageFile } from '../../utils/imageResize';
+import { uploadBox } from './uploadBox';
 
-// Default image bounding box when the workflow's exposedParameter doesn't
-// declare `maxInputEdge`: 1920×1080 in EITHER orientation (long edge ≤ 1920,
-// short edge ≤ 1080). A per-parameter `maxInputEdge` overrides this with a
-// single square long-edge cap. Admins set maxInputEdge in the metadata editor.
-const DEFAULT_IMAGE_MAX_LONG = 1920;
-const DEFAULT_IMAGE_MAX_SHORT = 1080;
+// Image bounding box: 1920×1080 in EITHER orientation (long edge ≤ 1920, short
+// edge ≤ 1080) — the most the server accepts. A per-parameter `maxInputEdge`
+// (set in the metadata editor) can only shrink it to a square long-edge cap;
+// see uploadBox.js for why a larger value is clamped.
 
 // 3D meshes have no usable MIME prefix to filter on the way image/* and video/*
 // do — a browser reports .obj and .stl as '' and .glb inconsistently — so the
 // file picker and the drop target match on EXTENSION instead. These are the
-// formats ComfyUI's own mesh reader opens.
-const MODEL3D_EXTS = ['.glb', '.gltf', '.obj', '.stl', '.ply', '.fbx'];
+// formats ComfyUI's own mesh reader opens: Get3DComponents
+// (comfy_extras/nodes_mesh_io.py) parses glb/gltf/obj/stl and rejects
+// everything else (fbx/usdz explicitly, ply as an unknown format), so a
+// .ply or .fbx accepted here would only fail later, inside the job.
+const MODEL3D_EXTS = ['.glb', '.gltf', '.obj', '.stl'];
 const hasModel3dExt = (name) => MODEL3D_EXTS.some(e => (name || '').toLowerCase().endsWith(e));
 
 // MediaCaptureField — image/video upload widget for BookingDialog.
@@ -52,9 +54,9 @@ const MediaCaptureField = ({
     const isImage = type === 'image';
     const noun = isAudio ? 'audio' : isVideo ? 'video' : isModel3d ? '3D model' : 'image';
     // When maxInputEdge is set, use it as a square long-edge cap (legacy
-    // single-edge behavior); otherwise the 1920×1080 box.
-    const maxLong = maxInputEdge ?? DEFAULT_IMAGE_MAX_LONG;
-    const maxShort = maxInputEdge ?? DEFAULT_IMAGE_MAX_SHORT;
+    // single-edge behavior), never larger than the 1920×1080 box the server
+    // accepts; otherwise that box.
+    const { maxLong, maxShort } = uploadBox(maxInputEdge);
     const acceptPrefix = `${type}/`;
     const acceptAttr = isModel3d ? MODEL3D_EXTS.join(',') : `${type}/*`;
 

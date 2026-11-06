@@ -94,6 +94,17 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
     const [isDragging, setIsDragging] = useState(false);
     const [restarting, setRestarting] = useState(false);
     const inputRef = useRef(null);
+    // Whether the output folder holds something the admin TYPED, rather than the
+    // previous document's name filled in by its preview. Only a typed folder is
+    // carried over to the next document.
+    const folderTyped = useRef(false);
+    // Batches already opened automatically, or collapsed by hand: each live batch
+    // is auto-opened once, so collapsing it sticks.
+    const autoOpened = useRef(new Set());
+    // A second click while a queue request is in flight must not book the
+    // batch twice. A ref, not the `queueing` state: the closure a fast second
+    // click runs in can still hold the old `false`.
+    const queueingRef = useRef(false);
 
     const authHeaders = useCallback(() => (
         adminPassword ? { 'X-Admin-Password': adminPassword } : {}
@@ -142,20 +153,28 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
 
     // Open whichever batch is actually working, so "what is running now?" is
     // answered without anyone having to click.
+    // ★ Once per batch. Re-opening any live batch whenever nothing was open made
+    // the chevron useless while it ran: collapsing set openBatchId to null, this
+    // ran again and opened it straight back (and kept its 1.5 s poll going).
     useEffect(() => {
         if (openBatchId) return;
-        const live = batches.find(b => (b.running || 0) + (b.pending || 0) > 0);
-        if (live) setOpenBatchId(live.batchId);
+        const live = batches.find(b => (b.running || 0) + (b.pending || 0) > 0
+            && !autoOpened.current.has(b.batchId));
+        if (live) { autoOpened.current.add(live.batchId); setOpenBatchId(live.batchId); }
     }, [batches, openBatchId]);
 
-    const runPreview = async (f) => {
+    // `folderOverride`: the folder to send for a newly picked file. The state
+    // update in pickFile has not landed yet when this runs, so `folder` here is
+    // still the previous document's.
+    const runPreview = async (f, folderOverride) => {
+        const fld = folderOverride !== undefined ? folderOverride : folder;
         setPreviewing(true);
         setPreviewError(null);
         setPreview(null);
         try {
             const form = new FormData();
             form.append('file', f);
-            if (folder) form.append('folder', folder);
+            if (fld) form.append('folder', fld);
             // No Content-Type — the browser must set the multipart boundary.
             const res = await fetch(`${SERVER_URL}/storyboard/preview`, {
                 method: 'POST', headers: authHeaders(), body: form
@@ -163,7 +182,7 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Could not read that storyboard');
             setPreview(data);
-            if (!folder && data.outputFolder) setFolder(data.outputFolder);
+            if (!fld && data.outputFolder) setFolder(data.outputFolder);
         } catch (e) {
             setPreviewError(e.message);
         } finally {
@@ -179,16 +198,24 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
         }
         setFile(f);
         setShowJobs(false);
-        runPreview(f);
+        // ★ A new document gets its own folder (the server's default is the
+        // document's name, "so two storyboards never mix") unless the admin typed
+        // one. Keeping the previous preview's folder wrote act2's shots into
+        // output/act1, beside act1's.
+        const keep = folderTyped.current ? folder : '';
+        if (!keep) setFolder('');
+        runPreview(f, keep);
     };
 
     const clearFile = () => {
         setFile(null); setPreview(null); setPreviewError(null); setShowJobs(false);
+        setFolder(''); folderTyped.current = false;
         if (inputRef.current) inputRef.current.value = '';
     };
 
     const queueBatch = async () => {
-        if (!file) return;
+        if (!file || queueingRef.current) return;
+        queueingRef.current = true;
         setQueueing(true);
         try {
             const form = new FormData();
@@ -216,6 +243,7 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
         } catch (e) {
             notify(e.message, 'err');
         } finally {
+            queueingRef.current = false;
             setQueueing(false);
         }
     };
@@ -359,7 +387,8 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
                                 ))}
                             </div>
                             <p className="mt-1">
-                                Each load costs a minute or two on top of the estimate above, so the shots
+                                Each load costs roughly 5–55 s on this rig (longer on a first load from
+                                disk) on top of the estimate above, so the shots
                                 are ordered to load every model once rather than once per shot.
                             </p>
                         </div>
@@ -471,7 +500,8 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
                         <label className="flex items-center gap-2 text-xs text-muted">
                             <FolderOpen size={12} /> Output folder
                             <input
-                                type="text" value={folder} onChange={(e) => setFolder(e.target.value)}
+                                type="text" value={folder}
+                                onChange={(e) => { setFolder(e.target.value); folderTyped.current = e.target.value !== ''; }}
                                 placeholder={preview.outputFolder || 'storyboard'}
                                 className="bg-background border border-border rounded-lg px-2 py-1 text-xs text-foreground w-48"
                             />
@@ -523,7 +553,12 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
                             <div key={b.batchId} className="border border-border rounded-lg p-3">
                                 <div className="flex items-center gap-2 mb-2">
                                     <button type="button"
-                                        onClick={() => setOpenBatchId(openBatchId === b.batchId ? null : b.batchId)}
+                                        onClick={() => {
+                                            if (openBatchId === b.batchId) {
+                                                autoOpened.current.add(b.batchId);   // collapsed by hand: stays shut
+                                                setOpenBatchId(null);
+                                            } else setOpenBatchId(b.batchId);
+                                        }}
                                         className="flex items-center gap-2 min-w-0 text-left hover:text-primary transition-colors">
                                         {openBatchId === b.batchId ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                                         <FileText size={14} className="text-muted shrink-0" />

@@ -146,7 +146,7 @@ const MissingPackChip = ({ classes, packs, source }) => {
 };
 
 const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false, onValidate, validatingId = null,
-    lanes = [], laneFit = {}, onServeAlongside = null, serveAlongsideId = null, onCloseLane = null, closingLaneId = null }) => {
+    lanes = [], laneFit = {}, onServeAlongside = null, serveAlongsideId = null, onCloseLane = null, closingLaneId = null, onSweepRunning = null }) => {
     const [workflows, setWorkflows] = useState([]);
     // This machine's card, so "17.3 GB" can be judged against what it has —
     // the same workflow is comfortable on a 96 GB card and impossible on 24.
@@ -184,6 +184,38 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
 
     useEffect(() => { fetchWorkflows(); }, []);
 
+    // A library sweep runs inside this server process, and "Activate & serve"
+    // from admin mode restarts it, so the server refuses (409) while a sweep is
+    // running or stopping. Grey the button out rather than offer a click that
+    // will be refused. Only admin mode matters: while serving, activating is a
+    // live switch with no restart, and a sweep cannot run then anyway.
+    const [sweepRunning, setSweepRunning] = useState(false);
+    const watchSweep = !!onActivate && !serving;
+    useEffect(() => {
+        if (!watchSweep) { setSweepRunning(false); return undefined; }
+        let cancelled = false;
+        let timer = null;
+        const poll = async () => {
+            let running = false;
+            try {
+                const res = await fetch(`${SERVER_URL}/admin/library-sweep`);
+                if (res.ok) {
+                    const state = (await res.json())?.run?.state;
+                    running = state === 'running' || state === 'stopping';
+                }
+            } catch { /* unknown: leave the button usable, the server still refuses */ }
+            if (cancelled) return;
+            setSweepRunning(running);
+            timer = setTimeout(poll, running ? 10000 : 30000);
+        };
+        poll();
+        return () => { cancelled = true; clearTimeout(timer); };
+    }, [watchSweep]);
+    // Tell the page too, so its own "Activate & serve" (the bottom bar) greys
+    // out the same way. An effect on the state rather than a call in poll(), so
+    // the reset above (no watch while serving) also reports false.
+    useEffect(() => { onSweepRunning?.(sweepRunning); }, [sweepRunning, onSweepRunning]);
+
     useEffect(() => {
         if (selectedWorkflowId && (!selectedWorkflow || selectedWorkflow.id !== selectedWorkflowId)) {
             fetchDetails(selectedWorkflowId);
@@ -220,11 +252,12 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
         }
     };
 
-    // Alphabetical by display name (case-insensitive, natural-number order) so the
-    // library reads predictably; group filter + search derive from this order.
+    // Alphabetical by the model's name (case-insensitive, natural-number order), the
+    // name the admin reads first, so one model's cards sit together; group filter +
+    // search derive from this order.
     const usable = workflows
         .filter(w => !w.unavailable)
-        .sort((a, b) => (a.title || a.name || a.id).localeCompare(b.title || b.name || b.id, undefined, { sensitivity: 'base', numeric: true }));
+        .sort((a, b) => (a.name || a.title || a.id).localeCompare(b.name || b.title || b.id, undefined, { sensitivity: 'base', numeric: true }));
     // Keyword search: every whitespace-separated term must appear somewhere in
     // the name / description / tags / category / id (AND match). Runs before the
     // group filter so the chip counts reflect the current search.
@@ -444,8 +477,10 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
                             <div className={viewMode === 'list' ? 'flex-1 min-w-0' : ''}>
                                 <div className="flex items-start justify-between gap-2">
                                     <div className="min-w-0">
-                                        <h4 className={`font-medium truncate ${isSelected ? 'text-primary' : 'text-foreground'}`} title={w.title || w.name}>{w.title || w.name}</h4>
-                                        {w.title && w.title !== w.name && <p className="text-[11px] text-muted truncate" title={w.name}>{w.name}</p>}
+                                        {/* The admin reads the model's own name first; the plain
+                                            title is what students see first, so it sits under it. */}
+                                        <h4 className={`font-medium truncate ${isSelected ? 'text-primary' : 'text-foreground'}`} title={w.name || w.title}>{w.name || w.title}</h4>
+                                        {w.title && w.title !== w.name && <p className="text-[11px] text-muted truncate" title={`Students see: ${w.title}`}>{w.title}</p>}
                                     </div>
                                     {isSelected && <ChevronRight size={16} className="text-primary flex-shrink-0" />}
                                 </div>
@@ -590,11 +625,13 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
                                         ) : (
                                             <button
                                                 type="button"
-                                                disabled={!canActivate || activatingId !== null}
+                                                disabled={!canActivate || activatingId !== null || sweepRunning}
                                                 onClick={(e) => { e.stopPropagation(); onActivate(w.id); }}
                                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-primary/15 border border-primary/40 text-primary hover:bg-primary/25 transition-colors disabled:opacity-40 disabled:cursor-not-allowed ml-auto"
                                                 title={!canActivate
                                                     ? 'Configure ComfyUI paths first (Admin → ComfyUI settings)'
+                                                    : sweepRunning
+                                                        ? 'A library sweep is running, and activating restarts the server, which would stop it mid-bundle. Stop the sweep from its card under Maintenance, or wait for it to finish.'
                                                     : w.experimental
                                                         ? 'Activate & serve this workflow (switches to student mode) — it is still experimental, so test it before a class relies on it'
                                                         : 'Activate & serve this workflow (switches to student mode)'}
