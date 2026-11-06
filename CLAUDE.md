@@ -14,9 +14,9 @@ Portable project knowledge for ComfyQ (multi-user ComfyUI workflow scheduler). T
 - **80 bundles** in `workflows/`, 19 flagged experimental. `workflows/_candidate_workflows/` is the owner's staging: leave it alone.
 - **80 captioned examples** (user `examples`), seeded from the test suite in [tools/test-suite](tools/test-suite/README.md). Results of the last full run: [docs/showcase-research/run-2026-11-04.md](docs/showcase-research/run-2026-11-04.md), [docs/workflow-assessment.md](docs/workflow-assessment.md).
 - **Discovery** is at v2.1.0; `desktop/` has unreleased changes.
-- ⚠ **The 2026-11-05 review is uncommitted**: ~800 fixes, 64 test files green (`npm run test:storyboard`), client builds. 40 untracked files must go in the same commit, or ComfyQ does not boot on a clone. No fix has run on a real job yet. State before the review: `refs/review/baseline-2026-11-05`.
+- ⚠ **The 2026-11-05 review is committed and pushed (`c29201b`..`cda84aa`), but no fix has run on a real job yet.** Tests are green (`npm run test:storyboard`), with stand-ins for ComfyUI. The rig still runs the code as it was when ComfyQ last restarted. The first real check is question 19.
 - ⚠ **9 cards with `whenEmpty: "unlink"` ran with a black placeholder from 2026-09-21 to 2026-11-05.** Their examples and `runtime.json` were made that way and need a re-run (question 19 of the review).
-- Decided by the owner (2026-11-06): ComfyUI's port stays open on the LAN for now; scan folders stay as they are; cleaning outputs or history removes the showcase too, with no exemption. Questions 10 onward are still open.
+- Decided by the owner (2026-11-06): ComfyUI's port stays open on the LAN for now; scan folders stay as they are; cleaning outputs or history removes the showcase too, with no exemption. The 12 cards with a higher VRAM peak in git history stay as they are. Questions 10 onward are still open.
 
 ## How the machine runs
 
