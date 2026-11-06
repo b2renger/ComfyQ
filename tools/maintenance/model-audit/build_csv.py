@@ -21,6 +21,9 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 HERE = os.path.dirname(os.path.abspath(__file__))
 import sys as _sys, os as _os
 _sys.path.insert(0, _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__))))
+# ComfyUI's embedded Python leaves this script's own folder off sys.path, so
+# `import variants` below needs it put there by hand.
+_sys.path.insert(0, HERE)
 from comfyq_paths import comfy_root, labelled_workflow_dirs, repo_root
 # ComfyQ's bundle folder, found by walking up to the repo root rather than
 # by assuming it sits at <drive>\ComfyQ.
@@ -186,8 +189,14 @@ def loaders(u):
 def used_by_text(u):
     """Readable, complete: exactly which workflows load this model."""
     parts = []
-    for org in ('comfyq', 'candidate', 'comfyui_staged', 'demo'):
-        got = loaders(u).get(org)
+    found = loaders(u)
+    # The four collections every machine has come first, in a fixed order; then
+    # any other folder the scan read (a lane's saved workflows, a folder added
+    # under Folders scanned), by its own label -- a model loaded only there is
+    # still LOADED, and the column must say by what.
+    named = ('comfyq', 'candidate', 'comfyui_staged', 'demo')
+    for org in named + tuple(sorted(o for o in found if o not in named)):
+        got = found.get(org)
         if got:
             parts.append(org + ': ' + ', '.join(sorted(got)))
     for b in picked_by(u):

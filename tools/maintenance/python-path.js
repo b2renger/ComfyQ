@@ -29,6 +29,18 @@ if (root) {
         if (cfg.comfy_ui?.root_path) candidates.push(cfg.comfy_ui.root_path);
     } catch { /* no config on this machine */ }
 }
+// Then an install beside this checkout, in the two layouts ComfyQ's own boot
+// looks for first (comfyCandidates in server/config/configManager.js; the same
+// list as comfyq_paths.beside_checkout). config.json is only rewritten when
+// ComfyQ boots, so a clone under a new drive letter, or a restored ISO, is
+// found here before ComfyQ has ever run on that machine.
+const parent = path.dirname(root || path.resolve(__dirname, '..', '..'));
+for (const c of [
+    path.join(parent, 'ComfyUI_windows_portable_nvidia', 'ComfyUI_windows_portable', 'ComfyUI'),
+    path.join(parent, 'ComfyUI_windows_portable', 'ComfyUI'),
+]) {
+    if (fs.existsSync(path.join(c, 'main.py'))) candidates.push(c);
+}
 
 for (const c of candidates) {
     const py = path.resolve(c, '..', 'python_embeded', 'python.exe');

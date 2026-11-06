@@ -18,10 +18,14 @@
  *     weights, so it must travel with that log or the protection comes back.
  *   - pruned-models.jsonl: how to get a pruned model back. The difference
  *     between "deleted" and "lost".
- *   - config.json: checked separately; both password hashes and the HF token
- *     are empty, so nothing secret travels.
+ *   - config.json: not changed. The run warns (naming the key, never the value)
+ *     when a HuggingFace token or a password hash is still set in it, because
+ *     whatever is in it travels to every machine written from the image.
+ *   - in .comfyq-lanes: whatever belongs to a ComfyUI that is still running --
+ *     its entry in processes.json, its log files, its lane folder (see
+ *     laneResidue.cjs). Everything else there goes.
  *
- * Usage: node wipe_for_clone.cjs [--dry]
+ * Usage: node wipe_for_clone.cjs [--dry] [--other-drive]
  */
 const fs = require('fs');
 const path = require('path');
@@ -33,6 +37,18 @@ const COMFY = cfg.comfy_ui.root_path;
 const OUT = cfg.comfy_ui.output_dir || path.join(COMFY, 'output');
 const INP = path.join(COMFY, 'input');
 const DATA = path.join(REPO, 'server', 'data');
+const { planLaneWipe } = require(path.join(__dirname, 'laneResidue.cjs'));
+
+// This script deletes in the install config.json NAMES, not beside itself. A copy
+// of ComfyQ staged on another drive still names the source, so running it there
+// would wipe the source. A rig with ComfyQ and ComfyUI on two drives on purpose
+// passes --other-drive. (Same-drive copies cannot be told apart: see
+// tools/maintenance/backup-and-move.md.)
+const sameDrive = path.parse(path.resolve(REPO)).root.toLowerCase() === path.parse(path.resolve(COMFY)).root.toLowerCase();
+if (!DRY && !sameDrive && !process.argv.includes('--other-drive')) {
+    console.error(`Refusing: this ComfyQ is at ${REPO}, but its config.json names an install on another drive:\n  ${COMFY}\nIf this is a staged copy, do not run the wipe here (it would delete on that drive). See tools/maintenance/backup-and-move.md.\nIf ComfyQ and ComfyUI really are on two drives, add --other-drive.`);
+    process.exit(1);
+}
 
 const gb = (b) => (b / 1e9).toFixed(2) + ' GB';
 let freed = 0, removed = 0;
@@ -44,19 +60,33 @@ function rmFile(p) {
     if (!DRY) { try { fs.unlinkSync(p); } catch (e) { notes.push(`could not remove ${p}: ${e.message}`); return; } }
     freed += size; removed++;
 }
-function rmTree(p, label) {
-    if (!fs.existsSync(p)) { console.log('  ' + label.padEnd(34) + ' absent'); return; }
+function treeSize(p) {
     let n = 0, b = 0;
     const walk = (d) => {
-        for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+        let entries;
+        try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+        for (const e of entries) {
             const q = path.join(d, e.name);
             if (e.isDirectory()) walk(q);
             else { try { b += fs.statSync(q).size; n++; } catch { /* vanished */ } }
         }
     };
-    walk(p);
-    if (!DRY) { try { fs.rmSync(p, { recursive: true, force: true }); } catch (e) { notes.push(`${label}: ${e.message}`); } }
-    freed += b; removed += n;
+    if (fs.existsSync(p)) walk(p);
+    return { n, b };
+}
+/** Remove a folder; count only what really went (a file held open stays). */
+function rmTreeQuiet(p, label) {
+    const before = treeSize(p);
+    if (DRY) { freed += before.b; removed += before.n; return before; }
+    try { fs.rmSync(p, { recursive: true, force: true }); } catch (e) { notes.push(`${label}: ${e.message}`); }
+    const left = treeSize(p);
+    const gone = { n: before.n - left.n, b: before.b - left.b };
+    freed += gone.b; removed += gone.n;
+    return gone;
+}
+function rmTree(p, label) {
+    if (!fs.existsSync(p)) { console.log('  ' + label.padEnd(34) + ' absent'); return; }
+    const { n, b } = rmTreeQuiet(p, label);
     console.log('  ' + label.padEnd(34) + ' ' + String(n).padStart(5) + ' files  ' + gb(b));
 }
 
@@ -100,23 +130,31 @@ console.log('OUTPUT  (keeping only what the report points at)');
 
 console.log('\nINPUT  (ComfyQ uploads only)');
 {
+    // What ComfyQ stages in ComfyUI/input: students' uploads (comfyq_session__),
+    // the per-run copies (comfyq__) and a storyboard's chained frames, copied
+    // from students' results (comfyq_chain__; only student mode sweeps those,
+    // after 24 h, and this runs in admin mode). comfyq_placeholder.png stays: it
+    // is infrastructure.
+    const STAGED = /^comfyq_(session|chain)__|^comfyq__/;
     let n = 0, b = 0;
     for (const e of fs.readdirSync(INP, { withFileTypes: true })) {
         if (!e.isFile()) continue;
-        if (!/^comfyq_session__|^comfyq__/.test(e.name)) continue;   // placeholder.png stays: it is infrastructure
+        if (!STAGED.test(e.name)) continue;
         const q = path.join(INP, e.name);
         try { b += fs.statSync(q).size; } catch { continue; }
         n++; rmFile(q);
     }
-    console.log('  ' + 'student + sweep uploads'.padEnd(34) + ' ' + String(n).padStart(5) + ' files  ' + gb(b));
+    console.log('  ' + 'uploads + storyboard frames'.padEnd(34) + ' ' + String(n).padStart(5) + ' files  ' + gb(b));
     // ★ The examples' inputs are staged under the same `comfyq_session__` prefix
     // a real booking uses, which is the whole point of them -- so a wipe run
     // AFTER seeding strips them and leaves every example pointing at a file that
     // is not there. Say so rather than leaving it to be discovered.
     if (seededExamples) {
-        notes.push(`${seededExamples} seeded examples were in the job history, and their input files have `
-            + `just been cleared with everybody else's. Run tools/maintenance/seed_examples.cjs again to `
-            + `put them back -- seeding belongs AFTER this script, not before.`);
+        // The job history is emptied further down, so the example jobs themselves
+        // go too -- not only their inputs.
+        notes.push(`${seededExamples} seeded examples were in the job history; the history has been emptied `
+            + `and their input files cleared with everybody else's. Run tools/maintenance/seed_examples.cjs --replace `
+            + `again to put them back -- seeding belongs AFTER this script, not before.`);
     }
     rmTree(path.join(INP, 'clipspace'), "ComfyUI's mask-editor scratch");
     let own = 0, ownB = 0;
@@ -124,7 +162,9 @@ console.log('\nINPUT  (ComfyQ uploads only)');
         for (const e of fs.readdirSync(d, { withFileTypes: true })) {
             const q = path.join(d, e.name);
             if (e.isDirectory()) { if (e.name !== 'clipspace') walkOwn(q); continue; }
-            if (/^comfyq/.test(e.name)) continue;
+            // Skip what the wipe removes above (still there in a --dry run) and
+            // the placeholder; a file that only LOOKS like ComfyQ's is counted.
+            if (STAGED.test(e.name) || e.name === 'comfyq_placeholder.png') continue;
             try { ownB += fs.statSync(q).size; own++; } catch { /* ignore */ }
         }
     };
@@ -136,8 +176,31 @@ console.log('\nINPUT  (ComfyQ uploads only)');
 console.log('\nELSEWHERE');
 rmTree(path.join(COMFY, 'comfyq_ingredients'), 'per-job ingredient snapshots');
 rmTree(path.join(COMFY, 'temp'), "ComfyUI's temp dir");
-rmTree(path.join(REPO, '.comfyq-lanes'), 'parallel-lane state');
-rmTree(path.join(REPO, 'logs'), 'ComfyQ logs');
+// .comfyq-lanes also holds the registry and the console logs of the ComfyUI
+// that is running right now (the main one included), which outlives ComfyQ.
+// Those stay; the lanes and logs of ComfyUIs that are gone are residue.
+{
+    const lanesDir = path.join(REPO, '.comfyq-lanes');
+    const label = 'lane state + ComfyUI logs';
+    if (!fs.existsSync(lanesDir)) console.log('  ' + label.padEnd(34) + ' absent');
+    else {
+        const plan = planLaneWipe(lanesDir);
+        let n = 0, b = 0;
+        for (const p of plan.remove) {
+            let isDir = false;
+            try { isDir = fs.statSync(p).isDirectory(); } catch { continue; }
+            if (isDir) { const g = rmTreeQuiet(p, label); n += g.n; b += g.b; }
+            else {
+                const before = removed, size = (() => { try { return fs.statSync(p).size; } catch { return 0; } })();
+                rmFile(p);
+                if (removed > before) { n++; b += size; }
+            }
+        }
+        console.log('  ' + label.padEnd(34) + ' ' + String(n).padStart(5) + ' files  ' + gb(b)
+            + (plan.livePorts.length ? `   (kept: the running ComfyUI on port ${plan.livePorts.join(', ')})` : ''));
+    }
+}
+rmTree(path.join(REPO, 'logs'), 'old logs/ (nothing writes it now)');
 
 // Stale per-run sweep records: they describe libraries that no longer match
 // (two of them still list bundles that have since been removed).
@@ -204,6 +267,30 @@ console.log('\nJOB HISTORY');
         if (fs.existsSync(p)) { if (!DRY) fs.unlinkSync(p); console.log('\n  removed %s — every clone boots into admin', label); }
     }
     if (!fs.existsSync(marker)) console.log('\nserving     marker absent: a cloned machine boots into admin mode');
+}
+
+// ------------------------------------------------------------------- secrets
+// Not cleared here -- whether a clone should carry them is the owner's call --
+// but never let one travel unnoticed. The key is named, never the value.
+for (const [key, val] of [
+    ['comfy_ui.hf_token', cfg.comfy_ui?.hf_token],
+    ['auth.adminPasswordHash', cfg.auth?.adminPasswordHash],
+    ['auth.accessPasswordHash', cfg.auth?.accessPasswordHash],
+]) {
+    if (val) notes.push(`config.json still carries ${key}. It travels to every machine written from this `
+        + `image (docs/cloning-the-drive.md, step 5) -- clear it before imaging if the clones should not have it.`);
+}
+// configManager keeps earlier copies beside config.json (config.json.v1.bak when
+// it archives an old format, config.json.broken-<n>.bak when it sets a broken one
+// aside) and writes through config.json.tmp; a hand-made config.json.bak is the
+// same thing. Any of them can hold the same secrets. Named, never deleted: same
+// owner's call as above.
+for (const name of fs.readdirSync(REPO)) {
+    if (/^config\.json\.(.*\.)?bak$/.test(name) || name === 'config.json.tmp') {
+        notes.push(`${name} is a kept copy of an earlier config.json and may carry the same secrets (password `
+            + `hashes, hf_token). It travels to every machine written from this image; delete it before imaging `
+            + `if the clones should not have it.`);
+    }
 }
 
 console.log('\n----------------------------------------------------------------');

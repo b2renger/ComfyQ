@@ -15,6 +15,10 @@ Stdlib only, binds to localhost.
 import csv, io, json, os, shutil, sys, threading, webbrowser
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+# ComfyUI's embedded Python pins sys.path (python312._pth) and leaves this
+# script's own folder off it, so the siblings below are importable only once it
+# is put there by hand -- which is how AUDIT.bat runs this.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import scan_links
 import swap_model
 import variants

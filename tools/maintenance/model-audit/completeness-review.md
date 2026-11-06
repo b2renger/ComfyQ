@@ -1,5 +1,9 @@
 # Completeness review
 
+> ⚠ **Report of 2026-09-11, kept as written.** Its disk figures, "today" and "right now" are
+> that day's, and many of the files it weighs were quarantined or deleted since (see
+> `prune-log.csv`). The live numbers are in `model-audit.csv`.
+
 Produced by the audit's final critic pass: what the model-by-model analysis missed.
 Every figure here was measured on disk, not estimated.
 

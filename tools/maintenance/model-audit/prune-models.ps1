@@ -8,11 +8,18 @@
   actually goes by filling the ACTION column (or by trusting the verdict column
   with -UseVerdict). This script then works in two deliberate steps:
 
-     -Execute   MOVE the selected files to <drive>\_model_quarantine\
+     -Execute   MOVE the selected files into a new batch under
+                <drive>\_model_quarantine\<stamp>\models\...
                 On the same volume a move is a rename: instant, even for 300 GB,
                 and completely reversible with -Restore. It does NOT free space.
-     -Purge     permanently delete the quarantine. THIS is what frees the space,
-                and only after you have run ComfyUI and confirmed nothing broke.
+     -Purge     permanently delete the quarantine's batches. THIS is what frees
+                the space, and only after you have run ComfyUI and confirmed
+                nothing broke.
+
+  The batches are the same ones ComfyQ's admin panel writes and reads: its
+  Quarantined models card lists what this script moved, and -Restore and -Purge
+  here act on what the panel moved. -Batch limits them to one batch; without it
+  they act on all of them, after listing what that means.
 
   Work in that order. Quarantine, restart ComfyUI, run the workflows you care
   about, then purge. If something breaks, -Restore puts it back in seconds.
@@ -25,8 +32,9 @@
   .\prune-models.ps1                      # dry run on your ACTION column
   .\prune-models.ps1 -UseVerdict          # dry run on the audit's DELETE verdicts
   .\prune-models.ps1 -UseVerdict -Execute # quarantine them
-  .\prune-models.ps1 -Restore             # undo
+  .\prune-models.ps1 -Restore             # undo, every batch
   .\prune-models.ps1 -Purge               # free the space, after verifying
+  .\prune-models.ps1 -Restore -Batch 2026-11-06T09-30-00-000Z   # one batch only
 #>
 [CmdletBinding(DefaultParameterSetName = 'Plan')]
 param(
@@ -42,6 +50,9 @@ param(
     [Parameter(ParameterSetName = 'Execute')][switch]$Execute,
     [Parameter(ParameterSetName = 'Restore')][switch]$Restore,
     [Parameter(ParameterSetName = 'Purge')][switch]$Purge,
+    [Parameter(ParameterSetName = 'Restore')]
+    [Parameter(ParameterSetName = 'Purge')]
+    [string]$Batch,
 
     # NOTE: do NOT default this to (Join-Path $PSScriptRoot ...) in the param
     # block. With parameter sets declared, $PSScriptRoot is not yet populated
@@ -68,12 +79,16 @@ while ($repoRoot -and -not (Test-Path (Join-Path $repoRoot 'package.json'))) {
     $repoRoot = $parent
 }
 $comfyRoot = $env:COMFY_ROOT
-if (-not $comfyRoot -and $repoRoot) {
+$comfyPort = 8188
+$configuredQuarantine = $null
+if ($repoRoot) {
     $cfgPath = Join-Path $repoRoot 'config.json'
     if (Test-Path $cfgPath) {
         try {
             $cfg = Get-Content $cfgPath -Raw | ConvertFrom-Json
-            if ($cfg.comfy_ui.root_path) { $comfyRoot = $cfg.comfy_ui.root_path }
+            if (-not $comfyRoot -and $cfg.comfy_ui.root_path) { $comfyRoot = $cfg.comfy_ui.root_path }
+            if ($cfg.comfy_ui.api_port) { $comfyPort = $cfg.comfy_ui.api_port }
+            if ($cfg.maintenance.quarantineDir) { $configuredQuarantine = $cfg.maintenance.quarantineDir }
         } catch { }
     }
 }
@@ -85,7 +100,10 @@ if (-not $comfyRoot) {
 $models = Join-Path $comfyRoot 'models'
 # Quarantine goes on the same volume as the models, so a move is instant and
 # needs no second copy of a 40 GB file.
+# The panel's own setting comes first, so the two always share one folder.
+if (-not $Quarantine) { $Quarantine = $configuredQuarantine }
 if (-not $Quarantine) { $Quarantine = Join-Path ([System.IO.Path]::GetPathRoot($models)) '_model_quarantine' }
+$Quarantine = $Quarantine.TrimEnd('\', '/')
 if (-not $Csv) { $Csv = Join-Path $PSScriptRoot 'model-audit.csv' }
 $log = Join-Path $PSScriptRoot 'prune-log.csv'
 
@@ -96,26 +114,64 @@ if (-not (Test-Path $models)) {
 }
 
 function Test-ComfyRunning {
-    try { $null = Invoke-WebRequest 'http://127.0.0.1:8188/system_stats' -TimeoutSec 3 -UseBasicParsing; return $true }
+    try { $null = Invoke-WebRequest "http://127.0.0.1:$comfyPort/system_stats" -TimeoutSec 3 -UseBasicParsing; return $true }
     catch { return $false }
 }
 function Show-Size([double]$bytes) { '{0,9:N1} GB' -f ($bytes / 1GB) }
+
+# One entry per folder directly under the quarantine: a batch of this script or
+# of the panel, or a top-level folder of an older flat quarantine (loras\...).
+# A junction is left alone: following one would act on whatever it points at.
+function Get-QuarantineBatches {
+    $dirs = @(Get-ChildItem -LiteralPath $Quarantine -Directory -Force |
+        Where-Object { -not ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) })
+    if ($Batch) { $dirs = @($dirs | Where-Object { $_.Name -eq $Batch }) }
+    foreach ($d in $dirs) {
+        $files = @(Get-ChildItem -LiteralPath $d.FullName -Recurse -File -Force)
+        [PSCustomObject]@{
+            Name = $d.Name; Path = $d.FullName; Files = $files
+            Bytes = [double](($files | Measure-Object Length -Sum).Sum)
+            # A stamp folder holds models\... (the panel) or the kind folders of an
+            # older run of this script; a flat quarantine has no stamp at all.
+            Stamped = $d.Name -match '^\d{4}-\d{2}-\d{2}T\d{2}[-:]\d{2}'
+        }
+    }
+}
+function Show-Batches($batches) {
+    foreach ($q in $batches) { "  {0} {1,5} files  {2}" -f (Show-Size $q.Bytes), $q.Files.Count, $q.Name }
+}
 
 # ---------------------------------------------------------------- RESTORE ---
 if ($Restore) {
     if (-not (Test-Path $Quarantine)) { Write-Host "Nothing quarantined ($Quarantine does not exist)."; exit 0 }
     if (Test-ComfyRunning) { Write-Host "Stop ComfyUI first - it has model files open." -ForegroundColor Red; exit 1 }
-    $n = 0; $b = 0
-    Get-ChildItem $Quarantine -Recurse -File | ForEach-Object {
-        $rel = $_.FullName.Substring($Quarantine.Length).TrimStart('\')
-        $dest = Join-Path $models $rel
-        New-Item -ItemType Directory -Force -LiteralPath (Split-Path $dest) | Out-Null
-        Move-Item -LiteralPath $_.FullName -Destination $dest -Force
-        $n++; $b += $_.Length
+    $batches = @(Get-QuarantineBatches)
+    if ($Batch -and -not $batches) { Write-Host "No batch named $Batch in $Quarantine." -ForegroundColor Red; exit 1 }
+    $n = 0; $b = 0; $kept = 0
+    foreach ($q in $batches) {
+        foreach ($file in $q.Files) {
+            # Path under the batch: a stamped batch drops the stamp, a flat folder
+            # keeps its own name, which IS the kind folder.
+            $base = if ($q.Stamped) { $q.Path } else { Split-Path $q.Path -Parent }
+            $rel = $file.FullName.Substring($base.Length).TrimStart('\')
+            if ($rel -like 'models\*') { $rel = $rel.Substring('models\'.Length) }
+            $dest = Join-Path $models $rel
+            # Never overwrite: if something now sits there, look before losing either.
+            if (Test-Path -LiteralPath $dest) {
+                Write-Host "  KEPT in quarantine, a file is already at models\$rel" -ForegroundColor Yellow
+                $kept++; continue
+            }
+            New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
+            $size = $file.Length
+            Move-Item -LiteralPath $file.FullName -Destination $dest
+            $n++; $b += $size
+        }
+        Get-ChildItem -LiteralPath $q.Path -Recurse -Directory -Force | Sort-Object { $_.FullName.Length } -Descending |
+            Where-Object { -not (Get-ChildItem -LiteralPath $_.FullName -Recurse -File -Force) } |
+            ForEach-Object { Remove-Item -LiteralPath $_.FullName -Recurse -Force }
+        if (-not (Get-ChildItem -LiteralPath $q.Path -Recurse -File -Force)) { Remove-Item -LiteralPath $q.Path -Recurse -Force }
     }
-    Get-ChildItem $Quarantine -Recurse -Directory | Sort-Object { $_.FullName.Length } -Descending |
-        Where-Object { -not (Get-ChildItem -LiteralPath $_.FullName -Recurse -File) } |
-        ForEach-Object { Remove-Item -LiteralPath $_.FullName -Recurse -Force }
+    if ($kept) { Write-Host "$kept file(s) stayed in quarantine (see above)." -ForegroundColor Yellow }
     Write-Host "Restored $n files ($(Show-Size $b)) to models\." -ForegroundColor Green
     Write-Host "Restart ComfyUI." -ForegroundColor Yellow
     exit 0
@@ -124,15 +180,18 @@ if ($Restore) {
 # ------------------------------------------------------------------ PURGE ---
 if ($Purge) {
     if (-not (Test-Path $Quarantine)) { Write-Host "Nothing quarantined."; exit 0 }
-    $f = Get-ChildItem $Quarantine -Recurse -File
-    $b = ($f | Measure-Object Length -Sum).Sum
+    $batches = @(Get-QuarantineBatches | Where-Object { $_.Files.Count -gt 0 })
+    if (-not $batches) { Write-Host $(if ($Batch) { "No batch named $Batch with files in it." } else { "Nothing quarantined." }); exit 0 }
+    $b = ($batches | Measure-Object Bytes -Sum).Sum
+    $count = ($batches | ForEach-Object { $_.Files.Count } | Measure-Object -Sum).Sum
     Write-Host ""
-    Write-Host "  About to PERMANENTLY DELETE $($f.Count) files, $(Show-Size $b)" -ForegroundColor Red
-    Write-Host "  from $Quarantine" -ForegroundColor Red
+    Write-Host "  About to PERMANENTLY DELETE $count files, $(Show-Size $b), in $($batches.Count) batch(es)" -ForegroundColor Red
+    Write-Host "  from $Quarantine, whether this script or ComfyQ's panel moved them:" -ForegroundColor Red
+    Show-Batches $batches
     Write-Host ""
     Write-Host "  Have you restarted ComfyUI and run the workflows you care about? " -NoNewline -ForegroundColor Yellow
     if ((Read-Host "Type PURGE to confirm") -ne 'PURGE') { Write-Host "Aborted - nothing deleted."; exit 0 }
-    Remove-Item $Quarantine -Recurse -Force
+    foreach ($q in $batches) { Remove-Item -LiteralPath $q.Path -Recurse -Force }
     Write-Host "Purged. $(Show-Size $b) freed." -ForegroundColor Green
     exit 0
 }
@@ -172,7 +231,7 @@ if ($inUse -and -not $AllowInUse) {
     Write-Host "  BLOCKED: $($inUse.Count) selected row(s) are still in use." -ForegroundColor Red
     Write-Host ("=" * 78) -ForegroundColor Red
     $inUse | Sort-Object { [double]$_.gb } -Descending | Select-Object -First 20 | ForEach-Object {
-        $who = if ($_.used_in) { $_.used_in } else { 'custom node' }
+        $who = if ($_.used_by) { $_.used_by } else { 'custom node' }
         "  {0,8} GB  {1,-14} {2}" -f $_.gb, $_.status, $_.name
         "            used by: $who"
     }
@@ -237,7 +296,7 @@ if (-not $Execute) {
 
 if (Test-ComfyRunning) {
     Write-Host ""
-    Write-Host "  ComfyUI is running on :8188 - stop it first, it holds model files open." -ForegroundColor Red
+    Write-Host "  ComfyUI is running on :$comfyPort - stop it first, it holds model files open." -ForegroundColor Red
     exit 1
 }
 
@@ -248,10 +307,12 @@ if ((Read-Host "  Type MOVE to continue") -ne 'MOVE') { Write-Host "Aborted."; e
 
 $moved = 0; $bytes = 0
 $stamp = Get-Date -Format 'yyyy-MM-dd HH:mm:ss'
+# The panel's batch layout: <quarantine>\<UTC stamp>\models\<kind>\<file>.
+$batchName = (Get-Date).ToUniversalTime().ToString("yyyy-MM-dd'T'HH-mm-ss-fff'Z'")
 $records = foreach ($item in $present) {
     $rel = $item.Path.Substring($models.Length).TrimStart('\')
-    $dest = Join-Path $Quarantine $rel
-    New-Item -ItemType Directory -Force -LiteralPath (Split-Path $dest) | Out-Null
+    $dest = Join-Path (Join-Path (Join-Path $Quarantine $batchName) 'models') $rel
+    New-Item -ItemType Directory -Force -Path (Split-Path $dest) | Out-Null
     try {
         Move-Item -LiteralPath $item.Path -Destination $dest -Force
         $moved++; $bytes += $item.Bytes
@@ -266,9 +327,10 @@ $records = foreach ($item in $present) {
 $records | Export-Csv $log -Delimiter ';' -NoTypeInformation -Append -Encoding UTF8
 
 Write-Host ""
-Write-Host "  Quarantined $moved files, $(Show-Size $bytes). Log: $log" -ForegroundColor Green
+Write-Host "  Quarantined $moved files, $(Show-Size $bytes), as batch $batchName. Log: $log" -ForegroundColor Green
 Write-Host ""
 Write-Host "  NEXT: start ComfyUI, run the workflows you care about, then either" -ForegroundColor Cyan
 Write-Host "    .\prune-models.ps1 -Purge     (frees the space)" -ForegroundColor Cyan
 Write-Host "    .\prune-models.ps1 -Restore   (puts everything back)" -ForegroundColor Cyan
+Write-Host "  or use the Quarantined models card in ComfyQ's admin panel." -ForegroundColor Cyan
 Write-Host ""

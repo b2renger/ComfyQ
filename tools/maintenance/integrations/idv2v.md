@@ -7,9 +7,11 @@ takes a **source video + one stylized keyframe** and re-renders the clip in that
 style and lighting **while the people keep their identity, expression, gaze and motion**.
 Shoot first, restyle later.
 
-This is the only integration on the drive that required **patching ComfyUI core**, which makes
-it the most fragile thing here after the PyTorch pin. `REPAIR.bat` re-applies it automatically;
-this document explains what it is and why.
+This was the only integration on the drive that required **patching ComfyUI core**, which made
+it the most fragile thing here after the PyTorch pin, and `REPAIR.bat` re-applied the patch after
+every update. It needed that patch until [PR #15139](https://github.com/comfyanonymous/ComfyUI/pull/15139)
+merged upstream (`5c4d2568f`, first in ComfyUI v0.38.0). A stock ComfyUI v0.38.0 or later runs
+it with nothing applied; this drive runs v0.43.2. This document explains what it is and why.
 
 ---
 
@@ -18,7 +20,7 @@ this document explains what it is and why.
 | Piece | Where | Notes |
 |---|---|---|
 | Model `wan_2.1_idv2v_int8_convrot.safetensors` (20.2 GB) | `ComfyUI\models\diffusion_models\` | from [Kijai/Wan_ID_V2V_comfy](https://huggingface.co/Kijai/Wan_ID_V2V_comfy) — same int8-convrot quantisation the rig already uses for Wan-Animate |
-| Core patch — 4 files, +17/−4 lines | ComfyUI working tree | automated by `REPAIR.bat`; reference diff in [`patches\comfyui-idv2v-pr15139.patch`](patches/comfyui-idv2v-pr15139.patch) |
+| Core patch — 4 files, +17/−4 lines | ComfyUI working tree | no longer needed (upstream since v0.38.0); the reference diff is kept in [`patches\comfyui-idv2v-pr15139.patch`](patches/comfyui-idv2v-pr15139.patch) |
 | 3 example workflows | `ComfyUI\user\default\workflows\idv2v_*.json` | open from ComfyUI's **Workflows** sidebar |
 | Demo assets | `ComfyUI\input\idv2v_demo_*` | 3 files: `_source.mp4` (100 frames, 720×720), `_frame0.png` (640×640, the raw first frame) and `_style.png` (1024×1024, its gouache restyle) |
 
@@ -34,8 +36,11 @@ this document explains what it is and why.
 
 ID-V2V is a **VACE control stack on a Wan 2.1 I2V base** — a combination stock ComfyUI cannot
 load, because its VACE path assumes a T2V base. Support comes from
-[ComfyUI PR #15139](https://github.com/comfyanonymous/ComfyUI/pull/15139) (Kijai), which is
-**open, not merged** at the time of writing.
+[ComfyUI PR #15139](https://github.com/comfyanonymous/ComfyUI/pull/15139) (Kijai). ⚠ That PR
+was **merged upstream as `5c4d2568f` on 2026-09-27** (first in ComfyUI v0.38.0), so a current
+install needs nothing applied: `REPAIR.bat` reports the item `[ OK ]` on the upstream code and
+prints a `[NOTE ]` line saying the fix can be deleted. What follows is history, and describes an
+install older than v0.38.0.
 
 What it changes:
 
@@ -48,8 +53,9 @@ What it changes:
   the conditioning's padding frames are filled with the stylized keyframe instead of flat gray,
   which is what anchors identity without pinning frames.
 
-### The ComfyUI updater silently removes it
+### The ComfyUI updater silently removed it (history: before v0.38.0)
 
+On v0.38.0 or later there is no patch left for the updater to remove. On an older install:
 `update\update_comfyui_stable.bat` → `update.py` calls `repo.stash()` **before** it checks out
 the new version. Verified by replaying that exact pygit2 sequence: the update **succeeds**, no
 error, no conflict, no prompt — and the patch is simply gone. ID-V2V then stops working with
@@ -61,20 +67,21 @@ Nothing is lost — the change survives in `git stash list` and the updater leav
 nearby lines it writes `<<<<<<<` conflict markers *into the .py files*, which is a Python
 syntax error and ComfyUI then won't start at all. Tested.
 
-**Just run `REPAIR.bat`.** It re-applies the fix as anchored text edits scoped to the exact
-class — verified byte-identical to `git apply` of the patch — and if upstream has moved an
-anchor it reports `[FAIL]` and writes nothing, leaving a working install.
+**On an older install, run `REPAIR.bat`.** It re-applies the fix as anchored text edits scoped
+to the exact class — verified byte-identical to `git apply` of the patch — and if upstream has
+moved an anchor it reports `[FAIL]` and writes nothing, leaving a working install.
 
-Check by hand:
+Check by hand whether this ComfyUI can run ID-V2V:
 
 ```powershell
 # grep is not on PATH on Windows - use findstr
 findstr /C:"ref_pad_image" "<comfy root>\comfy_extras\nodes_wan.py"
-# no output = the patch is missing, run REPAIR.bat
+# no output = this ComfyUI is older than v0.38.0: update it
 ```
 
-**When PR #15139 merges upstream**, `REPAIR.bat` prints a `[NOTE]` saying so. At that point
-delete the `IdV2V` class from `repair_all.py`, this file, and the patch.
+**PR #15139 has merged upstream**, and `REPAIR.bat` now prints a `[NOTE ]` saying so. The
+`IdV2V` class in `repair_all.py` and the reference patch are kept for now: they change nothing on
+ComfyUI v0.38.0 or later, and REPAIR.bat's `[NOTE ]` line says they can be deleted.
 
 ---
 
@@ -143,20 +150,21 @@ of 16.
    the first thing to try — the rig already has SAM3.
 2. **The normals+depth variant is not installed.**
    `wan_2.1_idv2v_with_normal_depth_int8_convrot.safetensors` is another 20.2 GB in the same HF
-   repo and needs DAViD (normals) + DepthAnything-V2 preprocessing. Given the drive is at
-   ~34 GB free, that is a deliberate no.
+   repo and needs DAViD (normals) + DepthAnything-V2 preprocessing. It was left out on
+   purpose in 2026-09, when the drive had ~34 GB free.
 3. **Single-clip only** — no overlap-based long-video continuation.
 
 ---
 
-## If it ever becomes a ComfyQ bundle
+## As ComfyQ bundles
+
+It is one now, twice: `workflows/video_edit_wan_idv2v_restyle_compare` and
+`workflows/video_edit_wan_idv2v_restyle_hires`, both run on a stock ComfyUI v0.38.0 or later.
 
 - The graph exports cleanly to API format — the width/height sources were deliberately built as
   real `PrimitiveInt` nodes rather than the frontend-only `PrimitiveNode`.
-- Category would be **`video-edit`**; two media inputs (video + image) plus a prompt, mirroring
-  `video_bernini_r_video_editing_with_reference`. `minVRAM` 24.
+- Category **`video-edit`**; two media inputs (video + image) plus a prompt, mirroring
+  `video_edit_bernini_r_video_editing_with_reference`. `minVRAM` 24.
 - Calibration is cache-immune (`SamplerCustom` carries a literal `noise_seed`).
-- **Blocker:** a ComfyQ bundle assumes a stock ComfyUI. Shipping this means every rig needs the
-  core patch — so it should wait for PR #15139 to merge upstream.
 
-Fuller ComfyQ-side notes: `J:\ComfyQ\docs\comfyui-idv2v.md`.
+Fuller ComfyQ-side notes: [docs/comfyui-idv2v.md](../../../docs/comfyui-idv2v.md).

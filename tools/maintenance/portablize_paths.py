@@ -22,21 +22,24 @@ NOT rewritten -- it's a real machine-specific install path that can't be portabl
 WHEN TO RUN: after updating the ComfyUI-Trellis2 pack (an update restores the author's
 absolute paths in example_workflows/). Idempotent -> safe to re-run any time.
 
-PORTABLE: the target dir is derived from this script's own location. Keep this script in
-<nvme>\_maintenance\ (a sibling of ComfyUI_windows_portable\).
+PORTABLE: the install is read from ComfyQ's own config (comfyq_paths.py: COMFY_ROOT,
+then comfy_ui.root_path in config.json), not from this file's position on the disk, so
+it works under any drive letter and from anywhere in the repo. It lives in
+ComfyQ\tools\maintenance\.
 """
 import os
 import re
 import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-EW = os.path.normpath(os.path.join(
-    HERE, "..", "ComfyUI_windows_portable", "ComfyUI",
-    "custom_nodes", "ComfyUI-Trellis2", "example_workflows"))
+sys.path.insert(0, HERE)
+from comfyq_paths import comfy_root  # noqa: E402
+
+EW = os.path.join(comfy_root(), "custom_nodes", "ComfyUI-Trellis2", "example_workflows")
 
 if not os.path.isdir(EW):
     sys.exit(f"ERROR: example_workflows not found at:\n  {EW}\n"
-             f"Keep this script in <nvme>\\_maintenance\\ next to ComfyUI_windows_portable\\.")
+             f"Check the ComfyUI path under Manage ComfyUI, or set COMFY_ROOT.")
 
 # a JSON string value that has an /output/ (or \output\) segment and ends in a mesh ext.
 # separators inside a JSON string are either '/' or an escaped backslash '\\' (two chars).

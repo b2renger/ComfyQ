@@ -20,32 +20,50 @@ which earlier result to feed it**:
   pose transfer, frame interpolation — it gets one: a real photo made noisy, a
   dancer's clip, two fast seconds of motion (`derive` from an asset);
 - cards that do the same job get the **same inputs** (the two SeedVR2 image
-  cards, the two video upscalers, SCAIL-2 and Wan Animate), so they compare;
+  cards, the two video upscalers, SCAIL-2 and Wan Animate, LTX 2.5 depth and
+  pose on the same dancer clip), so they compare;
 - every prompt is written the way that model's makers document (Ideogram's JSON
   with a box per element, FLUX.3's long captions, H3's shot lists with sound,
   trigger words where an adapter needs one).
 
-The results are published as the sweep report the admin panel's *Library sweep*
-card shows, and [`seed_examples.cjs`](../maintenance/seed_examples.cjs) turns
+The results are published as the sweep report the admin panel's *Run the whole
+library* card (Maintenance) shows, and [`seed_examples.cjs`](../maintenance/seed_examples.cjs) turns
 them into the `examples` jobs students can browse in **All jobs**.
 
 | file | what it is |
 |---|---|
 | [`library.suite.json`](library.suite.json) | every workflow in the library, in five stages, each with a showcase example (rebuilt 2026-11-04 from per-family research; the previous one-story version is in git history) |
 | [`run-suite.cjs`](run-suite.cjs) | runs a suite from the command line |
+| [`suiteAssets.cjs`](suiteAssets.cjs) | lists every assets-folder file a suite names and which are missing, so `--check` and `--dry` can show them before the GPU is booked (tested by `suiteAssets.test.cjs`) |
 | [`derive_input.py`](derive_input.py) | makes an input from an output or an asset: a frame, a crop, a hole, a circle, a paste-in, damage (blur, noise, JPEG), a trimmed / shrunk / muted clip |
-| [`assets/tunnel_depth_loop.py`](assets/tunnel_depth_loop.py) | writes `tunnel_depth_loop.mp4` into the assets folder: a perfectly seamless depth-pass loop for the loop-restyle card |
+| [`assets/tunnel_depth_loop.py`](assets/tunnel_depth_loop.py) | makes the perfectly seamless depth-pass loop the loop-restyle card reads as `asset:tunnel_depth_loop.mp4`. Run it with ComfyUI's python (it needs numpy and PyAV) and give it the output path: `<python> -I tools/test-suite/assets/tunnel_depth_loop.py <assets folder>/tunnel_depth_loop.mp4`, where `<python>` is `comfy_ui.python_executable` and the assets folder is `assets.dir` in config.json |
 
 ## Running it
 
 ```bash
 node tools/test-suite/run-suite.cjs library --check          # validate against the library
 node tools/test-suite/run-suite.cjs library --dry            # print every run and where each input comes from
-node tools/test-suite/run-suite.cjs library                  # everything (about 3½ h on a 5090)
+node tools/test-suite/run-suite.cjs library                  # everything (about 2½–3 h on a 5090; 2 h 31 min on 2026-11-04)
 node tools/test-suite/run-suite.cjs library --only a,b       # just these, in suite order
 node tools/test-suite/run-suite.cjs library --from <id>      # resume from one bundle
+node tools/test-suite/run-suite.cjs library --data-dir <dir> # an experiment: the report goes to <dir>
 node tools/maintenance/seed_examples.cjs --replace           # then: the results become the examples
 ```
+
+`--data-dir <dir>` writes the report (`library-sweep-latest.json` and the run's
+`.jsonl`) into `<dir>` instead of `server/data`, so the published report — and
+the examples `seed_examples.cjs` makes from it — stay as they were. It combines
+with `--only` and `--from`. Inputs a run takes from an earlier result then come
+from **`<dir>`'s own** last report, not the published one: in an empty folder a
+run whose input comes from a bundle outside this run is skipped (or given its
+`fallback`). Derived inputs go to `<dir>/suite-inputs/<sweep start time>/`,
+beside the report.
+
+It still calibrates: the `runtime.json` (timings and VRAM peak) of every bundle
+it runs is rewritten, except runs marked `keepRuntime`. To leave no trace, discard those
+changes afterwards (`git checkout -- "workflows/*/*.runtime.json"`, which also
+discards any other uncommitted `runtime.json` change) or mark the suite's runs
+`keepRuntime`.
 
 Since 2026-11-04 ComfyUI outlives the process that started it, so the ComfyUI
 a suite starts is left running at the end and the next ComfyQ adopts it. A suite
@@ -54,15 +72,30 @@ rig) so ComfyUI restarts as rarely as possible.
 
 The machine must be in **admin mode** (not serving) — the same rule as the
 panel's sweep, because a suite holds the GPU for hours and restarts ComfyUI
-between workflows that need different performance flags. From the panel, the
-same suite runs with `POST /admin/library-sweep/run {"suite": "library"}`
-(admin password).
+between workflows that need different performance flags. From the panel: Admin →
+Maintenance → *Run the whole library* → **Run the test suite**, then **Start the
+test suite** (it sends `POST /admin/library-sweep/run {"suite": "library"}`,
+which needs the admin password if one is set).
 
 It runs through `AdminCalibrator`, one workflow at a time, so each workflow's
 `disabledPerfFlags` are masked and each run **is** a calibration: `runtime.json`
 gets the measured times and VRAM. Suite settings are each card's defaults except
-prompts and inputs, so those times describe the job a student books. A run that
-changes a cost setting (a shorter clip, a smaller size) sets `"keepRuntime": true`.
+prompts, inputs, and choices that leave the job's cost about the same: an aspect
+ratio, a width/height at about the same pixel count, a LoRA, colour-correction or
+time-of-day choice, an optional input switched off. So those times describe the
+job a student books. A run that changes the cost (a longer or shorter clip, more
+or fewer pixels or steps, a lighter input than a student's) sets
+`"keepRuntime": true`.
+
+**Seeds.** So that a re-run can never be answered from ComfyUI's cache,
+calibration gives a fresh value to every exposed seed (a key `seed`, `seed_<n>`
+or ending in `_seed`, or a field `seed` or ending in `.seed` / `_seed` — the
+Gemma captioners' `sampling_mode.seed` included) and to every number in the graph
+whose input name ends in `seed`. So a seed set in this file is never what runs: a
+suite cannot pin a seed. The sweep report and the example record the value each
+exposed seed really got (the report marks it "calibration"). A hidden seed that got a fresh value — LTX 2.5's
+second RandomNoise, for example — is not recorded, so an example cannot always
+be reproduced pixel for pixel.
 
 ## The file
 
@@ -86,10 +119,17 @@ changes a cost setting (a shorter clip, a smaller size) sets `"keepRuntime": tru
 
 - **Each bundle appears once** — the report is keyed by bundle id.
 - **Order matters.** An `output:` reference is resolved when the run starts, from
-  this run's results (or, with `--only`, the last published report). A run whose
-  input cannot be found is **skipped with the reason** — never fed a random asset
+  this run's results. When this run has no row for that bundle — it is not in
+  this run (`--only`, `--from`) — the input comes from the last published report
+  instead (with `--data-dir`, the last report in that folder). A bundle that
+  failed or was skipped in this run supplies nothing, so a run downstream of it
+  is skipped with the reason, not fed an older result. A run whose input cannot
+  be found at all is **skipped with the reason** — never fed a random asset
   instead, which would make an example that pretends to follow from a result it
-  never saw.
+  never saw. The same goes for a file from the assets folder: a plain `asset:`
+  that is not there skips the run, and so does a `fallback` that is not there
+  when it is needed. `--check` (and `--dry`) list every asset the suite names
+  that is missing, before the GPU is booked.
 - `from` can name a bundle (its output) or `asset:<file>` (a file in the assets
   folder, sub-folders allowed); `ops` is accepted for `derive`.
 - **Image** `derive` ops (`derive_input.py`, the result is a PNG): `frame {index}`,
@@ -103,7 +143,9 @@ changes a cost setting (a shorter clip, a smaller size) sets `"keepRuntime": tru
   `trim {start, duration}`, `vscale {factor}` (applied in order, so a down-scale
   then an up-scale softens), `vblur {radius}`, `mute`, `encode {crf}` (16 clean,
   34–36 blocky). `--check` refuses a video derive into a picture input.
-- Derived files go to `server/data/suite-inputs/<run>/`.
+- Derived files go to `suite-inputs/<sweep start time>/<bundle>__<param>.png`
+  (or `.mp4`) in the data dir, `server/data` or the `--data-dir` folder: for
+  example `suite-inputs/2026-11-04T18-16-50-602Z/image_edit_flux2_klein_9b_image_edit__loadimage_image_76.png`.
 - A mesh input takes a `.glb`/`.gltf`/`.obj` before a `.ply`: TripoSplat writes a
   splat `.ply` beside its mesh.
 - `--check` refuses an unknown bundle or parameter key, a duplicate, a select value

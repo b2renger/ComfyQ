@@ -17,8 +17,15 @@
 //   source — a page for a human, when only the repo is known
 // Never invent a url: a wrong direct link downloads the wrong weights silently.
 //
-// Dry run by default. Pass --write to rewrite the metas.
+// Dry run by default: lists every change it would make. Pass --write to rewrite
+// the metas, or --check to exit 1 when anything would change (nothing written).
 //   MODEL_AUDIT_CSV=<path to model-audit.csv>  adds the audit's redownload column
+//
+// ★ A link fixed by hand in a meta is UNDONE by the next --write unless
+// known-sources.json carries it as an `override`. The notes index keeps the
+// first link it meets for a filename, so one bundle's note speaks for every
+// bundle that uses the file (the TripoSplat note's copy of flux2-vae once
+// overwrote the right link on a dozen cards). Read the change list first.
 const fs = require('fs');
 const path = require('path');
 
@@ -26,7 +33,8 @@ const ROOT = path.resolve(__dirname, '..', '..');
 const WF = path.join(ROOT, 'workflows');
 const WEIGHT_RX = /\.(safetensors|sft|ckpt|pt|pth|gguf|onnx|bin)$/i;
 const URL_RX = /https?:\/\/[^\s"'<>)\]]+/g;
-const WRITE = process.argv.includes('--write');
+const CHECK = process.argv.includes('--check');
+const WRITE = process.argv.includes('--write') && !CHECK;
 
 const read = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
 const basename = (v) => v.split('\\').join('/').split('/').pop();
@@ -95,9 +103,12 @@ function buildIndex() {
 }
 
 // ------------------------------------------- the audit's redownload column
-// Hand-curated provenance for the whole disk, living outside git in
-// _maintenance/model-audit. Forms seen: "Owner/Repo (sub/dir/file.safetensors)",
-// a bare URL, "Owner/Repo" alone, and prose — only the first three are usable.
+// Hand-curated provenance for the whole disk, tracked in
+// tools/maintenance/model-audit/model-audit.csv. Forms seen: "Owner/Repo
+// (sub/dir/file.safetensors)", a bare URL, "Owner/Repo" alone, and prose —
+// only the first three are usable. ★ A repo-only cell fills `source` whenever
+// the notes give none, so it replaces a source corrected by hand in a meta
+// unless known-sources.json carries that fix as an `override`.
 function auditIndex(csvPath) {
     const direct = new Map(), source = new Map();
     if (!csvPath || !fs.existsSync(csvPath)) return { direct, source, rows: 0 };
@@ -159,7 +170,13 @@ const bundles = fs.readdirSync(WF)
     .filter(d => !d.startsWith('_') && fs.statSync(path.join(WF, d)).isDirectory());
 const stat = { total: 0, note: 0, auditD: 0, repo: 0, hand: 0, auto: 0, kept: 0, none: 0 };
 const unsourced = [];
+const changes = [];
 let changed = 0;
+const shown = (v) => {
+    if (v === undefined) return '(none)';
+    const s = String(v);
+    return s.length > 110 ? s.slice(0, 107) + '...' : s;
+};
 
 for (const id of bundles) {
     const mp = path.join(WF, id, `${id}.meta.json`);
@@ -236,6 +253,11 @@ for (const id of bundles) {
         // override would silently do nothing. Clear the fields this tool owns
         // before merging; everything else in the entry is left alone.
         for (const k of ['url', 'source', 'auto', 'note']) {
+            if (JSON.stringify(next[k]) !== JSON.stringify(m[k])) {
+                changes.push(`${id} · ${b || m.file} · ${k}: ${shown(m[k])} -> ${shown(next[k])}`);
+            }
+        }
+        for (const k of ['url', 'source', 'auto', 'note']) {
             if (!(k in next) && (k in m)) { delete m[k]; touched = true; }
         }
         if (JSON.stringify(next) !== JSON.stringify(m)) { Object.assign(m, next); touched = true; }
@@ -267,4 +289,13 @@ if (unsourced.length) {
         console.log('   ' + k);
     }
 }
-console.log(`\n${changed} meta file(s) ${WRITE ? 'rewritten' : 'would change'}${WRITE ? '' : ' — dry run, pass --write'}`);
+if (changes.length) {
+    console.log(`\n${WRITE ? 'changed' : 'would change'}:`);
+    for (const c of changes) console.log('   ' + c);
+}
+console.log(`\n${changed} meta file(s) ${WRITE ? 'rewritten' : 'would change'}${WRITE || CHECK ? '' : ' — dry run, pass --write'}`);
+if (CHECK && changed) {
+    console.log('A link edited by hand in a meta must be copied into known-sources.json as an'
+        + ' `override`, or the next --write puts the note\'s link back.');
+    process.exit(1);
+}

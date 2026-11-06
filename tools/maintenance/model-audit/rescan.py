@@ -31,7 +31,13 @@ OUT = os.path.join(HERE, "inventory.json")
 # ComfyQ's own workflows, anything in maintenance.workflowScanDirs, and
 # ComfyUI's own user workflows. A folder in one tool and not the other
 # means they disagree about whether a model is in use.
-WORKFLOW_DIRS = [d for d, _label in labelled_workflow_dirs()]
+# Each folder keeps the label comfyq_paths gives it (comfyq, comfyui_staged,
+# lane, demo, or a custom folder's own name). The label is the origin written
+# into inventory.json, so it comes from the one shared list rather than from a
+# guess at the path: every lane folder sits under ComfyQ\.comfyq-lanes, and a
+# substring test on "comfyq" filed a lane's saved graph as a production bundle.
+LABELLED_DIRS = labelled_workflow_dirs()
+WORKFLOW_DIRS = [d for d, _label in LABELLED_DIRS]
 
 # Workflows the owner has staged for future testing + possible promotion into
 # ComfyQ. They are NOT production, but their models must never be pruned --
@@ -122,33 +128,27 @@ def build_units():
 
 
 
-def ORIGIN_OF(base, relpath=""):
+def ORIGIN_OF(label, relpath=""):
     """Short label for a workflow collection, used in the reference lists.
 
+    `label` is the folder's label from comfyq_paths.labelled_workflow_dirs().
     `relpath` matters: the candidate workflows live *inside* the ComfyQ
     collection but are a different kind of claim on a model (not yet in
     production, but staged deliberately), so they get their own origin.
     """
-    b = base.lower()
     if CANDIDATE_DIR.lower() in relpath.lower().replace("\\", "/"):
         return "candidate"
-    if "comfyq" in b:
-        return "comfyq"
-    if "_demo_workflows" in b:
-        return "demo"
-    if "user" in b and "workflows" in b:
-        return "comfyui_staged"
-    return os.path.basename(base) or "other"
+    return label or "other"
 
 
 def iter_workflow_files():
-    for d in WORKFLOW_DIRS:
+    for d, label in LABELLED_DIRS:
         if not os.path.isdir(d):
             continue
         for root, _dirs, files in walk_workflows(d):
             for f in files:
                 if f.lower().endswith(".json"):
-                    yield d, os.path.join(root, f)
+                    yield d, label, os.path.join(root, f)
 
 
 def strings_in(obj, out):
@@ -240,7 +240,7 @@ def collect_workflow_refs():
     anywhere = defaultdict(set)
     counted = 0
     bad = []
-    for base, path in iter_workflow_files():
+    for base, origin, path in iter_workflow_files():
         try:
             doc = json.load(io.open(path, encoding="utf-8"))
         except Exception as exc:
@@ -248,7 +248,7 @@ def collect_workflow_refs():
             continue
         counted += 1
         label = os.path.relpath(path, base).replace("\\", "/")
-        full = f"{ORIGIN_OF(base, label)}:{label}"
+        full = f"{ORIGIN_OF(origin, label)}:{label}"
 
         # API-format export: a flat {id: {class_type, inputs}} map, no "nodes".
         if isinstance(doc, dict) and not doc.get("nodes"):

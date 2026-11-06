@@ -191,8 +191,10 @@ for (const target of targets) {
         'The editable version of a ComfyQ bundle, generated from its .api.json',
         'through ComfyUI\'s own frontend (tools/api-to-ui).',
         '',
-        'ComfyQ RUNS the .api.json, not this file. Edit here, then re-export',
-        'through tools/ui-to-api/convert.mjs to change what actually runs.',
+        'ComfyQ RUNS the .api.json, not this file: saving an edit here changes',
+        'nothing ComfyQ runs. To make it run your edit, follow "After editing a',
+        'graph in ComfyUI" in tools/api-to-ui/README.md (convert with',
+        'tools/ui-to-api into a scratch folder, check, then replace <id>.api.json).',
     ].join('\n');
     const graph = addNote(built.graph, b.id, note);
 

@@ -1,7 +1,17 @@
 # Model & custom-node audit — what can go, and what it buys
 
-**Audited 2026-09-11. Nothing has been deleted.** This is a decision sheet plus the tooling
-to act on it once you have reviewed it.
+**Audited 2026-09-11. Nothing had been deleted when this was written.** This is a decision
+sheet plus the tooling to act on it once you have reviewed it.
+
+> ⚠ **This is the report as of 2026-09-11, kept as written.** The same day, 145 entries
+> marked `DELETE` in the sheet's `ACTION` column were quarantined — about 512 GB by
+> `prune-log.csv`'s `gb` column: model files, two model folders and seven empty `.cache`
+> folders (the log's first two rows are the script's 0 GB self-test). Only 31 of them carried
+> this report's own DELETE verdict; 90 were REVIEW calls, including the `qwen_image_layered`
+> set, `wan2.1_vace` and ACE-Step listed below. The quarantine has since been emptied, and the
+> library has changed since, so the figures and the REVIEW list below are history: the live
+> numbers are in `model-audit.csv`. For how to use the tools today, read
+> [`README.md`](README.md) → *Do it*.
 
 ---
 
@@ -38,7 +48,9 @@ Four more reclaims the model pass would have missed, all measured:
 
 ## How to use this (and re-use it later)
 
-Everything lives in `_maintenance\model-audit\`:
+Everything lives in `ComfyQ\tools\maintenance\model-audit\` (it was
+`_maintenance\model-audit\` when this was written). [`README.md`](README.md) is the current
+how-to; the steps below are corrected for today's tools.
 
 | File | What it is |
 |---|---|
@@ -46,18 +58,19 @@ Everything lives in `_maintenance\model-audit\`:
 | `custom-nodes-audit.csv` | Same for the 43 custom-node packs |
 | **`prune-models.ps1`** | Acts on the CSV. Dry-run by default; quarantine, then purge |
 | `completeness-review.md` | What the model-by-model pass missed, with measured figures |
-| `rescan.py` | Rebuilds the inventory from scratch — re-run it any time to refresh |
+| `rescan.py` | Rebuilds the inventory (`inventory.json`) from scratch. The sheet itself changes only when `build_csv.py` runs after it |
 
 ### The workflow
 
 1. **Open `model-audit.csv`.** Sort by `gb` descending. The columns that matter:
    `verdict` (the audit's call), `reason` (why), `backup` (is it already on D:),
-   `redownload` (where to get it again), `referenced_by` (which collections use it).
+   `redownload` (where to get it again), `used_by` (which workflows use it).
 2. **Put `DELETE` in the `ACTION` column** for what you actually want gone. The `ACTION`
-   column is yours — the audit never writes to it.
+   column is yours: a rebuild keeps your marks, except that it clears a `DELETE` on a model
+   whose status changed to anything other than `UNUSED`, and lists it.
 3. **Dry run**, which changes nothing:
    ```powershell
-   cd <drive>:\ComfyUI_windows_portable_nvidia\_maintenance\model-audit
+   cd <drive>:\ComfyQ\tools\maintenance\model-audit
    .\prune-models.ps1                 # acts on your ACTION column
    .\prune-models.ps1 -UseVerdict     # or trust the audit's own DELETE verdicts
    ```
@@ -67,6 +80,8 @@ Everything lives in `_maintenance\model-audit\`:
 5. **Verify.** Start ComfyUI, run the workflows you care about.
 6. **Then** `.\prune-models.ps1 -Purge` (frees the space, asks you to type PURGE) or
    `.\prune-models.ps1 -Restore` (puts everything back in seconds).
+   This script and ComfyQ's panel share their batches: without `-Batch <name>`, both commands
+   act on all of them, the panel's included. `-Restore` never overwrites a file.
 
 Quarantine-then-purge exists because a wrong call here costs a multi-GB re-download — and for
 some of these files, one that is no longer possible.

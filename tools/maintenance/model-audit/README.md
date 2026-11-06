@@ -6,6 +6,17 @@ what needs it, whether a duplicate is already on disk, whether the backup has a 
 
 Everything else here either **produces** that file or **consumes** it.
 
+> **Not the same tool as the admin panel's prune.** ComfyQ's Admin → Maintenance → *Prune
+> unused models* runs its own live scan. It does **not** read `model-audit.csv`: a `DELETE`
+> or `KEEP` you put in the `ACTION` column here only steers `prune-models.ps1`. The panel
+> reads `decisions.json` (below) for context only — an old audit verdict shows there as a
+> soft reason, never as a decision.
+>
+> **Both use the same folder and the same batches** (`<drive>\_model_quarantine\<stamp>\models\…`).
+> What this script moves shows on the panel's *Quarantined models* card, and `-Restore` and
+> `-Purge` act on what the panel moved. `-Purge` lists every batch before asking; add
+> `-Batch <name>` to act on one.
+
 ## Do it
 
 **1. Open the editor** — double-click **`AUDIT.bat`** (or `python audit_ui.py`).
@@ -66,6 +77,10 @@ reversible. **Space is not freed yet.**
 
 Stop ComfyUI before `-Execute` / `-Restore` — it holds model files open.
 
+This script and ComfyQ's panel share their batches: without `-Batch <name>`, `-Purge` and
+`-Restore` act on all of them, the panel's included. `-Restore` never overwrites a file: it
+leaves that one in quarantine and names it.
+
 ## What the columns mean
 
 | Column | |
@@ -74,10 +89,10 @@ Stop ComfyUI before `-Execute` / `-Restore` — it holds model files open.
 | `gb` / `name` / `category` | size, filename, which `models\` folder it lives in |
 | `status` | why it is here — see below |
 | `used_by` | **exactly which workflows load it**, plus any dropdown or custom node that needs it |
-| `verdict` | the audit's recommendation. Advice, not an instruction |
+| `verdict` | the audit's recommendation. Advice, not an instruction. It comes from the hand-written `decisions.json` (from the 2026-09-11 audit, copied into the repo 2026-10-05); a model added since gets a placeholder — `KEEP` if it is loaded or pickable, otherwise `REVIEW` — with no reason |
 | `duplicate` | `COPY`, `BUILD` or `LINEAGE` if another file on disk is a variant of this one |
 | `duplicate_detail` | which files, their size, and how many workflows use each |
-| `backup` | `yes` = a copy exists in the D:/E: ISO tree, so deleting is reversible by file-copy |
+| `backup` | `yes` = a copy exists in the D:/E: ISO tree, so on the master machine a deletion is reversible by file-copy. On any other machine those disks are not there: the model has to be downloaded again |
 | `reason` / `redownload` | why the audit judged it that way, and where to get it again |
 | `relpath` | where it lives. **`prune-models.ps1` joins this against `<ComfyUI>\`** — do not strip the `models/` prefix |
 
@@ -139,12 +154,20 @@ it is usually a mistake.
 
 ## Rebuilding the sheet
 
-After adding models or workflows. Deterministic, a couple of minutes, deletes nothing:
+After adding models or workflows. Deterministic, a couple of minutes, deletes nothing.
+
+**The easy way:** in ComfyQ, Admin → Maintenance → Maintenance scripts → *Rebuild the model
+audit*, then *Verify the model audit*. They run the same steps as below.
+
+**By hand**, from this folder in PowerShell:
 
 ```powershell
-$py = "..\..\ComfyUI_windows_portable\python_embeded\python.exe"
+$py = node ..\python-path.js   # ComfyUI's own python, from ComfyQ's config.json
+# rescan_nodes.py reads ComfyUI's node list from a saved file, so save it first
+# (ComfyUI must be running):
+Invoke-WebRequest http://127.0.0.1:8188/object_info -OutFile object_info.json
 & $py rescan.py         # what is on disk + which workflows load it
-& $py rescan_nodes.py   # custom-node packs (needs ComfyUI running, see below)
+& $py rescan_nodes.py   # which pack provides each node (reads object_info.json)
 & $py build_csv.py      # -> model-audit.csv
 & $py verify_audit.py   # checks the sheet, and lists broken workflow dependencies
 ```
@@ -152,33 +175,49 @@ $py = "..\..\ComfyUI_windows_portable\python_embeded\python.exe"
 `verify_audit.py` also reports **models a workflow loads that are not on the drive** — those
 workflows cannot run as they stand. Worth a look after any rescan.
 
-`rescan_nodes.py` asks the live ComfyUI which module owns each node, because several packs
-register nodes in ways static parsing cannot see:
+`rescan_nodes.py` uses ComfyUI's own node list because several packs register nodes in ways
+static parsing cannot see. Skip the download and it works from whatever `object_info.json` is
+already here, which may be out of date. (`curl -s -o` does not work in Windows PowerShell 5.1 —
+`curl` is an alias for `Invoke-WebRequest` there and those flags do not bind.)
 
-```powershell
-Invoke-WebRequest http://127.0.0.1:8188/object_info -OutFile object_info.json
-```
+**Rebuilding keeps your `ACTION` marks** — `build_csv.py` reads the existing sheet back in.
+The one exception: a `DELETE` on a model whose status has changed to anything other than
+`UNUSED` (it is in use now) is cleared, and listed when the rebuild finishes. So rescan
+before you prune.
 
-(`curl -s -o` does not work in Windows PowerShell 5.1 — `curl` is an alias for
-`Invoke-WebRequest` there and those flags do not bind.)
-
-**Rebuilding clears the `ACTION` column**, so prune before you rescan, or re-mark afterwards.
-
-Every path is derived from this folder's location, so all of it keeps working when the drive
-mounts under a different letter.
+ComfyUI's location comes from ComfyQ's `config.json` (`comfy_ui.root_path`, set under Manage
+ComfyUI → ComfyUI Settings), or from `COMFY_ROOT` if you set it — not from where this folder
+sits — so all of it keeps working when the drive mounts under a different letter. See
+[`../COMFYQ-NOTES.md`](../COMFYQ-NOTES.md).
 
 ### Workflow collections scanned
 
+⚠ **A folder is scanned only while it is switched on** in ComfyQ: Admin → Maintenance →
+Prune → *Folders scanned for workflows* (stored per machine in `config.json` as
+`maintenance.scanDirsOff`, the same list the panel's own prune uses). The bundles folder is
+always on. A switched-off folder's models are **not** protected: they read `UNUSED` here, and
+`prune-models.ps1` will not refuse them. Check that card before you prune — the folders the
+last rebuild really read are listed in `inventory.json` under `workflow_dirs` (`inventory.json`
+is not in git; it exists only on a machine where the audit was rebuilt, or on a drive cloned
+from one).
+
+The collections it can read (file counts from 2026-09, with every folder switched on):
+
 | | Files | |
 |---|---:|---|
-| `<drive>\ComfyQ\workflows` | 143 | production bundles served to students |
-| `<drive>\ComfyQ\workflows\_candidate_workflows` | 22 | **staged for testing** — not production, but protected |
+| `<drive>\ComfyQ\workflows` | 143 | production bundles served to students — always scanned |
+| `<drive>\ComfyQ\workflows\_candidate_workflows` | 22 | **staged for testing** — not production; protected only while switched on |
 | `ComfyUI\user\default\workflows` | 45 | ComfyUI's own Workflows sidebar |
 | `<drive>\_demo_workflows` | 12 | demo / teaching |
+| `<drive>\ComfyQ\.comfyq-lanes\<workflow>\user\<profile>\workflows` | — | graphs saved from a parallel lane's own ComfyUI; shown as `lane:` in `used_by` |
 
-⚠ `_candidate_workflows` holds workflows staged for later testing and possible promotion into
-ComfyQ. **14 models / 63.5 GB are held by nothing else** — filter the editor to
-`used_by` containing `candidate:` to see them.
+Any other folder added under *Folders scanned for workflows* appears in `used_by` under its own
+folder name (for `D:\my_flows`, `my_flows:`).
+
+`_candidate_workflows` holds workflows staged for later testing and possible promotion into
+ComfyQ. With every folder switched on, **14 models / 63.5 GB were held by nothing else** —
+filter the editor to `used_by` containing `candidate:` to see them. With the candidates
+folder switched off, those models read `UNUSED`.
 
 > The old `%USERPROFILE%\Downloads\workflows_a_tester` staging folder was retired 2026-09-11.
 > It sat on `C:`, so the audit's answer changed depending on which machine the drive was
@@ -201,8 +240,12 @@ justified ~295 GB. Treat that status as "check the pack", not "required".
 | `swap_model.py` | performs a replacement; also runnable from the command line |
 | `rescan.py` / `rescan_nodes.py` | rebuild the scan data |
 | `verify_audit.py` | checks the sheet agrees with the scan and with disk |
-| `custom-nodes-audit.csv` | the same idea for the 43 custom-node packs |
-| `MODEL-AUDIT.md` | the original narrative report: method, traps, the big numbers |
-| `completeness-review.md` | what the model-by-model pass missed (backups, duplicates) |
-| `inventory.json`, `nodes.json`, `decisions.json`, `object_info.json` | raw data the CSV is built from |
+| `custom-nodes-audit.csv` | the same idea for the custom-node packs — a hand-made snapshot from the 2026-09-11 audit (43 packs). No script regenerates it, so packs added since are missing |
+| `MODEL-AUDIT.md` | the original narrative report (2026-09-11): method, traps, the big numbers |
+| `completeness-review.md` | what the model-by-model pass missed (backups, duplicates) — a report of 2026-09-11 |
+| `inventory.json` | what is on disk and which workflows load it (`rescan.py`) — the CSV is built from it |
+| `decisions.json` | the audit's written verdict and reason per model — hand-curated (from the 2026-09-11 audit, copied into the repo 2026-10-05), not regenerated; `build_csv.py` reads it for the `verdict`, `reason` and `redownload` columns |
+| `nodes.json` | which pack provides each node — `rescan_nodes.py`'s report, not the CSV |
+| `object_info.json` | ComfyUI's list of node classes. `rescan_nodes.py` reads it, and ComfyQ's missing-node-pack check uses it as its fallback when ComfyUI is down — ComfyQ rewrites it whenever ComfyUI answers. **Do not delete it** |
+| `links.json` | the model ↔ workflow graph, dumped by `scan_links.py` (the editor rebuilds it live) |
 | `prune-log.csv` | what was quarantined, when |

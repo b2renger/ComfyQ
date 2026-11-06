@@ -18,8 +18,12 @@ import re
 from collections import defaultdict
 
 # Packaging only: how the SAME weights are stored.
+# ★ `pruned` is deliberately NOT here: a pruned file drops modules, so it holds
+# different weights. MiniMax H3's pruned int8 build has no `time_embedder`, and
+# the RAVEN loader rejects it where it takes the bf16 one -- counting `pruned` as
+# packaging labelled that pair BUILD ("same weights, safe swap").
 QUANT = (r'(fp8|fp16|fp32|bf16|int8|int4|nf4|fp4|nvfp4|awq|gguf|q\d(_k)?(_[smlx])?'
-         r'|e4m3fn|e5m2|scaled|mixed|convrot|pruned|quant)')
+         r'|e4m3fn|e5m2|scaled|mixed|convrot|quant)')
 NOISE = (r'(comfyui|comfy_?org|comfy|safetensors|model|weights|diffusion'
          r'|transformer_only|split_files|v\d+(\.\d+)*|version)')
 

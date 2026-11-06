@@ -6,27 +6,36 @@
 > ComfyUI-Manager **silently reverts** the hand-fixes this install depends on.
 > Nothing warns you — you find out when a workflow fails.
 >
-> `REPAIR.bat` re-applies every fix listed in this file, then health-checks the
-> pinned PyTorch/CUDA stack. It is **idempotent** (safe to run any time; when
-> nothing is broken it changes nothing) and it **never guesses** — a fix whose
-> anchor has moved is reported as FAIL with nothing written, rather than
-> half-applied.
+> `REPAIR.bat` re-applies every fix listed in this file except the Qwen-Image 2.1
+> ControlNet patch and the DepthAnythingV3 `[node_reqs]` line (both below), then
+> health-checks the pinned PyTorch/CUDA stack.
+> It is **idempotent** (safe to run any time; when nothing is broken it changes
+> nothing) and it **never guesses** — a fix whose anchor has moved is reported as
+> FAIL with nothing written, rather than half-applied.
 >
 > Run `REPAIR.bat --check` to see what *would* be repaired without writing.
+>
+> **Exception:** if you updated or reinstalled ComfyUI-QwenImage21-FunControlNet, also run
+> `fix_custom_node_patches.py` (Admin → Maintenance → Maintenance scripts → *Re-apply the
+> custom-node fixes*); `REPAIR.bat` does not apply that one.
 >
 > **Then restart ComfyUI and hard-refresh the browser (Ctrl+Shift+R).**
 
 This portable ComfyUI has been **hand-tuned** to run two image-to-3D model packs —
 **Pixal3D** ([Saganaki22/Pixal3D-ComfyUI](https://github.com/Saganaki22/Pixal3D-ComfyUI))
 and **TRELLIS2** ([visualbruno/ComfyUI-Trellis2](https://github.com/visualbruno/ComfyUI-Trellis2)) —
-on this exact drive, plus ID-V2V video restylization on patched ComfyUI core. That tuning
+on this exact drive, plus ID-V2V video restylization (a ComfyUI core patch until v0.38.0;
+stock ComfyUI carries it now, see the checklist). That tuning
 is **fragile in three specific ways**. If you forget them, things stop working and it is not
 obvious why.
 
-> **Where things live.** This notice and the re-apply scripts sit together in the drive's
-> `_maintenance\` folder (a sibling of `ComfyUI_windows_portable\`). Unless noted otherwise,
-> **all paths below are relative to the portable root `ComfyUI_windows_portable\`** (the folder
-> that holds `python_embeded\`, `ComfyUI\`, and the `run_nvidia_gpu*.bat` launchers).
+> **Where things live.** This notice and the re-apply scripts sit together in the ComfyQ
+> repo, in `ComfyQ\tools\maintenance\` (they used to be in a `_maintenance\` folder beside
+> `ComfyUI_windows_portable\`; that folder is gone). The scripts find the install through
+> `comfyq_paths.py`: `COMFY_ROOT` if set, else the ComfyUI path saved in ComfyQ under
+> **Manage ComfyUI → ComfyUI Settings** (`comfy_ui.root_path` in `config.json`). Unless noted
+> otherwise, **all paths below are relative to the portable root `ComfyUI_windows_portable\`**
+> (the folder that holds `python_embeded\`, `ComfyUI\`, and the `run_nvidia_gpu*.bat` launchers).
 
 ---
 
@@ -58,14 +67,18 @@ This one is **safe to run** — but know what it does. `update.py` calls
 `repo.stash()` *before* it checks out the new version, so any edit to a ComfyUI
 core file is stashed away without a word: **no error, no conflict, no prompt.**
 The update succeeds and the fix is simply gone. (Verified by replaying that exact
-pygit2 sequence.) Today that means **ID-V2V stops working** — see the checklist.
+pygit2 sequence.) On ComfyUI v0.38.0 or later (this drive runs v0.43.2) there is **no core
+edit left** for it to stash — ID-V2V is in ComfyUI itself now — so an update loses nothing
+today. The warning stands for any core edit made in the future: an update would drop it the
+same way. Before v0.38.0 it meant **ID-V2V stopped working** — see the checklist.
 
 Nothing is lost: the edit survives in `git stash list`, and the updater also
 leaves a `backup_branch_<timestamp>`. But **do not recover with `git stash pop`**
 — if upstream touched nearby lines it writes `<<<<<<<` conflict markers *into the
-.py files*, which is a syntax error, and ComfyUI then won't start at all. Just run
-**`REPAIR.bat`**, which re-applies the edit cleanly or refuses without touching
-anything.
+.py files*, which is a syntax error, and ComfyUI then won't start at all. Run
+**`REPAIR.bat`**: it re-applies the edits written into `repair_all.py` cleanly, or
+refuses without touching anything. A new core edit needs its own entry there, or the
+stash is its only copy.
 
 > **Observed in the field, 2026-09-13.** An update from 0.34.6 to 0.35.0 did exactly this:
 > `REPAIR.bat --check` reported `[MISS] ID-V2V support`, a fresh
@@ -73,7 +86,7 @@ anything.
 > restored all 17 lines across the 4 core files. Total damage if you had skipped it: ID-V2V
 > silently stops loading, with no error until a workflow fails.
 >
-> Those stashes accumulate -- there are five now, one per update. They are harmless and cost
+> Those stashes accumulate, one per update. They are harmless and cost
 > nothing, and they are **not** how you recover. Leave them alone; `REPAIR.bat` is the route
 > back. Never `git stash pop`.
 
@@ -84,7 +97,7 @@ workflows). Pixal3D's pack files are *not* edited — its one fix lives in a **m
 rather than when the pack updates. Updating a
 pack (via ComfyUI-Manager or `git pull`) overwrites those files and re-introduces the bugs.
 After any such update, **re-apply the edits** — most of them are automated by the scripts in
-`_maintenance\` (see the checklist at the bottom of this file).
+`tools\maintenance\` (see the checklist at the bottom of this file).
 
 ---
 
@@ -109,8 +122,9 @@ alongside the Ada cards (4080/4090).
 **The install must stay fully portable.** This drive is an external NVMe that gets plugged
 into different machines, where it mounts under **different drive letters** (`J:`, `K:`, …).
 So nothing may hard-code a drive letter or live on a machine's `C:` drive — everything (the
-embedded Python, all wheels, all models, all caches we control, **and the `_maintenance\`
-scripts**, which locate their targets relative to their own folder) stays on the drive. Some
+embedded Python, all wheels, all models, all caches we control, **and the maintenance
+scripts**, which read the install's location from ComfyQ's config rather than from a drive
+letter) stays on the drive. Some
 of the fixes below exist purely to honour that (relative paths instead of the pack authors'
 `C:\...` paths; running DepthAnythingV3 in-process instead of in an isolated `C:` env; the
 cross-drive `/view` fix).
@@ -129,10 +143,10 @@ cross-drive `/view` fix).
 
 ---
 
-## 🧰 The `_maintenance\` folder
+## 🧰 The `tools\maintenance\` folder
 
 ```
-_maintenance\
+ComfyQ\tools\maintenance\
   REPAIR.bat                 <-- double-click this after any update
   repair_all.py              the orchestrator: checks + re-applies every fix, then
                              health-checks the pinned stack
@@ -141,20 +155,32 @@ _maintenance\
   backup-and-move.md         the backup: how to find it, restore from it, remake it
   fix_resolution_combos.py   TRELLIS2 dropdowns   (called by repair_all)
   portablize_paths.py        TRELLIS2 workflow paths (called by repair_all)
-  integrations\             ID-V2V: the one ComfyUI core patch, and why
+  fix_custom_node_patches.py Qwen-Image 2.1 ControlNet pack (NOT called by repair_all)
+  comfyq_paths.py            where the install is, read from ComfyQ's config.json
+  integrations\             ID-V2V: the ComfyUI core patch it used to need (upstream now)
   model-audit\               disk-space audit: what is here, what uses it, what can go
 ```
 
+`REPAIR.bat` and `fix_custom_node_patches.py` are also buttons in ComfyQ: Admin →
+Maintenance → Maintenance scripts → *Repair the ComfyUI install* and *Re-apply the
+custom-node fixes*.
+
 **`model-audit\` is not part of the repair story** — it is a disk-space audit, not something to
-run after an update. The drive is 99% models; that folder holds the decision sheet
+run after an update. Most of the drive is models; that folder holds the decision sheet
 (`model-audit.csv`), the report (`MODEL-AUDIT.md`) and `prune-models.ps1`, which is dry-run by
 default and quarantines before it purges. It deletes nothing on its own. Start at
 `model-audit\README.md`.
 
-**You only ever need `REPAIR.bat`.** The two older scripts still work standalone and are
-unchanged; `repair_all.py` simply calls them, so there is one thing to remember instead of
-five. Everything **locates its own targets relative to this folder**, so no drive letter is
-baked in anywhere and the drive can mount as `J:`, `K:`, whatever.
+**You need `REPAIR.bat`, plus `fix_custom_node_patches.py` for one pack.** The two TRELLIS2
+scripts still work standalone; `repair_all.py` simply calls them, so there is one thing to
+remember instead of three. The Qwen-Image 2.1 ControlNet fix (see the checklist below) is the
+exception: REPAIR does not apply it, so after updating or reinstalling that pack run
+`fix_custom_node_patches.py` too (or press *Re-apply the custom-node fixes* in ComfyQ).
+Every script **finds the install through ComfyQ's config** (`comfyq_paths.py`), so no drive
+letter is baked in anywhere and the drive can mount as `J:`, `K:`, whatever. When that config
+still names the old letter (ComfyQ only rewrites it when it starts), the scripts look for the
+install beside the ComfyQ folder instead, so `REPAIR.bat --check` works on a fresh clone or a
+restored ISO before ComfyQ has ever been started there.
 
 What `REPAIR.bat` does, in order:
 
@@ -195,17 +221,23 @@ is read at startup, and the browser caches the node list from `/object_info`).
 ## 🧩 What was changed (full checklist)
 
 Each heading says **what reverts it**. Everything marked *automated* is re-applied by
-`REPAIR.bat`.
+`REPAIR.bat`, except where the heading says otherwise.
 
-### ComfyUI core (`ComfyUI\comfy\`, `ComfyUI\comfy_extras\`) — automated
-**ID-V2V support — 4 files, ~17 lines.** Reverted by `update_comfyui*.bat` (see §1b).
+### ComfyUI core (`ComfyUI\comfy\`, `ComfyUI\comfy_extras\`) — history: nothing is patched any more
+**ID-V2V support — 4 files, ~17 lines.** Needed until ComfyUI v0.38.0, which includes it;
+this drive runs v0.43.2. On an older install it was reverted by `update_comfyui*.bat` (see
+§1b) and `REPAIR.bat` put it back.
 
 [ID-V2V](https://github.com/Eyeline-Labs/ID-V2V) restyles a video from a single stylized
 keyframe while preserving the characters' identity and motion. It is a **VACE control stack
 on a Wan 2.1 I2V base**, and stock ComfyUI cannot load that combination — its VACE path
 assumes a T2V base. This is a backport of
-[PR #15139](https://github.com/comfyanonymous/ComfyUI/pull/15139) (Kijai), which is **open,
-not merged** at the time of writing.
+[PR #15139](https://github.com/comfyanonymous/ComfyUI/pull/15139) (Kijai). ⚠ That PR was
+**merged upstream as `5c4d2568f` on 2026-09-27** (first in ComfyUI v0.38.0); nothing is
+patched any more. On a current install `REPAIR.bat` reports this item `[ OK ]` on the
+upstream code without editing anything, and prints a `[NOTE ]` line saying the ID-V2V fix can
+be deleted from `repair_all.py`. The description below stays as history, and for an install
+older than v0.38.0.
 
 - `comfy\model_detection.py` — a VACE checkpoint that also carries `img_emb.proj.0.bias` is
   flagged `vace_image_input` (that is how an ID-V2V file is recognised).
@@ -216,8 +248,10 @@ not merged** at the time of writing.
   input: the conditioning's padding frames are filled with the stylized keyframe instead of
   flat gray, which is what anchors identity without pinning frames.
 
-> **When PR #15139 merges upstream**, `REPAIR.bat` says so in a `[NOTE]` line — at that point
-> delete the `IdV2V` class from `repair_all.py` and this section.
+> **PR #15139 has merged upstream**, and `REPAIR.bat` now says so in its `[NOTE ]` line. The
+> `IdV2V` class in `repair_all.py`, the reference patch in `integrations\patches\` and this
+> section are kept for now: they change nothing on ComfyUI v0.38.0 or later, and REPAIR.bat's
+> `[NOTE ]` line says they can be deleted.
 >
 > Model: `models\diffusion_models\wan_2.1_idv2v_int8_convrot.safetensors` (20.2 GB, from
 > [Kijai/Wan_ID_V2V_comfy](https://huggingface.co/Kijai/Wan_ID_V2V_comfy)). Example workflows
@@ -254,7 +288,7 @@ Reverted by a pack update.
     `([128,256,512,1024,2048],…)`, `([512,1024,1536],…)` → their string equivalents, with a
     `resolution = int(resolution)` as the first line of each `process()` (needed because the
     value is compared with `== 512`/`== 1024` and returned as an `INT` output).
-  - → `_maintenance\fix_resolution_combos.py`.
+  - → `tools\maintenance\fix_resolution_combos.py`.
   - ⚠ The example-workflow `.json`s are deliberately **not** edited for this — the stored int
     values submit as strings and validate against the fixed nodes, and a by-value JSON edit
     would corrupt neighbours (a `MeshTexturing` node keeps `texture_size=2048` right beside
@@ -262,7 +296,7 @@ Reverted by a pack update.
 - **`example_workflows\*.json`** — the pack author's absolute `C:\Git\ComfyUI\output\...` mesh
   paths were rewritten to drive-relative tails (bare filename or `subfolder/name.glb`), which
   ComfyUI resolves against the install on any drive letter.
-  - → `_maintenance\portablize_paths.py`.
+  - → `tools\maintenance\portablize_paths.py`.
   - The Blender-projection workflow's `C:\Program Files\...\blender.exe` is left as-is — a real
     machine-specific install path that can't be made portable.
 
@@ -287,6 +321,20 @@ Reverted by a pack update.
   conda-only libraries (`cgal`, `igl`, Blender's `bpy`) that can't live here, and no workflow
   used it. There is no local copy to restore — re-install from ComfyUI-Manager if ever needed.
   (`custom_nodes\.disabled\` exists but is empty; nothing was parked there.)
+
+### ComfyUI-QwenImage21-FunControlNet (`custom_nodes\ComfyUI-QwenImage21-FunControlNet\`) — automated, but NOT by REPAIR
+Reverted by reinstalling or re-cloning the pack (ComfyUI-Manager, or a fresh `git clone`).
+- **`nodes.py`** — the ControlNet hint is added outside ComfyUI's per-block memory plan
+  (`_pause_malloc_graph()`). Without it the two Qwen-Image 2.1 ControlNet cards
+  (`image_qwen_image_2_1_control_canny` and `..._control_depth`) stop inside sampling with
+  `RuntimeError: aimdo memory compile error`.
+  - → `tools\maintenance\fix_custom_node_patches.py`, or in ComfyQ: Admin → Maintenance →
+    Maintenance scripts → *Re-apply the custom-node fixes*. `REPAIR.bat` does **not** run it.
+  - The script is safe to run twice, and refuses (changing nothing) if the pack's code moved
+    under the patch. Restart ComfyUI afterwards.
+  - A patched pack shows as having uncommitted changes in git, on purpose: ComfyQ's updater
+    will not pull over them. To update the pack on purpose, commit or stash in its folder,
+    pull, then run the script again.
 
 ### The launchers (`run_*.bat`) — customised, but safe
 All three launchers carry **`--listen 0.0.0.0`** so the web UI is reachable from other

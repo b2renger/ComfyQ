@@ -10,11 +10,12 @@
  *
  * Four things make it durable, each of which a naive version gets wrong:
  *
- *  - The sweep stages its media inputs as `comfyq__bench-im__<name>`, and the
- *    `comfyq__` prefix is what InputUploader.sweepStale() deletes after ~30
- *    minutes. So each input is re-staged from its ORIGINAL source file under
- *    the durable `comfyq_session__` prefix -- the prefix a real booking uses
- *    and the one the sweeper leaves alone.
+ *  - The sweep stages its media inputs under the `comfyq__` prefix
+ *    (`comfyq__<run token>__<name>`): calibration deletes them when the run
+ *    ends, and the `comfyq__` prefix is what InputUploader.sweepStale() deletes
+ *    after ~30 minutes anyway. So each input is re-staged from its ORIGINAL
+ *    source file under the durable `comfyq_session__` prefix -- the prefix a
+ *    real booking uses and the one the sweeper leaves alone.
  *  - The staged name follows ComfyQ's own upload convention
  *    (`comfyq_session__<n>_<n>__<original>`), because ingredientsStore parses
  *    the original filename back out of it for the "Imported media" list.
@@ -76,44 +77,10 @@ console.log('sweep       %s  (%d bundles, finished %s)', path.basename(latest), 
 // caption would describe a different result. Every caption taken from the file
 // is printed.
 const { loadSuite } = require(path.join(REPO, 'server', 'benchmark', 'suitePlan'));
+// The same-run check and the output filter live in exampleRules.cjs, where they
+// are tested (exampleRules.test.cjs).
+const { sameRun, showableOutputs } = require(path.join(__dirname, 'exampleRules.cjs'));
 const suiteRuns = new Map();
-const mediaFrom = (spec) => {
-    const s = spec == null ? null
-        : typeof spec === 'string' ? spec
-        : (spec.from || (spec.asset ? 'asset:' + spec.asset : null));
-    return typeof s === 'string' ? s.replace(/^output:/, '') : s;   // "output:<id>" is recorded as "<id>"
-};
-const rowFrom = (inp) => !inp || inp.empty ? null : (inp.from || (inp.asset ? 'asset:' + inp.asset : null));
-// ★ An input taken from another bundle's result is only "the same" if that
-// bundle's published row is itself the run its file entry describes AND is the
-// very file this run consumed — a caption naming the upstream picture's content
-// is otherwise about a different picture.
-const normPath = (p) => String(p || '').replace(/\\/g, '/').toLowerCase();
-function sameRun(fileRun, r, ctx, seen = new Set()) {
-    if (!fileRun || seen.has(r.id)) return false;      // `seen` is this path only: it guards a cycle
-    const path_ = new Set([...seen, r.id]);
-    const inputs = r.suite?.inputs || {};
-    for (const [k, v] of Object.entries(fileRun.params || {})) {
-        if (k in inputs) {
-            if (mediaFrom(v) !== rowFrom(inputs[k])) return false;
-            const up = ctx && rowFrom(inputs[k]);
-            if (up && !/^(asset|file):/.test(up)) {
-                const upRow = ctx.rows.find(x => x.id === up);
-                if (!upRow || !(upRow.outputs || []).some(o => normPath(o.path) === normPath(inputs[k].source))) return false;
-                if (!sameRun(ctx.fileRuns.get(up), upRow, ctx, path_)) return false;
-            }
-            continue;
-        }
-        const ing = (r.ingredients || []).find(i => i.key === k);
-        if (!ing) return false;
-        // A seed: calibration draws a fresh one whatever the suite asked for, so
-        // it can never match — and it is not what a caption describes.
-        if (ing.from === 'calibration' || /seed/i.test(ing.key)) continue;
-        const a = String(ing.value), b = String(v);
-        if (ing.truncated ? !b.startsWith(a) : a !== b) return false;
-    }
-    return true;
-}
 const captionFor = (r) => {
     const name = r.suite?.name;
     if (!name) return null;
@@ -186,9 +153,11 @@ for (const r of rows) {
 
     // Outputs. `file` is already output-root-relative, which is what /images
     // serves; kind and mime come from ComfyQ's classifier so each result lands
-    // in the right viewer.
+    // in the right viewer. Stray text tiles ("3", a tensor shape) and VHS's
+    // first-frame PNG are left out: a student opening the example should see
+    // what the card is for.
     const outputs = [];
-    for (const o of (r.outputs || [])) {
+    for (const o of showableOutputs(r.outputs)) {
         if (o.kind === 'text') {
             const m = String(o.file || '').match(/node (\S+)/);
             outputs.push({

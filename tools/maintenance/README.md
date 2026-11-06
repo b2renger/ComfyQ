@@ -1,17 +1,24 @@
-# `_maintenance\` — everything you need to know about this drive
+# `ComfyQ\tools\maintenance\` — everything you need to know about this drive
 
 This is an **external NVMe that carries a complete, hand-tuned ComfyUI**. It gets plugged into
 different machines and mounts under different letters (`J:`, `K:`, …), so nothing here ever
-hardcodes a drive letter — every script finds its targets relative to this folder.
+hardcodes a drive letter — every script finds the ComfyUI install through
+[`comfyq_paths.py`](comfyq_paths.py): first `COMFY_ROOT` if you set it, then the path saved in
+ComfyQ under **Manage ComfyUI → ComfyUI Settings** (`comfy_ui.root_path` in ComfyQ's
+`config.json`).
+
+These files used to live in `ComfyUI_windows_portable_nvidia\_maintenance\`, beside the
+install. That folder is gone: they now live in the ComfyQ repo, so they travel with it.
+[`COMFYQ-NOTES.md`](COMFYQ-NOTES.md) says what the move changed.
 
 ## Start here
 
 | If you… | Read / run |
 |---|---|
-| **just updated anything** (ComfyUI, a pack, Manager "update all") | **double-click [`REPAIR.bat`](REPAIR.bat)** — re-applies the hand-fixes updates silently revert |
+| **just updated anything** (ComfyUI, a pack, Manager "update all") | **double-click [`REPAIR.bat`](REPAIR.bat)** (or Admin → Maintenance → Maintenance scripts → *Repair the ComfyUI install*) — re-applies the hand-fixes updates silently revert. Then [`fix_custom_node_patches.py`](fix_custom_node_patches.py) (*Re-apply the custom-node fixes* on the same card) for the Qwen-Image 2.1 ControlNet pack, then restart ComfyUI (Admin → Manage ComfyUI → *Restart ComfyUI*, after *Reset to admin* if the machine is serving; or close and relaunch a ComfyUI you started by hand), then hard-refresh the browser (Ctrl+Shift+R) |
 | want to know *why* this install is fragile, and what was changed | **[`notice.md`](notice.md)** — the full background + checklist |
-| need disk space | **[`model-audit\`](model-audit/README.md)** — double-click `AUDIT.bat`, mark what goes, run the pruner |
-| are setting up on a new machine | [`backup-and-move.md`](backup-and-move.md), then [`notice.md`](notice.md) → *"First time on a new machine"* |
+| need disk space | Admin → Maintenance → *Prune unused models* (it moves files to `_model_quarantine\`; empty a batch from the *Quarantined models* card to free the space). For the per-model decision sheet see [`model-audit\`](model-audit/README.md); don't use `prune-models.ps1 -Purge` on a drive the panel has quarantined to |
+| plugged this drive into a new machine | the [*Hardware floor*](#-hardware-floor--check-this-before-plugging-the-drive-into-a-new-machine) section below, then [`notice.md`](notice.md) → *"First time on a new machine"*; `Readme.txt` at the root of the drive for Node 24 and `safe.directory` |
 | **can't get ComfyUI to start** | [*If it won't start*](#if-it-wont-start) below |
 | need the backup, or want to make one | [`backup-and-move.md`](backup-and-move.md) |
 | are wondering about ID-V2V / the ComfyUI core patch | [`integrations\idv2v.md`](integrations/idv2v.md) |
@@ -21,20 +28,38 @@ Two rules that matter more than anything else in this folder:
 1. **Never run `update\update_comfyui_and_python_dependencies.bat`.** It upgrades PyTorch off
    2.8.0 and every compiled CUDA kernel the 3D packs depend on stops loading. Updating ComfyUI
    *core* is fine; updating the *Python dependencies* is what breaks things.
-2. **After any update, run `REPAIR.bat`.** Updates don't error — they silently revert the
-   hand-fixes and you find out when a workflow fails.
+2. **After any update, run `REPAIR.bat`** (and `fix_custom_node_patches.py` after updating the
+   Qwen-Image 2.1 ControlNet pack), then restart ComfyUI (Admin → Manage ComfyUI → *Restart
+   ComfyUI*, after *Reset to admin* if the machine is serving; with `comfy_ui.autoStart` off the
+   card then shows it stopped, so press *Launch ComfyUI on network* first, which only
+   reconnects, then *Restart ComfyUI*; or close and relaunch a ComfyUI you started by hand),
+   then hard-refresh the browser (Ctrl+Shift+R). Updates don't error —
+   they silently revert the hand-fixes and you find out when a workflow fails.
 
 ## What is in this folder
 
 ```
-_maintenance\
+tools\maintenance\
   README.md                  this file
+  COMFYQ-NOTES.md            what changed when this folder moved into the ComfyQ repo
   notice.md                  the fragility notes + full checklist of every hand-fix
   backup-and-move.md         the backup: how to find it, restore from it, remake it
   REPAIR.bat                 <-- double-click after any update
   repair_all.py              the orchestrator behind REPAIR.bat
   fix_resolution_combos.py   TRELLIS2 dropdown fix      (called by repair_all)
   portablize_paths.py        TRELLIS2 workflow paths    (called by repair_all)
+  fix_custom_node_patches.py Qwen-Image 2.1 ControlNet pack fix (NOT called by repair_all)
+  comfyq_paths.py            where ComfyUI is, read from ComfyQ's config.json
+  python-path.js             the same answer for the .bat files, which cannot read JSON
+  wipe_for_clone.cjs / seed_examples.cjs / publish_partial_sweep.cjs / recover_sweep.cjs
+                             preparing the drive to be cloned, and rescuing a killed library
+                             sweep (see COMFYQ-NOTES.md → Preparing the drive to be cloned,
+                             and docs/cloning-the-drive.md)
+  laneResidue.cjs / exampleRules.cjs
+                             the tested rules behind wipe_for_clone.cjs and
+                             seed_examples.cjs (each with a *.test.cjs)
+  output_stats.py            measures each library-sweep output (black / flat / tiny /
+                             empty); ComfyQ's library sweep runs it
   integrations\
     idv2v.md                 ID-V2V video restylization: what it is, how it is wired
     patches\                 the upstream diff the ID-V2V fix is derived from
@@ -45,25 +70,40 @@ _maintenance\
     AUDIT.bat                <-- double-click: a small editor for that CSV
     prune-models.ps1         acts on the CSV: dry run -> quarantine -> purge/restore
     MODEL-AUDIT.md           the narrative report: method, traps, the big numbers
-    custom-nodes-audit.csv   the same idea, for the 43 custom-node packs
-    completeness-review.md   what the model pass missed (backups, duplicates)
+    custom-nodes-audit.csv   the same idea for the custom-node packs: a hand-made
+                                 snapshot from the 2026-09-11 audit (43 packs), not regenerated
+    completeness-review.md   what the model pass missed (backups, duplicates), 2026-09-11
     build_csv.py             rebuilds model-audit.csv from the scan data
     rescan.py / rescan_nodes.py / verify_audit.py   rebuild + check the scan data
+    …and the editor's helpers, decisions.json and prune-log.csv: see
+                                 model-audit/README.md → The rest of this folder
 ```
 
-You ever *run* three things: `REPAIR.bat` (safe always), `model-audit\AUDIT.bat` (opens the
-decision sheet in a browser; writes only that CSV), and `model-audit\prune-models.ps1` (deletes
-nothing on its own — dry-run by default, quarantines before it purges, and refuses models it
-can see are still in use).
+For the install itself you only ever *run* four things: `REPAIR.bat` (safe always),
+`fix_custom_node_patches.py` (after an update of the Qwen-Image 2.1 ControlNet pack — REPAIR
+does not cover it; the panel's
+*Re-apply the custom-node fixes* button runs it), `model-audit\AUDIT.bat` (opens the decision
+sheet in a browser; *Save* writes only that CSV, but the Workflows tab's *Replace* edits the
+chosen workflow file in place and keeps a `.bak` — for a served bundle, both its `.api.json`
+and its `_template.json`), and `model-audit\prune-models.ps1` (deletes nothing
+on its own — dry-run by default, quarantines before it purges, and refuses models it can see
+are still in use).
+
+The clone and sweep-rescue scripts (`wipe_for_clone.cjs`, `seed_examples.cjs`,
+`publish_partial_sweep.cjs`, `recover_sweep.cjs`) are run as described in
+[docs/cloning-the-drive.md](../../docs/cloning-the-drive.md); `recover_sweep.cjs`, which that
+page does not use, is explained in [`COMFYQ-NOTES.md`](COMFYQ-NOTES.md).
 
 ## The install, in one table
 
+Figures as of 2026-11-05; the version and the counts move with every update.
+
 | | |
 |---|---|
-| ComfyUI | `ComfyUI_windows_portable\ComfyUI` — **0.35.0**, a git checkout (detached HEAD on the version tag) |
+| ComfyUI | `ComfyUI_windows_portable\ComfyUI` — **0.43.2**, a git checkout (detached HEAD on the version tag). The current version is in `ComfyUI\comfyui_version.py` |
 | Python | `ComfyUI_windows_portable\python_embeded` — **3.12.10**, **torch 2.8.0+cu128** (pinned, see notice.md §1) |
-| Models | `ComfyUI\models` — **~1853 GB**, 99% of the drive |
-| Custom nodes | `ComfyUI\custom_nodes` — 43 packs, 1.3 GB |
+| Models | `ComfyUI\models` — **~1.3 TB** (1282 GB in `model-audit.csv`), most of what is used on the drive |
+| Custom nodes | `ComfyUI\custom_nodes` — 45 folders (44 packs + ComfyQ's own `comfyq_opener`), 1.8 GB |
 | Launchers | `run_nvidia_gpu.bat` (+ `_fast_fp16_accumulation`, `run_cpu`) — all carry `--listen 0.0.0.0` |
 
 ### ⚠ Hardware floor — check this before plugging the drive into a new machine
@@ -84,15 +124,29 @@ fine and the GPU is the problem.
 
 ## If it won't start
 
-ComfyUI writes its whole boot to rotating logs — and when ComfyQ launched the process there is
-no console window, so **this is the only record**:
+When ComfyQ started ComfyUI there is no console window, so look in the log files.
 
-All under `ComfyUI_windows_portable\ComfyUI\user\`. **Which file you want depends on who
-started ComfyUI, not on the name** — the log is named after the `--port` argument:
+**First: ComfyQ's own copy of ComfyUI's console**, in `ComfyQ\.comfyq-lanes\logs\`:
 
 ```
-comfyui_8188.log  (+ .prev, .prev2)   boots ComfyQ started -- it always passes --port 8188
-comfyui.log       (+ .prev, .prev2)   boots you started by double-clicking run_*.bat (no --port)
+comfyui-<port>.err.log   everything ComfyUI printed to its error stream -- including
+                         errors from before ComfyUI's own log file is set up. ComfyQ's
+                         terminal echoes it with a [ComfyUI!] prefix.
+comfyui-<port>.out.log   the rest of its console output
+```
+
+**Then ComfyUI's own rotating logs**, named after the `--port` it was started with. **Which
+file you want depends on who started ComfyUI, not on the name**:
+
+```
+ComfyUI_windows_portable\ComfyUI\user\
+  comfyui_8188.log  (+ .prev, .prev2)   the main ComfyUI ComfyQ starts, on the port set under
+                                        Manage ComfyUI (8188 by default)
+  comfyui.log       (+ .prev, .prev2)   boots you started by double-clicking run_*.bat (no --port)
+
+ComfyQ\.comfyq-lanes\<workflow>\user\
+  comfyui_8189.log  (and up)            an extra lane serving a second workflow in parallel:
+                                        its own port and its own user folder
 ```
 
 So with ComfyQ running the install (`autoStart: true`), `comfyui.log` can be days stale while
@@ -108,28 +162,45 @@ timestamp prefix.
 |---|---|---|
 | `DLL load failed` / `undefined symbol` on the 3D packs | PyTorch drifted **or** the GPU is Ampere | `REPAIR.bat --check` tells you which — see the hardware floor above and notice.md §1 |
 | `<<<<<<<` in a `.py`, or a `SyntaxError` in `comfy\` | someone ran `git stash pop` after an update | notice.md §1b — restore the file with git and run `REPAIR.bat` |
-| port 8188 already in use | **ComfyQ owns that port** (`autoStart: true`) and is already running one | stop ComfyQ, or use its own restart button — don't double-launch |
+| port 8188 already in use | **ComfyQ's ComfyUI already holds that port** (`autoStart: true`). It keeps running when ComfyQ is closed, so closing ComfyQ does not free the port | use the ComfyUI that is running (http://localhost:8188), or stop it from ComfyQ: Admin → *Reset to admin* (if it is serving) → Manage ComfyUI → *Stop ComfyUI*. With `comfy_ui.autoStart` off, the card shows ComfyUI as stopped after *Reset to admin* even though it is still running: press *Launch ComfyUI on network* first (it reconnects to the running ComfyUI), then *Stop ComfyUI*. Don't double-launch |
 | `IMPORT FAILED` on one pack only | that pack's deps, not the install | read its traceback; the rest of ComfyUI is fine |
-| nodes missing from the menu after an update | a hand-fix was reverted | `REPAIR.bat`, then hard-refresh the browser |
+| nodes missing from the menu after an update | a hand-fix was reverted | `REPAIR.bat` (and `fix_custom_node_patches.py` for the Qwen-Image 2.1 ControlNet pack), then restart ComfyUI (Admin → Manage ComfyUI → *Restart ComfyUI*, after *Reset to admin* if the machine is serving; or close and relaunch a ComfyUI you started by hand), then hard-refresh the browser (Ctrl+Shift+R) |
 
 ### Where the workflows live
 
 | | |
 |---|---|
-| `ComfyQ\workflows` | **production** ComfyQ bundles served to students (`<id>.api.json` + `<id>_template.json`) |
+| `ComfyQ\workflows` | **production** ComfyQ bundles served to students (`<id>.api.json`, `<id>.meta.json` and `<id>_template.json`) |
 | `ComfyQ\workflows\_candidate_workflows` | **staged for later testing**, possibly promoted into ComfyQ — tested workflows only, nothing else |
 | `_demo_workflows` | demo / teaching workflows |
 | `ComfyUI\user\default\workflows` | ComfyUI's own **Workflows sidebar** — where rig test workflows are staged |
 
-The model audit cross-references **all four**, and everything it reads now lives **on this
-drive**. The old `Downloads\workflows_a_tester` staging folder sat on `C:`, so the audit's
-answer changed depending on which machine the drive was plugged into; it was retired
-2026-09-11 and its workflows moved into `_candidate_workflows`.
+Everything the model audit reads lives **on this drive**. ⚠ **The audit and ComfyQ's prune
+tool count a folder only while it is switched on** in ComfyQ under Admin → Maintenance →
+*Prune unused models* → *Folders scanned for workflows* (stored per machine in `config.json`
+as `maintenance.scanDirsOff`). The bundles folder (`ComfyQ\workflows`) is always on. The
+candidates folder, ComfyUI's saved workflows, the parallel lanes' saved workflows and any
+folder you added there (such as `_demo_workflows`) protect their models **only while switched
+on** — on this machine all of them are switched off, and already were when the shipped
+`model-audit.csv` was built (2026-10-16), so its `UNUSED` rows ignore those folders. A
+switched-off folder:
 
-⚠ `_candidate_workflows` is not production, but **its models are protected** — 14 models /
-63.5 GB are held by nothing else on the drive. `prune-models.ps1` refuses to touch them.
+- in the **prune tool**, is still read: a model only it uses is listed under *Worth a look*,
+  with that folder named, and never in the confident group;
+- in the **model audit**, is not read at all: its models read `UNUSED` in `model-audit.csv`,
+  and `prune-models.ps1` will not refuse them (it refuses only rows marked `LOADED`,
+  `PICKABLE` or `AUTO-DOWNLOAD`).
 
-### Backups that already exist
+Check that card before you prune.
+
+The old `Downloads\workflows_a_tester` staging folder sat on `C:`, so the audit's answer
+changed depending on which machine the drive was plugged into; it was retired 2026-09-11 and
+its workflows moved into `_candidate_workflows`.
+
+`_candidate_workflows` is not production. With its folder switched on, **its models are
+protected**; with it switched off, they are not.
+
+### Backups (on the master machine only — not on this drive)
 
 - `E:\comfyq_iso\ComfyQ_ComfyUI_portable.iso` — **647 GB**, built 2026-07-10, with a `.sha256`
   and a `BUILD-INFO.txt`. A curated subset: the four big weight buckets trimmed to
@@ -137,37 +208,47 @@ answer changed depending on which machine the drive was plugged into; it was ret
 - `D:\comfyq_iso_build\` — **652 GB**, the staging tree the ISO was built from. **Redundant**
   now the ISO exists, and the single largest reclaim available on this machine.
 
-636 GB of what is on `J:` right now is a strict, size-verified subset of that ISO — so for
-those files a deletion is restorable by file-copy, no re-download, no licence gate. The
-`backup` column in `model-audit.csv` tells you which. **Caveat:** the ISO is a snapshot of
-2026-07-10, so it says nothing about the ~353 GB added since (MiniMax H3, LTX 2.5,
-Wan-Animate 2, SCAIL-2). It is also *curated*, not a mirror: the four big weight buckets were
+When the ISO was compared with this drive (2026-09-11), 636 GB of the models here were a
+strict, size-verified subset of it — so for those files a deletion is restorable by
+file-copy, no re-download, no licence gate — **on the master machine**. On any other machine
+these disks are not there, so a deleted model has to be downloaded again. The `backup` column in `model-audit.csv` says
+which files have a copy (123 rows / 424.8 GB in the sheet of 2026-10-16). **Caveat:** the ISO
+is a snapshot of 2026-07-10, so it says nothing about what was added since — ~353 GB by the
+time this folder moved into the repo (2026-10-05: MiniMax H3, LTX 2.5, Wan-Animate 2,
+SCAIL-2), and more after. It is also *curated*, not a mirror: the four big weight buckets were
 trimmed to ComfyQ-referenced models only, so a few things you might expect — `flux1-dev`,
 `stable-audio-open-1.0` — are **not** in it despite being licence-gated and awkward to refetch.
 
 ## How ComfyQ relates to this install
 
-[ComfyQ](../../ComfyQ) (`J:\ComfyQ`) is the multi-user scheduler that drives this ComfyUI. It
-does **not** contain a ComfyUI — it points at this one:
+[ComfyQ](../../README.md) (`<drive>\ComfyQ`, the repo this folder lives in) is the multi-user
+scheduler that drives this ComfyUI. It does **not** contain a ComfyUI — it points at this one:
 
-- `J:\ComfyQ\config.json` → `comfy_ui.root_path` / `python_executable` point into
+- `<drive>\ComfyQ\config.json` (ComfyQ's `config.json`, at the repo root) →
+  `comfy_ui.root_path` / `python_executable` point into
   `ComfyUI_windows_portable\`. ComfyQ self-heals this path when the drive letter changes
   (it scans for the portable layout on boot).
 - ComfyQ launches and manages the ComfyUI process (start / restart / take over an externally
-  started one), so **stop ComfyQ before doing maintenance** that touches model files.
+  started one). That ComfyUI **keeps running when ComfyQ is closed**, so before maintenance
+  that touches model files, stop ComfyUI itself: Admin → *Reset to admin* (if it is serving)
+  → Manage ComfyUI → *Stop ComfyUI*. Closing ComfyQ alone leaves ComfyUI running. With
+  `comfy_ui.autoStart` off, the card shows ComfyUI as stopped after *Reset to admin* even
+  though it is still running: press *Launch ComfyUI on network* first (it reconnects to the
+  running ComfyUI), then *Stop ComfyUI*.
 - ComfyQ installs `custom_nodes\comfyq_opener\` on every launch and version-checks it — it is
   how "Open in ComfyUI" hands a bundle over to the editor. Deleting it is pointless; it comes
   back.
 - Uploaded job media lands in `ComfyUI\input\comfyq_session__*` and job "ingredients" in
-  `ComfyUI\comfyq_ingredients\`. Neither has a retention policy — 1.2 GB combined today
-  (0.5 GB of uploads across 484 files, 0.7 GB of ingredients across 512 jobs; the whole
-  `input\` folder is 1.5 GB, most of it hand-placed test assets), growing slowly.
+  `ComfyUI\comfyq_ingredients\`. Neither has a retention policy; both grow slowly. The rest
+  of `input\` is mostly hand-placed test assets.
 
-**Adding a workflow or a model?** The bundle layout (`<id>.api.json` + `<id>.meta.json`) and the
-add-a-workflow walkthrough are in `J:\ComfyQ\README.md`. For a model, `model-audit.csv`'s
+**Adding a workflow or a model?** The bundle layout (`<id>.api.json`, `<id>.meta.json` and
+`<id>_template.json`) and the
+add-a-workflow walkthrough are in [ComfyQ's README](../../README.md). For a model, `model-audit.csv`'s
 `relpath` column shows where each kind belongs.
 
 Knowledge split, so nothing drifts: **this folder is the operational home** (what you run,
-what you read when something breaks, and it lives with the drive). The ComfyQ repo holds the
-version-controlled record and anything ComfyQ-specific. Where both mention a topic, the
-pointer runs from the repo to here.
+what you read when something breaks). It is part of the ComfyQ repo, so it is versioned with
+ComfyQ and travels with it — on a clone of the drive or a fresh checkout alike. The rest of the
+repo holds anything ComfyQ-specific; where both mention a topic, the pointer runs from the
+rest of the repo to here.

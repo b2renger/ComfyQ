@@ -11,6 +11,11 @@
 //   npm install            (once, in this folder — puppeteer-core only)
 //   node convert.mjs <outDir> <workflow.json> [more.json ...]
 //
+// Each output is named after its input file: x_template.json → <outDir>/x_template.api.json.
+// Use a scratch outDir (it also gets _report.json). Exit code 1 if any graph failed.
+// To make a bundle run an edited graph, see "After editing a graph in ComfyUI"
+// in ../api-to-ui/README.md.
+//
 // Env: COMFY_URL (default http://127.0.0.1:8188), CHROME (path to chrome/msedge).
 // Watch the console warnings it prints: "[ExecutableNodeDTO.resolveOutput] No
 // input types match…" means a BYPASSED node sat in a live path and ComfyUI
@@ -81,3 +86,7 @@ for (const file of files) {
 }
 fs.writeFileSync(path.join(outDir, '_report.json'), JSON.stringify(report, null, 2));
 await browser.close();
+// Exit 1 when any graph failed, so a script cannot mistake a FAIL for a result
+// (it used to exit 0 whatever happened). Console warnings do not fail a graph:
+// read them in _report.json.
+process.exit(report.some(r => !r.ok) ? 1 : 0);

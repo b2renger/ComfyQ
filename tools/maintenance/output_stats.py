@@ -18,6 +18,14 @@ file:
   flat       standard deviation below 1.0, i.e. a single colour
   tiny       fewer pixels than a thumbnail, or a suspiciously small file
   frames     how many a video really has, and stats for first/middle/last
+  silent     an audio file whose loudest sample is below 1e-4 of full scale
+  clipping   an audio file that goes past full scale -- it distorts when played.
+             The one audio defect a number catches reliably, so it is flagged
+             rather than left to a listener who may never press play.
+
+An audio file's `peak` and `rms` are fractions of full scale (1.0), measured
+over the WHOLE file: an integer format (16-bit FLAC, WAV) is divided by its
+full scale, so every file reads on the same 0..1 axis.
 
 Everything is best-effort: a file it cannot read is reported as unreadable rather
 than raising, because a sweep must survive one odd output.
@@ -144,14 +152,38 @@ def describe_audio(path):
             out['seconds'] = round(float(c.duration or 0) / 1_000_000, 2)
             out['sampleRate'] = st.rate
             out['channels'] = st.channels
-            peak = 0.0
-            for i, frame in enumerate(c.decode(st)):
+            import numpy as np
+            # ★ The WHOLE file. This used to stop after ~200 frames -- five seconds
+            # of a 150 s MP3 -- and left 16-bit FLAC in raw integer units, so a
+            # track that clipped later on read as fine.
+            peak, sq, n = 0.0, 0.0, 0
+            full = None                 # full scale of an integer format; None = float
+            for frame in c.decode(st):
                 a = frame.to_ndarray()
-                peak = max(peak, float(abs(a).max()) if a.size else 0.0)
-                if i > 200:
-                    break
+                if not a.size:
+                    continue
+                kind = a.dtype.kind
+                if kind in 'iu':
+                    full = float(2 ** (a.dtype.itemsize * 8 - 1))
+                    a = a.astype('float64')
+                    if kind == 'u':
+                        a = a - full    # unsigned 8-bit is centred on 128
+                    a = a / full
+                else:
+                    a = a.astype('float64')
+                peak = max(peak, float(np.abs(a).max()))
+                sq += float(np.square(a).sum())
+                n += a.size
             out['peak'] = round(peak, 5)
-            out['flags'] = ['silent'] if peak < 1e-4 else []
+            out['rms'] = round((sq / n) ** 0.5, 5) if n else 0.0
+            flags = []
+            if peak < 1e-4:
+                flags.append('silent')
+            # A float format can go past 1.0; an integer one stops at its rail,
+            # so there clipping shows as samples sitting on the largest value.
+            if (full is None and peak > 1.0) or (full is not None and peak >= (full - 1) / full):
+                flags.append('clipping')
+            out['flags'] = flags
     except Exception as e:
         out['error'] = f'{type(e).__name__}: {e}'
     return out

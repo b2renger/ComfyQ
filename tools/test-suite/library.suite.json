@@ -1,6 +1,6 @@
 {
   "name": "library",
-  "description": "Every workflow in the library, each with an example chosen from research into what its model is actually good at (model cards, papers, official prompting guides, ComfyUI template notes) — a smoke test that doubles as the library's showcase. Pictures made from words feed the edits, the 3D cards, the captioner and the videos; real photos and real footage are used where a card's power only shows on them (restoring damage, copying a dancer's moves). Each run's note says what to look at. Settings are each card's defaults except prompts and inputs, unless the run keeps its calibrated timing (keepRuntime).",
+  "description": "Every workflow in the library, each with an example chosen from research into what its model is actually good at (model cards, papers, official prompting guides, ComfyUI template notes) — a smoke test that doubles as the library's showcase. Pictures made from words feed the edits, the 3D cards, the captioner and the videos; real photos and real footage are used where a card's power only shows on them (restoring damage, copying a dancer's moves). Each run's note says what to look at. Settings are each card's defaults except prompts, inputs and choices that leave the cost about the same (an aspect ratio, a size at about the same pixel count, a LoRA, colour-correction or time-of-day choice, an optional input switched off); a run that changes the cost keeps its calibrated timing (keepRuntime).",
   "stages": [
     {
       "name": "1 — Pictures from words",
@@ -198,7 +198,7 @@
         },
         {
           "workflow": "image_edit_flux3_klein_distilled_image_edit",
-          "note": "The first frame of a video, repainted as a watercolour in about 12 seconds. Every shape stayed where it was — which is why two video cards use it as their style guide.",
+          "note": "The first frame of a video, repainted as a watercolour in about 12 seconds: the wall, the gravel and the trees are painted, but the dancer stayed photographic. The side-by-side ID-V2V card uses this frame as its style guide, flaw included.",
           "params": {
             "prompt": "Convert the entire image <ref_image_0> into a loose watercolour painting on textured cold-press paper: soft transparent washes, pigment pooling along the edges of shapes, visible paper grain and a few unpainted white highlights. Keep every person, object and building in exactly the same position, size and pose, keep the camera angle and the composition, and keep the original colours as watercolour tints.",
             "layout": "",
@@ -249,7 +249,7 @@
         },
         {
           "workflow": "image_edit_flux2_klein_inpaint_prompt",
-          "note": "The grey sofa in a photo of the school's atrium was painted over and described as a mustard velvet sofa. Everything outside the painted area is untouched, down to the pixel.",
+          "note": "The grey sofa in a photo of the school's atrium was painted over and described as a mustard velvet sofa. Beyond a thin blended edge around the painted area, the picture is untouched.",
           "params": {
             "cliptextencode_text_6": "a curved mid-century sofa upholstered in mustard-yellow velvet with three round seat cushions and thin dark wooden legs, standing on the pale grey concrete floor, seen from above at the same angle as the room, lit by soft daylight from the glass roof and casting a soft shadow on the floor",
             "cliptextencode_text_7": "",
@@ -467,7 +467,7 @@
         },
         {
           "workflow": "utility_pid_image_upscale",
-          "note": "A clean 1376×768 picture from the Qwen text-to-image card made 4 times wider and taller without changing it. Zoom to 100% on small details and edges: they stay faithful instead of being re-invented.",
+          "note": "A clean 1184×888 picture (the Qwen text-to-image card's flat lay, halved) made 4 times wider and taller without changing it. Zoom to 100% on small details and edges: they stay faithful instead of being re-invented.",
           "keepRuntime": true,
           "params": {
             "latenttiledpiddecode_seed_7": 42,
@@ -821,7 +821,7 @@
         },
         {
           "workflow": "video_minimax_h3_seamless_loop",
-          "note": "Set this clip to repeat and try to spot where it restarts: the breathing and the drifting dust carry straight on. That is what this card is for — a loop with no visible seam, made from one paragraph of text. (The purr the prompt asks for came out very faint — turn the sound up.)",
+          "note": "Set this clip to repeat and try to spot where it restarts: the breathing and the drifting dust carry straight on. That is what this card is for — a loop whose restart is close to seamless, made from one paragraph of text; look closely and a small jump can be spotted. (The purr the prompt asks for came out very faint — turn the sound up.)",
           "params": {
             "prompt_8": "Locked-off static camera, no pan, no zoom. A sunny windowsill in a quiet room in the late afternoon, warm golden light falling through a white lace curtain. A fluffy ginger cat lies curled up asleep on a folded wool blanket in the center of frame, its flank rising and falling in a slow, steady breathing rhythm and its whiskers trembling softly with each breath. The lace curtain sways very gently in a constant breeze, and specks of dust drift slowly through the sunbeam. Steady, unchanging light. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: a soft, steady, continuous purr, quiet room tone, a faint constant breeze at the window.\n\nnon_diegetic_music: N/A",
             "ref_image_7": null
@@ -980,7 +980,7 @@
         },
         {
           "workflow": "video_edit_minimax_h3_fun_controlnet_union",
-          "note": "The moves are the rooftop dancer's — everything else is new: an astronaut dancing on the Moon. Compare with the 'change one thing' card, which kept his rooftop and swapped only the dancer.",
+          "note": "The moves are the rooftop dancer's — everything else is new: an astronaut dancing on the Moon. Compare with the 'edit a video, sound and all' card, which kept his rooftop and swapped only the dancer.",
           "params": {
             "resolutionselector_aspect_ratio_115": "1:1 (Square)",
             "primitivestringmultiline_value_138": "Live-action, cinematic science-fiction look, hard white sunlight and deep black shadows. On the grey, dusty surface of the Moon, with craters stretching to a black starry horizon and the blue Earth hanging low in the sky, an astronaut in a bulky white spacesuit with a gold mirrored visor and a small backpack dances with big, bouncy moves: he sweeps his arms out wide, pops his chest, raises one gloved hand high, drops into a wide squat and steps from side to side, and every footstep kicks up a slow puff of moon dust that hangs in the low gravity. His visor reflects the Earth as he turns. The camera follows him from a slightly low angle with a gentle handheld sway.\n\noverall_soundscape: The muffled sound of his own breathing inside the helmet, the soft hiss of the suit's air supply, dull crunchy footsteps in the dust, and short bursts of radio static.\n\nnon_diegetic_music: A funky electric-bass and drum-machine groove at a moderate tempo, slightly filtered as if heard through a helmet radio.",
@@ -1114,7 +1114,7 @@
         },
         {
           "workflow": "video_edit_wan21_scail2_character_replacement",
-          "note": "The rooftop, the chimney, the sky and every dance move come from the video; the dancer now is the woman from the picture. Compare with the 'give a character a video's moves' card, which got the same two inputs but invents a new place.",
+          "note": "The rooftop, the chimney, the sky and every dance move come from the video; the dancer now is the woman from the picture. Compare with the 'give a character a video's moves' card: it got the same two inputs and carried the moves into the picture's own setting instead.",
           "keepRuntime": true,
           "params": {
             "cliptextencode_text_213_3": "A young Black woman with a red-and-orange patterned headwrap, a black leather biker jacket worn open over a long yellow-and-black plaid shirt dress, orange-and-black tiger-striped leggings and black-and-white sneakers dances energetically on a flat grey concrete rooftop: she sways, squats with bent knees, throws both hands up, swings her arms and kicks. Behind her are old red-brick industrial buildings, a tall brick chimney, a low parapet wall and a distant city skyline under a heavy overcast sky; soft diffuse daylight, a handheld camera slowly circling around her.",
@@ -1303,7 +1303,7 @@
         },
         {
           "workflow": "describe_gemma4_video_description",
-          "note": "Gemma watches the key-frame video one frame per second and writes a second-by-second log. Compare its timeline with the four pictures the video was made from.",
+          "note": "Gemma looks at one frame in every 24 of the key-frame video (this clip is 16 fps, so about one every 1.5 s) and writes a timed log; its times count those frames, so they are real seconds only for a 24 fps clip. Compare its timeline with the four pictures the video was made from.",
           "params": {
             "instruction_1": "Watch this video from start to end.\n1. Timeline: write one line per second, starting with the time (00:00, 00:01, ...), saying what you can see at that moment and what has changed since the previous second: the subject, any action and its direction relative to the camera, the camera, the light, the weather and the style of the picture.\n2. Summary: describe the whole clip in two sentences.\nDescribe only what is visible in the frames. If something is unclear, write 'unclear' instead of guessing. Do not describe sound.",
             "seed_1": 0,

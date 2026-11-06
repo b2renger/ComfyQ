@@ -1,6 +1,8 @@
 r"""Re-apply every hand-fix this portable ComfyUI depends on, and health-check the
 pinned stack.  Run it after ANY update (ComfyUI core, a custom-node pack, or
-ComfyUI-Manager's "update all") -- double-click _maintenance\REPAIR.bat.
+ComfyUI-Manager's "update all") -- double-click tools\maintenance\REPAIR.bat in
+the ComfyQ repo, or press "Repair the ComfyUI install" under Admin -> Maintenance
+-> Maintenance scripts.
 
 WHY THIS EXISTS
   This install carries a number of edits to files that belong to ComfyUI or to
@@ -15,8 +17,11 @@ WHY THIS EXISTS
 
 DESIGN
   * Idempotent -- running it when everything is fine changes nothing.
-  * Portable -- every path is derived from this file's location, so the drive
-    can mount as J:, K:, whatever.  No drive letter anywhere.
+  * Portable -- the install is read from ComfyQ's own config (comfyq_paths.py:
+    COMFY_ROOT, then comfy_ui.root_path in config.json, then an install beside
+    the ComfyQ checkout), not from this file's
+    position on the disk, so the drive can mount as J:, K:, whatever.  No drive
+    letter anywhere.
   * No git required -- fixes are applied as targeted text edits, not patches,
     so they still work if the surrounding code moved.  A fix whose anchor has
     disappeared reports FAIL and changes nothing rather than corrupting a file.
@@ -34,11 +39,20 @@ import py_compile
 import subprocess
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-PORTABLE = os.path.normpath(os.path.join(HERE, "..", "ComfyUI_windows_portable"))
-COMFY = os.path.join(PORTABLE, "ComfyUI")
+# ComfyUI's embedded Python pins sys.path (python312._pth), so this folder is
+# not importable unless it is put there by hand.
+sys.path.insert(0, HERE)
+from comfyq_paths import comfy_root, python_exe  # noqa: E402
+
+# This script used to sit in <drive>\_maintenance\, beside the portable install,
+# and found ComfyUI as "..\ComfyUI_windows_portable". It now lives in the ComfyQ
+# repo, so it asks ComfyQ where the install is, like the other scripts here.
+COMFY = comfy_root(required=False) or ""
 NODES = os.path.join(COMFY, "custom_nodes")
 MODELS = os.path.join(COMFY, "models")
-PYEXE = os.path.join(PORTABLE, "python_embeded", "python.exe")
+# The interpreter the helpers and health checks run under: the install's own
+# embedded Python, else this one (REPAIR.bat and the panel both start us with it).
+PYEXE = python_exe() or sys.executable
 
 OK, FIXED, FAIL, WARN, SKIP = "OK", "FIXED", "FAIL", "WARN", "SKIP"
 
@@ -157,7 +171,8 @@ class Fix:
 class IdV2V(Fix):
     name = "ID-V2V support (Wan 2.1 VACE+I2V)"
     why = ("ComfyUI's VACE path assumes a T2V base, so the ID-V2V model cannot load. "
-           "Backport of open PR #15139.")
+           "Backport of PR #15139, which merged upstream on 2026-09-27 (5c4d2568f): ComfyUI "
+           "v0.38.0 and later carry it, so on a current install this reads OK without any edit.")
     target = "ComfyUI core -- reverted by update_comfyui*.bat (it git-stashes local edits)"
 
     def files(self):
@@ -504,14 +519,16 @@ def main():
     print()
     print("=" * 74)
     print("  ComfyUI maintenance -- re-applying this install's hand-fixes")
-    print("  " + PORTABLE)
+    print("  " + (COMFY or "(ComfyUI install not found)"))
     if dry:
         print("  (--check: reporting only, nothing will be written)")
     print("=" * 74)
 
-    if not os.path.isdir(COMFY):
-        print(f"\n  [FAIL] ComfyUI not found at {COMFY}")
-        print("         Keep this script in <drive>\\_maintenance\\, next to ComfyUI_windows_portable\\.")
+    if not COMFY or not os.path.isdir(COMFY):
+        print("\n  [FAIL] ComfyUI not found" + (f" at {COMFY}" if COMFY else ""))
+        print("         Check the ComfyUI path in ComfyQ (Manage ComfyUI -> ComfyUI Settings,")
+        print("         stored as comfy_ui.root_path in config.json), or run this with")
+        print("         COMFY_ROOT set to the ComfyUI folder.")
         return 2
 
     repaired, failed, already = [], [], []

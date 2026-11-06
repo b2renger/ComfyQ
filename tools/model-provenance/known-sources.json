@@ -1,29 +1,33 @@
 {
   "_README": [
-    "Hand-curated provenance for the model files no workflow note documents.",
-    "Read by harvest.cjs, which prefers a URL found in the workflows' own notes",
-    "over anything here, so this file only ever fills gaps.",
+    "Hand-curated provenance for the model files no workflow note documents,",
+    "and corrections for notes that are wrong. Read by harvest.cjs, which",
+    "prefers a URL found in the workflows' own notes over anything here, so a",
+    "plain entry only ever fills gaps.",
     "",
-    "  url    a DIRECT download. Only ever put one here that has been verified to",
-    "         resolve (harvest-verify.cjs does that) -- a wrong direct link",
-    "         silently downloads the wrong weights.",
+    "  url    a DIRECT download. Only ever put one here that has been checked to",
+    "         resolve (verify.cjs does that) -- a wrong direct link silently",
+    "         downloads the wrong weights.",
     "  source a page for a human: the repo or project the file comes from.",
     "  auto   true when a node pack or pipeline fetches this itself. Such an",
     "         entry must never be reported as a missing model, and nothing",
     "         should offer to download it.",
-    "  note   why it is like that, in a sentence a person can act on.",
+    "  note   why it is like that, in a sentence a person can act on. harvest",
+    "         copies it into every meta that declares the file.",
+    "  _why   for whoever edits this file; harvest ignores it.",
+    "",
+    "  override  true makes this entry beat a link found in the notes. For a",
+    "            note that is demonstrably wrong, or for a link fixed by hand in",
+    "            the metas: without an override the next harvest --write puts",
+    "            the note's link back. The notes index keeps the FIRST link it",
+    "            finds for a filename, in folder order, so one bundle's note can",
+    "            speak for every bundle that uses the same file.",
     "",
     "Files that are genuinely unknown are LEFT OUT on purpose, so the harvest",
-    "keeps reporting them. A guess here would be worse than the gap:",
-    "  3DREAL-strong.safetensors                        community LTX IC-LoRA",
-    "  DynamicCharacterSheet_krea2_v1.safetensors       community Krea 2 LoRA",
-    "  QuadView_krea2_v1.safetensors                    community Krea 2 LoRA",
-    "  qwen-image-edit-2511-multiple-angles-lora.safetensors",
-    "  wan_2.1_idv2v_int8_convrot.safetensors           int8_convrot line",
-    "",
-    "  override  true makes this entry beat a link found in the notes. Only for",
-    "            a note that is demonstrably wrong -- see the LTX pixel-spatial",
-    "            upscaler, whose template links to the wrong (gated) repo."
+    "keeps reporting them. A guess here would be worse than the gap. None is",
+    "left out today (2026-11-05): every declared model has a url, a source or",
+    "auto. A hand fix to a meta's url/source/note must be copied here as an",
+    "override, or harvest.cjs --check (and the next --write) will undo it."
   ],
   "qwen-image-2.1-fix-1.0-comfy.safetensors": {
     "source": "https://huggingface.co/e-n-v-y/Qwen-Image-2.1-Fix",
@@ -38,16 +42,63 @@
     "note": "ComfyUI core cannot load this file -- it needs the ComfyUI-QwenImage21-FunControlNet pack, which is why that pack exists."
   },
   "flux2_klein_9b_refcontrol_depth.safetensors": {
-    "source": "https://huggingface.co/Comfy-Org/Flux-2-Klein-9B",
-    "note": "Comfy-Org's Klein repack. The exact path inside the repo is not recorded; the constructed split_files/loras/ guess 404s."
+    "override": true,
+    "url": "https://huggingface.co/thedeoxen/refcontrol-FLUX.2-klein-9B-reference-depth-lora/resolve/main/flux2_klein_9b_refcontrol_depth.safetensors",
+    "source": "https://huggingface.co/thedeoxen/refcontrol-FLUX.2-klein-9B-reference-depth-lora",
+    "note": "From the adapter author's own repo (thedeoxen). Comfy-Org's FLUX.2 Klein repack does not hold this file."
   },
   "pid_1.5_qwenimage_1024_to_4096_4step_bf16.safetensors": {
-    "source": "https://github.com/BennyDaBall930/ComfyUI-Latent-Tiled-PiD",
-    "note": "Released with the PiD node pack rather than on HuggingFace; follow the pack's own download instructions."
+    "override": true,
+    "url": "https://huggingface.co/Comfy-Org/PixelDiT/resolve/main/diffusion_models/pid_1.5_qwenimage_1024_to_4096_4step_bf16.safetensors",
+    "source": "https://huggingface.co/Comfy-Org/PixelDiT",
+    "note": "Comfy-Org's PixelDiT repack. Running it also needs the ComfyUI-Latent-Tiled-PiD node pack, which is installed separately."
   },
   "gemma_2_2b_it_elm_bf16.safetensors": {
-    "source": "https://github.com/BennyDaBall930/ComfyUI-Latent-Tiled-PiD",
+    "override": true,
+    "url": "https://huggingface.co/Comfy-Org/PixelDiT/resolve/main/text_encoders/gemma_2_2b_it_elm_bf16.safetensors",
+    "source": "https://huggingface.co/Comfy-Org/PixelDiT",
     "note": "Ships with the PiD 1.5 release; it is PiD's own prompt encoder, not a general Gemma build."
+  },
+  "flux2-vae.safetensors": {
+    "override": true,
+    "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+    "source": "https://huggingface.co/Comfy-Org/flux2-dev",
+    "_why": "The TripoSplat template's note links VAST-AI/TripoSplat's copy, and that bundle's folder sorts first, so without this every FLUX.2 / FLUX.3 / Ideogram card got the TripoSplat link (fixed by hand on 2026-11-04)."
+  },
+  "qwen_2.5_vl_7b_fp8_scaled.safetensors": {
+    "override": true,
+    "url": "https://huggingface.co/Comfy-Org/Qwen-Image/resolve/main/split_files/text_encoders/qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "source": "https://huggingface.co/Comfy-Org/Qwen-Image",
+    "_why": "The first note that names this file links the Hunyuan-Video-1.5 repack. The Qwen-Image repack is this text encoder's own home."
+  },
+  "Krea2_Turbo_convrot_int8mixed.safetensors": {
+    "override": true,
+    "url": "https://huggingface.co/Winnougan/Krea-2-Base-Turbo-NVFP4-FP8-INT8/resolve/main/Krea2_Turbo_convrot_int8mixed.safetensors",
+    "source": "https://huggingface.co/Winnougan/Krea-2-Base-Turbo-NVFP4-FP8-INT8",
+    "_why": "The int8 build is Winnougan's, not Comfy-Org's. The model audit's redownload column named Comfy-Org/Krea-2 until 2026-11-05, and without this a run with MODEL_AUDIT_CSV set gave the card a Winnougan url and a Comfy-Org source. Kept because it carries the direct url."
+  },
+  "krea2_realism_lora.safetensors": {
+    "override": true,
+    "url": "https://huggingface.co/gokaygokay/Krea-2-Realism-LoRA/resolve/main/krea2_realism_lora.safetensors",
+    "source": "https://huggingface.co/gokaygokay/Krea-2-Realism-LoRA",
+    "_why": "Set by hand on 2026-11-04 to the LoRA author's own repo. The model audit's redownload column named Comfy-Org/Krea-2 until 2026-11-05. Kept because it carries the direct url."
+  },
+  "qwen_image_2512_fp8_e4m3fn.safetensors": {
+    "override": true,
+    "url": "https://huggingface.co/Comfy-Org/Qwen-Image/resolve/main/split_files/diffusion_models/qwen_image_2512_fp8_e4m3fn.safetensors",
+    "source": "https://huggingface.co/Comfy-Org/Qwen-Image",
+    "_why": "Comfy-Org renamed Qwen-Image_ComfyUI to Qwen-Image (followed on 2026-11-04). The model audit's redownload column named the old repo, which only works through a redirect, until 2026-11-05. Kept because it carries the direct url."
+  },
+  "qwen_image_edit_2511_bf16.safetensors": {
+    "override": true,
+    "source": "https://huggingface.co/Comfy-Org/Qwen-Image-Edit",
+    "_why": "Comfy-Org renamed Qwen-Image-Edit_ComfyUI to Qwen-Image-Edit (followed on 2026-11-04); the model audit's redownload column named the old repo until 2026-11-05. Source only: no direct link has been checked for this file, and an override with no url removes any url a note would supply."
+  },
+  "moss_image_color_depth_control.safetensors": {
+    "override": true,
+    "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/loras/moss_image_color_depth_control.safetensors",
+    "source": "https://huggingface.co/darask0/MOSS-Image-color-depth-control",
+    "_why": "The download is Comfy-Org's repack; the page for a human is the LoRA author's own repo."
   },
   "yolox_l.torchscript.pt": {
     "auto": true,
@@ -109,7 +160,8 @@
   },
   "ltx-2.5-22b-ic-lora-pixel-spatial-upscaler-x2-1.0.safetensors": {
     "override": true,
-    "source": "https://huggingface.co/Lightricks/LTX-2.3-22b-IC-LoRA-Pixel-Spatial-Upscaler",
+    "url": "https://huggingface.co/Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler/resolve/main/ltx-2.5-22b-ic-lora-pixel-spatial-upscaler-x2-1.0.safetensors",
+    "source": "https://huggingface.co/Lightricks/LTX-2.5-22b-IC-LoRA-Pixel-Spatial-Upscaler",
     "note": "Lightricks' Pixel Spatial Upscaler adapter, and NOT the DEBLUR-trigger LoRA its template's note links to: that repo (LTX-2.3-22b-IC-LoRA-Deblur) only holds ltx-2.3-22b-ic-lora-deblur-0.9. Gated, so a token is needed."
   }
 }

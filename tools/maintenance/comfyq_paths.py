@@ -15,9 +15,14 @@ mount under, and they agree with the app rather than drifting from it.
 
 Resolution order, most explicit first:
   1. ``COMFY_ROOT`` in the environment  (one-off override)
-  2. ``comfy_ui.root_path`` in ComfyQ's config.json
-  3. the historical sibling layout, so a copy still sitting beside
-     ``ComfyUI_windows_portable`` keeps working
+  2. ``comfy_ui.root_path`` in ComfyQ's config.json, when it holds an install
+  3. an install beside this checkout, in the two layouts ComfyQ's own boot
+     looks for first (server/config/configManager.js, comfyCandidates):
+     ``ComfyUI_windows_portable_nvidia\\ComfyUI_windows_portable\\ComfyUI``
+     (the drive) and ``ComfyUI_windows_portable\\ComfyUI`` (a restored ISO).
+     config.json is only rewritten when ComfyQ boots, so on a clone mounted
+     under a new letter, or an ISO just restored, this is what lets REPAIR.bat
+     and the audit find the install before ComfyQ has ever run there.
 
 Standard library only: these run under ComfyUI's bundled ``python_embeded``.
 """
@@ -56,6 +61,25 @@ def load_config():
         return {}
 
 
+def _is_install(d):
+    """A ComfyUI folder, by the same test ComfyQ's boot uses: main.py in it."""
+    return bool(d) and os.path.isfile(os.path.join(d, 'main.py'))
+
+
+def beside_checkout():
+    """The installs ComfyQ's boot looks for beside its own checkout, in order.
+
+    Keep in step with comfyCandidates in server/config/configManager.js (its
+    first two entries) and with python-path.js.
+    """
+    root = repo_root()
+    parent = os.path.dirname(root) if root else os.path.normpath(os.path.join(HERE, '..', '..', '..'))
+    return [
+        os.path.join(parent, 'ComfyUI_windows_portable_nvidia', 'ComfyUI_windows_portable', 'ComfyUI'),
+        os.path.join(parent, 'ComfyUI_windows_portable', 'ComfyUI'),
+    ]
+
+
 def comfy_root(required=True):
     """The ComfyUI install directory."""
     env = os.environ.get('COMFY_ROOT')
@@ -64,15 +88,14 @@ def comfy_root(required=True):
 
     cfg = load_config()
     configured = (cfg.get('comfy_ui') or {}).get('root_path') or ''
-    if configured and os.path.isdir(configured):
+    # A configured path with no main.py is a stale one (another drive letter):
+    # ComfyQ itself repoints such a config at its next boot.
+    if configured and _is_install(configured):
         return os.path.normpath(configured)
 
-    # The layout these scripts were born in, kept so a copy left beside the
-    # portable install still works.
-    legacy = os.path.normpath(os.path.join(HERE, '..', '..', '..',
-                                           'ComfyUI_windows_portable', 'ComfyUI'))
-    if os.path.isdir(legacy):
-        return legacy
+    for cand in beside_checkout():
+        if _is_install(cand):
+            return os.path.normpath(cand)
 
     if not required:
         return None
@@ -211,7 +234,9 @@ def python_exe():
 if __name__ == '__main__':
     import sys
     if '--python' in sys.argv:
-        # Used by AUDIT.bat, which cannot read JSON itself.
+        # For running by hand. The .bat files (AUDIT.bat, REPAIR.bat) cannot use
+        # this -- they need an interpreter before they can run any Python -- so
+        # they ask python-path.js, which reads the same config.
         print(python_exe() or '')
         raise SystemExit(0)
     if '--models' in sys.argv:

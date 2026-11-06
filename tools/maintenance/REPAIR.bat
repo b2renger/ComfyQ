@@ -13,11 +13,20 @@ REM      REPAIR.bat --check
 REM ==========================================================================
 setlocal
 cd /d "%~dp0"
-set PYEXE=..\ComfyUI_windows_portable\python_embeded\python.exe
+REM ComfyUI's bundled python, from ComfyQ's own config (Manage ComfyUI ->
+REM ComfyUI Settings), else from an install beside this checkout. A .bat
+REM cannot read JSON, so node (already required by ComfyQ) does the lookup --
+REM the same way model-audit\AUDIT.bat does it. Without node, the same two
+REM layouts beside the checkout are tried here.
+set "PYEXE="
+for /f "usebackq delims=" %%P in (`node "%~dp0python-path.js" 2^>nul`) do set "PYEXE=%%P"
+if not defined PYEXE if exist "%~dp0..\..\..\ComfyUI_windows_portable_nvidia\ComfyUI_windows_portable\python_embeded\python.exe" set "PYEXE=%~dp0..\..\..\ComfyUI_windows_portable_nvidia\ComfyUI_windows_portable\python_embeded\python.exe"
+if not defined PYEXE set "PYEXE=%~dp0..\..\..\ComfyUI_windows_portable\python_embeded\python.exe"
 if not exist "%PYEXE%" (
   echo.
-  echo   ERROR: embedded Python not found at %PYEXE%
-  echo   Keep this folder next to ComfyUI_windows_portable\ on the same drive.
+  echo   ERROR: ComfyUI's embedded Python was not found.
+  echo   Set the ComfyUI path in ComfyQ: Admin, Manage ComfyUI, ComfyUI Settings.
+  echo   It is stored as comfy_ui.root_path in ComfyQ's config.json.
   echo.
   pause
   exit /b 2

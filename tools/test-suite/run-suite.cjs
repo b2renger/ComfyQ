@@ -5,15 +5,25 @@
  *   node tools/test-suite/run-suite.cjs [suite] [--check] [--dry] [--only a,b] [--from <id>]
  *
  *   suite     a name in tools/test-suite (default "library"), or a path
- *   --check   validate the suite against the library and stop
+ *   --check   validate the suite against the library, list every asset it names
+ *             that is not in the assets folder, and stop
  *   --dry     validate, then print every run and where each input will come from
- *   --only    run just these bundles, in the suite's order (inputs they do not
- *             produce themselves come from the last published report)
+ *   --only    run just these bundles, in the suite's order (an input from a
+ *             bundle that does not run here comes from the last report in the
+ *             data dir: server/data, or --data-dir's folder; a bundle that
+ *             failed here supplies nothing, and the run it feeds is skipped)
  *   --from    start at this bundle and run the rest of the suite
  *   --data-dir write the report somewhere else (an experiment that must not
- *             replace the published report, and so the examples)
+ *             replace the published report, and so the examples). Inputs from
+ *             earlier results then come from THAT folder's last report, so in
+ *             an empty folder only from bundles in this run. It still
+ *             calibrates: the runtime.json (timings and VRAM peak) of every
+ *             bundle it runs is rewritten, except runs marked keepRuntime. To
+ *             leave no trace, discard those changes afterwards (git checkout
+ *             the bundles' .runtime.json files; see the README) or mark the
+ *             suite's runs keepRuntime
  *
- * It runs the SAME sweep the admin panel's Library sweep card runs — one bundle
+ * It runs the SAME sweep the admin panel's "Run the whole library" card runs — one bundle
  * at a time through AdminCalibrator, so each workflow's `disabledPerfFlags` are
  * masked — and publishes to the same server/data/library-sweep-latest.json, so
  * the card shows the result and tools/maintenance/seed_examples.cjs can turn it
@@ -36,6 +46,7 @@ const { WorkflowRegistry } = require(path.join(REPO, 'server', 'workflows', 'wor
 const { AdminCalibrator } = require(path.join(REPO, 'server', 'benchmark', 'adminCalibrator'));
 const { LibrarySweep } = require(path.join(REPO, 'server', 'benchmark', 'librarySweep'));
 const { loadSuite, validateSuite, parseMediaSpec, MEDIA_TYPES } = require(path.join(REPO, 'server', 'benchmark', 'suitePlan'));
+const { suiteAssets, missingAssetLines } = require(path.join(__dirname, 'suiteAssets.cjs'));
 
 const args = process.argv.slice(2);
 const flag = (name) => args.includes(name);
@@ -53,7 +64,21 @@ console.log(`suite      ${suite.name} — ${suite.runs.length} runs (${path.rela
 for (const w of check.warnings) console.log(`  warning  ${w}`);
 for (const e of check.errors) console.log(`  ERROR    ${e}`);
 if (check.errors.length) { console.log(`\n${check.errors.length} error(s) — nothing was run.`); process.exit(1); }
-if (flag('--check')) { console.log('suite is valid.'); process.exit(0); }
+
+// Assets the suite names that are not in the assets folder: the sweep would skip
+// those runs, so say it now rather than hours into the run.
+const assetsDir = config.assets?.dir || null;
+const assetList = suiteAssets(suite, id => registry.get(id)?.effective?.exposedParameters, assetsDir);
+for (const line of missingAssetLines(assetList, assetsDir)) console.log(`  ${line}`);
+const assetsMissing = assetList.filter(a => !a.found && a.required).length;
+if (flag('--check')) {
+    if (assetsMissing) {
+        console.log(`\n${assetsMissing} asset(s) missing from ${assetsDir || 'the assets folder (none is set)'} — the runs that need them would be skipped.`);
+        process.exit(1);
+    }
+    console.log(`suite is valid (${assetList.length} asset uses, all found where needed).`);
+    process.exit(0);
+}
 
 let ids = null;
 if (value('--only')) ids = value('--only').split(',').map(s => s.trim()).filter(Boolean);

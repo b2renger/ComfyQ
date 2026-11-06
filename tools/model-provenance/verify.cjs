@@ -28,7 +28,7 @@ const onlyAt = process.argv.indexOf('--only');
 const ONLY = onlyAt > -1 ? process.argv[onlyAt + 1] : null;
 const CONCURRENCY = 8;
 const TIMEOUT_MS = 20000;
-// HuggingFace starts answering 429 well before 140 HEADs are done.
+// HuggingFace starts answering 429 well before a full run (~180 HEADs) is done.
 const RETRY_WAIT_MS = 30000;
 
 const read = (f) => { try { return JSON.parse(fs.readFileSync(f, 'utf8')); } catch { return null; } };
@@ -87,7 +87,7 @@ async function sweep(urls, results) {
     const results = new Map();
     await sweep(targets, results);
 
-    // ★ Checking the whole library is ~140 requests, which HuggingFace
+    // ★ Checking the whole library is ~180 requests, which HuggingFace
     // rate-limits partway through. A 429 concludes nothing, so back off once
     // and ask again rather than reporting a healthy link as broken.
     const limited = [...results].filter(([, r]) => r.kind === 'limited').map(([u]) => u);

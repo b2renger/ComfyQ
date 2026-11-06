@@ -18,6 +18,8 @@ round-trip exactly through json with indent=2, ensure_ascii=False).
 """
 import json, io, os, shutil, sys
 
+# ComfyUI's embedded Python leaves this script's own folder off sys.path.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import scan_links
 
 HERE = os.path.dirname(os.path.abspath(__file__))

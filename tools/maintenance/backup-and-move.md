@@ -4,6 +4,13 @@ The backup is **not** on this drive. If you only know it as "D:" and "E:" you wi
 moment this drive is plugged into another machine — so this page describes how to *identify* it,
 how to restore from it, and how to make a new one.
 
+> ⚠ **The 2026-07-10 ISO carries the old `_maintenance\` folder, and the restore steps below
+> are written for that image.** On the current drive these scripts are in
+> `ComfyQ\tools\maintenance\`, and they find the install through ComfyQ's `config.json`.
+> When you make a new image, stage `ComfyQ\` beside the install and scrub it as step 2 of
+> "Making a new image" below describes. After restoring an image made that way, run
+> `ComfyQ\tools\maintenance\REPAIR.bat --check`.
+
 ---
 
 ## What the backup is
@@ -29,8 +36,9 @@ Get-FileHash ComfyQ_ComfyUI_portable.iso -Algorithm SHA256
 1. **Only the four big weight buckets were trimmed** (`checkpoints`, `diffusion_models`,
    `text_encoders`, `loras`) to models a ComfyQ workflow referenced; ~900 GB of unreferenced
    weights were dropped. **Every other `models\` subfolder was copied whole.**
-2. **It is a snapshot of 2026-07-10.** It contains nothing added since — currently ~353 GB
-   (MiniMax H3, LTX 2.5, Wan-Animate 2, SCAIL-2, ID-V2V). Absence from the ISO is *not*
+2. **It is a snapshot of 2026-07-10.** It contains nothing added since — ~353 GB by the
+   time these notes moved into the ComfyQ repo (2026-10-05: MiniMax H3, LTX 2.5,
+   Wan-Animate 2, SCAIL-2, ID-V2V), and more after. Absence from the ISO is *not*
    evidence a model is unwanted.
 3. Some things you would most want backed up are **not in it** — verified absent:
    `flux1-dev.safetensors` and `stable-audio-open-1.0.safetensors`, both licence-gated on
@@ -101,6 +109,24 @@ referenced by `J:\ComfyQ\workflows\**\*.json` (basename match; skip `_candidate*
 on any boot — scrub *after* the smoke test), Manager `snapshots\*autosave*` (CI-machine wheel
 paths), stray `temp.glb` / `mr_combined.png`. **Keep** the `.git` dirs (~1 GB — Manager's update
 path needs them) and `user\default\workflows\`.
+
+For the staged `ComfyQ\` folder: clear workshop data **before staging**, by running the checklist
+in [docs/cloning-the-drive.md](../../docs/cloning-the-drive.md) on the master. That is the one
+deliberate write to the source, and it leaves the showcase in place. Then, in the staged
+`config.json`, empty `comfy_ui.hf_token`, `auth.adminPasswordHash` and
+`auth.accessPasswordHash`, and delete any `config.json…bak` or `config.json.tmp` beside it.
+
+> ⚠ **Never run `wipe_for_clone.cjs` from a staged copy.** It works on the install named in
+> `config.json`, not on the folder it sits in, so a staged copy would delete files on the
+> **source** drive. Re-pointing the copy's `config.json` does not help: the wipe keeps the
+> showcase by matching the absolute paths in the published sweep report, which name the source,
+> so it would delete the staged examples instead. The script refuses when that install is on
+> another drive, but it cannot tell when both are on the same drive.
+
+Alternatively, stage a fresh `git clone` of ComfyQ. It carries no secrets or student data, but
+it also has no `node_modules` (`Start-ComfyQ.bat` installs them on first start, which needs
+internet), and none of the gitignored files: no showcase examples, no published sweep report,
+no model-audit scans such as `object_info.json`.
 
 **3. Verify before mastering.** Byte-exact model comparison including directory-models;
 `robocopy /L` framework diff = zero divergence; hashes of every hand-patch (`notice.md`'s
