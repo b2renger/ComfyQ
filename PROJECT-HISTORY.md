@@ -13,6 +13,7 @@ Answers in [docs/review-2026-11-05.md](docs/review-2026-11-05.md). Worked throug
 - **Q13:** ★★ A canvas cannot keep colour under alpha 0: it stores premultiplied pixels. The PNG is encoded by hand; `CompressionStream` works on the LAN address, which is not a secure context. 2048×1536 joined and encoded in 94 ms in Chrome. Read back the way `LoadImage` reads it: colour kept, mask 1 under the paint. The file is written when leaving the editor, not per stroke.
 - **Q14:** `optionsExclude` on a `lora` param.
 - **Q15:** trigger words in the graph on relight, unblur and 3DReal. On 3DReal the concat sits AFTER the improver switch, so the LLM cannot drop the word. Param keys kept, so suite runs and old jobs still bind; `nodeId` and `field` moved.
+- ★★★ **Two tools ran on a `--help` that neither of them had** (2026-11-06, Claude's mistake, twice in one hour). `wipe_for_clone.cjs --help` was blocked by the permission check before it ran. `repair_all.py --help` ran: it re-applied two Trellis2 fixes the install was missing (`nodes.py` + 22 example workflows, the same as REPAIR.bat), and changed nothing else. `--check` then reported all fine. Both now refuse an unknown flag.
 - **Q16:** Bernini video defaults to `Video Editing` with a targeted instruction. Its claymation default was a style edit on a card titled "Change one thing in a video".
 
 ## Latest progress (2026-11-06, the owner's first answers)

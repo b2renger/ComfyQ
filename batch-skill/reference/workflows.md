@@ -181,22 +181,15 @@ success. ComfyQ refuses the document rather than let that happen.
 
 ## Audio directives
 
-Open a `stable_audio_3` prompt with a track type. ComfyQ maps it to the
-workflow's dropdown and strips it from the prompt:
+Say what the track is in the prose:
 
 ```
-TrackType: Music. <…> No vocals, no drums.
-TrackType: Sound Effects. <…> Continuous, no musical content, no speech, no sudden events.
+Music. <…> No vocals, no drums.
+Sound effects. <…> Continuous, no musical content, no speech, no sudden events.
 ```
 
-Recognised directive names: `TrackType`, `Type`, `Category`, `Kind` — **plus**
-the name of any dropdown the workflow has. The *name* must be one of those; a
-value match alone is not enough. That is what keeps an ordinary opening
-sentence such as `Ambience: music.` from being eaten and silently setting the
-wrong track type.
-
-The four options are `Music`, `Instrument`, `SFX` and `One-shot`.
-`Sound Effects` maps to `SFX`; `Music` maps to `Music`; `One shot` to `One-shot`.
+A `TrackType:` label does nothing here. It is only read by Stable Audio's AI
+improver, which is off for a storyboard.
 
 **`stable_audio_3` ships "Enhance prompt with AI" OFF** (its Qwen 3.5 rewrite
 fails on this ComfyUI build), and a storyboard cannot turn it on, so the

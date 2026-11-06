@@ -128,12 +128,20 @@ class ModelDownloader {
         return { ok: true };
     }
 
-    /** Forget a finished row, so the list does not grow for ever. */
+    /**
+     * Forget a finished row, so the list does not grow for ever. A cancelled or
+     * failed download also loses its .part: the row is the only thing that knew
+     * about it, so left behind it is many GB nobody will find. The panel asks first.
+     */
     forget(key) {
         const k = String(key || '').toLowerCase();
         const job = this._jobs.get(k);
         if (job && ['queued', 'downloading'].includes(job.status)) {
             return { ok: false, error: 'that download is still running' };
+        }
+        if (job?.abs) {
+            try { fs.unlinkSync(job.abs + PART_SUFFIX); }
+            catch (e) { if (e.code !== 'ENOENT') return { ok: false, error: `could not delete the partial file: ${e.message}` }; }
         }
         this._jobs.delete(k);
         this._emit();

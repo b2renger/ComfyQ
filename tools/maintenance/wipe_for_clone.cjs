@@ -31,6 +31,18 @@ const fs = require('fs');
 const path = require('path');
 
 const REPO = path.resolve(__dirname, '..', '..');
+// A tool that deletes by default must not treat a flag it does not know as "go
+// ahead": `--help` used to run the wipe.
+{
+    const known = new Set(['--dry', '--other-drive']);
+    const asked = process.argv.slice(2);
+    const unknown = asked.filter(a => !known.has(a));
+    if (unknown.length) {
+        console.error(`Usage: node wipe_for_clone.cjs [--dry] [--other-drive]\n` +
+            (unknown.every(a => /^(-h|--help|\/\?)$/.test(a)) ? '' : `Unknown option: ${unknown.join(' ')}. Nothing was changed.\n`));
+        process.exit(1);
+    }
+}
 const DRY = process.argv.includes('--dry');
 const cfg = JSON.parse(fs.readFileSync(path.join(REPO, 'config.json'), 'utf8'));
 const COMFY = cfg.comfy_ui.root_path;
@@ -257,6 +269,28 @@ console.log('\nJOB HISTORY');
     console.log('  ' + 'cleared'.padEnd(34) + ' ' + String(Object.values(counts).reduce((a, c) => a + c, 0)).padStart(5)
         + ' rows     ' + gb(before) + ' -> ' + gb(after) + (vacuumed ? '' : '   (not compacted)'));
     if (!DRY) freed += before - after;
+}
+
+// ------------------------------------------------- partial downloads
+// A cancelled or failed download leaves <name>.part under models/. It is ours, it
+// is never a model (only a finished download is renamed), and a clone gains
+// nothing from half a file.
+{
+    console.log('\nMODELS  (partial downloads)');
+    let n = 0, b = 0;
+    const walk = (d) => {
+        let entries;
+        try { entries = fs.readdirSync(d, { withFileTypes: true }); } catch { return; }
+        for (const e of entries) {
+            const q = path.join(d, e.name);
+            if (e.isDirectory()) { walk(q); continue; }
+            if (!e.isFile() || !e.name.toLowerCase().endsWith('.part')) continue;
+            try { b += fs.statSync(q).size; } catch { continue; }
+            n++; rmFile(q);
+        }
+    };
+    walk(path.join(COMFY, 'models'));
+    console.log('  ' + '.part files'.padEnd(34) + ' ' + String(n).padStart(5) + ' files  ' + gb(b));
 }
 
 // --------------------------------------------------------------- serving state

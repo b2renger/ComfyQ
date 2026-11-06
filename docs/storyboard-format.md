@@ -174,8 +174,7 @@ not `ref: A2`.
 
 ### A leading `Name: Value.` directive
 
-If a prompt opens with `TrackType: Sound Effects.` — or `Type:`, `Category:`,
-`Kind:`, or the name of one of the workflow's own dropdowns — and the value
+If a prompt opens with `Type:`, `Category:`, `Kind:`, or the name of one of the workflow's own dropdowns — and the value
 names one of that dropdown's options (`SFX`), the dropdown is set and the
 directive is stripped from the prompt.
 

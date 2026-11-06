@@ -79,9 +79,8 @@ findstr /C:"ref_pad_image" "<comfy root>\comfy_extras\nodes_wan.py"
 # no output = this ComfyUI is older than v0.38.0: update it
 ```
 
-**PR #15139 has merged upstream**, and `REPAIR.bat` now prints a `[NOTE ]` saying so. The
-`IdV2V` class in `repair_all.py` and the reference patch are kept for now: they change nothing on
-ComfyUI v0.38.0 or later, and REPAIR.bat's `[NOTE ]` line says they can be deleted.
+**PR #15139 has merged upstream.** The fix in `repair_all.py` and its reference patch were
+removed on 2026-11-06: the rig runs ComfyUI 0.43.2, a stock file already holds the support.
 
 ---
 

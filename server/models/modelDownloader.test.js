@@ -183,6 +183,17 @@ const settle = async (dl, key, tries = 200) => {
     check('a finished row can be forgotten', dl.forget(a.key).ok === true
         && !dl.list().some(x => x.key === a.key));
 
+    // A cancelled download's partial file goes with its row.
+    {
+        const abs = path.join(root, 'stale.safetensors');
+        fs.writeFileSync(abs + '.part', 'partial');
+        dl._jobs.set('stale', { key: 'stale', abs, status: 'cancelled' });
+        check('forgetting a cancelled download deletes its .part',
+            dl.forget('stale').ok === true && !fs.existsSync(abs + '.part'));
+        dl._jobs.set('gone', { key: 'gone', abs, status: 'failed' });
+        check('a .part already gone is not an error', dl.forget('gone').ok === true);
+    }
+
     global.fetch = origFetch;
     await new Promise(r => server.close(r));
     fs.rmSync(root, { recursive: true, force: true });

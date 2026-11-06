@@ -18,15 +18,15 @@ An empty establishing plate with nobody in it, eye level on the platform, the mo
 
 ## Ambience 1
 ### stable_audio_3 | 60s
-TrackType: Sound Effects. A shuttered museum room with boarded windows: very still dry air, a distant harbour heard faintly through wood, one loose board ticking as the sun moves on it, the short dead reverberation of a room full of glass cases. Continuous, no musical content, no speech, no sudden events.
+Sound effects. A shuttered museum room with boarded windows: very still dry air, a distant harbour heard faintly through wood, one loose board ticking as the sun moves on it, the short dead reverberation of a room full of glass cases. Continuous, no musical content, no speech, no sudden events.
 
 ## Ambience 2
 ### stable_audio_3 | 60s
-TrackType: Sound Effects. Granite harbour steps at half tide: water lapping unevenly against stone with a slow swell under it, a mooring rope creaking against iron, gulls at a middle distance, the wide open reverberation of an enclosed basin. Continuous, no musical content, no speech, no sudden events.
+Sound effects. Granite harbour steps at half tide: water lapping unevenly against stone with a slow swell under it, a mooring rope creaking against iron, gulls at a middle distance, the wide open reverberation of an enclosed basin. Continuous, no musical content, no speech, no sudden events.
 
 ## Ambience 3
 ### stable_audio_3 | 60s
-TrackType: Sound Effects. A stopped clock mechanism room in a stone tower: no ticking at all, wind pressing against a shuttered opening, a copper pipe carrying a faint hollow note of moving water from far below, the long hard reverberation of bare stone and brass. Continuous, no musical content, no speech, no sudden events.
+Sound effects. A stopped clock mechanism room in a stone tower: no ticking at all, wind pressing against a shuttered opening, a copper pipe carrying a faint hollow note of moving water from far below, the long hard reverberation of bare stone and brass. Continuous, no musical content, no speech, no sudden events.
 
 # IDLE | idle | -> S0
 
@@ -44,7 +44,7 @@ A flat title card on a pale sand ground with a single thin signal-orange rule ru
 
 ## Music
 ### stable_audio_3 | 40s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass and a glass harmonica. The bass holds one low note while the harmonica turns a three-note figure above it without ever resolving, and the piece ends on exactly the note it began so it loops without a seam. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass and a glass harmonica. The bass holds one low note while the harmonica turns a three-note figure above it without ever resolving, and the piece ends on exactly the note it began so it loops without a seam. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
 
 # S0 | scene | A -> S1_A ; B -> S1_B
 
@@ -78,7 +78,7 @@ A flat two-panel card split by a thin signal-orange vertical rule down the exact
 
 ## Music
 ### stable_audio_3 | 30s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass, a glass harmonica and a wound music box. The bass enters alone, the harmonica states its three-note figure at eight seconds, and the music box repeats it a fifth above from sixteen seconds without the figure ever changing. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass, a glass harmonica and a wound music box. The bass enters alone, the harmonica states its three-note figure at eight seconds, and the music box repeats it a fifth above from sixteen seconds without the figure ever changing. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
 
 # S1_A | scene | A -> S2_AA ; B -> S2_AB ; C -> S2_AC
 
@@ -112,7 +112,7 @@ A flat three-panel card split by two thin signal-orange vertical rules into thre
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass, a glass harmonica and a wound music box. The three-note figure passes from harmonica to music box and back while the bass holds one unmoving low note, ending unresolved. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass, a glass harmonica and a wound music box. The three-note figure passes from harmonica to music box and back while the bass holds one unmoving low note, ending unresolved. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
 
 # S1_B | scene | A -> S2_BA ; B -> S2_BB
 
@@ -138,7 +138,7 @@ A flat two-panel card split by a thin signal-orange vertical rule down the exact
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass and a wound music box. The music box carries the three-note figure alone in a dry mechanical rhythm, the bass answering once beneath it near the end, ending unresolved. Close-miked in a large stone room with audible mechanism and bow noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass and a wound music box. The music box carries the three-note figure alone in a dry mechanical rhythm, the bass answering once beneath it near the end, ending unresolved. Close-miked in a large stone room with audible mechanism and bow noise. No vocals, no drums.
 
 # S2_AA | scene | A -> E01 ; B -> E02
 
@@ -164,7 +164,7 @@ A flat two-panel card split by a thin signal-orange vertical rule down the exact
 
 ## Music
 ### stable_audio_3 | 18s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass and a glass harmonica. The three-note figure descends a step each time it comes round while the bass holds its note underneath, so the passage sinks without changing tempo. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass and a glass harmonica. The three-note figure descends a step each time it comes round while the bass holds its note underneath, so the passage sinks without changing tempo. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
 
 # S2_AB | scene | A -> E02 ; B -> E03
 
@@ -190,7 +190,7 @@ A flat two-panel card split by a thin signal-orange vertical rule down the exact
 
 ## Music
 ### stable_audio_3 | 18s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a glass harmonica and a wound music box. The two play the three-note figure a fraction apart so it arrives as one thickened sound, repeat it twice, and stop on the beat rather than fading. Close-miked in a large stone room with audible mechanism and rim noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a glass harmonica and a wound music box. The two play the three-note figure a fraction apart so it arrives as one thickened sound, repeat it twice, and stop on the beat rather than fading. Close-miked in a large stone room with audible mechanism and rim noise. No vocals, no drums.
 
 # S2_AC | scene | A -> E03 ; B -> E04
 
@@ -216,7 +216,7 @@ A flat two-panel card split by a thin signal-orange vertical rule down the exact
 
 ## Music
 ### stable_audio_3 | 18s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass and a glass harmonica. The harmonica holds the first note of the three-note figure far longer than before while the bass moves once beneath it, and the figure never completes. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a bowed double bass and a glass harmonica. The harmonica holds the first note of the three-note figure far longer than before while the bass moves once beneath it, and the figure never completes. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
 
 # S2_BA | scene | A -> E04 ; B -> E05
 
@@ -242,7 +242,7 @@ A flat two-panel card split by a thin signal-orange vertical rule down the exact
 
 ## Music
 ### stable_audio_3 | 18s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a wound music box and a bowed double bass. The music box states the three-note figure in strict mechanical time for the first time in the film, the bass entering under its final note. Close-miked in a large stone room with audible mechanism and bow noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a wound music box and a bowed double bass. The music box states the three-note figure in strict mechanical time for the first time in the film, the bass entering under its final note. Close-miked in a large stone room with audible mechanism and bow noise. No vocals, no drums.
 
 # S2_BB | scene | A -> E05 ; B -> E01
 
@@ -268,7 +268,7 @@ A flat two-panel card split by a thin signal-orange vertical rule down the exact
 
 ## Music
 ### stable_audio_3 | 18s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a glass harmonica, a wound music box and a bowed double bass. The three-note figure is handed round all three in turn, each entry a little quieter, and the last is left hanging. Close-miked in a large stone room with audible mechanism, bow and rim noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a glass harmonica, a wound music box and a bowed double bass. The three-note figure is handed round all three in turn, each entry a little quieter, and the last is left hanging. Close-miked in a large stone room with audible mechanism, bow and rim noise. No vocals, no drums.
 
 # E01 | ending | end
 
@@ -286,7 +286,7 @@ A flat closing card on a deep teal ground with a single thin signal-orange rule 
 
 ## Music
 ### stable_audio_3 | 14s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, bowed double bass alone. The three-note figure is played once very slowly with the last note left out, and the bow is allowed to run off the string into silence. Close-miked in a large stone room with audible bow noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, bowed double bass alone. The three-note figure is played once very slowly with the last note left out, and the bow is allowed to run off the string into silence. Close-miked in a large stone room with audible bow noise. No vocals, no drums.
 
 # E02 | ending | end
 
@@ -304,7 +304,7 @@ A flat closing card on a pale sand ground with a single thin signal-orange rule 
 
 ## Music
 ### stable_audio_3 | 14s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, glass harmonica alone. The three-note figure is played once and its final note is held until the glass tone decays completely to nothing. Close-miked in a large stone room with audible rim noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, glass harmonica alone. The three-note figure is played once and its final note is held until the glass tone decays completely to nothing. Close-miked in a large stone room with audible rim noise. No vocals, no drums.
 
 # E03 | ending | end
 
@@ -322,7 +322,7 @@ A flat closing card on a deep teal ground with a single thin signal-orange rule 
 
 ## Music
 ### stable_audio_3 | 14s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a glass harmonica and a bowed double bass. The three-note figure opens outward instead of closing, the bass falling a fifth beneath it, and both stop together on the beat. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a glass harmonica and a bowed double bass. The three-note figure opens outward instead of closing, the bass falling a fifth beneath it, and both stop together on the beat. Close-miked in a large stone room with audible bow and rim noise. No vocals, no drums.
 
 # E04 | ending | end
 
@@ -340,7 +340,7 @@ A flat closing card on a pale sand ground with a single thin signal-orange rule 
 
 ## Music
 ### stable_audio_3 | 14s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a wound music box and a bowed double bass. The three-note figure is played twice in strict mechanical time and stops exactly on the beat rather than fading. Close-miked in a large stone room with audible mechanism and bow noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a wound music box and a bowed double bass. The three-note figure is played twice in strict mechanical time and stops exactly on the beat rather than fading. Close-miked in a large stone room with audible mechanism and bow noise. No vocals, no drums.
 
 # E05 | ending | -> S0
 
@@ -358,7 +358,7 @@ A flat closing card on a deep teal ground with a single thin signal-orange rule 
 
 ## Music
 ### stable_audio_3 | 18s
-TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a glass harmonica, a wound music box and a bowed double bass. All three take the three-note figure together and then hand it round in turn, each entry quieter than the last, until the music box alone winds down almost to a stop before one final bass note. Close-miked in a large stone room with audible mechanism, bow and rim noise. No vocals, no drums.
+Music. Sparse chamber instrumental at 60 BPM in E minor, built from a glass harmonica, a wound music box and a bowed double bass. All three take the three-note figure together and then hand it round in turn, each entry quieter than the last, until the music box alone winds down almost to a stop before one final bass note. Close-miked in a large stone room with audible mechanism, bow and rim noise. No vocals, no drums.
 
 # NOTES | notes | end
 

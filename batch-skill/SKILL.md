@@ -96,10 +96,9 @@ reported as a warning and ignored. Write durations as whole seconds (`5s`, not
 no steps. ComfyQ owns every parameter you do not set on the `###` line, and it
 randomises seeds itself so a re-run never returns a cached result.
 
-Two things are taken *out* of the paragraph: a leading `TrackType: …` directive
-(see [reference/workflows.md → Audio directives](reference/workflows.md#audio-directives)),
-and a line of the shape `Resolution: 1344 x 768` / `Size:` / `Dimensions:`,
-which becomes the shot's size and is **deleted from the prompt**.
+One thing is taken *out* of the paragraph: a line of the shape
+`Resolution: 1344 x 768` / `Size:` / `Dimensions:`, which becomes the shot's size
+and is **deleted from the prompt**.
 Never open a sentence that way unless you mean it.
 
 **A negative prompt cannot be set from a storyboard at all** — every shot runs
@@ -340,7 +339,7 @@ Hard ceiling: **500 shots** and a **2 MB** document per batch.
 
 ## Ambience 1
 ### stable_audio_3 | 45s
-TrackType: Sound Effects. <room tone> Continuous, no musical content, no speech, no sudden events.
+Sound effects. <room tone> Continuous, no musical content, no speech, no sudden events.
 
 # S0 | scene | A -> S1_A ; B -> S1_B
 
@@ -358,7 +357,7 @@ TrackType: Sound Effects. <room tone> Continuous, no musical content, no speech,
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. <cue from the sound bible> No vocals, no drums.
+Music. <cue from the sound bible> No vocals, no drums.
 
 # NOTES | notes | end
 

@@ -62,7 +62,6 @@ tools\maintenance\
                              empty); ComfyQ's library sweep runs it
   integrations\
     idv2v.md                 ID-V2V video restylization: what it is, how it is wired
-    patches\                 the upstream diff the ID-V2V fix is derived from
   model-audit\
     README.md                how to use and refresh the audit
     model-audit.csv          <-- THE decision sheet: every model, what needs it,

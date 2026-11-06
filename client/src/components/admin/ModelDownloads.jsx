@@ -127,9 +127,12 @@ const ModelDownloads = ({ headers, onToast, hasHfToken = false, pollMs = 1500 })
                                             <X size={14} />
                                         </button>
                                     ) : (
-                                        <button type="button" title="Remove this row"
+                                        <button type="button" title={r.status === 'done' ? 'Remove this row' : 'Remove this row and its partial file'}
                                             disabled={busy === r.key}
-                                            onClick={() => act('forget', r.key)}
+                                            onClick={() => {
+                                                if (r.status !== 'done' && !window.confirm(`Delete the partial file of ${r.key}${r.received ? ` (${gb(r.received)} GB)` : ''}? The download would start from zero.`)) return;
+                                                act('forget', r.key);
+                                            }}
                                             className="text-muted hover:text-danger flex-shrink-0">
                                             <Trash2 size={13} />
                                         </button>

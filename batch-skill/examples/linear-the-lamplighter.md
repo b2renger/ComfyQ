@@ -18,15 +18,15 @@ An empty establishing plate with nobody in it, eye level on the gallery deck, th
 
 ## Ambience 1
 ### stable_audio_3 | 60s
-TrackType: Sound Effects. A small whitewashed brick room at the foot of a coastal tower: a cast-iron stove ticking as it cools, the sea heard flat and muffled through thick wall, one loose pane knocking in its frame, the short close reverberation of a low room. Continuous, no musical content, no speech, no sudden events.
+Sound effects. A small whitewashed brick room at the foot of a coastal tower: a cast-iron stove ticking as it cools, the sea heard flat and muffled through thick wall, one loose pane knocking in its frame, the short close reverberation of a low room. Continuous, no musical content, no speech, no sudden events.
 
 ## Ambience 2
 ### stable_audio_3 | 60s
-TrackType: Sound Effects. An exposed stone path above the sea at dusk: a steady onshore wind over open ground, waves breaking a long way below with a slow irregular rhythm, a slack chain handrail clinking softly against an iron post, no enclosure and almost no reverberation. Continuous, no musical content, no speech, no sudden events.
+Sound effects. An exposed stone path above the sea at dusk: a steady onshore wind over open ground, waves breaking a long way below with a slow irregular rhythm, a slack chain handrail clinking softly against an iron post, no enclosure and almost no reverberation. Continuous, no musical content, no speech, no sudden events.
 
 ## Ambience 3
 ### stable_audio_3 | 60s
-TrackType: Sound Effects. The open top of a harbour light: wind moving fast past ironwork at height with a faint low whistle, gulls calling below the listener rather than above, a canvas cover snapping once against a rail, the sea very distant and continuous. Continuous, no musical content, no speech, no sudden events.
+Sound effects. The open top of a harbour light: wind moving fast past ironwork at height with a faint low whistle, gulls calling below the listener rather than above, a canvas cover snapping once against a rail, the sea very distant and continuous. Continuous, no musical content, no speech, no sudden events.
 
 # IDLE | idle | -> S0
 
@@ -44,7 +44,7 @@ A flat title card on a warm bone-white ground with a single thin amber rule runn
 
 ## Music
 ### stable_audio_3 | 40s
-TrackType: Music. Sparse acoustic instrumental at 68 BPM in B flat major, built from a hand-pumped harmonium and one plucked mandolin. The harmonium holds a single low chord while the mandolin turns a four-note figure over it without ever resolving, and the piece ends on exactly the chord it began so it loops without a seam. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
+Music. Sparse acoustic instrumental at 68 BPM in B flat major, built from a hand-pumped harmonium and one plucked mandolin. The harmonium holds a single low chord while the mandolin turns a four-note figure over it without ever resolving, and the piece ends on exactly the chord it began so it loops without a seam. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
 
 # S0 | scene | -> S1
 
@@ -74,7 +74,7 @@ Very slow dolly in. Initially all nine numbers sit in even grey light, then the 
 
 ## Music
 ### stable_audio_3 | 30s
-TrackType: Music. Sparse acoustic instrumental at 68 BPM in B flat major, built from a hand-pumped harmonium and one plucked mandolin. The harmonium enters alone on a low sustained chord, the mandolin states its four-note figure once at eight seconds and repeats it a third higher, and the piece ends unresolved on the note it began. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
+Music. Sparse acoustic instrumental at 68 BPM in B flat major, built from a hand-pumped harmonium and one plucked mandolin. The harmonium enters alone on a low sustained chord, the mandolin states its four-note figure once at eight seconds and repeats it a third higher, and the piece ends unresolved on the note it began. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
 
 # S1 | scene | -> S2
 
@@ -104,7 +104,7 @@ Static locked-off camera. Initially the hanging lantern is still on its cord, th
 
 ## Music
 ### stable_audio_3 | 30s
-TrackType: Music. Sparse acoustic instrumental at 68 BPM in B flat major, built from a hand-pumped harmonium, one plucked mandolin and a bowed cello. The four-note mandolin figure carries alone at first, the cello enters underneath on a long held note at ten seconds, and the harmonium answers only at the very end without resolving. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
+Music. Sparse acoustic instrumental at 68 BPM in B flat major, built from a hand-pumped harmonium, one plucked mandolin and a bowed cello. The four-note mandolin figure carries alone at first, the cello enters underneath on a long held note at ten seconds, and the harmonium answers only at the very end without resolving. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
 
 # S2 | scene | -> S3
 
@@ -134,7 +134,7 @@ Slow dolly out. Initially the carried light is close and the tower is small behi
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. Sparse acoustic instrumental at 68 BPM in B flat major, built from a hand-pumped harmonium, one plucked mandolin and a bowed cello. The four-note figure is played by mandolin and cello a fraction apart so it thickens without getting louder, the harmonium holding one unmoving chord beneath, ending unresolved. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
+Music. Sparse acoustic instrumental at 68 BPM in B flat major, built from a hand-pumped harmonium, one plucked mandolin and a bowed cello. The four-note figure is played by mandolin and cello a fraction apart so it thickens without getting louder, the harmonium holding one unmoving chord beneath, ending unresolved. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
 
 # S3 | scene | -> E01
 
@@ -156,7 +156,7 @@ Static locked-off camera. Initially the repeated flames sit still across the pri
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. Sparse acoustic instrumental at 68 BPM in B flat major, built from a hand-pumped harmonium, one plucked mandolin and a bowed cello. All three arrive on the four-note figure together for the first time, play it twice, and hold the last note while the harmonium bellows run down. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
+Music. Sparse acoustic instrumental at 68 BPM in B flat major, built from a hand-pumped harmonium, one plucked mandolin and a bowed cello. All three arrive on the four-note figure together for the first time, play it twice, and hold the last note while the harmonium bellows run down. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
 
 # E01 | ending | end
 
@@ -182,7 +182,7 @@ A flat closing card on a deep slate ground with a single thin amber rule across 
 
 ## Music
 ### stable_audio_3 | 18s
-TrackType: Music. Sparse acoustic instrumental at 68 BPM in B flat major, hand-pumped harmonium alone. The four-note figure is played once slowly with the final note held, and the bellows are allowed to run down to nothing. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
+Music. Sparse acoustic instrumental at 68 BPM in B flat major, hand-pumped harmonium alone. The four-note figure is played once slowly with the final note held, and the bellows are allowed to run down to nothing. Close-miked in a small brick room with audible bellows and finger noise. No vocals, no drums.
 
 # NOTES | notes | end
 

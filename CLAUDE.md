@@ -127,6 +127,7 @@ One line each; the story behind every rule is in PROJECT-HISTORY.md.
 - ★★★ In a REMOVAL an observed load proves nothing, since the only thing that opened the weight may be the thing being removed. "Nothing is exclusive" is a question: read WHICH signal protected the file. `observed during X` is a lead, never a verdict.
 - ★★ "Only X uses this" must never be said from an observation that cannot see reuse.
 - ★★ An interlock whose condition is derived from the danger it guards is not an interlock. A waiver comes from a deliberate act and drops when it stops applying.
+- ★★★ A tool that acts by default refuses a flag it does not know, and `--help` is one. Before running anything with a flag, read how it parses `argv`: `--help` started `wipe_for_clone.cjs` (blocked in time) and `repair_all.py` (ran, and rewrote 23 files) on 2026-11-06.
 - ★★ A destructive script must say whose files it acts on, and check it. ★★ What an operation spares is derived from what defines it, not from a pattern that resembles it.
 - ★★ A cleanup script's job is residue, not tidiness: report anything it did not create, with a size, and leave it.
 - ★★ An operation that deletes what a cache, a report or a copy describes owns the cleanup of all three. Before deleting a job, check whether its inputs are shared.

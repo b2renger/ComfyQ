@@ -167,106 +167,7 @@ class Fix:
         raise NotImplementedError
 
 
-# ---- 1. ID-V2V: VACE on a Wan 2.1 I2V base (ComfyUI core) -----------------
-class IdV2V(Fix):
-    name = "ID-V2V support (Wan 2.1 VACE+I2V)"
-    why = ("ComfyUI's VACE path assumes a T2V base, so the ID-V2V model cannot load. "
-           "Backport of PR #15139, which merged upstream on 2026-09-27 (5c4d2568f): ComfyUI "
-           "v0.38.0 and later carry it, so on a current install this reads OK without any edit.")
-    target = "ComfyUI core -- reverted by update_comfyui*.bat (it git-stashes local edits)"
-
-    def files(self):
-        return {
-            "model": os.path.join(COMFY, "comfy", "ldm", "wan", "model.py"),
-            "detect": os.path.join(COMFY, "comfy", "model_detection.py"),
-            "supported": os.path.join(COMFY, "comfy", "supported_models.py"),
-            "nodes": os.path.join(COMFY, "comfy_extras", "nodes_wan.py"),
-        }
-
-    def state(self):
-        f = self.files()
-        for p in f.values():
-            if not os.path.isfile(p):
-                raise FileNotFoundError(p)
-        d, _ = read(f["detect"])
-        s, _ = read(f["supported"])
-        m, _ = read(f["model"])
-        # Check ref_pad_image landed inside WanImageToVideo specifically -- a
-        # whole-file grep would also pass if the edit went into a sibling node.
-        e = Edit(f["nodes"])
-        lo, hi = e._span("WanImageToVideo")
-        in_node = "ref_pad_image" in e.text[lo:hi]
-        return OK if (in_node and "vace_image_input" in d
-                      and "vace_image_input" in s and "vace_image_input" in m) else FAIL
-
-    def apply(self):
-        # This fix spans four files. Every edit is prepared in memory first and
-        # only written once all four have succeeded, so a moved anchor leaves
-        # the install exactly as it was instead of half-patched.
-        f = self.files()
-        pending = []
-
-        # (a) comfy/ldm/wan/model.py -- VaceWanModel
-        e = Edit(f["model"])
-        if not e.has("vace_image_input"):
-            e.sub("                 vace_in_dim=None,\n                 device=None,",
-                  "                 vace_in_dim=None,\n                 vace_image_input=False,\n                 device=None,")
-            # WanModel_S2V and HumoWanModel carry the identical super() line
-            e.sub("super().__init__(model_type='t2v', patch_size=patch_size",
-                  "super().__init__(model_type='i2v' if vace_image_input else 't2v', patch_size=patch_size",
-                  scope="VaceWanModel")
-            e.insert_before(
-                "        orig_shape = list(vace_context.shape)",
-                "        # vace blocks are t2v pretrained, they attend over text tokens only\n"
-                "        if context_img_len is None:\n"
-                "            context_vace = context\n"
-                "        else:\n"
-                "            context_vace = context[:, context_img_len:]\n\n")
-            e.sub("self.vace_blocks[ii](c[iii], x=x_orig, e=e0, freqs=freqs, context=context, context_img_len=context_img_len,",
-                  "self.vace_blocks[ii](c[iii], x=x_orig, e=e0, freqs=freqs, context=context_vace, context_img_len=None,")
-            pending.append(e)
-
-        # (b) comfy/model_detection.py -- recognise an ID-V2V checkpoint
-        e = Edit(f["detect"])
-        if not e.has("vace_image_input"):
-            e.insert_after(
-                '            dit_config["vace_layers"] = count_blocks(state_dict_keys, \'{}vace_blocks.\'.format(key_prefix) + \'{}.\')',
-                "\n            if '{}img_emb.proj.0.bias'.format(key_prefix) in state_dict_keys:  # ID-V2V, vace on an i2v model\n"
-                '                dit_config["vace_image_input"] = True')
-            pending.append(e)
-
-        # (c) comfy/supported_models.py -- build it as image-to-video
-        e = Edit(f["supported"])
-        if not e.has('image_to_video=self.unet_config.get("vace_image_input"'):
-            e.sub("out = model_base.WAN21_Vace(self, image_to_video=False, device=device)",
-                  'out = model_base.WAN21_Vace(self, image_to_video=self.unet_config.get("vace_image_input", False), device=device)')
-            pending.append(e)
-
-        # (d) comfy_extras/nodes_wan.py -- the ref_pad_image input
-        e = Edit(f["nodes"])
-        if not e.has("ref_pad_image"):
-            # all seven Wan nodes declare this same start_image input
-            e.insert_after(
-                '                io.Image.Input("start_image", optional=True),',
-                '\n                io.Image.Input("ref_pad_image", optional=True, tooltip="Fills the padding frames of the image conditioning with this image instead of gray, anchoring identity without pinning frames (SVI-style anti-drift padding, used by models such as ID-V2V)."),',
-                scope="WanImageToVideo")
-            e.sub("def execute(cls, positive, negative, vae, width, height, length, batch_size, start_image=None, clip_vision_output=None) -> io.NodeOutput:",
-                  "def execute(cls, positive, negative, vae, width, height, length, batch_size, start_image=None, clip_vision_output=None, ref_pad_image=None) -> io.NodeOutput:")
-            # WanFirstLastFrameToVideo builds the same gray canvas
-            e.insert_after(
-                "            image = torch.ones((length, height, width, start_image.shape[-1]), device=start_image.device, dtype=start_image.dtype) * 0.5",
-                "\n            if ref_pad_image is not None:\n"
-                '                ref_pad_image = comfy.utils.common_upscale(ref_pad_image[:1].movedim(-1, 1), width, height, "bilinear", "center").movedim(1, -1)\n'
-                "                image[:, :, :, :3] = ref_pad_image[:, :, :, :3].to(device=image.device, dtype=image.dtype)",
-                scope="WanImageToVideo")
-            pending.append(e)
-
-        # every transformation resolved -> now it is safe to write
-        for e in pending:
-            e.commit()
-
-
-# ---- 2/3. TRELLIS2 -- delegate to the two existing scripts ----------------
+# ---- 1/2. TRELLIS2 -- delegate to the two existing scripts ----------------
 class Trellis2Combos(Fix):
     name = "TRELLIS2 numeric dropdowns"
     why = ("The pack declares resolution dropdowns with INTEGER options, but the frontend "
@@ -310,7 +211,7 @@ class Trellis2Paths(Fix):
         run_helper("portablize_paths.py")
 
 
-# ---- 4. Pixal3D background removal (a MODEL file) -------------------------
+# ---- 3. Pixal3D background removal (a MODEL file) -------------------------
 class Pixal3DRmbg(Fix):
     name = "Pixal3D RMBG transformers shim"
     why = ("BiRefNet was written for an older transformers; 4.57 calls config.get_text_config(), "
@@ -342,7 +243,7 @@ class Pixal3DRmbg(Fix):
             e.commit()
 
 
-# ---- 5. DepthAnythingV3 -- run in-process, not in a C: pixi env -----------
+# ---- 4. DepthAnythingV3 -- run in-process, not in a C: pixi env -----------
 class DepthAnythingV3(Fix):
     name = "DepthAnythingV3 stays on this drive"
     why = ("The pack builds an isolated pixi environment on C:, which breaks portability. "
@@ -378,7 +279,7 @@ class DepthAnythingV3(Fix):
             os.replace(nt, nt + ".disabled")
 
 
-# ---- 6. HR Endless Sampler -- import + encoding fixes ---------------------
+# ---- 5. HR Endless Sampler -- import + encoding fixes ---------------------
 class HrEndlessSampler(Fix):
     name = "HR-Endless-Sampler import + UTF-8 fixes"
     why = ("Three real bugs: a sibling import that cannot resolve (the pack folder name is not a "
@@ -476,24 +377,6 @@ def check_crossdrive():
                   "Reinstall from https://github.com/b2renger/ComfyUI-CrossDriveViewFix")
 
 
-def check_upstream_merged():
-    """If PR #15139 lands upstream, the ID-V2V fix stops being ours to maintain."""
-    p = os.path.join(COMFY, "comfy_extras", "nodes_wan.py")
-    if not os.path.isfile(p):
-        return SKIP, ""
-    try:
-        out = subprocess.run(["git", "-C", COMFY, "diff", "--name-only"],
-                             capture_output=True, text=True, timeout=60)
-        dirty = [l for l in (out.stdout or "").splitlines() if l.strip()]
-    except Exception:
-        return SKIP, ""
-    t, _ = read(p)
-    if "ref_pad_image" in t and "comfy_extras/nodes_wan.py" not in dirty:
-        return WARN, ("ID-V2V is in ComfyUI itself now -- PR #15139 merged upstream. "
-                      "You can delete the ID-V2V fix from this script.")
-    return SKIP, ""
-
-
 # --------------------------------------------------------------------------
 def run_helper(script):
     """Run one of the standalone fix scripts that already live in this folder."""
@@ -506,7 +389,7 @@ def run_helper(script):
     return (out.stdout or "").strip()
 
 
-FIXES = [IdV2V(), Trellis2Combos(), Trellis2Paths(), Pixal3DRmbg(),
+FIXES = [Trellis2Combos(), Trellis2Paths(), Pixal3DRmbg(),
          DepthAnythingV3(), HrEndlessSampler()]
 
 CHECKS = [("PyTorch pin (2.8.0+cu128)", check_torch),
@@ -515,6 +398,15 @@ CHECKS = [("PyTorch pin (2.8.0+cu128)", check_torch),
 
 
 def main():
+    # A tool that writes by default must not treat a flag it does not know as "go
+    # ahead": `--help` used to run every repair.
+    unknown = [a for a in sys.argv[1:] if a not in ("--check", "-c")]
+    if unknown:
+        print("Usage: repair_all.py [--check]   (--check reports and writes nothing)")
+        if any(a not in ("-h", "--help", "/?") for a in unknown):
+            print("Unknown option: " + " ".join(unknown) + ". Nothing was changed.")
+        return 2
+
     dry = "--check" in sys.argv or "-c" in sys.argv
     print()
     print("=" * 74)
@@ -578,10 +470,6 @@ def main():
             print(f"          {detail}")
         if st == FAIL:
             failed.append(label)
-
-    st, detail = check_upstream_merged()
-    if st == WARN:
-        print(f"\n  [NOTE ] {detail}")
 
     print("\n" + "=" * 74)
     print(f"  {len(already)} already fine   {len(repaired)} {'to repair' if dry else 'repaired'}   {len(failed)} need attention")

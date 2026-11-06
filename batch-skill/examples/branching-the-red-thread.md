@@ -26,15 +26,15 @@ An unpeopled establishing plate on a 35mm lens in deep focus, eye level from the
 
 ## Ambience 1
 ### stable_audio_3 | 45s
-TrackType: Sound Effects. Tidal harbour quay room tone at low tide: a slow flat sea a long way off, water dripping onto stone close by, gulls calling at a distance, a rope creaking against a bollard, the wide open reverberation of a quayside with nothing above it. Continuous, no musical content, no speech, no sudden events.
+Sound effects. Tidal harbour quay room tone at low tide: a slow flat sea a long way off, water dripping onto stone close by, gulls calling at a distance, a rope creaking against a bollard, the wide open reverberation of a quayside with nothing above it. Continuous, no musical content, no speech, no sudden events.
 
 ## Ambience 2
 ### stable_audio_3 | 45s
-TrackType: Sound Effects. Long wooden rope shed room tone: dry hemp fibre rustling, a wooden mechanism ticking slowly somewhere far off, a faint sea heard through one open wall, the long dry reverberation of a ninety-metre timber building. Continuous, no musical content, no speech, no sudden events.
+Sound effects. Long wooden rope shed room tone: dry hemp fibre rustling, a wooden mechanism ticking slowly somewhere far off, a faint sea heard through one open wall, the long dry reverberation of a ninety-metre timber building. Continuous, no musical content, no speech, no sudden events.
 
 ## Ambience 3
 ### stable_audio_3 | 45s
-TrackType: Sound Effects. Small low room tone under a roof: rain ticking on slates overhead, a beam settling once, wool coils swaying on iron hooks, the close dead reverberation of a room with a low ceiling and a wooden floor. Continuous, no musical content, no speech, no sudden events.
+Sound effects. Small low room tone under a roof: rain ticking on slates overhead, a beam settling once, wool coils swaying on iron hooks, the close dead reverberation of a room with a low ceiling and a wooden floor. Continuous, no musical content, no speech, no sudden events.
 
 # IDLE | idle | -> S0
 
@@ -52,7 +52,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 30s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano and a single bowed cello. One four-note piano figure repeats without ever resolving, the cello enters underneath on a long held note and leaves again, and the piece ends exactly where it started so it loops without a seam. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano and a single bowed cello. One four-note piano figure repeats without ever resolving, the cello enters underneath on a long held note and leaves again, and the piece ends exactly where it started so it loops without a seam. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
 
 # S0 | scene | A -> S1_A ; B -> S1_B
 
@@ -86,7 +86,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano, a single bowed cello and mallet vibraphone. Opens on one held cello note alone, a four-note piano figure enters around five seconds and repeats without resolving, vibraphone adds one note per bar from ten seconds, and it ends unresolved on the same held cello note it started on. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano, a single bowed cello and mallet vibraphone. Opens on one held cello note alone, a four-note piano figure enters around five seconds and repeats without resolving, vibraphone adds one note per bar from ten seconds, and it ends unresolved on the same held cello note it started on. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
 
 # S1_A | scene | A -> S2_AA ; B -> S2_AB
 
@@ -120,7 +120,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano, a single bowed cello and mallet vibraphone. The same four-note figure as before but played by two hands slightly out of phase so it thickens without getting louder, the cello holding underneath, vibraphone entering on the offbeats from eight seconds, ending unresolved. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano, a single bowed cello and mallet vibraphone. The same four-note figure as before but played by two hands slightly out of phase so it thickens without getting louder, the cello holding underneath, vibraphone entering on the offbeats from eight seconds, ending unresolved. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
 
 # S1_B | scene | A -> S2_BA ; B -> S2_BB
 
@@ -154,7 +154,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from hand-wound music box, prepared upright piano and a single bowed cello. The music box carries the four-note figure alone at first, the piano doubles it an octave below from six seconds, and the cello holds one long note underneath to the end without resolving. Warm close-miked room recording with audible mechanism and pedal noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from hand-wound music box, prepared upright piano and a single bowed cello. The music box carries the four-note figure alone at first, the piano doubles it an octave below from six seconds, and the cello holds one long note underneath to the end without resolving. Warm close-miked room recording with audible mechanism and pedal noise. No vocals, no drums.
 
 # S2_AA | scene | A -> E01 ; B -> E02
 
@@ -180,7 +180,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 20s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano and mallet vibraphone. The vibraphone states the four-note figure twice with long gaps between, the piano answers only the last note each time, and the cue stops on an unresolved vibraphone note left ringing. Warm close-miked room recording with audible mallet and pedal noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano and mallet vibraphone. The vibraphone states the four-note figure twice with long gaps between, the piano answers only the last note each time, and the cue stops on an unresolved vibraphone note left ringing. Warm close-miked room recording with audible mallet and pedal noise. No vocals, no drums.
 
 # S2_AB | scene | A -> E02 ; B -> E03
 
@@ -206,7 +206,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 20s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano and a single bowed cello. The piano plays the four-note figure once and then waits a full bar in silence before the cello answers with a single low note, and the cue ends in that silence rather than on a chord. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano and a single bowed cello. The piano plays the four-note figure once and then waits a full bar in silence before the cello answers with a single low note, and the cue ends in that silence rather than on a chord. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
 
 # S2_BA | scene | A -> E03 ; B -> E04
 
@@ -232,7 +232,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 20s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from hand-wound music box and prepared upright piano. The music box plays the four-note figure at half speed while the piano places one low note under every second box note, and the cue ends with the box still turning after the piano has stopped. Warm close-miked room recording with audible mechanism and pedal noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from hand-wound music box and prepared upright piano. The music box plays the four-note figure at half speed while the piano places one low note under every second box note, and the cue ends with the box still turning after the piano has stopped. Warm close-miked room recording with audible mechanism and pedal noise. No vocals, no drums.
 
 # S2_BB | scene | A -> E04 ; B -> E05
 
@@ -258,7 +258,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 20s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from mallet vibraphone and a single bowed cello. The vibraphone plays the four-note figure very quietly high up while the cello holds one long note far below it, and the cue ends when the cello stops and the vibraphone is left alone unresolved. Warm close-miked room recording with audible mallet and chair noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from mallet vibraphone and a single bowed cello. The vibraphone plays the four-note figure very quietly high up while the cello holds one long note far below it, and the cue ends when the cello stops and the vibraphone is left alone unresolved. Warm close-miked room recording with audible mallet and chair noise. No vocals, no drums.
 
 # E01 | ending | end
 
@@ -276,7 +276,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, prepared upright piano and mallet vibraphone. The four-note figure is played complete and in time for the first and only time in the film, once through, and the last note is allowed to ring out to nothing under a held pedal. Warm close-miked room recording with audible pedal, mallet and chair noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, prepared upright piano and mallet vibraphone. The four-note figure is played complete and in time for the first and only time in the film, once through, and the last note is allowed to ring out to nothing under a held pedal. Warm close-miked room recording with audible pedal, mallet and chair noise. No vocals, no drums.
 
 # E02 | ending | end
 
@@ -294,7 +294,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano, mallet vibraphone and a single bowed cello. The four-note figure is played by all three instruments a fraction apart so it arrives as one thickened sound, repeats twice, and stops on the beat rather than fading. Warm close-miked room recording with audible pedal, mallet and chair noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano, mallet vibraphone and a single bowed cello. The four-note figure is played by all three instruments a fraction apart so it arrives as one thickened sound, repeats twice, and stops on the beat rather than fading. Warm close-miked room recording with audible pedal, mallet and chair noise. No vocals, no drums.
 
 # E03 | ending | end
 
@@ -312,7 +312,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano and a single bowed cello. The piano plays the four-note figure and the cello answers it a fifth below in the same tempo, twice, and the two land on the same note together at the end and stop cleanly. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from prepared upright piano and a single bowed cello. The piano plays the four-note figure and the cello answers it a fifth below in the same tempo, twice, and the two land on the same note together at the end and stop cleanly. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
 
 # E04 | ending | end
 
@@ -330,7 +330,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 24s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from hand-wound music box, prepared upright piano and mallet vibraphone. The three instruments hand the four-note figure round in turn, each entry a little quieter than the last, and the final statement is the music box alone winding down almost to a stop. Warm close-miked room recording with audible mechanism, pedal and mallet noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, built from hand-wound music box, prepared upright piano and mallet vibraphone. The three instruments hand the four-note figure round in turn, each entry a little quieter than the last, and the final statement is the music box alone winding down almost to a stop. Warm close-miked room recording with audible mechanism, pedal and mallet noise. No vocals, no drums.
 
 # E05 | ending | -> S0
 
@@ -348,7 +348,7 @@ A flat text card, warm off-white ground, deep navy type, nothing else in the fra
 
 ## Music
 ### stable_audio_3 | 30s
-TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, prepared upright piano alone. The four-note figure is played once slowly with the last note left out, the pedal is held until the string noise decays to nothing, and the silence is left long enough to run back into the opening cue without a seam. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
+Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, prepared upright piano alone. The four-note figure is played once slowly with the last note left out, the pedal is held until the string noise decays to nothing, and the silence is left long enough to run back into the opening cue without a seam. Warm close-miked room recording with audible pedal and chair noise. No vocals, no drums.
 
 # NOTES | notes | end
 
