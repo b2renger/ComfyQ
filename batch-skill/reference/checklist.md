@@ -9,8 +9,9 @@ not in the prompt. Amend the block and let the change propagate.
 1. Every `#` state id is identifier-shaped, **no spaces**, and its `role` is one
    of `library` / `idle` / `scene` / `ending` / `notes`.
 2. Every `##` shot is followed by a `###` line and then a prompt paragraph. A
-   shot missing either is a **parse error**: the admin UI refuses the document,
-   but the API queues everything else **without it**. Check `parsed.errors`.
+   shot missing either is a **parse error**: the admin UI and the API both
+   refuse the document (`force=true` on the API queues everything else
+   **without it**). Check `parsed.errors`.
 3. Exactly **one** `###` per `##`. A second silently replacing the first is an
    error; split into two `##` shots.
 4. Every `###` names a workflow from
@@ -23,10 +24,10 @@ not in the prompt. Amend the block and let the change propagate.
 ## Wiring
 
 7. Every `Video cut N` has a matching `Reference image N` **in the same state**.
-8. Every `(ref Ax)` names an anchor that exists, and refs are written on the
-   `##` line or as `| ref …` on the `###` line — never `(ref A2, A1)` in
-   parentheses on `###`, which keeps only the first anchor. No two anchors
-   share a number (a duplicate is only a *warning*; the later one wins).
+8. Every `(ref Ax)` names an anchor that exists, and the refs are written on
+   one line only — the `##` line or the `###` line (if both name refs and they
+   differ, the storyboard is refused). No two anchors share a number (a
+   duplicate is only a *warning*; the later one wins).
 9. Every shot on an **edit** workflow names its refs, and names **two** when the
    source and the reference differ (`ref <place>, <subject>`). One ref in two
    slots is a warning: the model edits the anchor instead of bringing it in.
@@ -95,9 +96,9 @@ const {planStoryboard}=require('./server/storyboard/storyboardPlanner');
 const r=new WorkflowRegistry(require('path').resolve('workflows')); r.discover();
 const parsed=parseStoryboard(require('fs').readFileSync(process.argv[1],'utf8'));
 const p=planStoryboard(parsed,r,{});
-console.log('shots',p.jobs.length,'| PARSE errors',parsed.errors.length,'| PLAN errors',p.errors.length,'| blocked',p.blockedReasons.length);
+console.log('shots',p.jobs.length,'| PARSE errors',parsed.errors.length,'| PLAN errors',p.errors.length,'| blocked',p.blockedReasons.length,'| states',parsed.states.length);
 console.log('phases',p.phases.map(x=>x.count+' '+x.label).join(', '));
-console.log('model loads',p.modelLoads);
+console.log('model loads',p.modelLoads,'| est',Math.round(p.totalEstimatedSec/60),'min warm, plus one load per workflow');
 for(const e of parsed.errors) console.log('PARSE',e);
 for(const e of p.errors)      console.log('PLAN ',e);
 for(const w of parsed.warnings.concat(p.warnings)) console.log('WARN ',w);
@@ -106,22 +107,30 @@ for(const w of parsed.warnings.concat(p.warnings)) console.log('WARN ',w);
 
 **Both `PARSE errors` and `PLAN errors` must be 0 — they are different
 arrays.** This matters more than it looks: a parse error (a `##` with no `###`,
-a second `###` under one `##`, an empty prompt) **drops that shot from the
-batch entirely**. The plan then looks perfectly clean while the film is missing
-a shot — and if the dropped shot was an `## Anchor image N`, every `(ref Ax)`
-pointing at it is gone too.
+an empty prompt) **drops that shot from the batch entirely**. The plan then
+looks perfectly clean while the film is missing a shot — and if the dropped
+shot was an `## Anchor image N`, every `(ref Ax)` pointing at it is gone too.
+A second `###` under one `##`, or a `###` ref list that disagrees with the `##`
+one, is also a parse error but KEEPS the shot: on its first workflow and the
+`##` refs, and after a second `###` every line below it, up to the next
+heading, is appended to the shot's prompt.
 
-`POST /storyboard/queue` refuses only on **plan** errors, so a parse error
-queues silently through the API. The admin UI does block it. Never trust a
-report that printed only `p.errors`.
+`POST /storyboard/queue` refuses parse errors and plan errors alike (HTTP 422,
+nothing queued), and so does the admin UI. Sending `force=true` queues the rest
+anyway, without the dropped shots and with any kept-but-wrong shot exactly as
+parsed. Never trust a report that printed only `p.errors`.
 
 Warnings are worth reading — the common ones are "one ref in two slots" and "a
 resolution was given for a workflow with no width/height", which is expected
-for edit shots and cards.
+for edit shots. (Cards are not in that warning: a size on an `ideogram_4_t2i`
+card is mapped onto its aspect dropdown.)
 
 Then queue it, either in the app (**/admin → Storyboard batch**) or:
 
 ```bash
 curl -F file=@path/to/story.md -F folder=my-film \
-     -H "X-Admin-Password: $PW" http://localhost:3000/storyboard/preview
+     -H "X-Admin-Password: $PW" http://localhost:3000/storyboard/queue
 ```
+
+To check the plan on the server first without creating anything, send the same
+request to `/storyboard/preview`.

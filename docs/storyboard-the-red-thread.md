@@ -232,8 +232,8 @@ TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, bui
 
 # NOTES | notes | end
 
-Depth 2 — four paths, three endings. E02 is reached from both S1_A and S1_B because tying a thread onto the wall and turning the crank are the same argument arrived at two ways. E03 loops back to S0. Set DEPTH to 3 in the ultra-prompt input for eight paths.
+Depth 2 — four paths, three endings. E02 is reached from both S1_A and S1_B because tying a thread onto the wall and turning the crank are the same argument arrived at two ways. E03 loops back to S0. A depth-3 version with eight paths is [batch-skill/examples/branching-the-red-thread.md](../batch-skill/examples/branching-the-red-thread.md).
 
-The protagonist is never seen face-on anywhere in the film, and no screen contains a person. That is what stopped Ideogram refusing, and it also removes face drift across the sixteen cuts.
+The protagonist is never seen face-on anywhere in the film, and no screen contains a person. That is what stopped Ideogram refusing, and it also removes face drift across the seventeen cuts.
 
 Ambience 1 runs under every quay state, Ambience 2 under every rope-walk state. The crossing in S1_B cut 1 is the only place in the film where the bed changes.

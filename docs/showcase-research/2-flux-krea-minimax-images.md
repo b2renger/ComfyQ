@@ -9,7 +9,7 @@ model cards). Nothing in `J:\ComfyQ` was edited and no job was run.
 1. **FLUX.3 Klein is trained on captions written by its own prompt upsampler, and that upsampler fails on this
    ComfyUI build.** BFL: *"Always run a prompt upsampler. The model is trained on the captions it writes; a prompt
    sent as typed gives noticeably weaker results"* (docs.bfl.ai/flux_3/flux3_image_klein). On 0.43.2 the Qwen 3.5
-   upsampler dies (`Unsupported Flash Attention tensor strides`, CLAUDE.md 2026-11-03), so `improve_prompt` stays
+   upsampler dies (`Unsupported Flash Attention tensor strides`, PROJECT-HISTORY.md 2026-11-03), so `improve_prompt` stays
    **off** on all four FLUX.3 cards. To make up for it, every FLUX.3 prompt below is **hand-written in the upsampler's
    own output format**, taken from its published system prompts (`system_prompts.json` in
    `black-forest-labs/flux-3-image-klein-pup`, keys `t2i`, `t2i_bbox`, `i2i`, `i2i_bbox`) and from the exact
@@ -728,7 +728,7 @@ and some misspellings, which are expected.
 **Risks**: garbled labels (the author's own warning). The VLM invents a name. A view may drop the backpack. 61 s
 warm, most of it the VLM writing the prompt.
 
-**Links to fix**: `DynamicCharacterSheet_krea2_v1.safetensors` has **no source**; CLAUDE.md lists it as
+**Links to fix**: `DynamicCharacterSheet_krea2_v1.safetensors` has **no source**; PROJECT-HISTORY.md lists it as
 "deliberately unsourced". **Found**:
 `https://huggingface.co/Alissonerdx/CharacterSheet/resolve/main/DynamicCharacterSheet_krea2_v1.safetensors`. It is
 914,160,184 bytes, identical to the rig's file (verified by HEAD). `Krea2_Turbo_convrot_int8mixed.safetensors` →
@@ -785,7 +785,7 @@ pouches. Colours are identical across panels.
 inputs, and the old crop fractions (`[0.34,0,0.565,1]`, …) were measured on the previous character, so **re-measure
 them on the new sheet**.
 
-**Links to fix**: `QuadView_krea2_v1.safetensors` has **no source** (CLAUDE.md: "deliberately unsourced"). **Found**:
+**Links to fix**: `QuadView_krea2_v1.safetensors` has **no source** (PROJECT-HISTORY.md: "deliberately unsourced"). **Found**:
 `https://huggingface.co/Alissonerdx/CharacterSheet/resolve/main/QuadView_krea2_v1.safetensors`, 914,160,176 bytes,
 identical (verified). Same `Krea2_Turbo_convrot_int8mixed` fix as the character sheet. The guide link (Krea
 prompting.md) is generic; add https://huggingface.co/Alissonerdx/CharacterSheet. The same misleading "4.0 =

@@ -87,7 +87,7 @@ weights in Comfy-Org's int8-convrot repack, running on ComfyUI's native nodes (C
 template note cites ComfyUI PR #14424). The output is input × factor (≤4). A colour-match post-process offers
 lab / wavelet / adain; numz describes lab as "full perceptual color matching… recommended for highest fidelity".
 On this rig: 20 s warm, 2.3× faster than the fp16 card. It needs `fp16_accumulation` off, or it saves black images
-(CLAUDE.md), so ComfyQ restarts ComfyUI around it.
+(PROJECT-HISTORY.md), so ComfyQ restarts ComfyUI around it.
 
 **Showcase idea**: exactly the 4K card's input, so a student sees the speed/quality trade on one picture: normal
 7B int8 against 7B "sharp" fp16, both 1024 → 4096. I set colour correction to **lab**, matching the 4K card's graph

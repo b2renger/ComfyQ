@@ -190,7 +190,7 @@ Linear: LIBRARY → IDLE → S0 → S1 → S2 → S3 → E01. No choices, so the
 cards are the title and the close.
 
 The protagonist is the lantern, not a person. Hands enter frame twice and are
-never followed to a face, which removes face drift across nineteen cuts and
+never followed to a face, which removes face drift across fourteen cuts and
 removes the content-filter surface from the cards entirely.
 
 Three locations, each opened on a wide shot before any close-up of it: the lamp

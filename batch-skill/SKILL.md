@@ -16,7 +16,7 @@ reports success.
 
 Read this file, then [reference/workflows.md](reference/workflows.md) for the
 exact ids and limits, and [reference/checklist.md](reference/checklist.md)
-before you emit. Two complete worked examples live in
+before you emit. Three complete worked examples live in
 [examples/](examples/).
 
 ---
@@ -63,6 +63,10 @@ The title is free text. Two spellings are special:
 
 An optional parenthetical carries the shot's argument:
 `## Reference image 2 (ref A2, A1)` · `## Video cut 1 (loop)`.
+Commas separate attributes there as `|` does on the `###` line, so a ref, a
+size, a duration and `loop` can be combined: `## Video cut 1 (ref A2, loop)`,
+`### ltx_2_5_i2v (ref A2, 8s)`. A decimal comma (`2,5s`) is reported as not
+whole seconds.
 
 ### `###` — workflow and attributes
 
@@ -82,8 +86,9 @@ Workflow id first, then pipe-separated attributes in any order:
 | `ref A2, A1` | which anchors feed the image inputs, **in slot order** |
 
 Sizes outside 64–8192 px are ignored, so `shot on 35mm film … Kodak Portra 400`
-in a prompt is never mistaken for a resolution. Anything unrecognised becomes a
-note rather than being dropped.
+in a prompt is never mistaken for a resolution. Anything not understood is
+reported as a warning and ignored. Write durations as whole seconds (`5s`, not
+`5.5s`) and refs as `ref A2`, not `ref: A2`.
 
 ### The paragraph — the prompt
 
@@ -92,8 +97,9 @@ no steps. ComfyQ owns every parameter you do not set on the `###` line, and it
 randomises seeds itself so a re-run never returns a cached result.
 
 Two things are taken *out* of the paragraph: a leading `TrackType: …` directive
-(§ audio), and a line of the shape `Resolution: 1344 x 768` / `Size:` /
-`Dimensions:`, which becomes the shot's size and is **deleted from the prompt**.
+(see [reference/workflows.md → Audio directives](reference/workflows.md#audio-directives)),
+and a line of the shape `Resolution: 1344 x 768` / `Size:` / `Dimensions:`,
+which becomes the shot's size and is **deleted from the prompt**.
 Never open a sentence that way unless you mean it.
 
 **A negative prompt cannot be set from a storyboard at all** — every shot runs
@@ -123,11 +129,10 @@ costs roughly 1.5× as much per shot.
    `image_edit_flux2_klein_9b_image_edit_ref` that is `ref <place anchor>, <subject
    anchor>`. Slot order follows the workflow's admin-editable parameter order,
    so re-check a multi-ref document after anyone reorders a bundle's params.
-5. **Write refs as `## Shot (ref A2, A1)` or `### wf | ref A2, A1` — never as
-   `### wf (ref A2, A1)`.** The parenthesised form *on the `###` line* is split
-   on the comma and **silently keeps only the first anchor**, giving you the
-   one-ref-two-slots case below. (`docs/storyboard-format.md` still shows the
-   broken form; ignore it.)
+5. **Write refs in one place.** `## Shot (ref A2, A1)`, `### wf | ref A2, A1`
+   and `### wf (ref A2, A1)` all read both anchors. Writing them on both the
+   `##` and `###` line adds nothing when they agree, and refuses the storyboard
+   when they differ.
 6. **One ref, two slots is a warning.** `(ref A1)` alone puts A1 in *both*, so
    the model edits A1 itself rather than bringing A1 into another shot. Name
    both whenever they differ.
@@ -294,9 +299,12 @@ audio   = ambience beds + one cue per state
 ```
 
 ComfyQ groups shots so each model loads once, but a batch still pays one cold
-load per workflow on top of the per-shot time — measured on this rig: 10 s
-(edit_ref) to 52 s (the LTX video bundles). **Tell the user the shot count and
-the estimate before emitting a large document.**
+load per workflow on top of the per-shot time — measured on this rig (the
+bundles' calibration of 2026-11-04): 6 s (edit_ref) to 52 s (the LTX video
+bundles), longer when the files are read from disk for the first time. The
+offline check in [reference/checklist.md](reference/checklist.md) prints the
+document's total warm estimate. **Tell the user the shot count and the
+estimate before emitting a large document.**
 
 Hard ceiling: **500 shots** and a **2 MB** document per batch.
 

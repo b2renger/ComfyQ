@@ -184,4 +184,4 @@ TrackType: Music. Sparse acoustic chamber instrumental at 72 BPM in D minor, bui
 
 # NOTES | notes | end
 
-Depth 2, so four paths and three endings. E02 is reached from two directions, S1_A/B and S1_B/A, because both arrive at the same argument by different routes. Set DEPTH to 3 in the ultra-prompt input for eight paths. Ambience 1 runs under every quay state and Ambience 2 under every rope-walk state; the crossing in S1_B cut 1 is the only place in the film where the bed changes.
+Depth 2, so four paths and three endings. E02 is reached from two directions, S1_A/B and S1_B/A, because both arrive at the same argument by different routes. A depth-3 version with eight paths is [batch-skill/examples/branching-the-red-thread.md](../batch-skill/examples/branching-the-red-thread.md). Ambience 1 runs under every quay state and Ambience 2 under every rope-walk state; the crossing in S1_B cut 1 is the only place in the film where the bed changes.

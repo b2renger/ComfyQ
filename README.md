@@ -16,16 +16,16 @@ A ComfyQ machine is always in exactly one of two modes, and the difference is th
 |---|---|---|
 | What it is | The machine is being *set up* | The machine is *serving a class* |
 | Who uses it | You, at `/admin` | Everyone, at `/` |
-| ComfyUI | Started on demand, for calibration and maintenance | Running, with one workflow's models resident |
+| ComfyUI | Started at boot by default (`comfy_ui.autoStart`), and used for calibration and maintenance | Running, with one workflow's models resident |
 | Jobs | Nothing is scheduled | Students book and run jobs |
 | Workflow | You pick and prepare any of the 80 | Exactly **one** is served (or several, with lanes) |
 
 You switch by pressing **Activate & serve** on a workflow card (→ student) or **Stop serving** / **Reset to admin** (→ admin).
 
-- **A restart resumes serving.** A crash, a Windows update or a power cut brings the machine back serving the same workflow, because `/activate-workflow` leaves a marker. The deliberate stops clear it.
-- **ComfyUI outlives ComfyQ.** ComfyQ starts ComfyUI as an independent process (its output goes to `.comfyq-lanes/logs/`), so restarting ComfyQ — switching workflow, stopping serving, a crash, a code reload — no longer cold-starts ComfyUI or reloads the model: the next ComfyQ adopts the ComfyUI it started. Switching workflow while already serving happens in place, without a restart at all. The **Running** card says how many times ComfyUI started in the last 24 h, and why. To stop ComfyUI, use the admin panel (it is not closed by Ctrl+C in ComfyQ's console).
+- **A restart resumes serving.** When ComfyQ is started again after a crash, a Windows update or a power cut, it comes back serving the same workflow, because **Activate & serve** leaves a marker (`server/data/.serving`); so does queueing a storyboard batch while the machine is in admin mode. The deliberate stops (*Stop serving*, *Reset to admin*, *Stop & kill all*) clear it. ⚠ ComfyQ does not start itself: after a reboot or a crash, the machine serves nothing until someone starts ComfyQ again — close its window if it is still open (after a crash the web page can still be up, and a double-click would only open it), then double-click `Start-ComfyQ.bat`.
+- **ComfyUI outlives ComfyQ.** ComfyQ starts ComfyUI as an independent process (its output goes to `.comfyq-lanes/logs/`), so restarting ComfyQ — a crash, a code reload, or **Activate & serve** from admin mode — does not cold-start ComfyUI: the next ComfyQ adopts the ComfyUI it started, and after a crash or a code reload the served model is still loaded. Stopping serving keeps ComfyUI up but unloads its models, so serving again skips the cold start but still loads the model. Switching workflow while already serving happens in place, without restarting ComfyQ; ComfyUI itself is relaunched only when the new workflow needs different flags, or a launch setting has changed since it started. The **Running** card says how many times ComfyUI started in the last 24 h, and why. Ctrl+C in ComfyQ's console does not stop ComfyUI. To stop it, do it before closing ComfyQ: **Reset to admin** (if the machine is serving), then **Manage ComfyUI → Stop ComfyUI**, then close the window. With `comfy_ui.autoStart` off, the card shows ComfyUI as stopped after *Reset to admin* even though it is still running: press **Launch ComfyUI on network** first (it reconnects to the running ComfyUI, and switches *Expose ComfyUI to the LAN* on), then **Stop ComfyUI**. Already closed the window? Double-click `Start-ComfyQ.bat` again: ComfyQ reconnects to the ComfyUI it started, and you can stop it the same way (*Reset to admin* first if it resumed serving). Task Manager is only the last resort (see `Readme.txt` at the root of the drive, *Something is badly stuck*).
 - **`/admin` is always reachable**, even while serving, so you can fix something mid-class. It is deliberately *not* linked from the student page — but that is tidiness, not security. **The admin password is the boundary.**
-- **Students can be locked out too.** An optional *student access password* reserves a machine for one group; without it set, behaviour is exactly as before.
+- **Students can be locked out too.** An optional *student access password* reserves a machine for one group; without it, anyone who can reach the student page on the network can book. It covers ComfyQ — the student page, booking, uploads and the job list — but not ComfyUI itself: with *Expose ComfyUI to the LAN* on, ComfyUI's own page (port 8188, and 8189 and up for each extra lane) stays open to anyone on the network, so switch that off to keep the GPU for the group. The change takes effect the next time ComfyUI is started: in admin mode, press **Restart ComfyUI**; while serving, at the next switch to another workflow or the next restart of ComfyQ. Re-activating the workflow already being served does not apply it, and a ComfyUI started by hand is never rebound. ComfyQ Discovery also still shows each queued job's user name and the start of its prompt.
 
 ---
 
@@ -39,8 +39,8 @@ Open `http://<machine-ip>:5173` and you get a timeline, a booking form, and a gr
 - **Fill in the form** — the fields come from whichever workflow is being served. Prompts, dropdowns, sliders, file uploads, and for some workflows a mask painter or a visual prompt composer.
 - **Watch it run** — live progress and an ETA from the workflow's measured timing, not a guess.
 - **Collect the result** — images, video, audio, 3D models and Gaussian splats each render in their own viewer. Multi-output jobs get a gallery.
-- **Re-run it** — *Use these settings* refills the form from a past job; **Download ingredients (.zip)** packages the inputs plus a `settings.json` so a generation can be rebuilt later, even on another machine.
-- **See what the rig can do** — the **All jobs** tab, user `examples`, carries one finished example per workflow in the library: the result, the prompt, the parameters, the input files and a caption saying what it shows. Each was chosen from research into what that model is actually good at ([`docs/showcase-research/`](docs/showcase-research/README.md)). Clicking *Use these settings* on one is the quickest way to start from something that already works; the **model filter** narrows the grid to one card.
+- **Re-run it** — *Use these settings* refills the form from a past job of the workflow this tab books (it is not shown on other jobs — use the .zip); **Download ingredients (.zip)** packages the inputs plus a `settings.json` so a generation can be rebuilt later, even on another machine.
+- **See what the rig can do** — the **All jobs** tab, user `examples`, carries one finished example per workflow in the library: the result, the prompt, the parameters, the input files and a caption saying what it shows. Each was chosen from research into what that model is actually good at ([`docs/showcase-research/`](docs/showcase-research/README.md)). On the example of the workflow being served, *Use these settings* is the quickest way to start from something that already works; every example offers **Download ingredients (.zip)**, and the **model filter** narrows the grid to one card. The examples are on the student page, so they can be seen only while the machine is serving a workflow.
 - **Links** — every link out of ComfyQ (prompt guides, model pages) has a small copy button beside it, for a browser or a school proxy that refuses to open it.
 
 Idle tabs park themselves after five minutes to keep a room of thirty laptops from hammering the rig.
@@ -52,22 +52,23 @@ Idle tabs park themselves after five minutes to keep a room of thirty laptops fr
 ### 1. Workflows
 The library, and what is running.
 
-- **Running** — one row per lane: the workflow, its port, whether it is busy, and its resident VRAM. While several lanes run, **any** of them can be closed on its own (the main one too — another becomes main); *Stop serving* appears on the last one. A lane on the install's own ComfyUI keeps that ComfyUI running, models unloaded, so the next workflow you serve starts warm.
-- **Workflow library** — all 80 bundles, searchable, filtered by type (Image generation · Image editing · Video generation · Video editing · 3D · Audio · Description · Utilities). Each card shows the measured duration, a **VRAM chip** judged against *this* machine's card, and whether its models are on disk. Per card: *Activate & serve*, *Open in ComfyUI*, *Calibrate*, *Edit*, *Validate*, *Delete*.
-- **Storyboard batch** — submit a whole multi-shot document as one job set.
+- **Running** — one row per lane: the workflow, its port, whether it is busy, and its resident VRAM. While several lanes run, **any** of them can be closed on its own (the main one too — another becomes main); *Stop serving* appears on the last one. A lane on the install's own ComfyUI keeps that ComfyUI running, models unloaded, so the next workflow you serve starts warm. Closing a lane that is running a job stops that job; the student sees it failed with "Stopped: this workflow stopped being served on this machine while the job was running."
+- **Workflow library** — all 80 bundles, searchable, filtered by type (Image generation · Image editing · Video generation · Video editing · 3D · Audio · Description · Utilities). Each card shows the measured duration, a **VRAM chip** judged against *this* machine's card, and whether its models are on disk. Per card: *Activate & serve*, *Open in ComfyUI*, *Calibrate*, *Edit*, *Validate*, *Delete*. The workflow served last stays the active one after **Reset to admin**, so its *Delete* stays greyed out until another workflow has been activated.
+  While a workflow is being served, the other cards show **Serve alongside** instead of *Activate & serve*: it opens a parallel lane on its own ComfyUI, and is greyed out when its VRAM will not fit beside what is running. To *replace* the main workflow instead, select its card and press **Activate & start student mode** under the library — that switches in place, without a restart. The switch closes the old main lane: if it is running a job, that job stops and the student sees it failed with "Stopped: this workflow stopped being served on this machine while the job was running."
+- **Storyboard batch** — submit a whole multi-shot document as one job set. Queueing one while the machine is in admin mode starts serving the batch's first workflow.
 - **Add workflow** — drop in a new ComfyUI API-format export.
 
 ### 2. Manage server
-- **Student access** — optional password reserving the machine for one group.
-- **Admin password** — gates every destructive action. ⚠ **Set one before a prune session**; without it, anyone on the LAN who knows the URL can reach the admin routes.
+- **Student access** — optional password reserving the machine for one group. It does not cover ComfyUI's own page (port 8188, and 8189 and up for each extra lane — see *The two modes* above).
+- **Admin password** — gates every destructive action. ⚠ **Set one before any class** (and before a prune session); without it, anyone on the LAN who knows the URL can reach the admin routes.
 - **Network presence** — whether this machine announces itself to ComfyQ Discovery.
 - **Cleanup** and **Clear job history**.
 
 ### 3. Manage ComfyUI
-- **ComfyUI settings** — install paths, Python, output dir, API port, VRAM budget. A **drive-letter swap** repoints every absolute path at once, and **Auto-detect** finds a portable install by itself — both there because this drive is cloned between machines that mount it under different letters.
-- **Performance flags** — Sage attention and fp16 accumulation, off by default. Individual workflows can opt out of a flag they produce black images under, and ComfyQ relaunches ComfyUI without it for that workflow.
+- **ComfyUI settings** — install paths, Python, output dir, VRAM budget. The ComfyUI port is under **Startup options** on the backend card, beside the performance flags. A **drive-letter swap** repoints every absolute path at once, and **Auto-detect** finds a portable install by itself — both there because this drive is cloned between machines that mount it under different letters.
+- **Performance flags** — Sage attention and fp16 accumulation, off by default. Individual workflows can opt out of a flag they produce black images under, and ComfyQ relaunches ComfyUI without it for that workflow. A change takes effect the next time ComfyUI is started: in admin mode, press **Restart ComfyUI**; while serving, at the next switch to another workflow or the next restart of ComfyQ (re-activating the workflow already being served does not apply it).
 - **HuggingFace token** — needed only for gated repositories. Write-only; never sent back to the browser.
-- **Node packs** — which node classes your bundles need, which are missing, and who provides them. Installing is a `git clone` into `custom_nodes`; ⚠ **pip is a separate, explicit step**, because one Python environment is shared by every workflow on the drive.
+- **Node packs** — which node classes your bundles need, which are missing, and who provides them. Installing is a `git clone` into `custom_nodes`; ⚠ **pip is a separate, explicit step**, because one Python environment is shared by every workflow on the drive. ComfyQ sets ComfyUI-Manager to offline (`network_mode = offline` in `ComfyUI/user/__manager/config.ini`) each time it starts ComfyUI, so a ComfyUI you launch yourself has Manager offline too; Manager has no setting for it in its own menus, so to go online edit `network_mode` back to `public` in that file (with that ComfyUI closed), and ComfyQ resets it at its next start.
 
 ### 4. Maintenance
 Everything that changes the install. See [Maintaining the install](#maintaining-the-install) below.
@@ -98,33 +99,35 @@ Expand the chip and each missing file offers:
 All of it is admin-only, and the destructive parts sit behind the admin password.
 
 **Updates.** The installed ComfyUI version is always on screen. *Check for updates* reaches the remotes and says in a sentence whether a newer release exists; every node pack that is a real git clone gets its own **Update** button, lists the commits that would land *before* you take them, and is fast-forwarded only.
-- ★ A run that changes nothing says so. `--stable` lands on the newest *release*, which may well be the one you already have.
-- ★ A pack with uncommitted local changes is not offered — it is a working copy, and a pull must not decide that for you.
+- A run that changes nothing says so. `--stable` lands on the newest *release*, which may well be the one you already have.
+- A pack with uncommitted local changes is not offered — it is a working copy, and a pull must not decide that for you.
 - Roughly half of installed packs are copies ComfyUI-Manager unpacked rather than clones, so they have no remote; the card says which.
+- ⚠ On a cloned drive, until `git config --global --add safe.directory "*"` has been run on this machine, every node-pack row shows no commit and no behind count, because git refuses to read folders another Windows account set up. Run that command once per machine (see [Install & run](#install--run)).
 - ⚠ ComfyUI's own `current_requirements.txt` is a separate, acknowledged step: it asks for bare `torch`, and an install can be deliberately pinned to a build some node packs need.
+- ⚠ **After updating ComfyUI or a node pack** (here or in ComfyUI-Manager), open **Maintenance → Maintenance scripts**, press **Repair the ComfyUI install** and **Re-apply the custom-node fixes**, then restart ComfyUI. Updates silently revert the local fixes some packs need. A pack whose only local change is one of those fixes shows as having uncommitted changes: stash it, update, then re-apply.
 
-**Run the whole library.** One button runs every bundle once with sample inputs — about **2½–3½ hours for 80 bundles** on an RTX 5090 — and answers the two questions nothing else can: does each bundle still work, and which model files the library actually opens. Every output is *measured* (size, luminance, spread, frame count) and anything black, flat, empty or single-framed is named for you to open, because a workflow can report success and save black images. **Copy report** gives a plain-text report you can paste to someone: every failure carries its full error, its traceback, and the performance flags ComfyUI was actually running with.
+**Run the whole library.** One button runs every bundle once with sample inputs — about **2½–3 hours for 80 bundles** on an RTX 5090 (the last full run of the library, the test suite below, took 2 h 31 min) — and answers the two questions nothing else can: does each bundle still work, and which model files the library actually opens. Every output is *measured* (size, luminance, spread, frame count) and anything black, flat, empty or single-framed is named for you to open, because a workflow can report success and save black images. **Copy report** gives a plain-text report you can paste to someone: every failure carries its full error, its traceback, and the performance flags ComfyUI was actually running with.
 
-**Run the test suite.** The same run, but on purpose: [tools/test-suite/library.suite.json](tools/test-suite/README.md) gives every workflow a relevant prompt and feeds it an *earlier workflow's result* — text-to-image pictures become what the edit cards edit, the edits become video frames, one generated clip becomes what every video-to-video card restyles — and cards that do the same job get the same inputs, so they can be compared. About **3½ hours for 80 bundles**. Afterwards `node tools/maintenance/seed_examples.cjs --replace` turns the results into the **examples** students browse. It runs from the sweep card (**Run the test suite**) or from a terminal: `node tools/test-suite/run-suite.cjs library`. What the last run found is in [docs/workflow-assessment.md](docs/workflow-assessment.md).
+**Run the test suite.** The same run, but on purpose: [tools/test-suite/library.suite.json](tools/test-suite/README.md) gives every workflow one example of what it is uniquely good at, chosen from research into the model, with a note saying what to look at. Pictures made from words feed the edit cards, the character sheets, the captioner, LivePortrait and some video frames; real or deliberately damaged photos and footage go to the cards whose strength only shows on them (restorers, pose transfer, frame interpolation, the video restyles); and cards that do the same job get the same inputs (the two SeedVR2 image cards, the two video upscalers, SCAIL-2 and Wan Animate, LTX 2.5 depth vs pose on the same dancer clip), so they can be compared. 15 of the 80 runs cost more or less than the job a student books by default (a bigger picture, a longer or shorter clip, a lighter input); they are marked `keepRuntime`, so they leave the card's measured timing alone. About **2½–3 hours for 80 bundles** on an RTX 5090 (2 h 31 min on 2026-11-04). Afterwards `node tools/maintenance/seed_examples.cjs --replace` turns the results into the **examples** students browse. It runs from the sweep card (**Run the test suite**) or from a terminal: `node tools/test-suite/run-suite.cjs library`. What the last run found is in [docs/workflow-assessment.md](docs/workflow-assessment.md).
 
 **Download models** — see [the section above](#getting-models-onto-the-machine).
 
 **Prune unused models.** Finds weight files nothing references, scored by confidence with its reasons in plain words. ⚠ Three things to know:
-- **A prune MOVES, it does not delete.** Files go to `_model_quarantine\<batch>\` on the same drive — instant and reversible. It does **not** free space until you empty a batch from the **Quarantine** card.
+- **A prune MOVES, it does not delete.** Files go to `_model_quarantine\<batch>\` on the same drive — instant and reversible. It does **not** free space until you empty a batch from the **Quarantined models** card.
 - **A quarantine batch travels in a cloned drive image.** Empty it before imaging a master drive.
-- **"Nothing references it" is weaker than it sounds.** Only the confident tier offers bulk selection. A model nobody happened to exercise leaves no trace either.
+- **"Nothing references it" is weaker than it sounds.** A model nobody happened to exercise leaves no trace either, so read the reason on each row. Each list shows the 25 largest rows until you press *Show all*. In the **Confident** and **Freed by removed workflows** groups, one click selects the rows shown (suspicious rows left out). **Worth a look** has the same button, enabled only after ticking *I have read the reason on each row*. **Suspicious** rows are ticked one by one, and the server refuses them unless you also tick the extra acknowledgement.
 
 **Re-apply the custom-node fixes.** A few node packs need a local fix to run on this ComfyUI. The patches live in the repo rather than only on the rig that was fixed, so a cloned machine can be brought up to them with one button. Safe to press twice, and it **refuses loudly** if a pack has changed under its patch instead of guessing.
 
-**Audit and repair.** Rebuild the model audit, verify it, repair the install, make install paths portable. These are ordinary Python in [tools/maintenance](tools/maintenance/), resolving the install from `config.json` so they work under any drive letter.
+**Audit and repair.** Rebuild the model audit, verify it, repair the install, and fix the TRELLIS2 pack's example-workflow paths (the pack author's own absolute paths; run it after updating that pack). These are ordinary Python in [tools/maintenance](tools/maintenance/), resolving the install from `config.json` so they work under any drive letter. None of them repairs a drive-letter change: for that, use the **Drive letter** swap under Manage ComfyUI.
 
-**Preparing a drive to be cloned.** This drive is duplicated with a physical cloner, so whatever is on it travels — including a term of student pictures and a quarantine batch full of models you meant to delete. [docs/cloning-the-drive.md](docs/cloning-the-drive.md) is the checklist: verify the library, empty the quarantine, keep one example per workflow, clear the residue. Three scripts under [tools/maintenance](tools/maintenance/) do the mechanical parts, each with a `--dry` mode that shows you the damage before you accept it.
+**Preparing a drive to be cloned.** This drive is duplicated with a physical cloner, so whatever is on it travels — including a term of student pictures and a quarantine batch full of models you meant to delete. [docs/cloning-the-drive.md](docs/cloning-the-drive.md) is the checklist, in this order: verify the library, empty the quarantine, clear the residue, **then** keep one example per workflow. The order matters — the wipe deletes the jobs and input files the examples are made of, so seeding them first would lose them. Three scripts under [tools/maintenance](tools/maintenance/) do the mechanical parts — `wipe_for_clone.cjs`, `seed_examples.cjs` and `publish_partial_sweep.cjs` — and each has a `--dry` mode that shows you the damage before you accept it (`publish_partial_sweep.cjs` is only needed to recover an interrupted sweep).
 
 ---
 
 ## ComfyQ Discovery (desktop app)
 
-A small cross-platform app that finds every ComfyQ machine on the network and shows what each is doing: whether it is serving or idle, which workflow, how many people are connected, how long since anything happened, and a **Schedule a job** button that opens that machine's page.
+A small cross-platform app that finds every ComfyQ machine on the network and shows what each is doing: whether it is serving or idle, which workflow, how many people are connected and how long since anything happened. Click a serving machine's card to book a job on it.
 
 It discovers machines three ways at once — a UDP beacon, a unicast subnet sweep, and manually added IPs — because managed school networks routinely block broadcast.
 
@@ -138,9 +141,10 @@ Windows and Linux builds **auto-update**; macOS needs a manual re-download. Inst
 
 | Document | What it covers |
 |---|---|
-| [CLAUDE.md](CLAUDE.md) | **The engineering log.** Every decision, every bug and why it was fixed that way. Long, dated, and the first place to look before changing anything. |
+| [CLAUDE.md](CLAUDE.md) | **The short project memory**: how the machine runs now, and the rules for working on it. Claude Code loads it automatically. |
+| [PROJECT-HISTORY.md](PROJECT-HISTORY.md) | **The engineering log.** Every decision, every bug and why it was fixed that way. Long and dated: search it before changing anything. |
 | [implementation_plan.md](implementation_plan.md) | The phased plan and what is deferred. |
-| [docs/workflow-assessment.md](docs/workflow-assessment.md) | Which workflow to reach for, per job — speed, quality and accuracy, measured on one test-suite run. |
+| [docs/workflow-assessment.md](docs/workflow-assessment.md) | Which workflow to reach for, per job: speed, quality and accuracy. The per-card verdicts come from the 2026-11-03 test-suite run; the showcase findings come from the 2026-11-04 run. |
 | [docs/workflow-redundancy.md](docs/workflow-redundancy.md) | Which bundles overlap, with the pros and cons of cutting each. |
 | [tools/test-suite/](tools/test-suite/) | The library test suite: what every workflow is asked, and which result feeds which. |
 | [docs/comfyui-idv2v.md](docs/comfyui-idv2v.md) | The ID-V2V feature and why no patch is needed any more. |
@@ -148,15 +152,17 @@ Windows and Linux builds **auto-update**; macOS needs a manual re-download. Inst
 | [docs/cloning-the-drive.md](docs/cloning-the-drive.md) | Preparing this drive to be imaged onto another machine. |
 | [tools/maintenance/](tools/maintenance/) | The audit and repair scripts, and the notes that go with them. |
 | [tools/model-provenance/](tools/model-provenance/) | Where each model came from, and which are exclusive to a bundle. |
+| [tools/card-links/check.cjs](tools/card-links/check.cjs) | Checks every link a workflow card shows (prompt guides, model pages, downloads) the way a browser sees it. `--mark-gated` flags the downloads that need a HuggingFace login, so the card says so. Usage is in the file's header. |
 | [tools/api-to-ui/](tools/api-to-ui/) · [tools/ui-to-api/](tools/ui-to-api/) | Converting between ComfyUI's editable graph and the API format ComfyQ runs. |
 
 ---
 
 ## Prerequisites
 
-- **Node.js 24 LTS ("Krypton")** — the supported version, pinned in [.nvmrc](.nvmrc). Node 22 LTS ("Jod") also works. ComfyQ deliberately tracks an **LTS** line for broad machine compatibility; the odd-numbered "Current" releases (23, 25, …) are not supported and `engines` will warn on them. With [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm), run `nvm use` / `fnm use` in the repo root to pick up `.nvmrc` automatically.
+- **Node.js 24 LTS ("Krypton")** — the supported version, pinned in [.nvmrc](.nvmrc). Node 22 LTS ("Jod") also works. ComfyQ deliberately tracks an **LTS** line for broad machine compatibility; the odd-numbered "Current" releases (23, 25, …) are not supported. npm's `engines` check (`^22.0.0 || ^24.0.0`) warns on any other version, so 23, 25 and 26 all warn. With [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm), run `nvm use` / `fnm use` in the repo root to pick up `.nvmrc` automatically.
+- **Git for Windows** — needed for `git pull`, the once-per-machine `safe.directory` command below, and the admin panel's update checks and node-pack installs (they run `git fetch`, `git pull --ff-only` and `git clone`). The drive does not carry git: `winget install --id Git.Git --exact`.
 - ComfyUI installed and able to run on the same machine. The lab targets RTX 3090 / 4080 / 4090 / 5090 with portable ComfyUI installs.
-- C++ build tools available to npm — only needed as a **fallback** for `better-sqlite3`. On Node 24/22 LTS it ships an N-API prebuilt binary (no compile), so most machines need nothing extra. If a prebuild isn't available for your platform, the install falls back to compiling from source: on Windows that needs Visual Studio Build Tools (C++ workload).
+- C++ build tools available to npm — only needed as a **fallback** for `better-sqlite3`. On Node 24/22 LTS `npm install` downloads a prebuilt binary for your Node version (no compile), so most machines need nothing extra. That binary only works with the Node major version that installed it: on a cloned drive, use the same Node as the master (24), or delete the three `node_modules` folders (repo root, `client`, `server`) and run `npm install` again after changing Node. If a prebuild isn't available for your platform, the install falls back to compiling from source: on Windows that needs Visual Studio Build Tools (C++ workload).
 
 ## Install & run
 
@@ -167,25 +173,28 @@ npm install        # postinstall also installs client + server deps
 npm run dev        # concurrently starts server (port 3000) + client (vite :5173, HTTP)
 ```
 
-Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs printed at boot). Vite serves plain HTTP and proxies the backend, so the page, the API, and the websocket all share a single origin. No certificate, no warning — students just open the URL. On first boot the server starts in **admin mode** (no ComfyUI launched) and redirects to `/admin`.
+**Once per machine, on a cloned drive or in a repo folder another Windows user created:** run `git config --global --add safe.directory "*"` before the first `git pull`. Windows records the folders as belonging to the account that set them up, and git refuses to work in them ("detected dubious ownership") until this is set. Git reads the setting only from your own user config, so it cannot travel on the drive.
+
+On Windows you can instead **double-click `Start-ComfyQ.bat`** in the repo folder. It checks that Node is installed, runs `npm install` when a `node_modules` folder is missing (a fresh checkout; a cloned drive already carries them), starts `npm run dev`, and opens the page once it answers; double-clicking it again while ComfyQ is running just opens the page. Keep its window open — closing it (or Ctrl+C) stops ComfyQ, but not ComfyUI. To stop ComfyUI too, do it before closing the window: **Reset to admin** (if the machine is serving), then **Manage ComfyUI → Stop ComfyUI**. If the window is already closed, double-click `Start-ComfyQ.bat` again and stop ComfyUI the same way; with `comfy_ui.autoStart` off there is one extra step, described under *ComfyUI outlives ComfyQ* at the top.
+
+Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs printed at boot). Vite serves plain HTTP and proxies the backend, so the page, the API, and the websocket all share a single origin. No certificate, no warning — students just open the URL. On first boot the server starts in **admin mode** and redirects to `/admin`. Once the ComfyUI paths are set (on a standard portable install they are found automatically), it also starts ComfyUI in the background; set `comfy_ui.autoStart: false` in `config.json` to turn that off.
 
 > Why plain HTTP? A self-signed HTTPS cert can't be trusted across Safari + Chrome + phones in a BYOD workshop without installing a CA root on every device — and Safari won't even extend a click-through to the websocket or to downloads. HTTP removes all of that. The only feature HTTPS would have enabled — in-browser webcam capture (`getUserMedia`) — has been removed; image/video inputs are uploaded as files instead (a phone's file picker still offers "Take Photo").
 
 ## First-run setup (admin)
 
-1. **ComfyUI Settings** — set the ComfyUI root path, Python executable, output dir, ComfyUI API port, and VRAM budget for your GPU.
+1. **ComfyUI Settings** — set the ComfyUI root path, Python executable, output dir, and VRAM budget for your GPU.
 
-   On a freshly cloned workshop rig, all three paths are **pre-filled** to the standard portable-ComfyUI layout (`D:\ComfyUI_windows_portable_nvidia\ComfyUI_windows_portable\…`). If they don't match your install, edit them or click **Reset to defaults** to repopulate. Click **Check paths** to validate before saving — it verifies the root contains `main.py`, runs `python --version`, and confirms the output directory is writable, listing each result inline.
+   ComfyQ finds the install by itself at boot whenever the configured root has no `main.py` (the **Auto-detect** button runs the same search on demand), so on a cloned drive the paths are normally already right. **Reset to defaults** puts back the original workshop layout on `D:\ComfyUI_windows_portable_nvidia\…`, which only helps when the install really is on D:. Click **Check paths** to validate before saving — it verifies the root contains `main.py`, runs `python --version`, and confirms the output directory is writable, listing each result inline.
 
    **Cloned the drive to a different letter?** Two shortcuts: ComfyQ **auto-detects** ComfyUI on `npm run dev` (it scans local drives for the install whenever the configured root is missing/stale, so a cloned or fresh drive Just Works), and there's an **Auto-detect** button to re-run it on demand. If only the drive letter changed, use the **Drive letter** dropdown to swap it across *every* path at once instead of editing each field.
 
-   The **ComfyUI backend** card below Settings can **Launch / Restart / Stop** ComfyUI on the network and holds the **Expose ComfyUI to the LAN** toggle (so anyone can open its native web UI on this GPU). If ComfyUI was started outside ComfyQ, **Restart** offers to *take it over* — it stops that instance and relaunches one ComfyQ manages, so Restart/Stop and "Open in ComfyUI" work afterward.
+   The **ComfyUI backend** card below Settings can **Launch / Restart / Stop** ComfyUI on the network (these buttons appear in admin mode only; while serving, press **Reset to admin** first) and holds the **Expose ComfyUI to the LAN** toggle (so anyone can open its native web UI on this GPU). If ComfyUI was started outside ComfyQ, **Restart** offers to *take it over* — it stops that instance and relaunches one ComfyQ manages, so Restart/Stop and "Open in ComfyUI" work afterward.
 
    For a Windows portable ComfyUI install, the `root_path` must point at the directory containing `main.py`, **not** the wrapper folder. With a typical install that's `...\ComfyUI_windows_portable\ComfyUI` (and `python_executable: ../python_embeded/python.exe`, or absolute).
 2. **Add Workflow** — drag-and-drop an API-format JSON into the upload box. To get one from ComfyUI:
    - Open your workflow.
-   - Enable **Settings → Dev mode Options**.
-   - Click **Save (API Format)**.
+   - Use **File → Export (API)**. (Older ComfyUI menus: enable **Settings → Dev mode Options**, then click **Save (API Format)**.)
 
    On upload the server runs the primitive-fallback parser and auto-creates `workflows/<id>/<id>.api.json` + `<id>.meta.json` exposing every detected widget. A modal editor opens immediately so you can:
    - Click **Hide infrastructure** to drop model-path / weight-dtype / device fields.
@@ -193,6 +202,8 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
    - Pick a category (`t2i`, `image-edit`, …).
 
    You can re-open the editor any time via the pencil icon on the workflow card.
+
+   ⚠ Upload does not create the bundle's editable graph, `<id>_template.json`, which every bundle needs: *Open in ComfyUI* hands it over, and `npm run test:storyboard` fails without it. Copy the workflow's ordinary ComfyUI save (the non-API one) into the folder as `workflows/<id>/<id>_template.json`, or generate one with `node tools/api-to-ui/convert.mjs <id>` (run `npm install` in `tools/api-to-ui` once; ComfyUI must be running).
 
    The repo bundles a **Flux2 Klein 9B starter set** (validated on RTX 5090):
    - `workflows/image_flux2_klein_9b_t2i/` — text to image
@@ -203,13 +214,15 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
 
    It also bundles the rest of the library — **80 workflows** across image generation and editing, video generation and editing, 3D, audio, captioning and utilities. Each needs its own models under `<comfy_root>/models/`. **ComfyQ checks this for you:** every card carries a chip saying how many of the models its graph loads are on disk, and a missing one can be fetched straight onto the machine — see [Getting models onto the machine](#getting-models-onto-the-machine). (A bundle is only marked `unavailable` — and hidden from the library — when its own `meta.json`/`api.json` is missing or invalid, e.g. the "Missing workflow file" case in [Troubleshooting](#troubleshooting).)
 3. **Workflow library** — pick one → **Activate & start student mode**. The server restarts into student mode and launches (or attaches to) ComfyUI.
-4. **Calibrate** (optional but recommended) — click the gauge icon on a workflow card (works in admin **or** student mode; in admin mode ComfyUI is started on demand). ComfyQ does **one real run** (a fresh seed avoids ComfyUI's result cache) and writes `<id>.runtime.json` with the first-run cost (incl. model load), the recurring generation cost (what the timeline uses), and the GPU. Inputs are supplied automatically from the assets directory (`config.json` → `assets.dir`, default `D:\_assets`) — no upload needed. Image inputs fall back to a built-in reference image if the assets dir has none.
-5. **(Optional) Admin password** — required for any cross-user destructive action (deleting / cancelling another student's job, restarting, resetting, cleaning outputs). **Without a password set, cross-user deletes are refused entirely** — you can still manage your own jobs, but you can't interfere with anyone else's. Set one for classroom deployments.
+4. **Calibrate** (optional but recommended) — click the gauge icon on a workflow card (works in admin **or** student mode; in admin mode ComfyUI is started if it is not already running). ComfyQ does **one real run** (a fresh seed avoids ComfyUI's result cache) and writes `<id>.runtime.json` with the first-run cost (incl. model load), the recurring generation cost (what the timeline uses), and the GPU. Inputs are supplied automatically from the assets directory (`config.json` → `assets.dir`, default `D:\_assets`, or the `_assets` folder at the root of the drive ComfyUI was auto-detected on) — no upload needed. Image inputs fall back to a built-in reference image if the assets dir has none.
+5. **Admin password** (needed before a class) — with one set, every admin action that changes something needs it: Activate & serve, the ComfyUI settings, Reset / Restart, Clean outputs, Clear history, storyboard batches, prune, downloads and updates. With none set, all of those are open to anyone on the LAN who can reach the page. The one exception is another student's job: cancelling or deleting it is refused outright until a password exists (you can always manage your own jobs). Note that your name is simply what you type in the welcome box and is not checked: anyone who types the same name can manage those jobs. The name `examples` is reserved for the library's showcase jobs. Set a password for classroom deployments.
+
+   Forgot the admin password? Close ComfyQ's window, open `config.json` (in the repo folder) in a text editor, and under `auth` set `"adminPasswordHash": ""` (leave the comma after it). Save, start ComfyQ again and set a new one. An invalid file is set aside as `config.json.broken-<n>.bak` and ComfyQ starts on defaults, so check the edit. A forgotten student access password needs none of this: set a new one under **Manage server → Student access**.
 
 ### Operational controls (admin header)
 
-- **Reset to admin** — flips back to admin mode without killing ComfyUI; useful when you want to swap workflows without disturbing the GPU process.
-- **Stop & kill all** — emergency stop. Cancels every scheduled job, marks every in-flight job FAILED, REST-interrupts ComfyUI, kills the process if ComfyQ spawned it, and restarts in admin mode. Confirmation modal lists exactly what will happen.
+- **Reset to admin** — stops serving and flips back to admin mode. A job that is generating is stopped; its student sees it failed with "Stopped: this workflow stopped being served on this machine while the job was running." The install's ComfyUI stays up with its models unloaded, so the next workflow starts warm; the ComfyUIs started for extra lanes are stopped. (To change workflow while serving you do not need this: *Activate & start student mode* switches in place.)
+- **Stop & kill all** — emergency stop. Cancels every scheduled job, marks every in-flight job FAILED, REST-interrupts ComfyUI, kills the process if ComfyQ spawned it, and restarts in admin mode. Confirmation modal lists exactly what will happen. ComfyUI then starts again, empty, in admin mode (unless `comfy_ui.autoStart` is off), so this does not free the GPU: to keep ComfyUI stopped, use **Manage ComfyUI → Stop ComfyUI** afterwards.
 - **Clean all outputs** (in the Admin page Cleanup card) — purges every output file on disk for terminal jobs and clears the `outputs` field in the DB. Job records are kept so prompt history survives. In-flight jobs are skipped so a running collector isn't disrupted.
 
 ---
@@ -219,13 +232,14 @@ Open **`http://localhost:5173`** (or one of the `http://<lan-ip>:5173` URLs prin
 ```
 workflows/
 └── image_flux2_klein_9b_t2i/
-    ├── image_flux2_klein_9b_t2i.api.json         the workflow (API format, REQUIRED)
-    ├── image_flux2_klein_9b_t2i.meta.json        the metadata (REQUIRED for v2)
-    ├── image_flux2_klein_9b_t2i.config.meta.json (optional, per-deployment overrides — gitignored)
-    └── image_flux2_klein_9b_t2i.runtime.json     (optional, written by BenchmarkService — gitignored)
+    ├── image_flux2_klein_9b_t2i.api.json         the workflow ComfyQ runs (API format, REQUIRED)
+    ├── image_flux2_klein_9b_t2i.meta.json        the metadata: card text, exposed fields (REQUIRED)
+    ├── image_flux2_klein_9b_t2i_template.json    the editable ComfyUI graph (REQUIRED — Open in ComfyUI and the prune scan read it)
+    ├── image_flux2_klein_9b_t2i.runtime.json     measured timing + VRAM, written by calibration (committed)
+    └── image_flux2_klein_9b_t2i.config.meta.json (optional, per-deployment overrides — no bundle ships one)
 ```
 
-The `meta.json` is treated as read-only by the server. The admin UI never writes it; it only writes `config.meta.json` (overrides) and `runtime.json` (calibration). This keeps the original workflow export distinct from class-deployment tweaks.
+All of these files are tracked by git, so they travel with the repo. The admin panel writes `meta.json` itself — **Edit metadata**, **Validate** (which clears the `experimental` flag) and **Add workflow** — and calibration rewrites `runtime.json`. Both are committed files, so a rig where someone edited or calibrated a workflow has local changes, and a later `git pull` may refuse to overwrite them until they are committed or discarded. `config.meta.json` is read if present, to override a field's label, default, order or visibility, or to hide the workflow, but nothing in the admin panel writes it.
 
 See [implementation_plan.md](implementation_plan.md#schemas) for the full schema.
 
@@ -234,14 +248,22 @@ See [implementation_plan.md](implementation_plan.md#schemas) for the full schema
 ## Architecture (one-line tour)
 
 ```
-HTTP/Socket.IO  →  RealtimeBus  →  JobExecutor  →  LocalComfyUIWorker  →  ComfyUI
-                       │                                  │
-                       ▼                                  ▼
-                  JobQueue (sqlite)              ComfyRestClient + ComfyWsClient (auto-reconnect)
-                       │
-                       ▼
-                  WorkflowRegistry  ──── reads ────▶  workflows/<id>/{api,meta,config-meta,runtime}.json
+HTTP/Socket.IO  →  routes + RealtimeBus  →  JobQueue (sqlite — every lane's jobs)
+                                                 ▲
+                                                 │  each lane's executor claims only its own workflow's jobs
+LaneManager — one lane per served workflow       │
+   └─ lane:  JobExecutor ────────────────────────┘
+               │
+               ▼
+             LocalComfyUIWorker  →  ComfyUI (its own port; started detached by comfyLauncher,
+               │                     so it outlives ComfyQ; logs + PIDs in .comfyq-lanes/)
+               ▼
+             ComfyRestClient + ComfyWsClient (auto-reconnect)
+
+WorkflowRegistry  ──── reads ────▶  workflows/<id>/{api,meta,_template,runtime,config.meta}.json
 ```
+
+One lane runs on the install's own ComfyUI (the configured port, the install's own folders); any other lane gets its own ComfyUI on the next free port, with its own user and temp folders under `.comfyq-lanes/`. The bus, the admin routes and calibration reach the *main* lane through live proxies, so nothing holds on to a lane that has been closed.
 
 See [implementation_plan.md](implementation_plan.md#architecture) for module-by-module responsibilities and the job state machine.
 
@@ -252,49 +274,64 @@ See [implementation_plan.md](implementation_plan.md#architecture) for module-by-
 
 ## ComfyQ Discovery — details
 
-**ComfyQ – Discovery** is a standalone cross-platform desktop app (`desktop/`, Electron — Windows +
-macOS) that shows **every ComfyQ machine on the LAN at a glance** — no configuration, no central
+**ComfyQ – Discovery** is a standalone cross-platform desktop app (`desktop/`, Electron — Windows,
+macOS and Linux) that shows **every ComfyQ machine on the LAN at a glance** — no configuration, no central
 server. Open it on an instructor's laptop (or any machine on the same network) to see the whole room.
 It matches the ComfyQ web UI's look (same grayscale palette, Inter font, lucide icons) and has its own
 **light/dark toggle** (honors your OS preference, remembers your choice).
 
 Each ComfyQ server **sends a small JSON status snapshot every ~5 s** over UDP — to the multicast
 group `239.255.42.99:41999` **and** to the subnet broadcast address (belt-and-suspenders, since
-consumer Wi-Fi/APs often drop multicast); the app listens and renders one card per machine.
+consumer Wi-Fi/APs often drop multicast); the app listens and renders one card per workflow a machine
+serves — a machine serving several lanes gets several cards, and one serving nothing gets one card.
 Machines appear and disappear on their own — a card goes dim ~30 s after the last beacon and drops
 after ~2 min. It works even for **idle rigs in admin mode with nothing launched**.
 
-Per machine the card shows:
+Each card shows:
 - **Name** and **IP address** (with a **copy button** that copies that rig's admin-panel link,
-  `http://<ip>:5173/admin`), plus a **"This machine"** marker on the rig you're running the app from
+  `http://<ip>:5173/admin`), plus a **"This machine"** marker on the rig you're running the app from.
+  When the machine's display name differs from its computer name, the computer name is shown under it.
+  A **⚠ Shares its identity with another machine** warning means two rigs report the same ComfyQ
+  instance id (`instance.id` in `config.json`). A cloned drive normally gets a new id on its first
+  boot, because the computer name recorded in `config.json` differs; the id survives the copy only
+  when both machines have the same Windows computer name, or when the config predates the recorded
+  computer name. To fix it, on one of the two: close ComfyQ, delete the `"id"` entry under
+  `"instance"` in `config.json` (in the ComfyQ folder) — or give the computer a different Windows
+  name — and start ComfyQ again. Renaming the machine under *Network presence* does not change the id.
 - **When a workflow is being served**, a prominent banner right under the IP with a **category icon**
-  (the same icon the ComfyQ admin library uses — image / video / audio / 3D / text / utility) so you
-  can tell at a glance what kind of workflow it is, and the workflow's name
-- **Hardware** — GPU model (+ VRAM) and system RAM
+  (the same groups the ComfyQ admin library uses — Image generation, Image editing, Video generation,
+  Video editing, 3D, Audio, Description, Utilities, Other) so you can tell at a glance what kind of
+  workflow it is, and the workflow's name
+- **Hardware** — GPU model (+ VRAM) and system RAM, and a **🔒 Password required** chip when the
+  machine is reserved with a student access password
 - **Plain-language state** (Running a workflow / Ready / On standby) and **usage** — how many users
   are connected and how long since the last activity (shown for every machine, including idle
   admin-mode rigs)
-- **When a workflow is being served** — its name, a short **description of what it does** (pulled
-  straight from the workflow's `meta.json`, so dropping a new workflow into `workflows/` surfaces its
-  blurb automatically), the **queued/running jobs** with times, and a **"Schedule a job ↗"** button
-  that opens that rig's booking page (`http://<ip>:5173`) in your default browser
+- **When a workflow is being served** — a short **description of what it does** (pulled straight
+  from the workflow's `meta.json`, so dropping a new workflow into `workflows/` surfaces its blurb
+  automatically), the **queued/running jobs** with times, and *"Click this card to schedule a job ↗"*:
+  clicking anywhere on the card opens that model's booking page (`http://<ip>:5173/user?workflow=<id>`)
+  as a named tab **inside the app**, with a **Machines** chip to go back to the list. Links inside that
+  page (prompt guides, model pages) open in your system browser.
 - **Admin-mode machines** hide the workflow/schedule (nothing is being served) and instead show just
   the connected-users + last-activity info
 
 Discovery controls (automatic search on/off, **Search range**, and **Add a machine**) live behind the
 **⚙ Settings** button in the top-right to keep the main view uncluttered.
 
-The app is **read-only** (it never commands a remote machine — the only actions are opening a browser
-tab and copying a link).
+The app sends **no commands of its own** to a machine — its only actions are opening a machine's page
+in an in-app tab and copying a link. That tab is the machine's normal ComfyQ page, so you can book
+jobs in it like any student.
 
-> **Tip:** ComfyQ now starts its **ComfyUI backend by default** (admin mode included, when paths are
+> **Tip:** ComfyQ starts its **ComfyUI backend by default** (admin mode included, when paths are
 > configured and `comfy_ui.autoStart` is on), so a rig shows up "engine on" and ready without anyone
 > having to launch it first. Set `comfy_ui.autoStart: false` to opt out.
 
 ### Install & auto-update (end users)
 
 Grab the latest installer from the repo's **[Releases](https://github.com/b2renger/ComfyQ/releases)**
-page and run it — Windows `.exe`, macOS `.dmg` (Apple Silicon **and** Intel), or Linux `.AppImage`.
+page and run it — Windows `.exe`, macOS `.dmg` (Apple Silicon: `ComfyQ-Discovery-<ver>-arm64.dmg`;
+Intel: the one without `-arm64`), or Linux `.AppImage`.
 Windows + Linux builds are **unsigned**; the macOS app is **ad-hoc code-signed** (so it launches with a
 one-time bypass instead of a *"damaged"* dead end — but it is **not notarized**):
 
@@ -308,7 +345,7 @@ one-time bypass instead of a *"damaged"* dead end — but it is **not notarized*
 - **Linux:** `chmod +x` the `.AppImage`, then run it. On **Linux Mint / Ubuntu** it needs the **FUSE 2**
   runtime — if it does nothing or reports a FUSE error, install it: `sudo apt install libfuse2`
   (Mint 21 / Ubuntu 22.04) or `libfuse2t64` (Mint 22 / Ubuntu 24.04). Still stuck? Run it FUSE-free with
-  `./"ComfyQ Discovery-<ver>.AppImage" --appimage-extract-and-run`, or install **AppImageLauncher**
+  `./ComfyQ-Discovery-<ver>.AppImage --appimage-extract-and-run`, or install **AppImageLauncher**
   (`sudo apt install appimagelauncher`) for a menu entry + automatic integration. A SUID-sandbox error on
   launch → add `--no-sandbox`.
 
@@ -326,7 +363,7 @@ npm run desktop           # launch the monitor
 ```
 
 The beacon is **on by default** on every ComfyQ instance (admin and student mode). To opt a machine
-out, flip the **Network presence** toggle in the admin panel (**Admin → Network presence** — takes
+out, flip the **Network presence** toggle in the admin panel (**Admin → Manage server → Network presence** — takes
 effect live, no restart) or set `federation.enabled: false` in its `config.json`; behavior is then
 identical to a single-instance ComfyQ. The group/port and interval are configurable under `config.federation`
 (match them with `COMFYQ_FED_GROUP` / `COMFYQ_FED_PORT` env vars for the app if you change them).
@@ -338,18 +375,30 @@ A `GET /federation/self` endpoint returns the same snapshot over HTTP for script
 > **Managed / school Wi-Fi (broadcast & multicast blocked)?** Many managed networks enable *client
 > isolation* for broadcast/multicast, so the UDP beacons never arrive even though the machines can
 > reach each other directly over unicast. For that case the app also **auto-discovers** machines by
-> sweeping the local subnet: it probes `http://<ip>:3000/federation/self` across your subnet (the
-> same path students already use, so no extra firewall rule), and lists everything that answers. It's
-> on by default — toggle **Find machines automatically** or hit **Refresh**. You can set the
-> **Search range** (the address range to check, e.g. `10.10` · `16`–`17` · `1`–`254`) to widen or
-> narrow the sweep; it defaults to your machine's own subnet. A ~510-address sweep takes ~15 s; found
-> machines then refresh every 5 s. For a machine on a *different* network, use **Add a machine** (type
-> its IP — it's polled directly and remembered between launches).
+> sweeping the network: it probes `http://<ip>:3000/federation/self` and lists everything that
+> answers. ⚠ Port 3000 is ComfyQ's API port, which students never use (their browser only talks to
+> 5173) — so if your firewall rule is per port rather than "allow Node.js", open **TCP 3000** on
+> Private networks too. It's on by default — toggle **Find machines automatically** or hit **Refresh**.
 >
-> **Servers on a different subnet than the clients?** The app scans **every** local subnet it's on, plus
-> any seeded extra ranges, so clients can auto-find servers on another network. The "Search range" field
-> adds one range in-app; for a fixed deployment set `COMFYQ_FED_SCAN` (comma-separated CIDRs, e.g.
-> `10.10.16.0/23`) or a `scanRanges` array in `fleet-config.json`. **This only works if your network
+> Every sweep covers, in this order, **the machine's own /24, the Search range, a built-in range
+> `10.10.14.1`–`10.10.18.254`** (the teaching lab's server subnets — 1270 addresses, swept by every
+> build of the app, on any network) **and the rest of each local subnet the machine is on**. The
+> **Search range** field (e.g. `10.10` · `16`–`17` · `1`–`254`; it shows your own subnet until you
+> change it) **adds** one more range — it cannot narrow the sweep. A sweep probes at most **4,096
+> addresses**. Your own /24 is always probed; past the cap, what is skipped is the end of the list —
+> the rest of a large local subnet (a /20 or wider), or, if the Search range alone is bigger than the
+> cap, the end of that range and everything after it.
+> On a typical home or classroom subnet that is about 1,500 addresses, which can take up to ~50 s;
+> found machines then refresh every 5 s. For a machine on a *different* network, use **Add a machine**
+> (type its IP — it's polled directly and remembered between launches).
+>
+> **Servers on a different subnet than the clients?** Because the app scans every local subnet plus
+> the extra ranges, clients can auto-find servers on another network. For a fixed deployment add
+> ranges with `COMFYQ_FED_SCAN` (comma-separated CIDRs, e.g. `10.10.16.0/23`) or a `scanRanges` array
+> in `fleet-config.json`. Both **add** to the built-in range; neither removes it. `fleet-config.json`
+> lives in the app's user-data folder: `%APPDATA%\comfyq-desktop` when run from source; for an
+> installed app, look for a `ComfyQ Discovery` or `comfyq-desktop` folder under `%APPDATA%` (Windows),
+> `~/Library/Application Support` (macOS) or `~/.config` (Linux). **This only works if your network
 > actually routes to that subnet** (e.g. a sub-router whose WAN is uplinked to the main LAN — verify with
 > `curl http://<server-ip>:3000/federation/self`). If the two networks have no route between them, no
 > discovery setting can bridge them — put the machines on one LAN instead.
@@ -370,15 +419,20 @@ cd desktop
 npm run release:patch     # or release:minor / release:major
 ```
 
-That bumps `desktop/package.json`, commits, tags `vX.Y.Z`, and pushes the tag. A GitHub Actions
+That bumps `desktop/package.json`, commits the version bump, tags `vX.Y.Z`, and pushes **`main`
+together with the tag** (`git push origin HEAD --follow-tags`) — so every unpushed commit on `main`
+goes to GitHub with it; push or set aside anything that is not ready first. It refuses to run on any
+branch but `main`. A GitHub Actions
 workflow ([.github/workflows/release.yml](.github/workflows/release.yml)) then builds installers for
 **Windows, macOS, and Linux** in parallel and publishes them — with the `latest*.yml` update
 manifests — to a GitHub Release. Installed apps pick the update up on their next launch.
 
 Notes:
-- **`npm version`'s git step is unreliable here**, so `release:*` bumps with `--no-git-tag-version`
-  and does the commit/tag/push explicitly via [desktop/scripts/release.mjs](desktop/scripts/release.mjs)
-  (which also leaves a dirty `config.json` untouched).
+- `release:*` runs [desktop/scripts/release.mjs](desktop/scripts/release.mjs), which first checks you are
+  on `main` and that the version files are clean (an abort changes nothing, so re-running after it does
+  not skip a version), then bumps with `npm version --no-git-tag-version` and does the commit/tag/push
+  itself (`npm version`'s own git step is unreliable here). The release commit holds only `package.json`
+  and `package-lock.json`; any other change, staged or not, stays out of it.
 - A local `npm run dist` (in `desktop/`) builds an unsigned installer for the host OS only — handy for
   a quick check, though on Windows it needs **Developer Mode** (or an elevated shell) so electron-builder
   can extract its code-signing tools; CI is unaffected.
@@ -396,19 +450,23 @@ Notes:
 ## Troubleshooting
 
 ### `'better-sqlite3' build failed during install`
-On Node 24/22 LTS, `better-sqlite3` (v12+) normally installs a prebuilt N-API binary with no compilation. If you see this error you're either on an **unsupported Node version** (check `node --version` against [.nvmrc](.nvmrc) — run `nvm use`/`fnm use`) or on a platform with no prebuild, which falls back to a source build. For the source build, install the native toolchain: Visual Studio Build Tools with the C++ workload (Windows) or `build-essential` + `python3` (Linux), then `npm install` again.
+On Node 24/22 LTS, `better-sqlite3` (v12+) normally installs a prebuilt binary for the running Node version, with no compilation; loading it under a different Node major version (for example a drive cloned from a Node-24 machine) fails until you delete the `node_modules` folders and run `npm install` again. If you see this error you're either on an **unsupported Node version** (check `node --version` against [.nvmrc](.nvmrc) — run `nvm use`/`fnm use`) or on a platform with no prebuild, which falls back to a source build. For the source build, install the native toolchain: Visual Studio Build Tools with the C++ workload (Windows) or `build-essential` + `python3` (Linux), then `npm install` again.
 
 ### `npm WARN EBADENGINE Unsupported engine` (or wrong Node version)
-ComfyQ targets an LTS Node line (24 "Krypton", or 22 "Jod"). If you're on an odd-numbered "Current" release like 23 or 25, npm warns and behavior is unsupported. Switch with `nvm use` / `fnm use` (reads [.nvmrc](.nvmrc)), or install Node 24 LTS from [nodejs.org](https://nodejs.org/).
+ComfyQ targets an LTS Node line (24 "Krypton", or 22 "Jod"). npm prints this warning on any Node other than 22 or 24, which includes the odd-numbered "Current" releases (23, 25, …). Switch with `nvm use` / `fnm use` (reads [.nvmrc](.nvmrc)), or install Node 24 LTS from [nodejs.org](https://nodejs.org/).
 
 ### `Litegraph format detected. ComfyQ v2 requires API format.`
-You uploaded a workflow saved with the standard "Save" button. v2 deliberately does not auto-convert. Re-export with **Settings → Dev mode → Save (API Format)** in ComfyUI. (See [implementation_plan.md](implementation_plan.md#why-v2) for why.)
+You uploaded a workflow saved with the standard "Save" button. v2 deliberately does not auto-convert. Re-export with **File → Export (API)** in ComfyUI (older ComfyUI menus: enable **Settings → Dev mode**, then **Save (API Format)**). (See [implementation_plan.md](implementation_plan.md#why-v2) for why.)
 
 ### `Workflow unavailable: Missing workflow file: <id>.api.json`
 The folder `workflows/<id>/` has a `meta.json` but no API workflow. Drop your `<id>.api.json` next to the meta and click **Refresh** in the admin Workflow library.
 
 ### Server starts in admin mode unexpectedly
-v2 archives v1 `config.json` files to `config.json.v1.bak` on first boot. If `comfy_ui.root_path` or `comfy_ui.python_executable` is empty, v2 won't start ComfyUI and falls back to admin mode. Set them in **Admin → ComfyUI Settings**.
+Admin mode is the normal boot. A machine starts serving only after **Activate & serve**, after a storyboard batch is queued while the machine is in admin mode (it then serves the batch's first workflow), or when it was serving when ComfyQ last stopped (the `server/data/.serving` marker — see *A restart resumes serving* at the top). **Stop serving**, **Reset to admin** and **Stop & kill all** clear that marker on purpose, and setting `"mode"` in `config.json` by hand does not change how the machine boots. If it should have resumed serving and did not:
+- **ComfyUI failed to start.** The server console says `ComfyUI would not start after several attempts — reverting to admin mode`; the lines just before it say why.
+- **The ComfyUI paths are empty and auto-detect found no install** (`ComfyUI paths are not configured`). Set them in **Manage ComfyUI → ComfyUI Settings**.
+
+(Separately: v2 archives a v1 `config.json` to `config.json.v1.bak` on first boot.)
 
 ### `Python executable not found: ...\python_embeded\python.exe` (or similar)
 The portable ComfyUI bundle nests `main.py` inside a `ComfyUI/` subdirectory. Set `root_path` to the inner folder (e.g. `F:\ComfyUI_windows_portable_nvidia\ComfyUI_windows_portable\ComfyUI`), **not** the wrapper. With that root, `python_executable: ../python_embeded/python.exe` resolves correctly.
@@ -417,7 +475,7 @@ The portable ComfyUI bundle nests `main.py` inside a `ComfyUI/` subdirectory. Se
 Make sure you're running with `npm run dev` (which uses nodemon). v2's `exitForRestart()` bumps the mtime of `server/index.js` so nodemon's watcher picks it up; if you've replaced nodemon with a different supervisor, point it at `server/` and trigger restart on file change.
 
 ### Job stuck in `processing` forever
-v2 reconciles in-flight jobs to `failed: server-restart` on every server boot. If a job is genuinely stuck during a run, click **Stop & kill all** in admin (cancels every job + kills ComfyUI + restarts in admin mode), or kill ComfyUI manually — the worker emits a failure event and the job moves to `failed: comfyui-process-exited`.
+v2 reconciles in-flight jobs to `failed: server-restart` on every server boot, and cancels what they left running in ComfyUI, so a restart loses the job but does not leave the GPU busy with it. If a job is genuinely stuck during a run, click **Stop & kill all** in admin (cancels every job, kills ComfyUI if ComfyQ started it — one started by hand is left running — and restarts in admin mode; ComfyUI then starts again, empty, unless `comfy_ui.autoStart` is off — to keep it stopped, use **Manage ComfyUI → Stop ComfyUI** afterwards), or kill ComfyUI manually — the worker emits a failure event and the job moves to `failed: comfyui-process-exited`.
 
 ### Sampling is hundreds of times slower when ComfyQ spawns ComfyUI than when you launch it standalone
 Symptom: 800+ s/iter on a high-end GPU; nvidia-smi shows the model loaded but no GPU activity. Almost always a Python environment leak: the Node/nodemon parent inherits a conda or venv activation, and the activated env's `site-packages` shadows the portable's torch with a CPU-only or wrong-CUDA build. ComfyQ now strips `PYTHONPATH`, `PYTHONHOME`, `PYTHONSTARTUP`, `VIRTUAL_ENV`, `CONDA_PREFIX`, `CONDA_DEFAULT_ENV`, `CONDA_PROMPT_MODIFIER`, `CONDA_SHLVL`, `CONDA_PYTHON_EXE` before spawn and scrubs any conda-prefix directories from `PATH`. Watch for `[ComfyProcess] Stripped env vars: …` and `[ComfyProcess] Removed N env-prefix entries from PATH` near the spawn line — if anything is listed, that was the culprit. Cleanest long-term fix: launch ComfyQ from a shell with no conda/venv active.
@@ -435,13 +493,13 @@ Image and video parameters render a file-upload widget — click to browse or dr
 The `/admin` path is overloaded — the SPA owns the bare path, the Express API owns every sub-path (`/admin/mode`, `/admin/config`, …). Vite's proxy needs a `bypass` hook to let the bare path fall through to the SPA; we ship one in [client/vite.config.js](client/vite.config.js). If you ever see a 404 here, check that vite.config.js still has the `bypass(req)` handler on the `/admin` proxy entry. The fix only takes effect after a dev-server restart (`Ctrl+C`, then `npm run dev` — HMR doesn't pick up vite.config.js changes).
 
 ### Workflow validation: `Invalid image file: <filename>`
-ComfyUI couldn't find that filename in its `input/` directory. Two common causes: (1) the workflow's hardcoded default doesn't exist on this rig — re-upload an image via the BookingDialog before submitting, or (2) the file was swept by the input-retention TTL (default 30 min). Re-upload to refresh.
+ComfyUI couldn't find that filename in its `input/` directory. Two common causes: (1) the workflow's hardcoded default doesn't exist on this rig — re-upload an image in the booking form before submitting, or (2) the input file was removed from `ComfyUI/input` (the clone wipe, or the folder cleared by hand) — re-upload it. Student uploads (`comfyq_session__…`) are never swept on a timer; only the copies calibration stages (`comfyq__…`, 30 min) and storyboard chain frames (24 h) are.
 
 ### Calibration uses sample media from an assets directory
-Calibration runs the workflow for real, so workflows with image/video/audio inputs need a sample file. ComfyQ resolves one automatically from the **assets directory** (`assets.dir` in `config.json`, default `D:\_assets`) — it picks a file matching each input's type (a typical-sized image, the smallest video, an audio clip), so **no upload and no per-workflow setup is needed**. If a `video`/`audio` input can't be satisfied you'll see `Cannot calibrate: no <type> asset available …` — drop a file of that type into the assets dir (or set `meta.warmupParams` for that key). Image inputs fall back to a built-in reference PNG when the assets dir has no image.
+Calibration runs the workflow for real, so workflows with image, video, audio or 3D inputs need a sample file. ComfyQ picks one automatically from the **assets directory** (`assets.dir` in `config.json`, default `D:\_assets`, or the `_assets` folder at the root of the drive ComfyUI was auto-detected on): a typical-sized image or mesh (the median file) and the smallest video or audio clip. That is enough when only the type of input matters. When the content matters (a face to animate, a person to track, a 1 MP picture whose size sets the output size), name the file in the workflow's meta: set `meta.warmupParams.<key>` to `"asset:<file name in the assets dir>"` (29 of the 80 bundles do). If a video, audio or 3D input can't be satisfied you'll see `Cannot calibrate: no <type> asset available …`: drop a file of that type into the assets dir or set `meta.warmupParams` for that key. Image inputs fall back to a built-in reference PNG when the assets dir has no image.
 
-### Calibration can be run from the admin panel (ComfyUI is started on demand)
-The per-workflow **gauge** button works in admin mode too: the first calibrate lazily spawns (or attaches to) ComfyUI, and that instance is reused for subsequent calibrations and left running so activating a workflow afterwards attaches instantly. It does **one real run** (with all model VRAM freed first) and splits it at the first sampler step into **model-load** time and **generation** time — reporting a first-run figure (incl. load) and the recurring generation figure the timeline uses. The run gets a fresh random seed so it never returns ComfyUI's cached result (an identical re-submission would finish in ~1s and report a bogus duration). If the ComfyUI paths aren't set yet, you'll get `Configure the ComfyUI paths … before calibrating`. *(In student mode, calibrate while the queue is idle — the live executor and calibration share the one worker.)*
+### Calibration can be run from the admin panel
+The per-workflow **gauge** button works in admin mode too: it uses the ComfyUI that admin mode starts at boot (or starts one if none is running, e.g. with `comfy_ui.autoStart: false`), and that instance is reused for later calibrations and left running so activating a workflow afterwards attaches instantly. It does **one real run** (with all model VRAM freed first) and splits it at the first sampler step into **model-load** time and **generation** time — reporting a first-run figure (incl. load) and the recurring generation figure the timeline uses. The run gets a fresh random seed so it never returns ComfyUI's cached result (an identical re-submission would finish in ~1s and report a bogus duration). If the ComfyUI paths aren't set yet, you'll get `Configure the ComfyUI paths … before calibrating`. *(In student mode the calibration runs on the served workflow's own ComfyUI (the main lane's, for a workflow that is not being served): jobs that come due while it runs wait for it to finish instead of failing. It is refused while a job is already running there. It is also refused when the ComfyUI it would run on was started with a performance flag the workflow lists in `disabledPerfFlags` — for example the SeedVR2 7B int8 upscaler while fp16 accumulation is on. Calibrate that workflow from admin mode, which relaunches ComfyUI without the flag, or open a lane for it with **Serve alongside**.)*
 
 ---
 
@@ -454,10 +512,13 @@ A previous v1 config is automatically renamed to `config.json.v1.bak` on first b
 ## Development
 
 ```
-npm run dev          # full stack (server with nodemon + client with vite)
-npm run server       # server only
-npm run client       # client only
+npm run dev              # full stack (server with nodemon + client with vite)
+npm run server           # server only
+npm run client           # client only
+npm run test:storyboard  # every unit test (server + client utils); no ComfyUI or GPU needed
 ```
+
+Despite its name, `test:storyboard` is the whole unit-test suite, and there is no `npm test`. Two heavier checks are run by hand and need the ComfyUI install: `node server/lanes/lanes.integration.js` boots real CPU-only ComfyUIs on ports 8199 and up to test parallel lanes (run it after touching the lane manager or how ComfyUI is started), and the library test suite ([tools/test-suite](tools/test-suite/README.md), see *Run the test suite* above) holds the GPU for hours.
 
 Server logs appear in your terminal. ComfyUI stdout/stderr is forwarded with `[ComfyUI]` / `[ComfyUI!]` prefixes when ComfyQ launches it; if you have an external ComfyUI already running on the configured port, ComfyQ attaches to it without spawning its own.
 

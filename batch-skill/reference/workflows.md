@@ -17,18 +17,22 @@ node -e "const m=require('./workflows/<id>/<id>.meta.json');
 
 | write on the `###` line | resolves to | makes | est/shot |
 |---|---|---|---|
-| `image_flux2_klein_9b_t2i` | `image_flux2_klein_9b_t2i` | image from text | ~6 s |
-| `image_edit_flux2_klein_9b_image_edit_ref` | same | image from **2 images** + text | ~16 s |
-| `ideogram_4_t2i` | `image_ideogram4_t2i` | flat text card | ~33 s |
-| `ltx_2_5_i2v` | `video_ltx2_5_i2v` | video from **1 image** | ~48 s |
-| `ltx_2_5_flf2v` | `video_ltx2_5_flf2v` | video from **first + last frame** | ~66 s |
-| `stable_audio_3` | `audio_stable_audio_3_medium` | music or SFX | ~16 s |
+| `image_flux2_klein_9b_t2i` | `image_flux2_klein_9b_t2i` | image from text | ~16 s |
+| `image_edit_flux2_klein_9b_image_edit_ref` | same | image from **2 images** + text | ~44 s |
+| `ideogram_4_t2i` | `image_ideogram4_t2i` | flat text card | ~21 s |
+| `ltx_2_5_i2v` | `video_ltx2_5_i2v` | video from **1 image** | ~50 s |
+| `ltx_2_5_flf2v` | `video_ltx2_5_flf2v` | video from **first + last frame** | ~67 s |
+| `stable_audio_3` | `audio_stable_audio_3_medium` | music or SFX | ~6 s |
 
 Short names resolve to the real bundle id. A name matching **more than one**
 installed workflow is refused with the candidates listed — never guessed.
 
-Estimates are **warm sampling time at the bundle's calibrated resolution**.
-1920×1080 is well above that, so expect meaningfully longer — see below.
+Estimates are **warm sampling time at the bundle's calibrated resolution**, as
+calibrated on 2026-11-04. They change whenever a bundle is recalibrated: the
+source of truth is `workflows/<id>/<id>.runtime.json` → `estimatedDurationSec`,
+and the planner adds them up for the whole document as `totalEstimatedSec`
+(printed by the check in [checklist.md](checklist.md)). 1920×1080 is well
+above the calibrated resolution, so expect meaningfully longer — see below.
 
 ---
 
@@ -40,10 +44,10 @@ document says what you asked for; the job runs what the grid allows.
 | workflow | real grid | `1920x1080` renders |
 |---|---|---|
 | `image_flux2_klein_9b_t2i` | multiples of **16**, rounded **down** | **1920×1072** ⚠ |
-| `image_edit_flux2_klein_9b_image_edit_ref` | *no size control* — the graph hard-codes **1 megapixel** | source's aspect at ~1 MP (a 16:9 source → ≈**1328×753**) |
-| `ideogram_4_t2i` | *no size control* — an aspect dropdown | mapped to **`16:9 (Widescreen)`** |
+| `image_edit_flux2_klein_9b_image_edit_ref` | *no size control* — the graph hard-codes **1 megapixel** | source's aspect at ~1 MP (a 1920×1088 or 1920×1080 source → ≈**1360×768**) |
+| `ideogram_4_t2i` | *no width/height* — an aspect dropdown, plus a Megapixels setting that stays at 1 for a storyboard | mapped to **`16:9 (Widescreen)`** |
 | `ltx_2_5_i2v` | min 512, max 1920, multiples of **64** | **1920×1088** ⚠ |
-| `ltx_2_5_flf2v` | min 256, max 1920, multiples of **16** | **1920×1088** ⚠ |
+| `ltx_2_5_flf2v` | min 256, max 1920, multiples of **64** | **1920×1088** ⚠ |
 
 ### ⚠ `1920x1080` does not render as 1920×1080
 
@@ -53,7 +57,7 @@ Two different grids disagree with 1080 in **opposite directions**:
   `meta.json` claims `step: 8`. That is wrong — measured output at a 1080
   request is 1072, and 1080 *is* a multiple of 8. Trust the measurement.)
 - `ltx_2_5_i2v` snaps to a multiple of **64** → **1088**.
-- `ltx_2_5_flf2v` snaps to a multiple of **16** → **1088** too, and its two
+- `ltx_2_5_flf2v` snaps to a multiple of **64** → **1088** too, and its two
   guide frames are resized to that same size.
 
 So asking for 1920×1080 gives you stills at 1072 and video at 1088 — a **16 px
@@ -63,19 +67,23 @@ then has to stretch.
 **Use `1920x1088` for a full-HD 16:9-ish film.** It is a multiple of 16, 32 and
 64, so *every* stage renders it exactly and the stills match the clips pixel for
 pixel. It is 1.765:1 rather than a true 1.778:1 — an 8 px difference at that
-width, invisible in play. **This is what both examples use.**
+width, invisible in play. **This is what the two full-HD examples use** (The
+Red Thread uses 1280×704).
 
-**Rule of thumb: make every video dimension a multiple of 64** — `ltx_2_5_i2v`
-snaps to that grid (`ltx_2_5_flf2v` accepts any multiple of 16). Both render
-1920×1088 exactly (measured). Safe pairs: **1920×1088**, 1280×704, 1024×576.
+**Rule of thumb: make every video dimension a multiple of 64** — both
+`ltx_2_5_i2v` and `ltx_2_5_flf2v` snap to that grid. Both render 1920×1088
+exactly (measured). Safe pairs: **1920×1088**, 1280×704, 1024×576.
 
 ### What 1920×1088 does *not* buy you
 
 Only shots on `image_flux2_klein_9b_t2i` (the anchors) and the video output actually
 render at it. **Key frames on `image_edit_flux2_klein_9b_image_edit_ref` are ~1 MP** —
-about 1328×753 — because the graph hard-codes `megapixels: 1` with no exposed
-control, and **cards on `ideogram_4_t2i` are ~1 MP too** (≈1344×768) for the
-same reason. The video shots then upsample from those. The film's *output* is
+about 1360×768 from a 1920×1088 source (≈1376×752 from a 1280×704 one, as in
+The Red Thread) — because the graph hard-codes `megapixels: 1` with no exposed
+control, and **cards on `ideogram_4_t2i` are ~1 MP too** (≈1376×768): the card
+has a Megapixels setting, but a storyboard never sends it, so the graph's own
+value (1) is used. Raising its default in the workflow editor changes only the
+student form. The video shots then upsample from those. The film's *output* is
 full HD; two of its intermediate stages are not, and no storyboard attribute
 can change that today.
 
@@ -96,7 +104,7 @@ console.log('i2v height 1080 ->', clampParamValue(1080,h))"
 …and check a rendered file, because a meta's declared `step` can be wrong:
 
 ```bash
-node -e "const s=require('image-size'),fs=require('fs');
+node -e "const s=require('./server/node_modules/image-size'),fs=require('fs');
 console.log(s(fs.readFileSync('<a rendered png>')))"
 ```
 
@@ -106,8 +114,9 @@ console.log(s(fs.readFileSync('<a rendered png>')))"
 
 ### Cost of full HD
 
-The per-shot estimates are calibrated at the bundles' defaults (1280×704 for
-`ltx_2_5_i2v`, 1280×720 for `ltx_2_5_flf2v`). Measured on the 5090 at 1920×1088
+The per-shot estimates are calibrated by the test suite: `ltx_2_5_i2v` at its
+default 1280×704, `ltx_2_5_flf2v` at 960×960 (about the same pixel count).
+Measured on the 5090 at 1920×1088
 and 5 s: **127 s** for `ltx_2_5_i2v` and **202 s** for `ltx_2_5_flf2v` — so
 budget **about 3× the per-shot estimate**. If a
 long batch matters more than maximum resolution, 1280×704 is on both grids and
@@ -119,8 +128,8 @@ runs far faster.
 
 | workflow | attribute | unit | bounds | rounding |
 |---|---|---|---|---|
-| `ltx_2_5_i2v` | `5s` | whole seconds | **1–10** | to the **nearest** second |
-| `ltx_2_5_flf2v` | `5s` | whole seconds | **1–10** | to the **nearest** second |
+| `ltx_2_5_i2v` | `5s` | whole seconds | **1–10** | whole seconds only (a fraction is ignored) |
+| `ltx_2_5_flf2v` | `5s` | whole seconds | **1–10** | whole seconds only (a fraction is ignored) |
 | `stable_audio_3` | `45s` | seconds | **1–300** | — |
 
 Both LTX 2.5 video workflows take **whole seconds at 24 fps** and render
@@ -137,8 +146,11 @@ Both LTX 2.5 video workflows take **whole seconds at 24 fps** and render
 | `8s` | 193 | 8.04 s |
 | `10s` | 241 | 10.04 s |
 
-A fraction is rounded to the nearest whole second (`6.5s` runs as **7 s**) —
-write whole seconds. Both cap at **10 s**; ask for more and it clamps silently.
+**Write whole seconds.** A fraction such as `6.5s` is not read as a duration.
+Written as `| 6.5s` or `(6.5s)`, the preview warns that it is not a whole
+number of seconds and was ignored. Either way the shot runs at the workflow's
+default length (5 s for the LTX 2.5 bundles). Both cap at **10 s**; ask for
+more and it clamps silently.
 
 **Vary clip length deliberately** — 3 s for a beat, 8 s for a held reveal. A
 film of identical 5 s cuts reads as a slideshow.
@@ -181,10 +193,13 @@ wrong track type.
 The four options are `Music`, `Instrument`, `SFX` and `One-shot`.
 `Sound Effects` maps to `SFX`; `Music` maps to `Music`; `One shot` to `One-shot`.
 
-**`stable_audio_3` ships "Enhance prompt with AI" ON**, and a storyboard cannot
-turn it off — an in-graph LLM rewrites every audio prompt before it reaches the
-model. Write the sound bible carefully anyway (it is the LLM's input), but do
-not expect the wording to survive verbatim.
+**`stable_audio_3` ships "Enhance prompt with AI" OFF** (its Qwen 3.5 rewrite
+fails on this ComfyUI build), and a storyboard cannot turn it on, so the
+description reaches the model **verbatim**. Write it in full: genre,
+instruments, mood, production, tempo (BPM) — or a plain description of one
+sound effect. The track-type dropdown only steers that AI rewrite, so while it
+is off the directive is still stripped from the prompt but does not change the
+sound: the words of the description do all the work.
 
 ---
 
@@ -195,10 +210,11 @@ not expect the wording to survive verbatim.
   would return its input untouched.
 - Anything needing a **source video** — a storyboard produces images and audio,
   never a video another shot can consume.
-- Anything producing **3D or text** (`3d_*`, `llm_gemma4_*`) — the three phases
-  are images, videos, audio.
+- Anything producing **3D or text** (`3d_*`, `describe_gemma4_*`) — the three
+  phases are images, videos, audio.
 
 3D, text and video-input workflows are **always** refused with a reason naming
 the shot. A **mask** workflow is refused only when it names a ref; with no ref
-it is silently swapped for the anchors' t2i workflow and runs as a plain
-generation (see wiring rule 7).
+it is swapped (reported once as a plan warning and marked on the shot in the
+run-order table) for the anchors' t2i workflow and runs as a plain generation
+(see wiring rule 7).

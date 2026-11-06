@@ -16,18 +16,19 @@ against.
 ```markdown
 # S0 | scene | A -> S1_A ; B -> S1_B      ← a section
 ## Reference image 1                       ← one generation
-### image_edit_flux2_klein_9b_image_edit_ref (ref A2) ← which workflow, what it reuses
+### image_edit_flux2_klein_9b_image_edit_ref (ref A2, A1) ← which workflow, what it reuses
 An extreme wide shot at eye level of ...   ← the prompt, until the next heading
 ```
 
 | Line | Meaning |
 |---|---|
-| `# ID \| kind \| transitions` | Starts a section. Only `ID` is used by the queue; `kind` and `transitions` are carried through untouched so an interactive-story tool can keep using them. |
+| `# ID \| kind \| transitions` | Starts a section. The queue uses `ID`, and `kind` in one case: a section of kind `notes` generates nothing, even if it contains `##` items. Otherwise `kind` and `transitions` are carried through untouched so an interactive-story tool can keep using them. |
 | `## Title` | One generation. The title is free text; two spellings are special (below). |
 | `### <workflow> \| <attr> \| <attr>` | The workflow to run, and its attributes (below). |
 | everything after | The prompt, verbatim, until the next heading. |
 
-A section with no `##` items (a `# NOTES` block, say) produces nothing.
+A section with no `##` items produces nothing, and neither does a section of
+kind `notes` (`# NOTES | notes | end`), whatever it contains.
 
 ### Two title conventions
 
@@ -38,13 +39,23 @@ A section with no `##` items (a `# NOTES` block, say) produces nothing.
   deliberate: in `Anchor image 1 · Reference image 1 · Video cut 1`, the cut
   must animate the *reference*, which is the shot the storyboard actually
   composed, not the raw plate it was built from.
-* **`## Video cut 1`** — an item whose workflow produces a video consumes the
-  **ordinary** images generated before it in the same section, oldest first. So
-  `Plate one · Plate two · Cut 1 · Cut 2` pairs up the way it reads, and a
-  first/last-frame workflow with two plates available animates between them.
-  Only one image available for several frame slots → it drives all of them,
-  which is what a `(loop)` cut wants. A cut can also name its source outright
-  with `(ref A2)`, which always wins.
+* **`## Video cut 1`** — an item whose workflow produces a video takes its
+  frame from the **ordinary** images generated before it in the same section.
+  A cut whose title ends in a number N first takes the image whose title ends
+  in the same N (`Video cut 2` ← `Reference image 2`), so
+  `Reference image 2 · Reference image 1 · Video cut 1` animates Reference
+  image 1. When no number matches, it consumes the section's images oldest
+  first, so `Plate one · Plate two · Cut 1 · Cut 2` pairs up the way it reads,
+  and a first/last-frame workflow with two plates available animates between
+  them. A first/last-frame cut matched by number takes its second frame from
+  the next unconsumed image in the section. Only one image available for
+  several frame slots → it drives all of them. A cut can also name its source
+  outright with `(ref A2)`, which always wins.
+  Write `## Video cut 1 (loop)` to make every frame input the same key frame,
+  even when other images are available (on a first/last-frame workflow, the
+  clip then ends where it began).
+  `loop` is read only from the `##` line; on the `###` line it is ignored with
+  a warning.
 
 Everything else (`## Choice image`, `## Music`, `## End image`) is ordinary —
 the workflow's category decides its phase.
@@ -53,12 +64,19 @@ the workflow's category decides its phase.
 
 ```markdown
 ### image_edit_flux2_klein_9b_image_edit_ref (ref A3)      one anchor drives every image input
-### image_edit_flux2_klein_9b_image_edit_ref (ref A2, A1)  source ← A2, reference ← A1
+### image_edit_flux2_klein_9b_image_edit_ref | ref A2, A1  source ← A2, reference ← A1
 ### ltx_2_5_i2v (ref A2)                        animate a library plate directly
 ```
 
-A workflow that **edits** an image must name a `(ref Ax)` — there is nothing
-sensible to guess, so an edit without one is refused.
+Write two anchors as `| ref A2, A1` on the `###` line, or in the shot title
+(`## Reference image 1 (ref A2, A1)`). `### … (ref A2, A1)` works too. Name the
+refs in one place: if the `##` and `###` lines both name refs and they differ,
+the storyboard is refused.
+
+A workflow that **edits** an image normally names a `(ref Ax)`. An edit with
+no ref is refused only when the document has no plain text-to-image anchors to
+fall back on; otherwise it is generated on the anchors' workflow instead
+(below).
 
 **A shot that names no anchor is a plain generation.** This is the format's own
 wiring rule: a key frame on the image-*edit* workflow takes the anchor named in
@@ -90,8 +108,10 @@ error and the batch is refused. There is no "leave it empty" — ComfyUI would
 fall back to whatever filename the bundle's `api.json` shipped with (a leftover
 test picture), and the shot would render wrong while reporting success. The
 same applies to a `(ref A9)` naming an anchor that does not exist, and to a
-workflow needing an input a storyboard cannot express: a painted **mask**, or a
-source **video**. Book those from the app instead.
+workflow needing an input a storyboard cannot express: a painted **mask** (when
+the shot names a ref, or there are no anchors to fall back on; with no ref it is
+generated on the anchors' text-to-image workflow instead), or a source
+**video**. Book those from the app instead.
 
 Two anchors with the same number is a warning; the second one wins.
 
@@ -119,9 +139,18 @@ The workflow name, then any number of pipe-separated attributes in any order:
 | `5s` | duration (`5 sec`, `5 seconds` too) |
 | `ref A2, A1` | which anchors feed this shot's image inputs, in slot order |
 
+Commas separate attributes as well as pipes, so they can also be written in a
+parenthesis — `### ltx_2_5_i2v (ref A2, 8s)` — or on the `##` line —
+`## Video cut 1 (ref A2, loop)`. A ref, a size and a duration (and `loop`, on
+the `##` line) can be combined in either place. A bare anchor right after a ref
+continues it (`ref A2, A1` is two anchors). A decimal comma stays part of its
+duration: `2,5s` is reported as not a whole number of seconds, not read as `2`
+and `5s`.
+
 A parenthesised `(ref A3)` still works, and a `Resolution: 1344 x 768` /
-`Size: 1280×720.` line of its own before the prompt is also read. Anything
-unrecognised is kept as a note rather than dropped.
+`Size: 1280×720.` line of its own before the prompt is also read. Anything not
+understood is reported as a warning ("… was not understood — ignored") and has
+no effect on the shot.
 
 **Duration is converted to whatever the workflow counts.** `stable_audio_3`,
 `ltx_2_5_i2v` and `ltx_2_5_flf2v` take seconds directly (the LTX 2.5 workflows
@@ -130,8 +159,16 @@ workflow that counts *frames* instead gets `5 × its frame rate`, snapped to the
 8n+1 grid LTX needs. The conversion is shown in the run-order table.
 
 Sizes outside 64-8192 px are ignored, so `shot on 35mm film ... Kodak Portra
-400` is never mistaken for one. A workflow with no width/height (an edit, a
-title card) is reported once as a warning rather than silently ignored.
+400` is never mistaken for one. A workflow with no width/height but an
+aspect-ratio dropdown (the Ideogram title cards) gets the closest aspect
+option, so always give cards a size: Ideogram's default is 9:16 portrait. A
+workflow with neither (an edit, which takes its size from its input image) is
+reported once as a warning rather than silently ignored.
+
+Durations are whole seconds. A fraction such as `6.5s` is not read as a
+duration: written as `| 6.5s` the preview warns that it is not a whole number
+of seconds and was ignored, and the shot runs at the workflow's default length. Refs are written `ref A2`,
+not `ref: A2`.
 
 ### A leading `Name: Value.` directive
 
@@ -156,8 +193,11 @@ sentence like `Audio: gulls calling ...` mid-prompt is never even considered.
   ComfyUI's cached result
 * every media input → the image the batch produced for it
 
-Everything else keeps the workflow's own defaults. Nothing in the document can
-change resolution, steps or CFG — set those in the workflow's meta.
+Size and duration come from the `###` attributes and a dropdown from a leading
+directive; steps, CFG and every other setting cannot be set from a storyboard.
+A setting a storyboard does not send runs at the value written in the
+workflow's graph (its `api.json`). A default changed in the workflow editor
+reaches the student form only, never a storyboard.
 
 ### Where the results go
 
@@ -167,9 +207,9 @@ index in front so the folder sorts into run order:
 
 ```
 <ComfyUI output>/The-Red-Thread/
-    001_LIBRARY__Anchor-image-1__flux2_klein_9b_t2i_00001_.png
-    005_IDLE__Reference-image-1__flux2_klein_9b_image_edit_ref_00001_.png
-    023_IDLE__Video-cut-1--loop___video_ltx2_5_flf2v_00001_.mp4
+    001_LIBRARY__Anchor-image-1__image_flux2_klein_9b_t2i_00001_.png
+    005_IDLE__Reference-image-1__image_edit_flux2_klein_9b_image_edit_ref_00001_.png
+    023_IDLE__Video-cut-1-loop__video_ltx2_5_flf2v_00001_.mp4
 ```
 
 The folder defaults to the uploaded filename and is editable in the card
@@ -188,25 +228,42 @@ it will cost, estimated GPU time, and any warnings or errors), then click
 Once it is running, the live batch expands on its own and shows every shot as
 **generated / generating N% / pending / failed**, naming the one in flight and
 printing any failure reason inline, so it is always clear what has been made and
-what is still to come. Each batch also has a **Stop & remove** button.
+what is still to come. Each batch also has a **Stop & remove** button, and a
+batch with failed shots shows **Retry failed (N)**, which runs those shots
+again in place once whatever broke them is fixed: the shots that finished keep
+their results, and nothing has to be uploaded again.
 
 **You do not have to pick a workflow first.** The document names its own, so on
 an idle machine queueing writes the batch to the queue and then starts the
-machine serving the batch's *first* workflow — the one it is about to load
-anyway. That restart takes a few seconds, after which the executor drains the
-batch. If the machine is already serving, the running executor just picks the
-batch up on its next tick and nothing restarts.
+machine serving the batch's *first* workflow, which takes a few seconds. If the
+machine is already serving, nothing restarts.
+
+**Only the shots whose workflow is being served actually run.** Each workflow
+the machine serves has its own queue, so a batch that uses several workflows
+runs the shots of the served one and leaves the others **pending** until their
+workflow is served too. In the admin panel's workflow library, press **Serve
+alongside** on its card (when it fits in memory beside what is running), or
+select its card and press **Activate & start student mode** under the library
+to replace the main workflow. Replacing it stops a shot that is generating on
+the old workflow: that shot and the shots waiting on it show as failed, and
+**Retry failed** on the batch queues them again. They run once their workflow
+is served again. A shot waiting on a shot from another workflow runs once that
+one has finished.
 
 [storyboard-smoke.md](storyboard-smoke.md) is a 4-shot version (one plate, one
-edit, one cut, one ambience — about a minute of GPU time plus model loads) for
-proving the chain works on a rig before committing to a full document.
+edit, one cut, one ambience — about two minutes of GPU time plus model loads) for
+proving the chain works on a rig before committing to a full document. It uses
+four workflows, so it only completes once all four have been served.
 
 ---
 
 ## Endpoints
 
-Student mode only (that is where the queue and executor live). The mutating
-routes sit behind the **admin password**, when one is configured.
+Available in both modes. On an idle machine (admin mode) the batch is written
+straight to the queue file, and `/queue` then switches the machine to student
+mode serving the batch's first workflow, which starts the executor. Every
+route, the read-only ones included, sits behind the **admin password** when one
+is configured.
 
 ### `POST /storyboard/preview`
 
@@ -219,6 +276,10 @@ curl -F file=@docs/storyboard-example.md \
      http://localhost:3000/storyboard/preview
 ```
 
+Abridged — the response also carries `serving`, `outputFolder`, `outputDir`,
+`states`, `workflowRuns`, `modelLoads`, `totalShots`, `blockedReasons` and
+`summary`:
+
 ```jsonc
 {
   "name": "storyboard-example.md",
@@ -226,8 +287,8 @@ curl -F file=@docs/storyboard-example.md \
               { "phase": 1, "label": "videos", "count": 11 },
               { "phase": 2, "label": "audio",  "count": 9  } ],
   "totalJobs": 42,
-  "totalEstimatedSec": 1032,
-  "warnings": [],
+  "totalEstimatedSec": 1316,
+  "warnings": [ /* 11 × "\"Reference image 1\" (IDLE): A3 is used for BOTH \"Source image\" and \"Reference image\" …" */ ],
   "errors": [],
   "jobs": [ /* every job, in run order, with its resolved params and deps */ ]
 }
@@ -248,10 +309,11 @@ nothing drains the queue in admin mode. Extra body fields:
 | `spacing` | `estimated` | `estimated` gives each job its workflow's estimated duration on the timeline; `asap` packs them 1 s apart so a dedicated machine runs them back to back |
 | `force` | `false` | queue the items that *did* plan even though others failed |
 
-If any shot cannot be planned the whole batch is **refused** with the list of
-reasons. The report separates the shots that are *wrong* from the shots that
-merely *wait on them* — for a document whose 17 edits name no anchor, that is a
-17-line fix list rather than 34 near-identical sentences. Each broken shot
+If any shot cannot be read or planned the whole batch is **refused** (HTTP 422,
+nothing queued) with the list of reasons — a `##` with no `###` line counts as
+much as a missing anchor. The report separates the shots that are *wrong* from the shots that
+merely *wait on them* — for a document whose 17 edits name a missing `ref A9`,
+that is a 17-line fix list rather than 34 near-identical sentences. Each broken shot
 contributes exactly one reason — a 42-shot storyboard silently queued as 38 is worse than no queue at
 all. `force: true` opts into the partial run, and it stays safe: an item that
 could not be planned is dropped along with everything that depended on it,
@@ -262,6 +324,22 @@ transitively. Nothing is ever queued with an input missing.
 List the batches in the queue (with a completed / running / failed / pending
 tally), or one batch's jobs with their dependencies. Admin-gated like the write
 routes — a batch listing exposes every prompt in the document.
+
+### `POST /storyboard/batches/:id/retry`
+
+Runs the batch's **failed** shots again, after whatever broke them has been
+fixed (a missing model, a bad dropdown option, a performance flag). Add
+`?includeCancelled=1` to re-run cancelled shots too. The shots are put back in
+the queue in place, in one step: completed shots keep their outputs, and the
+failed ones keep their place in the run order and their links to the shots
+that feed them. This is the **Retry failed (N)** button on the card.
+
+```jsonc
+{ "ok": true, "retried": 3, "stillBlocked": [], "jobs": [ /* { id, label, workflowId } */ ] }
+```
+
+`stillBlocked` lists the retried shots whose source shot was **deleted** rather
+than merely failed: they can never run, and will fail again.
 
 ### `DELETE /storyboard/batches/:id`
 
@@ -276,8 +354,9 @@ and their outputs are kept unless you pass `?keepCompleted=0`.
 
 A storyboard names a handful of workflows and uses each many times. Taken in
 document order those alternate shot by shot — `edit · title card · edit · title
-card` — and **every switch is a cold model load**, a minute or two on this rig
-for a job that may take sixteen seconds.
+card` — and **every switch is a cold model load**: roughly 5 to 55 s per
+workflow on this rig (calibration of 2026-11-04, longer when the files are read
+from disk for the first time), for a job that may itself take twenty seconds.
 
 So within each phase the shots are ordered to keep one model resident for as
 long as its dependencies allow: at each step the planner picks a shot whose
@@ -344,22 +423,30 @@ Run the checks with `npm run test:storyboard` (no ComfyUI needed).
   **Admin → ComfyUI backend → Performance** if you want it back. ComfyQ cannot
   do this for an *external* ComfyUI it did not launch; there it just reports the
   cause.
-* **A batch still pays one cold model load per workflow** (~1-3 min each on
-  this rig, on top of the sampling estimate). The card shows the count before
+* **A batch still pays one cold model load per workflow** (roughly 5-55 s each
+  on this rig, more on a first load from disk, on top of the sampling
+  estimate). The card shows the count before
   you commit. That is the floor: the shots cannot be reordered further without
   breaking their dependencies.
-* **The machine shows one "Now serving" workflow** to students and to ComfyQ
-  Discovery, while a batch runs several — it names whichever one the batch
-  started with. The jobs execute correctly; the banner just does not describe
-  them.
-* **Cancelling a batch needs `DELETE /storyboard/batches/:id`.** Its jobs are
-  owned by the `storyboard` user, and ComfyQ refuses cross-user cancels unless
-  an admin password is set — so there is no per-job stop button for them in the
-  student UI. Pass `user_id` when queueing to attribute the batch to a real
-  student instead.
+* **A batch only runs on the workflows the machine is serving.** Queueing on an
+  idle machine starts its *first* workflow; the shots on every other workflow
+  stay pending until that workflow is served as well. In the admin panel's
+  workflow library, press **Serve alongside** on its card (when it fits in
+  memory beside what is running), or select its card and press **Activate &
+  start student mode** under the library to replace the main workflow.
+  Replacing it stops a shot that is generating on the old workflow: that shot
+  and the shots waiting on it show as failed, and **Retry failed** on the batch
+  queues them again. They run once their workflow is served again. Nothing
+  switches workflows for you as the batch moves on.
+* **Stopping a batch.** Use **Stop & remove** on the batch in the Storyboard
+  batch card (or `DELETE /storyboard/batches/:id`). Its jobs belong to the
+  `storyboard` user, so the ✕ on a single shot's card in the student page asks
+  for the admin password, and is refused when none is set. Pass `user_id` when
+  queueing to attribute the batch to a real student instead.
 * **`(ref A2, A1)` maps onto image inputs in the workflow's parameter order**,
   which an admin can change in the workflow editor. Re-check a multi-ref
   storyboard after reordering a bundle's parameters.
 * **Timeline slots use each workflow's *warm* estimate.** A batch that finishes
-  faster than estimated leaves small idle gaps; pass `spacing: "asap"` on a
-  dedicated machine to run back to back.
+  faster than estimated leaves small idle gaps; on a dedicated machine, choose
+  **Timeline → Back to back (dedicated machine)** on the card (`spacing:
+  "asap"` on the API) to run back to back.

@@ -26,5 +26,8 @@ The reports are the reasoning, kept as written; they were not re-edited after th
 
 **What came of it:** [run-2026-11-04.md](run-2026-11-04.md) — the verdict on every card from the run the
 suite was built for (80 of 80 clean), including where a report's expectation did not hold (Wan Animate kept
-the picture's background; the Ingredients LoRA copied the sheet on the distilled model) and the ten
-captions rewritten after their results were looked at.
+the picture's background; the Ingredients LoRA copied the reference sheet back whatever the strength or
+model, until the sheet's panels were tiled edge to edge) and the ten
+captions rewritten after their results were looked at. ⚠ Seven of those runs were fed black placeholder
+pictures in slots the suite left empty (a ComfyQ bug, fixed 2026-11-05) and still need re-running — the
+list is at the top of that page.

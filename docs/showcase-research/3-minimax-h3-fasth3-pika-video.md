@@ -276,7 +276,7 @@
 
 **Risks**: the model may dissolve between the frames instead of growing the flowers (the prompt describes each stage to prevent it); small framing differences between the two screenshots may cause a slight zoom; both pictures carry an alpha channel (RGBA PNG) — LoadImage uses the RGB.
 
-**Links to fix**: none. (Its size field is an `ImageScaleToTotalPixels`, so 0.98 MP survives, unlike the `ResolutionSelector` case recorded in CLAUDE.md.)
+**Links to fix**: none. (Its size field is an `ImageScaleToTotalPixels`, so 0.98 MP survives, unlike the `ResolutionSelector` case recorded in PROJECT-HISTORY.md.)
 
 ```json
 {
@@ -400,7 +400,7 @@
 
 ## video_minimax_h3_seamless_loop_fasth3
 
-**What the model is good at** (with sources): the same loop pack on **FastH3-Omni** (8 steps). The pack author: "close to the 25-step look **with a reference image**, a bit punchier; text-only prompts give a different shot. Slight judder on fast motion; slow flows stay smooth"; and "a reference image (`<Picture 1>`) holds the subject and look … prefer it for loops from an image" over first-frame anchors, which make the joint jump ([README](https://github.com/pxl-pshr/ComfyUI-MiniMaxH3-Loop)). Previous run: it held the reference's composition "a little closer" than the other loop card. So this card's showcase is **a picture turned into an endless loop** (the owner's own request, CLAUDE.md 2026-11-03).
+**What the model is good at** (with sources): the same loop pack on **FastH3-Omni** (8 steps). The pack author: "close to the 25-step look **with a reference image**, a bit punchier; text-only prompts give a different shot. Slight judder on fast motion; slow flows stay smooth"; and "a reference image (`<Picture 1>`) holds the subject and look … prefer it for loops from an image" over first-frame anchors, which make the joint jump ([README](https://github.com/pxl-pshr/ComfyUI-MiniMaxH3-Loop)). Previous run: it held the reference's composition "a little closer" than the other loop card. So this card's showcase is **a picture turned into an endless loop** (the owner's own request, PROJECT-HISTORY.md 2026-11-03).
 
 **Showcase idea**: a dreamlike alien valley (mossy terraces, crystal spires, floating iridescent bubble-creatures) becomes a living, endlessly looping world: the creatures bob and pulse, high balloon-organisms circle the spires, glowing specks rise, over a steady airy drone. Every motion is cyclic and slow (FastH3's strong case), the subjects are large, and nothing one-way happens. The picture is described as `<Picture 1>`, never as a first frame, as the guide requires.
 

@@ -71,7 +71,7 @@ Research and showcase proposals for 14 bundles. I read every bundle's meta, api.
 ## image_qwen_image_2_1_t2i_fix
 **What the model is good at** (with sources):
 - The README says only that it is "A lora that, when used with the proper settings, fixes most of the image generation issues with Qwen Image 2.1". The settings (20 steps, cfg 3, seeds_2/sgm_uniform, APG + FreSca) are inside its workflow zip [HF card]. No licence or trigger word is given.
-- The A/B on this rig (CLAUDE.md, 2026-09-30) found:
+- The A/B on this rig (PROJECT-HISTORY.md, 2026-09-30) found:
   - The plain model garbled watch-dial numerals and hands.
   - The fix gave the glossiest micro-detail.
   - At "Fix strength 0", with the settings alone, it had the cleanest hands.
@@ -312,7 +312,7 @@ Research and showcase proposals for 14 bundles. I read every bundle's meta, api.
 - "It re-renders rather than compositing pixel-for-pixel" (meta), so the cane weave may simplify.
 - If the light direction comes out wrong, the added sentence about the sun behind the tree is the lever.
 
-**Links to fix:** the meta's "Trained at about 1 megapixel" and "rank 32" are not on the HF card. They come from the file's own metadata (CLAUDE.md, 2026-10-08), so say so. Links: none dead.
+**Links to fix:** the meta's "Trained at about 1 megapixel" and "rank 32" are not on the HF card. They come from the file's own metadata (PROJECT-HISTORY.md, 2026-10-08), so say so. Links: none dead.
 
 ```json
 {

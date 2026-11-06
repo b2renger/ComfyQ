@@ -364,7 +364,8 @@ TrackType: Music. Sparse chamber instrumental at 60 BPM in E minor, built from a
 
 Depth 3 — three choices deep on every path. S0 offers two, S1_A offers **three**
 and S1_B two, and all five depth-2 states offer two, so the graph is
-1 + 2 + 5 + 5 endings = 13 generating states. Twelve paths across five endings.
+1 + 2 + 5 + 5 endings = 13 story states, plus LIBRARY and IDLE. Ten paths
+across five endings.
 
 Routing check: S0 → S1_A | S1_B. S1_A → S2_AA | S2_AB | S2_AC. S1_B → S2_BA |
 S2_BB. Every depth-2 state routes to two endings, and every ending except E05

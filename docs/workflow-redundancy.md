@@ -4,17 +4,23 @@
 **the same job for a student**, with what you'd gain and lose by cutting one. It is a
 worksheet, not a plan: nothing here has been deleted or changed.
 
-> **2026-11-03 — measured since:** the library is 80 bundles, and one test-suite run gave
-> same-job cards the same inputs ([workflow-assessment.md](workflow-assessment.md)). Two
-> questions below now have an answer: **§4, the two H3 t2v cards** — on one prompt the 4-step
-> turbo card was faster (30 s vs 54 s) *and* livelier than FastVideo's 8-step one; **§1,
-> SeedVR2** — the int8 video card was no longer faster than the fp16 one (197 s vs 195 s on
-> 0.43.2), so the case for cutting the fp16 pair rests on features, not speed. New overlap to
+> **2026-11-03 and 2026-11-04 — measured since:** the library is 80 bundles, and two
+> test-suite runs gave most same-job cards the same inputs
+> ([workflow-assessment.md](workflow-assessment.md)). Two questions below now have an answer:
+> **§4, the two H3 t2v cards** — on one prompt the 4-step turbo card was faster (30 s vs 54 s)
+> *and* livelier than FastVideo's 8-step one; **§1, SeedVR2** — the int8 video card is no
+> longer faster than the fp16 one on ComfyUI 0.43.2. The 2026-11-03 run fed the two video
+> cards different clips and made different sizes (1944×1080 vs 1728×960, 195 s vs 197 s); the
+> 2026-11-04 run gave them the same clip, and they came out near-identical in 87 s (int8)
+> against 91 s (fp16), timed over the whole run. So for the video pair the case rests on
+> features, not speed; the int8 image card is still 1.7× faster (26 s vs 45 s), and on the same
+> damaged photo the two image cards looked alike. New overlap to
 > weigh: the three **Pika H3 Flex** cards do the jobs of the FastH3 t2v / first-last-frame /
 > OmniRef cards at 2.5–5× the time, for a better picture.
 
-> ⚠ **Read as of its date: the library is now 61 bundles and seven of the ones
-> weighed below are gone.** Acted on since the survey, each on the owner's call —
+> ⚠ **Read as of its date: eight of the bundles discussed below have been removed
+> since the survey**, and many more have been added (the library was 61 bundles on
+> 2026-10-12, 64 by 2026-10-15, and is 80 since 2026-11-03 — see the note above). Removed, each on the owner's call —
 > `image_flux2_dev_t2i` and `image_edit_flux2_dev_image_edit` (85.76 GB, §6d),
 > `image_qwen_image_2_1_viggle_turbo`, `3d_pixal3d_image_to_mesh` and
 > `3d_trellis2_image_to_textured_mesh` (the custom-node 3D pair, §6 note), and
@@ -24,16 +30,18 @@ worksheet, not a plan: nothing here has been deleted or changed.
 > Bundles have been added since as well — among them
 > [image_edit_qwen_2_1_relight_composite](../workflows/image_edit_qwen_2_1_relight_composite/)
 > and the two Qwen 2.1 ControlNet bundles — so this survey does not cover the
-> whole library any more either. The comparisons between bundles that *remain*
-> are unaffected; the counts in the next two bullets are not. CLAUDE.md carries
-> the reason for every addition and removal.
+> whole library any more either. The removals do not change the comparisons
+> between bundles that *remain*; the 2026-11-03 note above says which of those
+> have since been re-measured. PROJECT-HISTORY.md carries the reason for every addition
+> and removal.
 
 Two things to keep in mind while reading:
 
-- **Most durations are measured, most VRAM figures are not.** Only 22 of 63 bundles have
-  a measured VRAM peak, and the static estimate under-reports on half the library (see
-  CLAUDE.md, 2026-09-22). Where a row below has no VRAM number, the comparison is on
-  capability and speed only.
+- **When this was written, most durations were measured and most VRAM figures were
+  not.** Only 22 of the 63 bundles had a measured VRAM peak, and the static estimate
+  under-reports on half the library (see PROJECT-HISTORY.md, 2026-09-22). Every bundle has one now
+  (in its `runtime.json`, shown on its admin card). Where a row below has no VRAM number,
+  the comparison was made on capability and speed only.
 - **"Redundant" here means redundant *to a student*.** Two bundles that load different
   models but present the same form and produce the same kind of result are redundant in
   the classroom even though they differ technically.
@@ -109,7 +117,7 @@ shared in the LTX trio, 6 of 9 in the MiniMax trio.
   VRAM cost would not go up.
 - **Con:** this is real graph surgery on six bundles, and the annotators have genuinely
   different needs (the pose one needs the TorchScript detector, and its resolution trap is
-  documented in CLAUDE.md). A dropdown that silently picks a slow path is worse than three
+  documented in PROJECT-HISTORY.md). A dropdown that silently picks a slow path is worse than three
   honest cards.
 - **Con:** the canny bundle's description carries a style warning (claymation works, a
   watercolour prompt stays photographic) that doesn't apply to the other two.
@@ -164,19 +172,27 @@ additionally replaced the white plate with flat purple. The 2511 bundle gave a c
 a real back and a 3/4 on both subjects, at 9 s against 29 s. It costs ~9 GB more VRAM (27.6
 against 18.65), which is the one thing the old bundle was better at.
 
-⚠ Its two adapters (`Qwen21-MultipleAngles-v1-step1000`, `-v2-step1500`, 0.45 GB) are in
-**quarantine, not deleted**. With the bundle ignored the only thing still claiming them was an
-`observedAt` entry dated the day the bundle was built — the circular signal a removal must
-discount, checked against the sweep's per-bundle attribution before anything moved.
+⚠ Its two adapters (`Qwen21-MultipleAngles-v1-step1000`, `-v2-step1500`, 0.45 GB) were
+moved to **quarantine, not deleted**, at the time. With the bundle ignored the only thing still
+claiming them was an `observedAt` entry dated the day the bundle was built — the circular signal
+a removal must discount, checked against the sweep's per-bundle attribution before anything
+moved. **That quarantine has since been emptied**, so they are no longer on this drive: getting
+them back means downloading them again (the links are in the removed bundle's `meta.json`, in
+git history).
 
 ★ **What the removal actually freed: 20.31 GB of 68.13 GB** — and the other 47.82 GB had to
 stay, which is the whole reason removals go through
 [exclusive.cjs](../tools/model-provenance/README.md) rather than the metas' own model lists.
 `qwen_image_edit_2511_bf16` (38.05 GB), `qwen_2.5_vl_7b_fp8_scaled` (8.74 GB) and the 2511
 Lightning LoRA are all still loaded by `utility_qwen_2511_unblur_upscale`, and
-`qwen_image_vae` by six krea/PiD bundles. Moved to quarantine (reversible), not deleted:
-`qwen_image_edit_2509_fp8_e4m3fn` 19.03, the 2509 Lightning LoRA 0.79, and the two
-multiple-angles LoRAs 0.27 + 0.22.
+`qwen_image_vae` by six krea/PiD bundles. Moved to quarantine at the time rather than deleted:
+`qwen_image_edit_2509_fp8_e4m3fn` 19.03, the 2509 Lightning 4-step LoRA 0.79, and the two
+multiple-angles LoRAs 0.27 + 0.22. That quarantine was emptied the same day, before the drive
+was cloned, so all four were deleted. One came back: the 2511 multiple-angles LoRA (0.27) was
+downloaded again on 2026-10-14 for `image_edit_qwen_2511_multiple_angles`, which loads it. The
+other three are not on the drive; the links to download them again are in the removed bundles'
+`meta.json` files, in git history. (The 2509 Lightning LoRA in `models/loras` today is the
+8-step build — a different file, which no bundle loads.)
 
 ---
 
@@ -215,9 +231,9 @@ chosen ratio (1376×768 at 16:9, not the 1024×1024 square the encoder returns o
 
 - **Pro of cutting the t2i bundle:** one card instead of two for the same model, and no
   "which Qwen do I pick?" moment.
-- **Con — and it is the real one:** the t2i card shows a student **three fields**
-  (prompt, aspect, size). The edit card shows **twenty-one**, sixteen of them upload
-  slots they will not use. For a class that only wants to generate, that is a worse form,
+- **Con — and it is the real one:** the t2i card shows a student **five fields**
+  (prompt, aspect, size, steps, seed). The edit card shows **twenty-one**: the same five
+  plus sixteen upload slots they will not use. For a class that only wants to generate, that is a worse form,
   not a better one — the same argument that keeps `video_fastvideo_fasth3_t2v` alive
   beside its i2v sibling.
 - **Con:** the two now differ in what the size fields mean. On the t2i bundle they always
@@ -305,7 +321,7 @@ Worth stating so they don't get cut by accident:
   style-LoRA library; Qwen 2.1 is the cheapest at 14.44 GB. *(Flux2 **Dev** was the sixth
   until 2026-10-05 — see 6d.)*
 - **The two Gemma captioners** take different inputs (image vs video) — one graph can't do
-  both, the video one feeds every decoded frame to the VLM.
+  both; the video one decodes the whole clip and the model looks at one frame in every 24.
 - **The three 3D bundles** produce genuinely different artefacts (Gaussian splat vs mesh vs
   multi-view sheet). *(There were five until 2026-10-05: `3d_pixal3d_image_to_mesh` and
   `3d_trellis2_image_to_textured_mesh` were built on the owner-installed Pixal3D-ComfyUI and
@@ -320,25 +336,33 @@ Worth stating so they don't get cut by accident:
 
 | Action | Bundles | Confidence |
 |---|---|---|
-| Cut the fp16 SeedVR2 pair | 2 | high — same job, slower, fewer features |
+| Cut the fp16 SeedVR2 pair | −2 | high — same job, fewer features; the int8 image card is faster (26 s vs 45 s), the video pair takes about the same time (87 s vs 91 s on the same clip, 2026-11-04); the 7B int8 image card needs ComfyUI relaunched without fp16 accumulation (§1) |
 | Merge the two Klein reference pairs | −2 | high — same models, same options |
-| Decide between the two H3 t2v, and the two H3 i2v | −2 | medium — needs a side-by-side first |
+| Decide between the two H3 t2v, and the two H3 i2v | −2 | medium — the t2v pair was compared on 2026-11-03 (the turbo card was faster and livelier on the same prompt, [workflow-assessment.md](workflow-assessment.md)); the i2v pair has not been compared on the same input |
 | Merge the Bernini ± reference pairs | −2 | medium — cost asymmetry, task lists differ |
-| Rename or merge the Qwen angle pair | 0 or −1 | medium — naming is the real problem |
-| Drop `…restyle_compare` | −1 | low — both need an unmerged patch anyway |
+| ~~Rename or merge the Qwen angle pair~~ | — | resolved — both removed 2026-10-12, their Qwen 2.1 replacement removed 2026-10-15; `image_edit_qwen_2511_multiple_angles` does the job (§5) |
+| Drop `…restyle_compare` | −1 | low — the comparison view is a development aid; both run on a stock ComfyUI ≥ 0.39 (§6) |
 | Collapse the two control trios | −4 | low — real surgery, descriptions are useful |
 
-Cutting only the high-confidence rows takes **63 → 59**. Everything else is a judgement
-call about how many cards a student should be choosing between.
+Cutting only the high-confidence rows takes **80 → 76** (it was 63 → 59 when this was
+written). Everything else is a judgement call about how many cards a student should be
+choosing between.
 
 ## Before cutting anything
 
-- **4 bundles have never produced a checked result** (the `experimental` flag, as of
-  2026-10-05): `image_qwen_image_2_1_control_canny`, `image_qwen_image_2_1_control_depth`,
-  `video_fastvideo_fasth3_i2v`, `video_fastvideo_fasth3_t2v`. A bundle that has never been
-  run is not evidence of anything — validate before comparing it with something. (The two
-  Marigold bundles that used to be on this list were removed; the Qwen t2i, Qwen image-edit
-  and Krea 2 style-reference ones have since been validated.)
-- **39 have no measured VRAM.** If the reason for cutting is fitting two models on one
-  card, measure first: the static estimate was wrong by more than 1 GB on half the
-  bundles measured so far, usually in the optimistic direction.
+- **19 bundles still carry the `experimental` flag** (2026-11-05): the four FLUX.3 Klein
+  cards, the three MOSS cards, the three Pika H3 Flex cards, MiniMax H3 t2i, the three H3
+  loop cards, FastH3 OmniRef, the Qwen 2512 panorama, the two mesh tools and YuE2. The flag
+  now means *waiting for the owner's sign-off*, not *never run*: all 80 bundles ran clean and
+  their results were checked in the 2026-11-03 and 2026-11-04 test-suite runs
+  ([workflow-assessment.md](workflow-assessment.md)) — though seven of them, among them
+  FastH3 OmniRef, Pika H3 Flex ref2va and the MiniMax H3 seamless loop, were made with black
+  placeholder pictures in their empty optional slots (a bug fixed 2026-11-05), and are to be
+  re-run before they decide anything. So the OmniRef / ref2va overlap above has not yet been
+  compared fairly. Still, validate one before cutting something in its favour. (The four this list named on 2026-10-05 — the two Qwen 2.1
+  ControlNet cards and the two FastVideo H3 cards — were validated on 2026-10-12.)
+- **Every bundle now has a measured VRAM peak** (in its `runtime.json`, shown on its admin
+  card; most were re-measured on 2026-11-04). If the reason for cutting is fitting two models on one
+  card, use those figures, not the static estimate: the estimate was wrong by more than 1 GB
+  on half the bundles measured, usually in the optimistic direction. A bundle added later has
+  no measured peak until it is calibrated.
