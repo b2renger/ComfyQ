@@ -191,7 +191,7 @@ const MyJobsPanel = ({ onClose }) => {
                             })()}
                             {/* Why it failed — same message as the result card
                                 (a lane closing or a live switch stops a job with one). */}
-                            {job.status === 'failed' && job.error_reason && (
+                            {(job.status === 'failed' || job.status === 'cancelled') && job.error_reason && (
                                 <p className="text-[10px] text-danger/80 line-clamp-3 break-words mt-1" title={job.error_reason}>
                                     {failureText(job.error_reason)}
                                 </p>

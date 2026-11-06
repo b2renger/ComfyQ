@@ -38,11 +38,12 @@ registry.discover();
 const queue = new JobQueue(path.join(tmp, 'queue.db'));
 const mainCancels = [], laneCancels = [];
 let laneWorkflowId = null;
+let openLanes = [];
 // Serving, with a second lane: the shape server/index.js shares by reference.
 const runtime = {
     queue,
     executor: { cancelJob: async (id) => { mainCancels.push(id); return false; } },
-    lanes: { get: (wf) => (wf === laneWorkflowId ? { executor: { cancelJob: async (id) => { laneCancels.push(id); return true; } } } : null) },
+    lanes: { list: () => openLanes, get: (wf) => (wf === laneWorkflowId ? { executor: { cancelJob: async (id) => { laneCancels.push(id); return true; } } } : null) },
 };
 
 const restarts = [];
@@ -92,6 +93,18 @@ const srv = app.listen(0, async () => {
 
         r = await fetch(base + '/storyboard/queue', { method: 'POST', headers: H, body: JSON.stringify({ markdown: md, name: 'clean.md' }) });
         check('a clean document still queues', r.status === 200, String(r.status));
+
+        console.log('\na batch needs the whole machine');
+        openLanes = [{ name: 'Main', primary: true }, { name: 'Extra one', primary: false }];
+        p = await fetch(base + '/storyboard/preview', { method: 'POST', headers: H, body: JSON.stringify({ markdown: md, name: 'clean.md' }) });
+        d = await p.json();
+        check('the preview warns, naming the lane', d.warnings.some(w => /close the extra lanes first \(Extra one\)/.test(w)), JSON.stringify(d.warnings).slice(0, 200));
+        const queuedBefore = queue.listActive().length;
+        r = await fetch(base + '/storyboard/queue', { method: 'POST', headers: H, body: JSON.stringify({ markdown: md, name: 'clean.md' }) });
+        d = await r.json();
+        check('queueing is refused with 409', r.status === 409 && d.code === 'lanes-open', `${r.status} ${JSON.stringify(d).slice(0, 160)}`);
+        check('nothing was queued', queue.listActive().length === queuedBefore);
+        openLanes = [];
 
         console.log('\nStop & remove cancels a running shot on its own lane');
         const jobs = queue.listBatch(batchId);

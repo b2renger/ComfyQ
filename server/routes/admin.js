@@ -1249,12 +1249,13 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             const prevMode = prev.mode;
             console.log(`[Admin] activate-workflow: ${prevId || '(none)'} → ${workflowId}  (mode: ${prevMode} → student)`);
             console.log(`[Admin]   name="${entry.summary?.name}"  category=${entry.summary?.category}  exposedParams=${entry.effective?.exposedParameters?.length ?? '?'}`);
-            // Warn (don't block) if scheduled jobs exist for the previous workflow.
+            // Say so if scheduled jobs exist for the previous workflow: closing its
+            // lane cancels them.
             if (runtime?.queue && prevId && prevId !== workflowId) {
                 try {
                     const sm = require('../queue/jobStateMachine');
                     const stale = runtime.queue.list({ status: sm.STATES.SCHEDULED, limit: 1000 })
-                        .filter(j => j.workflowId !== workflowId);
+                        .filter(j => j.workflowId !== workflowId && !j.batchId);
                     if (stale.length > 0) {
                         console.warn(`[Admin]   ${stale.length} scheduled job(s) reference the previous workflow and will run with their original workflow if it is still available on disk`);
                     }
@@ -1270,6 +1271,12 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             // because the student routes are mounted at boot.
             const lanes = runtime?.lanes;
             if (lanes && prevMode === 'student') {
+                // The new workflow must fit beside the lanes that stay. Refused
+                // before anything closes, so the machine keeps serving.
+                if (!lanes.get(workflowId)) {
+                    const fit = lanes.fitSwitch(workflowId);
+                    if (!fit.ok) return res.status(409).json({ error: fit.message, code: fit.reason, fit });
+                }
                 res.json({ ok: true, mode: 'student', workflowId, live: true });
                 (async () => {
                     if (lanes.get(workflowId)) {
@@ -1279,9 +1286,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                         console.log(`[Admin] "${workflowId}" was already served — it is now the main workflow`);
                         return;
                     }
-                    const old = lanes.mainLane();
-                    if (old) await lanes.close(old.workflowId);
-                    await lanes.open(workflowId, { primary: true });
+                    await lanes.switchMain(workflowId);
                     console.log(`[Admin] now serving "${workflowId}" — switched without a restart`);
                 })().catch(e => {
                     console.error(`[Admin] live switch to "${workflowId}" failed (${e.message}) — restarting to recover`);
@@ -1355,6 +1360,10 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
         if (!lanes) return res.status(409).json({ error: 'lanes are only available while serving' });
         const { workflowId, force = false } = req.body || {};
         if (!workflowId) return res.status(400).json({ error: 'workflowId required' });
+        // A batch runs one job at a time, in order, on one ComfyUI.
+        if (runtime?.queue?.hasOpenBatch?.()) {
+            return res.status(409).json({ error: 'A batch is running: it uses the whole machine, one job at a time. Open this lane when it has finished.', code: 'batch-running' });
+        }
         try {
             const lane = await lanes.open(workflowId, { force: !!force });
             res.json({ ok: true, lane });

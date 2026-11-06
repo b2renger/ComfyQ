@@ -131,10 +131,19 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
         return { doc, parsed, plan, spacing, userId, outputFolder };
     }
 
+    // A batch runs one job at a time on one ComfyUI, because later jobs consume
+    // what earlier ones made. Extra lanes would compete with it for the card.
+    function extraLanesMessage() {
+        const open = runtime?.lanes?.list?.() || [];
+        if (open.length < 2) return null;
+        return `A batch needs the whole machine: close the extra lanes first (${open.filter(l => !l.primary).map(l => l.name).join(', ')}).`;
+    }
+
     router.post('/preview', adminGate, uploadOrJson, (req, res) => {
         const c = ctx();
         try {
             const { doc, parsed, plan, outputFolder } = buildPlan(req, c.queue);
+            const lanesWarning = extraLanesMessage();
             res.json({
                 name: doc.name,
                 serving: c.serving,
@@ -147,7 +156,7 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
                 totalJobs: plan.jobs.length,
                 totalShots: plan.totalShots,
                 totalEstimatedSec: plan.totalEstimatedSec,
-                warnings: [...parsed.warnings, ...plan.warnings],
+                warnings: [...(lanesWarning ? [lanesWarning] : []), ...parsed.warnings, ...plan.warnings],
                 errors: [...(parsed.errors || []), ...plan.errors],
                 blockedReasons: plan.blockedReasons,
                 summary: plan.summary,
@@ -169,6 +178,8 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
             if (!c.serving && sweepBlocksRestart(runtime)) {
                 return res.status(409).json({ error: SWEEP_RUNNING_MESSAGE });
             }
+            const lanesRefusal = extraLanesMessage();
+            if (lanesRefusal) return res.status(409).json({ error: lanesRefusal, code: 'lanes-open' });
             const { doc, parsed, plan } = buildPlan(req, c.queue);
 
             // Refuse the batch outright when any item could not be planned. A

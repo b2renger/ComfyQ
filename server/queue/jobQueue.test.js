@@ -9,6 +9,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { JobQueue } = require('./jobQueue');
+const sm = require('./jobStateMachine');
 
 let pass = 0;
 const ok = (what, cond) => { assert.ok(cond, what); pass++; };
@@ -31,6 +32,36 @@ ok('excluding the job itself still works when scoped', q.findCollisions(T, MIN, 
 
 book('lane_b', T);
 ok('each lane walks only its own queue', q.nextFreeSlot(T, MIN, 'lane_b') === T + MIN && q.nextFreeSlot(T, MIN, 'lane_a') === T + MIN);
+
+// A batch job names its own workflow: one lane takes them, the others leave them.
+{
+    const q2dir = fs.mkdtempSync(path.join(os.tmpdir(), 'q-batch-'));
+    const q2 = new JobQueue(path.join(q2dir, 'q.db'));
+    const now = Date.now();
+    const add = (workflowId, offset, batchId = null) => q2.insert({ userId: 'u', workflowId, workflowVersion: '1', scheduledAt: now - 1000 + offset, batchId });
+    const batchA = add('wf_a', 0, 'b1');
+    const batchB = add('wf_b', 1, 'b1');
+    const plain = add('wf_c', 2);
+    ok('a lane on wf_c that includes batches takes them first, by time', q2.findReady(now, ['wf_c'], { batch: 'include' }).id === batchA.id);
+    ok('a lane that excludes batches takes only its own', q2.findReady(now, ['wf_a'], { batch: 'exclude' }) === null);
+    ok('...and its plain job', q2.findReady(now, ['wf_c'], { batch: 'exclude' }).id === plain.id);
+    ok('no policy keeps the plain filter', q2.findReady(now, ['wf_b']).id === batchB.id);
+    ok('an open batch is seen', q2.hasOpenBatch() === true);
+
+    const orphan = add('wf_gone', 3);
+    const left = add('wf_c', 4);
+    const cancelled = q2.cancelUnserved(['wf_c'], 'workflow-not-served');
+    ok('only the unserved plain job is cancelled', cancelled.length === 1 && cancelled[0].id === orphan.id);
+    ok('it carries the reason', q2.get(orphan.id).status === sm.STATES.CANCELLED && q2.get(orphan.id).errorReason === 'workflow-not-served');
+    ok('a served workflow keeps its jobs', q2.get(left.id).status === sm.STATES.SCHEDULED);
+    ok('batch jobs of an unserved workflow are kept', q2.get(batchA.id).status === sm.STATES.SCHEDULED);
+    ok('nothing served cancels every plain job, never a batch job', q2.cancelUnserved([], 'workflow-not-served').length === 2 && q2.get(batchB.id).status === sm.STATES.SCHEDULED);
+
+    for (const j of [batchA, batchB]) q2.transitionStatus(j.id, sm.STATES.CANCELLED);
+    ok('a finished batch is no longer open', q2.hasOpenBatch() === false);
+    q2.db.close();
+    fs.rmSync(q2dir, { recursive: true, force: true });
+}
 
 // A job caught by a restart leaves its ComfyUI prompt to be cancelled.
 {

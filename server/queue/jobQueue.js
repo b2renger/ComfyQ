@@ -254,10 +254,16 @@ class JobQueue {
     // several lanes can run side by side without stealing each other's work.
     // Lanes never share a workflow (see LaneManager), which is what makes the
     // find-then-claim below safe without a lease.
-    findReady(now = Date.now(), workflowIds = null) {
+    // `batch` says what a lane does with batch jobs, which name their own workflow
+    // whatever the lane serves: 'include' also takes them, 'exclude' leaves them to
+    // the lane that does. A batch runs one job at a time, in order, on one ComfyUI.
+    findReady(now = Date.now(), workflowIds = null, { batch = null } = {}) {
         const ids = Array.isArray(workflowIds) ? workflowIds.filter(Boolean) : null;
         if (ids && ids.length === 0) return null;
-        const laneFilter = ids ? `AND j.workflow_id IN (${ids.map(() => '?').join(',')})` : '';
+        const inLane = ids ? `j.workflow_id IN (${ids.map(() => '?').join(',')})` : null;
+        let laneFilter = inLane ? `AND ${inLane}` : '';
+        if (batch === 'include' && inLane) laneFilter = `AND (${inLane} OR j.batch_id IS NOT NULL)`;
+        if (batch === 'exclude') laneFilter += ' AND j.batch_id IS NULL';
         const r = this.db.prepare(`
             SELECT j.* FROM jobs j
             WHERE j.status = ? AND j.scheduled_at <= ?
@@ -270,6 +276,29 @@ class JobQueue {
             ORDER BY j.scheduled_at ASC, j.created_at ASC LIMIT 1
         `).get(sm.STATES.SCHEDULED, now, ...(ids || []), sm.STATES.COMPLETED);
         return rowToJob(r);
+    }
+
+    /** A batch still has work to do: no extra lane may open beside it. */
+    hasOpenBatch() {
+        const done = [sm.STATES.COMPLETED, sm.STATES.FAILED, sm.STATES.CANCELLED];
+        return !!this.db.prepare(`
+            SELECT 1 FROM jobs WHERE batch_id IS NOT NULL AND status NOT IN (?,?,?) LIMIT 1
+        `).get(...done);
+    }
+
+    // Cancel the waiting jobs nobody will run: each lane claims only its own
+    // workflow's, so once that workflow stops being served they would wait for
+    // ever. `served`: the workflows still served. Batch jobs are left alone, since
+    // they run on the main lane whatever it serves. Returns the jobs cancelled.
+    cancelUnserved(served, reason, now = Date.now()) {
+        const ids = [...served];
+        const notIn = ids.length ? `AND workflow_id NOT IN (${ids.map(() => '?').join(',')})` : '';
+        const rows = this.db.prepare(`
+            SELECT id FROM jobs WHERE status = ? AND batch_id IS NULL ${notIn}
+        `).all(sm.STATES.SCHEDULED, ...ids);
+        return rows.map(r => this.transitionStatus(r.id, sm.STATES.CANCELLED, {
+            payload: { errorReason: reason, errorPhase: 'pre-submit' }, now,
+        }));
     }
 
     // Fail any scheduled job whose chained input can never arrive — its source

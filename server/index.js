@@ -462,7 +462,13 @@ async function main() {
     }
     lanes.restoreRemembered(savedExtras)
         .catch(e => console.warn('[ComfyQ] lane restore failed:', e.message))
-        .finally(() => lanes.cancelPrompts(stalePrompts));
+        .finally(() => {
+            // Everything is back that is coming back: what is still unserved has
+            // no lane to run it (a lane that failed to restore, a list changed
+            // while ComfyQ was down).
+            lanes.cancelUnserved();
+            return lanes.cancelPrompts(stalePrompts);
+        });
 
     const primaryLane = lanes.get(config.workflows.activeWorkflowId);
     // The MAIN lane's worker/executor stand in wherever the rest of the server

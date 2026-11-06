@@ -86,6 +86,7 @@ const FAILURE_TEXT = {
     'comfyui-process-exited': 'The image engine (ComfyUI) stopped during this job — book it again.',
     'emergency-stop': 'An admin stopped all running jobs.',
     'workflow-unavailable': 'This workflow is no longer available on this machine.',
+    'workflow-not-served': 'Cancelled: this workflow stopped being served on this machine before the job could start.',
     'cancelled': 'Cancelled.',
 };
 export function failureText(reason) {

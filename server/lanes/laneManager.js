@@ -23,6 +23,12 @@ const launcher = require('../workers/comfyLauncher');
 // claim work with a plain `findReady(now, [workflowId])` and no lease: two
 // lanes can never see the same job.
 //
+// A batch is the exception, and it does not use lanes: its jobs must run in
+// order, because later ones consume what earlier ones made. The main lane alone
+// takes them, whatever workflow each names, one at a time; every other lane
+// leaves them. The routes refuse a batch beside extra lanes and an extra lane
+// beside a batch, and _prepareRun gets the ComfyUI ready for each workflow.
+//
 // Two ideas that used to be one (2026-11-04):
 //   - the BASE lane is the one on the configured port with the install's own
 //     directories — "the install's ComfyUI";
@@ -59,6 +65,8 @@ class LaneManager {
         this.onSageIncompatible = onSageIncompatible;
         this.onMilestone = onMilestone || (() => {});
         this.lanes = new Map();          // workflowId -> lane
+        // True during a live switch: for that moment no lane can take a booking.
+        this.switching = false;
     }
 
     _config() { return this.configManager.load().config; }
@@ -137,6 +145,25 @@ class LaneManager {
     get(workflowId) { return this.lanes.get(workflowId) || null; }
 
     // ---- admission ---------------------------------------------------------
+
+    /**
+     * Would `workflowId` fit in place of the main lane, beside the other lanes?
+     * Only a measured "no" refuses: the main workflow never waits on a "cannot
+     * tell", and with no extra lane there is nothing to collide with.
+     */
+    fitSwitch(workflowId) {
+        const main = this.mainLane();
+        const others = [...this.lanes.values()].filter(l => l !== main);
+        const cardGb = this.cardVramGb();
+        const needGb = this.vramFor(workflowId);
+        const usedGb = +others.reduce((t, l) => t + (l.vramGb || 0), 0).toFixed(2);
+        const freeGb = cardGb ? +(cardGb - usedGb - CARD_HEADROOM_GB).toFixed(2) : null;
+        const verdict = { needGb, usedGb, cardGb, freeGb, lanes: others.map(l => l.workflowId) };
+        if (others.length === 0 || !cardGb || needGb == null || needGb <= freeGb) return { ok: true, reason: 'fits', ...verdict };
+        const names = others.map(l => `"${this.registry.get(l.workflowId)?.summary?.name || l.workflowId}"`).join(', ');
+        const message = `${this._fitMessage(workflowId, { ...verdict, reason: 'not-enough-vram' })} Close ${names} first.`;
+        return { ok: false, reason: 'not-enough-vram', message, ...verdict };
+    }
 
     /**
      * Would another lane for `workflowId` fit on this card?
@@ -316,6 +343,8 @@ class LaneManager {
             label,
             onSageIncompatible: this.onSageIncompatible
                 ? () => this.onSageIncompatible(worker) : null,
+            batchPolicy: () => (this.mainLane()?.workflowId === workflowId ? 'include' : 'exclude'),
+            beforeRun: (wf) => this._prepareRun(workflowId, wf.id),
         });
         executor.start();
         // Every lane's progress reaches the students' screens, not only the
@@ -326,6 +355,7 @@ class LaneManager {
 
         const lane = {
             id: label, workflowId, port, base: onBase, worker, executor, comfyConfig,
+            ranWorkflowId: workflowId,   // what its ComfyUI is set up for (see _prepareRun)
             vramGb: this.vramFor(workflowId) || 0,
             startedAt: Date.now(),
         };
@@ -335,6 +365,24 @@ class LaneManager {
             (lane.vramGb ? ` (~${lane.vramGb} GB of models)` : ''));
         this.onChange();
         return this._describe(lane);
+    }
+
+    // A batch moves the main lane between workflows. Each one gets the models of
+    // the last out of the way, and the speed-ups it can run with: a flag a
+    // workflow disowns saves black pictures. No change of workflow, nothing to do,
+    // so a lane serving its own jobs pays nothing here.
+    async _prepareRun(laneWorkflowId, workflowId) {
+        const lane = this.lanes.get(laneWorkflowId);
+        if (!lane || lane.ranWorkflowId === workflowId) return;
+        const { worker } = lane;
+        console.log(`[Lane ${lane.id}] next job runs "${workflowId}" (was "${lane.ranWorkflowId}")`);
+        try { await worker.rest.free({ unloadModels: true, freeMemory: true }); }
+        catch (e) { console.warn(`[Lane ${lane.id}] could not unload its models: ${e.message}`); }
+        const wanted = effectiveComfyConfig(this._config().comfy_ui, this.registry.get(workflowId)?.meta || null);
+        worker.process.useSageAttention = !!wanted.use_sage_attention;
+        worker.process.fp16Accumulation = !!wanted.fp16_accumulation;
+        await worker.ensureLaunchSettings();
+        lane.ranWorkflowId = workflowId;
     }
 
     // Is the ComfyUI answering on this lane's port the one this lane started?
@@ -357,6 +405,37 @@ class LaneManager {
         if (v.reason === 'size-unknown') return `How much VRAM "${name}" needs cannot be read from its graph. Start it anyway to override.`;
         return `"${name}" needs about ${v.needGb} GB and only ${v.freeGb} GB is free ` +
             `(${v.usedGb} GB in use by other lanes, ${CARD_HEADROOM_GB} GB kept for the system, ${v.cardGb} GB card).`;
+    }
+
+    /**
+     * Swap the main lane for `workflowId` on the warm ComfyUI. The other lanes are
+     * not touched. Bookings are refused for the moment no lane is there to take
+     * them (realtimeBus), and the flag drops even when the open fails.
+     */
+    async switchMain(workflowId) {
+        this.switching = true;
+        this.onChange();
+        try {
+            const old = this.mainLane();
+            if (old) await this.close(old.workflowId);
+            await this.open(workflowId, { primary: true });
+        } finally {
+            this.switching = false;
+            this.onChange();
+        }
+    }
+
+    // What no lane will run any more goes away with a reason the student can
+    // read, instead of waiting for ever.
+    cancelUnserved() {
+        try {
+            const cancelled = this.queue.cancelUnserved(this.servedWorkflowIds(), 'workflow-not-served');
+            if (cancelled.length) console.log(`[Lane] cancelled ${cancelled.length} waiting job(s): their workflow is no longer served`);
+            return cancelled;
+        } catch (e) {
+            console.warn(`[Lane] could not cancel the waiting jobs: ${e.message}`);
+            return [];
+        }
     }
 
     /**
@@ -390,6 +469,7 @@ class LaneManager {
             try { await lane.worker.process.stop(); }
             catch (e) { console.warn(`[Lane ${lane.id}] could not stop ComfyUI: ${e.message}`); }
         }
+        this.cancelUnserved();
         this._syncConfig();
         console.log(`[Lane ${lane.id}] stopped serving "${workflowId}"` +
             (lane.base ? " — the install's ComfyUI stays up, models unloaded" : ' — its ComfyUI stopped'));

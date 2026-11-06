@@ -194,6 +194,41 @@ const check = (name, cond, extra = '') => {
         `${queue.get(G).status} / ${JSON.stringify(queue.get(G).outputs)}`);
     check('...and does not release the worker a second time', worker.finalizes === finalizesAfterAbort, `${worker.finalizes} vs ${finalizesAfterAbort}`);
 
+    // 8. beforeRun: the hold while it runs, and a failure there fails the job.
+    {
+        const lanes = { policy: [] };
+        worker.state = 'idle'; worker.currentJobId = null; worker.currentPromptId = null;
+        worker.rest.getHistory = async () => null;
+        let release; const gate = new Promise(r => { release = r; });
+        const ranFor = [];
+        const ex = new JobExecutor({
+            queue, worker, registry, comfyConfig, workflowIds: ['other'],
+            batchPolicy: () => { lanes.policy.push('asked'); return 'include'; },
+            beforeRun: async (wf) => { ranFor.push(wf.id); await gate; },
+        });
+        const batchJob = uuid();
+        queue.insert({ id: batchJob, userId: 's', workflowId: 'wf', scheduledAt: Date.now() - 1000, prompt: 'p', paramValues: {}, batchId: 'b' });
+        const first = ex._tick();
+        await nextTurn();
+        await ex._tick();
+        check('a lane takes a batch job of another workflow', ranFor.length === 1 && ranFor[0] === 'wf' && lanes.policy.length >= 1, JSON.stringify(ranFor));
+        check('a second tick does not claim it twice while ComfyUI is made ready', worker.submits.filter(id => id === batchJob).length === 0, '');
+        release(); await first;
+        check('then it runs', worker.submits.includes(batchJob), JSON.stringify(worker.submits));
+        worker.finalize(); ex._currentJobId = null;
+        queue.transitionStatus(batchJob, sm.STATES.CANCELLED);
+
+        const refused = uuid();
+        queue.insert({ id: refused, userId: 's', workflowId: 'wf', scheduledAt: Date.now() - 1000, prompt: 'p', paramValues: {}, batchId: 'b' });
+        const ex2 = new JobExecutor({
+            queue, worker, registry, comfyConfig, workflowIds: ['other'], batchPolicy: () => 'include',
+            beforeRun: async () => { throw new Error('could not stop the ComfyUI on port 8188'); },
+        });
+        await ex2._tick();
+        check('a ComfyUI that cannot be made ready fails the job with why', queue.get(refused).status === sm.STATES.FAILED && /port 8188/.test(queue.get(refused).errorReason), queue.get(refused).errorReason);
+        check('...and the executor is not left holding', ex2._recovering === false, '');
+    }
+
     queue.close();
     fs.rmSync(tmp, { recursive: true, force: true });
     console.log(fails ? `\n${fails} FAILURE(S)\n` : '\nexecutor hold works\n');

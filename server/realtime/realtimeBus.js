@@ -190,6 +190,9 @@ class RealtimeBus {
                     const me = this.connectedUsers.get(socket.id);
                     const userId = user_id || me?.userId || 'anon';
                     if (isReservedUserId(userId)) throw new Error(RESERVED_NAME_MESSAGE);
+                    // Mid-switch no lane is there to take a booking, and the check
+                    // below sees an empty list and would let anything through.
+                    if (this.lanes?.switching) throw new Error('Switching models, try again in a moment.');
                     const cfg = this.configManager.load().config;
                     const wfId = workflow_id || cfg.workflows.activeWorkflowId;
                     if (!wfId) throw new Error('No active workflow configured');

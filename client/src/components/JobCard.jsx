@@ -142,7 +142,7 @@ const JobCard = React.memo(function JobCard({
                                 the case (errorMessages.humanizeFailure), and
                                 ComfyQ's own reason codes (server-restart, …) by
                                 failureText. The raw reason stays in the tooltip. */}
-                            {isFailed && job.error_reason && (
+                            {(isFailed || job.status === 'cancelled') && job.error_reason && (
                                 <span
                                     className="text-[10px] mt-1 text-danger/80 text-center line-clamp-3 break-words"
                                     title={job.error_reason}

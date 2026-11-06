@@ -214,6 +214,74 @@ const closing = () => {
         ok.push('cancelPrompts');
     }
 
+    // Closing a lane cancels what only it would have run; a failure there stops nothing.
+    {
+        const lm = Object.create(LaneManager.prototype);
+        const seen = [];
+        lm.lanes = new Map([['kept', {}]]);
+        lm.queue = { cancelUnserved: (served, reason) => { seen.push([served.join(), reason]); return []; } };
+        assert.deepStrictEqual(lm.cancelUnserved(), []);
+        assert.deepStrictEqual(seen, [['kept', 'workflow-not-served']]);
+        lm.queue = { cancelUnserved: () => { throw new Error('locked'); } };
+        assert.deepStrictEqual(lm.cancelUnserved(), []);
+        ok.push('cancelUnserved');
+    }
+
+    // A live switch: bookings refused while it lasts, even if the open fails.
+    {
+        const lm = Object.create(LaneManager.prototype);
+        const during = [];
+        lm.onChange = () => during.push(lm.switching);
+        lm.mainLane = () => ({ workflowId: 'old' });
+        lm.close = async () => { during.push('close:' + lm.switching); };
+        lm.open = async () => { during.push('open:' + lm.switching); throw new Error('no ComfyUI'); };
+        await assert.rejects(() => lm.switchMain('new'), /no ComfyUI/);
+        assert.deepStrictEqual(during, [true, 'close:true', 'open:true', false]);
+        assert.strictEqual(lm.switching, false);
+        ok.push('switchMain');
+    }
+
+    // A live switch must fit beside the lanes that stay.
+    {
+        const lm = makeManager(32);
+        pretendLane(lm, 'light', 8188, true);
+        pretendLane(lm, 'heavy', 8189, false);
+        lm.configManager.load().config.workflows = { activeWorkflowId: 'light' };
+        assert.strictEqual(lm.fitSwitch('light').ok, true, 'a small one fits where the main lane was');
+        const v = lm.fitSwitch('enormous');
+        assert.strictEqual(v.ok, false, 'no room beside the lane that stays');
+        assert.ok(v.message.includes('Close') && v.lanes.includes('heavy'), v.message);
+        assert.strictEqual(lm.fitSwitch('opaque').ok, true, 'a cannot-tell does not stop the main workflow');
+        const alone = makeManager(32);
+        pretendLane(alone, 'light', 8188, true);
+        assert.strictEqual(alone.fitSwitch('enormous').ok, true, 'alone on the card, nothing to collide with');
+        ok.push('fitSwitch');
+    }
+
+    // A batch moves the main lane between workflows: flags follow the workflow.
+    {
+        const lm = Object.create(LaneManager.prototype);
+        const calls = [];
+        const process = { useSageAttention: true, fp16Accumulation: true };
+        const worker = {
+            process,
+            rest: { free: async () => calls.push('free') },
+            ensureLaunchSettings: async () => calls.push(`check sage=${process.useSageAttention}`),
+        };
+        const lane = { id: 'l', workflowId: 'plain', ranWorkflowId: 'plain', worker };
+        lm.lanes = new Map([['plain', lane]]);
+        lm.registry = { get: (id) => (id === 'blackout' ? { meta: { requirements: { disabledPerfFlags: ['use_sage_attention'] } } } : { meta: {} }) };
+        lm.configManager = { load: () => ({ config: { comfy_ui: { use_sage_attention: true, fp16_accumulation: true } } }) };
+        await lm._prepareRun('plain', 'plain');
+        assert.deepStrictEqual(calls, [], 'the same workflow costs nothing');
+        await lm._prepareRun('plain', 'blackout');
+        assert.deepStrictEqual(calls, ['free', 'check sage=false']);
+        assert.strictEqual(lane.ranWorkflowId, 'blackout');
+        await lm._prepareRun('plain', 'plain');
+        assert.deepStrictEqual(calls, ['free', 'check sage=false', 'free', 'check sage=true'], 'the flag comes back for a workflow that can use it');
+        ok.push('_prepareRun');
+    }
+
     fs.rmSync(root, { recursive: true, force: true });
     console.log(`laneManager: all ${ok.length} checks passed`);
 })().catch((e) => { console.error(e); process.exit(1); });

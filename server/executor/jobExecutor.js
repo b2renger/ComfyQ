@@ -11,7 +11,7 @@ const FAST_POLL_WINDOW_MS = 60000;
 // Drives the JobQueue + Worker. One job at a time in M0; the executor stays
 // loop-driven so it composes cleanly with future multi-worker pools.
 class JobExecutor {
-    constructor({ queue, worker, registry, comfyConfig, onSageIncompatible = null, workflowIds = null, label = '' }) {
+    constructor({ queue, worker, registry, comfyConfig, onSageIncompatible = null, workflowIds = null, label = '', batchPolicy = null, beforeRun = null }) {
         this.queue = queue;
         this.worker = worker;
         this.registry = registry;
@@ -22,6 +22,13 @@ class JobExecutor {
         this.workflowIds = workflowIds;
         // Prefix for this executor's log lines, so two lanes are tellable apart.
         this.label = label;
+        // Batch jobs name their own workflow, so one lane takes them all and
+        // runs them in order: () => 'include' | 'exclude', asked on every tick
+        // because the main lane can change. See LaneManager.
+        this.batchPolicy = batchPolicy;
+        // async (workflowEntry) => void, awaited before a job starts: this is
+        // where a lane gets its ComfyUI ready for another workflow's job.
+        this.beforeRun = beforeRun;
         // Called once, the first time a job dies because ComfyUI's optional
         // sage-attention flag does not support that model's head dimension.
         // Should turn the flag off, bring ComfyUI back without it, and resolve
@@ -228,7 +235,7 @@ class JobExecutor {
         // Otherwise look for the next ready job. findReady already skips jobs
         // whose chained inputs are not COMPLETED yet, so a waiting video never
         // blocks the images queued behind it.
-        const ready = this.queue.findReady(Date.now(), this.workflowIds);
+        const ready = this.queue.findReady(Date.now(), this.workflowIds, { batch: this.batchPolicy?.() ?? null });
         if (!ready) return;
 
         // Reject jobs whose workflow disappeared / became unavailable.
@@ -239,6 +246,30 @@ class JobExecutor {
             });
             this._notify();
             return;
+        }
+
+        if (this.beforeRun) {
+            // Held like a recovery: this can restart ComfyUI, and a second tick
+            // in the meantime would claim the same job.
+            this._recovering = true;
+            try {
+                await this.beforeRun(wf);
+            } catch (e) {
+                console.error(`${this._tag()} could not get ComfyUI ready for ${wf.id}: ${e.message}`);
+                if (this.queue.get(ready.id)?.status === sm.STATES.SCHEDULED) {
+                    this.queue.transitionStatus(ready.id, sm.STATES.FAILED, {
+                        payload: { errorReason: e.message, errorPhase: 'pre-submit' }
+                    });
+                    this._notify();
+                }
+                return;
+            } finally {
+                this._recovering = false;
+            }
+            // Cancelled meanwhile, or ComfyUI is not back yet: the next tick decides.
+            if (this.queue.get(ready.id)?.status !== sm.STATES.SCHEDULED) return;
+            const state = this.worker.getStatus?.().state;
+            if (state && state !== 'idle') return;
         }
 
         await this._executeOne(ready, wf);
