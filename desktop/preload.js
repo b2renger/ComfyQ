@@ -17,6 +17,7 @@ contextBridge.exposeInMainWorld('fleet', {
     // App version + auto-update (electron-updater driven from main.js).
     getVersion: () => ipcRenderer.invoke('app:get-version'),
     checkForUpdates: () => ipcRenderer.invoke('app:check-for-updates'),
+    openReleases: () => ipcRenderer.invoke('app:open-releases'),
     quitAndInstall: () => ipcRenderer.invoke('app:quit-and-install'),
     onUpdateStatus: (cb) => ipcRenderer.on('update-status', (_e, data) => cb(data))
 });

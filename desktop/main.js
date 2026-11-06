@@ -33,6 +33,7 @@ const ADDED_DROP_MS = 600_000; // a manually added machine stays listed (as "not
 
 let win = null;
 let autoUpdater = null;          // electron-updater, lazily loaded (see initAutoUpdater)
+const RELEASES_URL = 'https://github.com/b2renger/ComfyQ/releases/latest';
 let socket = null;
 let socketError = null;
 const peers = new Map();         // id -> { snap, lastSeen, source }
@@ -412,10 +413,13 @@ function sendUpdate(status, payload = {}) {
 function initAutoUpdater() {
     if (autoUpdater) return autoUpdater;
     autoUpdater = require('electron-updater').autoUpdater;
-    autoUpdater.autoDownload = true;          // download in the background as soon as found
+    // An unsigned Mac app cannot install an update: it downloads, then fails with
+    // what reads as "Update check failed". On a Mac, say a version is out instead.
+    const canInstall = process.platform !== 'darwin';
+    autoUpdater.autoDownload = canInstall;    // download in the background as soon as found
     autoUpdater.autoInstallOnAppQuit = true;  // apply on next quit if the user doesn't restart now
     autoUpdater.on('checking-for-update', () => sendUpdate('checking'));
-    autoUpdater.on('update-available',     (info) => sendUpdate('available',     { version: info && info.version }));
+    autoUpdater.on('update-available',     (info) => sendUpdate(canInstall ? 'available' : 'manual', { version: info && info.version }));
     autoUpdater.on('update-not-available', (info) => sendUpdate('not-available', { version: info && info.version }));
     autoUpdater.on('download-progress',    (p)    => sendUpdate('downloading',   { percent: Math.round((p && p.percent) || 0) }));
     autoUpdater.on('update-downloaded',    (info) => sendUpdate('downloaded',    { version: info && info.version }));
@@ -434,6 +438,8 @@ ipcMain.handle('app:check-for-updates', async () => {
         return { ok: false, error: String((e && e.message) || e) };
     }
 });
+// A window.open from this window would open a second app window, not the browser.
+ipcMain.handle('app:open-releases', () => shell.openExternal(RELEASES_URL));
 ipcMain.handle('app:quit-and-install', () => { if (autoUpdater) autoUpdater.quitAndInstall(); });
 
 ipcMain.handle('copy-text', (_e, text) => {

@@ -161,7 +161,7 @@ Windows and Linux builds **auto-update**; macOS needs a manual re-download. Inst
 
 - **Node.js 24 LTS ("Krypton")** — the supported version, pinned in [.nvmrc](.nvmrc). Node 22 LTS ("Jod") also works. ComfyQ deliberately tracks an **LTS** line for broad machine compatibility; the odd-numbered "Current" releases (23, 25, …) are not supported. npm's `engines` check (`^22.0.0 || ^24.0.0`) warns on any other version, so 23, 25 and 26 all warn. With [nvm](https://github.com/nvm-sh/nvm) or [fnm](https://github.com/Schniz/fnm), run `nvm use` / `fnm use` in the repo root to pick up `.nvmrc` automatically.
 - **Git for Windows** — needed for `git pull`, the once-per-machine `safe.directory` command below, and the admin panel's update checks and node-pack installs (they run `git fetch`, `git pull --ff-only` and `git clone`). The drive does not carry git: `winget install --id Git.Git --exact`.
-- ComfyUI installed and able to run on the same machine. The lab targets RTX 3090 / 4080 / 4090 / 5090 with portable ComfyUI installs.
+- ComfyUI installed and able to run on the same machine. Tested on RTX 4090 and 5090 with portable ComfyUI installs. An RTX 3090 has not been tested with this library, and the 3D packs need a newer card (see [tools/maintenance/README.md](tools/maintenance/README.md)).
 - C++ build tools available to npm — only needed as a **fallback** for `better-sqlite3`. On Node 24/22 LTS `npm install` downloads a prebuilt binary for your Node version (no compile), so most machines need nothing extra. That binary only works with the Node major version that installed it: on a cloned drive, use the same Node as the master (24), or delete the three `node_modules` folders (repo root, `client`, `server`) and run `npm install` again after changing Node. If a prebuild isn't available for your platform, the install falls back to compiling from source: on Windows that needs Visual Studio Build Tools (C++ workload).
 
 ## Install & run
@@ -380,6 +380,7 @@ A `GET /federation/self` endpoint returns the same snapshot over HTTP for script
 > 5173) — so if your firewall rule is per port rather than "allow Node.js", open **TCP 3000** on
 > Private networks too. It's on by default — toggle **Find machines automatically** or hit **Refresh**.
 >
+> ⚠ v2.1.0 and earlier probe each whole local subnet first, so on a /20 or wider network the Search range and the built-in range may not be reached. From the next release:
 > Every sweep covers, in this order, **the machine's own /24, the Search range, a built-in range
 > `10.10.14.1`–`10.10.18.254`** (the teaching lab's server subnets — 1270 addresses, swept by every
 > build of the app, on any network) **and the rest of each local subnet the machine is on**. The

@@ -1,5 +1,7 @@
 # ComfyQ v2 — Implementation Plan & Progress
 
+> **Frozen on 2026-11-06: v2 history to 2026-07.** Phase G becomes the batch feature; Phase H (several instances on one machine) is retired, because lanes run parallel workflows on one GPU. Kept as a record. What is true now is in [CLAUDE.md](CLAUDE.md), and the dated log in [PROJECT-HISTORY.md](PROJECT-HISTORY.md). The roadmap is in [docs/roadmap.md](docs/roadmap.md).
+
 This document tracks the v2 rebuild: the architecture, the milestone sequence, what's done, and what's still ahead. The plan was reached after auditing `main` / `poc1` / `poc2` and confirming six foundational decisions with the project owner.
 
 ---
@@ -21,7 +23,7 @@ At the time of the rewrite, `main` and `poc1` were byte-identical (the v1 baseli
 
 ## Target compatibility
 
-End-to-end on lab GPU boxes (RTX 3090 / 4080 / 4090 / 5090, ComfyUI per machine):
+End-to-end on lab GPU boxes (tested on RTX 4090 / 5090, ComfyUI per machine; an RTX 3090 is untested with this library):
 
 1. Flux2 Klein 9B text-to-image
 2. Flux2 Klein 9B image-edit

@@ -156,7 +156,13 @@ From the ComfyQ folder, in PowerShell or Git Bash:
 ```
 curl.exe -s http://localhost:3000/admin/mode     # {"mode":"admin"}
 ls server/data/.serving                          # must not exist
+git status --short                               # must print nothing
 ```
+
+- **Commit and push the recalibration from step 1 before imaging.** The test suite
+  rewrites a `runtime.json` in nearly every bundle, and all of them are tracked.
+  An image taken with those changes uncommitted carries them to every clone, and
+  the next `git pull` there stops with "Your local changes would be overwritten".
 
 - **`config.json` must hold no secrets.** It is gitignored, so it travels.
   Check `auth.adminPasswordHash`, `auth.accessPasswordHash` and

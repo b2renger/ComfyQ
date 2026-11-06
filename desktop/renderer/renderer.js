@@ -468,8 +468,11 @@ addPeerForm.addEventListener('submit', (e) => {
 settingsBtn.addEventListener('click', () => controlsEl.classList.toggle('hidden'));
 // Once an update is downloaded the button becomes "Restart to update"; the same
 // click then installs instead of re-checking (single handler, flag-driven).
+// On a Mac it becomes a link to the release instead, opened in the browser.
 let updateReady = false;
+let updateIsManual = false;
 checkUpdatesBtn.addEventListener('click', () => {
+    if (updateIsManual) { window.fleet.openReleases(); return; }
     if (updateReady) { window.fleet.quitAndInstall(); return; }
     checkUpdatesBtn.disabled = true;
     showToast('Checking for updates…');
@@ -618,6 +621,14 @@ window.fleet.onUpdateStatus((d) => {
     switch (d && d.status) {
         case 'checking':      showToast('Checking for updates…'); break;
         case 'available':     showToast(`Update v${d.version} found — downloading…`); break;
+        case 'manual':
+            showToast(`v${d.version} is out — download it from Releases`);
+            updateIsManual = true;
+            if (checkUpdatesBtn) {
+                checkUpdatesBtn.disabled = false;
+                checkUpdatesBtn.textContent = `Download v${d.version}`;
+            }
+            break;
         case 'not-available': if (!d.dev) showToast('You’re on the latest version'); break;
         case 'downloading':   showToast(`Downloading update… ${d.percent}%`); break;
         case 'downloaded':
