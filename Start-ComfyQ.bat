@@ -83,6 +83,14 @@ if errorlevel 1 (
 )
 
 :run
+rem A pull can bring new dependencies and a drive can move to another Node. This
+rem costs nothing when neither happened, and warns when offline. See the script.
+node tools\deps-check.cjs
+if errorlevel 1 (
+  pause
+  exit /b 1
+)
+
 rem Open the page by itself once the interface answers, rather than opening a
 rem dead tab now: Vite needs a few seconds, and more on a cold disk.
 start "" /b powershell -NoProfile -WindowStyle Hidden -Command "for($i=0;$i -lt 90;$i++){ try{ Invoke-WebRequest -UseBasicParsing -TimeoutSec 2 'http://localhost:5173' | Out-Null; Start-Process 'http://localhost:5173'; break } catch { Start-Sleep -Seconds 2 } }"

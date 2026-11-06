@@ -4,7 +4,7 @@
   "description": "ComfyQ v2 — multi-workflow scheduler over ComfyUI",
   "main": "index.js",
   "engines": {
-    "node": "^22.0.0 || ^24.0.0"
+    "node": "^22.0.0 || ^24.0.0 || ^26.0.0"
   },
   "scripts": {
     "start": "node index.js",
@@ -15,7 +15,7 @@
     "archiver": "^7.0.1",
     "axios": "^1.6.2",
     "bcryptjs": "^2.4.3",
-    "better-sqlite3": "^12.10.0",
+    "better-sqlite3": "^12.11.1",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "image-size": "^1.2.1",

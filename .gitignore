@@ -5,9 +5,7 @@
 # ============ Dependencies ============
 # Node.js dependencies
 node_modules/
-package-lock.json
-# ...but DO commit the desktop lockfile — the release CI uses `npm ci`.
-!desktop/package-lock.json
+# The lockfiles ARE committed, so every rig installs the same versions.
 client/node_modules/
 server/node_modules/
 desktop/node_modules/

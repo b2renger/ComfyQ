@@ -87,15 +87,13 @@ job a student books. A run that changes the cost (a longer or shorter clip, more
 or fewer pixels or steps, a lighter input than a student's) sets
 `"keepRuntime": true`.
 
-**Seeds.** So that a re-run can never be answered from ComfyUI's cache,
-calibration gives a fresh value to every exposed seed (a key `seed`, `seed_<n>`
-or ending in `_seed`, or a field `seed` or ending in `.seed` / `_seed` — the
-Gemma captioners' `sampling_mode.seed` included) and to every number in the graph
-whose input name ends in `seed`. So a seed set in this file is never what runs: a
-suite cannot pin a seed. The sweep report and the example record the value each
-exposed seed really got (the report marks it "calibration"). A hidden seed that got a fresh value — LTX 2.5's
-second RandomNoise, for example — is not recorded, so an example cannot always
-be reproduced pixel for pixel.
+**Seeds: an example can be repeated exactly.** A seed set in this file is the seed
+that runs. An exposed seed it does not set gets a fresh value, and the sweep report
+and the example record it (the report marks it "calibration"). Seeds hidden in the
+graph stay as they are, which is what a booking gets, so "Use these settings" on an
+example gives back the same result. ComfyUI's cache cannot answer a repeat: every
+run starts with a `/free`, which empties it. A plain sweep, with no suite, still
+randomises every seed.
 
 ## The file
 

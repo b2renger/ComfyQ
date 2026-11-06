@@ -238,7 +238,7 @@ class BenchmarkService {
      * @param {object} [opts.worker]      the worker whose uploader stages the copies
      * @param {string[]} [opts.inputRoots]  more folders a suite's `file:` value may come from
      */
-    _buildCalibrationParams(entry, benchJobId, overrides = null, mediaNotes = null, { worker = this.worker, inputRoots = [] } = {}) {
+    _buildCalibrationParams(entry, benchJobId, overrides = null, mediaNotes = null, { worker = this.worker, inputRoots = [], reproducible = false } = {}) {
         const paramValues = { ...(entry.meta.warmupParams || {}), ...(overrides || {}) };
         // ★ Which file on disk each media input really came from, kept so a sweep
         // report can show a human the ingredients that produced a given result.
@@ -287,8 +287,12 @@ class BenchmarkService {
         // cache — this covers seeds that live in a connected primitive node
         // (field `value`) which `_randomizeSeeds` (literal `*seed` fields) misses.
         // Overrides a warmupParams seed on purpose; calibration must always run.
+        // A seed a test suite chose stays: an example is reproduced from its seeds,
+        // and the /free before the run empties ComfyUI's cache anyway.
         for (const p of entry.effective.exposedParameters) {
-            if (isSeedParam(p)) paramValues[p.key] = Math.floor(Math.random() * 0x7fffffff);
+            if (!isSeedParam(p)) continue;
+            if (reproducible && typeof overrides?.[p.key] === 'number') continue;
+            paramValues[p.key] = Math.floor(Math.random() * 0x7fffffff);
         }
         return paramValues;
     }
@@ -561,8 +565,13 @@ class BenchmarkService {
             // Inside the try, so a refused input still cleans up what was staged.
             console.log(`[Benchmark] ${workflowId}: preparing calibration inputs…`);
             const paramValues = this._buildCalibrationParams(entry, stageId, opts.params || null, opts.mediaNotes || null,
-                { worker, inputRoots: opts.inputRoots || [] });
-            const { wf, seedsRandomized: literalSeeds } = this._randomizeSeeds(entry.apiWorkflow);
+                { worker, inputRoots: opts.inputRoots || [], reproducible: !!opts.reproducible });
+            // ★ A reproducible run keeps the graph's hidden seeds: they are what a
+            // booking gets, so an example's settings give back the same pixels.
+            // Randomised, they were recorded nowhere and could not be repeated.
+            const { wf, seedsRandomized: literalSeeds } = opts.reproducible
+                ? { wf: JSON.parse(JSON.stringify(entry.apiWorkflow)), seedsRandomized: 0 }
+                : this._randomizeSeeds(entry.apiWorkflow);
             // …plus the exposed seeds _buildCalibrationParams replaced on a field the
             // literal pass does not touch (a primitive's `value`, `sampling_mode.seed`),
             // or the report reads "0 seeds randomized" for a run that was cache-proof.

@@ -434,6 +434,7 @@ class LibrarySweep {
                     continue;
                 }
                 calOpts = {
+                    reproducible: true,
                     params: res.params, mediaNotes: res.notes,
                     // ★ Where this sweep writes derived inputs. With --data-dir that is
                     // not server/data, and the calibrator refused every derived input
@@ -613,11 +614,10 @@ class LibrarySweep {
                 : graph[p.nodeId]?.inputs?.[p.field];
             const wasSent = Object.prototype.hasOwnProperty.call(sent, p.key);
             const fromSuite = (details?.suiteKeys || []).includes(p.key);
-            // ★ Calibration replaces every exposed seed with a fresh one so the run
-            //   cannot be a cache hit (benchmarkService._buildCalibrationParams), the
-            //   suite's own seed included — say so, or the example names the suite as
-            //   the source of a number it never chose.
-            const isSeed = isSeedParam(p);
+            // ★ Calibration gives an exposed seed a fresh value unless the suite chose
+            //   one (benchmarkService._buildCalibrationParams): say which, or the
+            //   example names the suite as the source of a number it never chose.
+            const isSeed = isSeedParam(p) && !fromSuite;
             const row = {
                 key: p.key,
                 label: p.label || p.key,
