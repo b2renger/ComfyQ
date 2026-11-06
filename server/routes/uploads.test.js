@@ -1,4 +1,4 @@
-// The server-side backstop on uploads: a picture must fit 1920×1080 in either
+// The server-side backstop on uploads: a picture must fit 2048×2048 in either
 // orientation, and HEIC is refused whatever it is called. The client resizes
 // first; this is what stops a bypassed or failed resize from sending a 40 MP
 // phone photo to ComfyUI, where the decode plus the model load runs the GPU box
@@ -32,13 +32,13 @@ function png(name, w, h) {
 }
 function file(name, buf) { const p = path.join(dir, name); fs.writeFileSync(p, buf); return p; }
 
-check('the box is 1920×1080', IMAGE_MAX_LONG === 1920 && IMAGE_MAX_SHORT === 1080);
-check('a 1920×1080 picture is accepted', inspectUpload(png('a.png', 1920, 1080), 'a.png').ok === true);
-check('the same picture held portrait is accepted', inspectUpload(png('b.png', 1080, 1920), 'b.png').ok === true);
-let r = inspectUpload(png('c.png', 1921, 1080), 'c.png');
+check('the box is 2048×2048', IMAGE_MAX_LONG === 2048 && IMAGE_MAX_SHORT === 2048);
+check('a 2048×2048 picture is accepted', inspectUpload(png('a.png', 2048, 2048), 'a.png').ok === true);
+check('a 2048×1536 picture is accepted', inspectUpload(png('b.png', 2048, 1536), 'b.png').ok === true);
+let r = inspectUpload(png('c.png', 2049, 1080), 'c.png');
 check('one pixel too wide is refused with 413', r.ok === false && r.status === 413, JSON.stringify(r));
-r = inspectUpload(png('d.png', 1600, 1200), 'd.png');
-check('a short edge over 1080 is refused even when the long edge fits', r.ok === false && r.status === 413, JSON.stringify(r));
+r = inspectUpload(png('d.png', 1600, 2049), 'd.png');
+check('one pixel too tall is refused with 413', r.ok === false && r.status === 413, JSON.stringify(r));
 r = inspectUpload(file('e.heic', Buffer.from('x')), 'e.heic');
 check('a .heic name is refused with 415', r.ok === false && r.status === 415, JSON.stringify(r));
 const heic = Buffer.alloc(32); heic.write('ftypheic', 4, 'ascii');

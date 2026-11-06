@@ -542,7 +542,7 @@ const WorkflowMetaEditor = ({ workflowId, adminPassword, onClose, onSaved }) => 
                                                             <p className="text-[10px] text-muted leading-snug">
                                                                 {p.type === 'video'
                                                                     ? 'Has no effect: videos (and audio) are uploaded as they are, never resized in the browser.'
-                                                                    : 'Pictures are shrunk in the browser before upload — aspect ratio kept, never enlarged. Blank (recommended): fit a 1920×1080 box in either orientation, the largest the server accepts. A value caps both edges at that many pixels, inside that box: 1376 gives 1376×1080, and anything above 1920 behaves like blank.'}
+                                                                    : 'Pictures are shrunk in the browser before upload — aspect ratio kept, never enlarged. Blank: fit a 1920×1080 box in either orientation. A value caps both edges at that many pixels, up to 2048, the largest the server accepts.'}
                                                             </p>
                                                         </div>
                                                     )}

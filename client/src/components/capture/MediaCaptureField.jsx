@@ -4,9 +4,8 @@ import { resizeImageFile } from '../../utils/imageResize';
 import { uploadBox } from './uploadBox';
 
 // Image bounding box: 1920×1080 in EITHER orientation (long edge ≤ 1920, short
-// edge ≤ 1080) — the most the server accepts. A per-parameter `maxInputEdge`
-// (set in the metadata editor) can only shrink it to a square long-edge cap;
-// see uploadBox.js for why a larger value is clamped.
+// edge ≤ 1080) by default, up to the 2048×2048 the server accepts. A per-parameter `maxInputEdge`
+// (set in the metadata editor) replaces it with a square cap; see uploadBox.js.
 
 // 3D meshes have no usable MIME prefix to filter on the way image/* and video/*
 // do — a browser reports .obj and .stl as '' and .glb inconsistently — so the
@@ -54,8 +53,8 @@ const MediaCaptureField = ({
     const isImage = type === 'image';
     const noun = isAudio ? 'audio' : isVideo ? 'video' : isModel3d ? '3D model' : 'image';
     // When maxInputEdge is set, use it as a square long-edge cap (legacy
-    // single-edge behavior), never larger than the 1920×1080 box the server
-    // accepts; otherwise that box.
+    // single-edge behavior), never larger than the 2048×2048 box the server
+    // accepts; otherwise the 1920×1080 box.
     const { maxLong, maxShort } = uploadBox(maxInputEdge);
     const acceptPrefix = `${type}/`;
     const acceptAttr = isModel3d ? MODEL3D_EXTS.join(',') : `${type}/*`;

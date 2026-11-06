@@ -1,9 +1,11 @@
 // Unit test for the client's image upload box (run: node client/src/components/capture/uploadBox.test.mjs)
 //
 // The bug this pins: a card whose image param declared maxInputEdge 2048 resized
-// a phone photo to 2048×1536, and the server refused it as larger than 1920×1080
-// — on every retry, since the resize gave the same size again. So: the client
+// a phone photo to 2048×1536, and the server (then capped at 1920×1080) refused
+// it on every retry, since the resize gave the same size again. So: the client
 // box must never exceed the server's, and every real param must land inside it.
+// And the reverse: a card asking for 2048 must really get 2048 (question 10 of the
+// 2026-11-05 review), while a card asking for nothing keeps 1920×1080.
 import assert from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -25,8 +27,9 @@ assert.strictEqual(IMAGE_MAX_SHORT, uploads.IMAGE_MAX_SHORT, 'client short-edge 
 assert.deepStrictEqual(uploadBox(undefined), { maxLong: 1920, maxShort: 1080 }, 'no maxInputEdge → the full box');
 assert.deepStrictEqual(uploadBox(null), { maxLong: 1920, maxShort: 1080 });
 assert.deepStrictEqual(uploadBox(1024), { maxLong: 1024, maxShort: 1024 }, 'a small cap stays a square cap');
-assert.deepStrictEqual(uploadBox(1376), { maxLong: 1376, maxShort: 1080 }, 'short edge clamped to the server box');
-assert.deepStrictEqual(uploadBox(2048), { maxLong: 1920, maxShort: 1080 }, 'a cap above the box is clamped into it');
+assert.deepStrictEqual(uploadBox(1376), { maxLong: 1376, maxShort: 1376 }, 'a cap inside the ceiling is square');
+assert.deepStrictEqual(uploadBox(2048), { maxLong: 2048, maxShort: 2048 }, 'a card asking for 2048 gets 2048');
+assert.deepStrictEqual(uploadBox(4096), { maxLong: 2048, maxShort: 2048 }, 'a cap above the ceiling is clamped into it');
 
 // 3. Run each picture through the real resizeImageFile and check what it would
 // upload against the server's own rule, for the sizes a student really sends.
@@ -60,6 +63,8 @@ async function uploadedSize(w, h, { maxLong, maxShort }) {
 assert.deepStrictEqual(await uploadedSize(4032, 3024, uploadBox(undefined)), [1440, 1080]);
 assert.deepStrictEqual(await uploadedSize(3024, 4032, uploadBox(undefined)), [1080, 1440]);
 assert.deepStrictEqual(await uploadedSize(512, 512, uploadBox(undefined)), [512, 512], 'a small picture is sent unchanged');
+assert.deepStrictEqual(await uploadedSize(4032, 3024, uploadBox(2048)), [2048, 1536], 'a phone photo keeps its 2048 long edge');
+assert.deepStrictEqual(await uploadedSize(3000, 3000, uploadBox(2048)), [2048, 2048], 'a square photo reaches 2048 square');
 
 const serverAccepts = ([w, h]) => Math.max(w, h) <= uploads.IMAGE_MAX_LONG && Math.min(w, h) <= uploads.IMAGE_MAX_SHORT;
 const photos = [[4032, 3024], [3024, 4032], [4080, 3072], [3000, 3000], [1600, 1200], [1080, 1920], [512, 512]];

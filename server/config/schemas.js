@@ -78,11 +78,10 @@ const ExposedParameter = z.object({
     // For image/mask params: a pixel cap the client applies before upload
     // (client/src/components/capture/uploadBox.js → utils/imageResize.js).
     // Undefined → the picture is fitted into a 1920×1080 box in either
-    // orientation, the most server/routes/uploads.js accepts. A value caps
-    // both edges at that many pixels, clamped into that same box, so it can
-    // only make the upload smaller (1024 → 1024×1024, 1376 → 1376×1080, 2048
-    // → still 1920×1080). Video and audio are uploaded as-is, so the field has
-    // no effect on them.
+    // orientation. A value caps both edges at that many pixels, up to the
+    // 2048×2048 that server/routes/uploads.js accepts (1024 → 1024×1024,
+    // 2048 → 2048×2048, 4096 → 2048×2048). Video and audio are uploaded as-is,
+    // so the field has no effect on them.
     maxInputEdge: z.number().int().positive().optional(),
     // Conditional gray-out: this field renders disabled when another exposed
     // param's current value equals `equals`. Used for either/or fields gated by

@@ -9,9 +9,10 @@ const sizeOf = require('image-size');
 // sweeps only comfyq__ and comfyq_chain__), so recalled uploads stay available.
 //
 // Upload caps — the backstop that keeps a too-big image from crashing the rig.
-// The booking dialog already fits images client-side into the same 1920×1080
-// box, in either orientation (see client/src/utils/imageResize.js), so a
-// legitimate upload lands within these limits. The caps exist for when that client resize is
+// The booking dialog already fits images client-side inside this box (1920×1080
+// by default, up to 2048×2048 for a card that asks for it through maxInputEdge:
+// see client/src/components/capture/uploadBox.js), so a legitimate upload lands
+// within these limits. The caps exist for when that client resize is
 // bypassed or fails — HEIC/HEIF photos (it can't decode them), a corrupt image,
 // or any non-browser client. Without them a full-resolution phone photo (40+ MP)
 // reaches ComfyUI, whose LoadImage decode (~0.5 GB RAM per copy) plus the model
@@ -19,11 +20,11 @@ const sizeOf = require('image-size');
 // read it either, and we can't downscale it here without a heavy native dep).
 const UPLOAD_MAX_BYTES = 150 * 1024 * 1024; // multer hard ceiling (covers video)
 const IMAGE_MAX_BYTES = 30 * 1024 * 1024;   // 30 MB for a still image
-// Images must fit a 1920×1080 box in EITHER orientation: long edge ≤ 1920 AND
-// short edge ≤ 1080. The client already downscales to fit this; the cap is the
-// backstop for bypassed/failed client resizes.
-const IMAGE_MAX_LONG = 1920;
-const IMAGE_MAX_SHORT = 1080;
+// Images must fit a 2048×2048 box. The client already downscales to fit this;
+// the cap is the backstop for bypassed/failed client resizes. 32 image params
+// ask for 2048: a smaller box starves Qwen 2.1 edit, whose output follows image 1.
+const IMAGE_MAX_LONG = 2048;
+const IMAGE_MAX_SHORT = 2048;
 
 const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif']);
 const HEIC_EXTS = new Set(['.heic', '.heif']);
@@ -97,7 +98,7 @@ function inspectUpload(absPath, originalName) {
         return {
             ok: false,
             status: 413,
-            error: `Image is too large (${dim.width}×${dim.height}). Maximum is ${IMAGE_MAX_LONG}×${IMAGE_MAX_SHORT} in either orientation (portrait or landscape) — please resize it and try again.`
+            error: `Image is too large (${dim.width}×${dim.height}). Maximum is ${IMAGE_MAX_LONG}×${IMAGE_MAX_SHORT}. Please resize it and try again.`
         };
     }
     return { ok: true };

@@ -81,7 +81,7 @@ const MaskDrawField = ({
     const [editing, setEditing] = useState(false);   // is the paint modal open?
     const [previewUrl, setPreviewUrl] = useState(''); // inline composited preview
 
-    // Never larger than the 1920×1080 box the server accepts (uploadBox.js).
+    // Never larger than the box the server accepts (uploadBox.js).
     const { maxLong, maxShort } = uploadBox(maxInputEdge);
     const reusing = !!recalledName && !dims;
 
