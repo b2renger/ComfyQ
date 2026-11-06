@@ -1,4 +1,4 @@
-import React, { useMemo, useCallback, useState } from 'react';
+import React, { useMemo, useCallback, useState, useEffect } from 'react';
 import { useSocket } from '../context/SocketContext';
 import {
     useReactTable,
@@ -58,12 +58,11 @@ const csvCell = (v) => {
  * - Sortable job history table (using @tanstack/react-table)
  * - Admin Actions:
  *   - Kill active jobs
- *   - Reorder scheduled jobs
  *   - Filter jobs by user
  *   - Reset server to configuration mode
  */
 const DashboardPage = () => {
-    const { state, deleteJob, reorderJob, workflowsById } = useSocket();
+    const { state, deleteJob, workflowsById } = useSocket();
     const [selectedUser, setSelectedUser] = useState(null);
     const [dateRange, setDateRange] = useState('all');
     // Custom range: YYYY-MM-DD strings from <input type="date">; bounds derived below.
@@ -77,13 +76,16 @@ const DashboardPage = () => {
         }
     };
 
-    const handleMoveJob = (jobId, currentTime, delta) => {
-        reorderJob(jobId, currentTime + delta);
-    };
 
+    // A preset is a window that ends now, so it has to move: a memo keyed only on
+    // the choice froze "Last 24h" at the moment it was clicked.
+    const [clock, setClock] = useState(() => Date.now());
+    useEffect(() => {
+        const t = setInterval(() => setClock(Date.now()), 30_000);
+        return () => clearInterval(t);
+    }, []);
 
-    // Date bounds (epoch ms). Recomputed on every render so the live "Today"
-    // window slides as time passes. Custom dates use the local timezone via
+    // Date bounds (epoch ms). Custom dates use the local timezone via
     // <input type="date">, with `until` rolled to end-of-day so the picked
     // date is inclusive.
     const dateBounds = useMemo(() => {
@@ -94,7 +96,7 @@ const DashboardPage = () => {
             return { since, until };
         }
         return DATE_PRESETS[dateRange]?.bounds(Date.now()) || null;
-    }, [dateRange, customSince, customUntil]);
+    }, [dateRange, customSince, customUntil, clock]);
 
     // Filter jobs by selected user + date range. Date filter compares against
     // time_slot (the scheduled time) so historical "when was this booked"
@@ -226,27 +228,8 @@ const DashboardPage = () => {
             id: 'actions',
             cell: info => {
                 const job = info.row.original;
-                const isScheduled = job.status === 'scheduled';
                 return (
                     <div className="flex items-center gap-2">
-                        {isScheduled && (
-                            <>
-                                <button
-                                    onClick={() => handleMoveJob(job.id, job.time_slot, -state.benchmark_ms)}
-                                    className="p-1.5 hover:bg-white/10 rounded text-muted hover:text-white transition-colors"
-                                    title="Move Up"
-                                >
-                                    <ChevronUp size={14} />
-                                </button>
-                                <button
-                                    onClick={() => handleMoveJob(job.id, job.time_slot, state.benchmark_ms)}
-                                    className="p-1.5 hover:bg-white/10 rounded text-muted hover:text-white transition-colors"
-                                    title="Move Down"
-                                >
-                                    <ChevronDown size={14} />
-                                </button>
-                            </>
-                        )}
                         <button
                             onClick={() => handleDeleteJob(job.id)}
                             className="p-1.5 hover:bg-danger/20 rounded text-muted hover:text-danger transition-colors"
@@ -258,7 +241,7 @@ const DashboardPage = () => {
                 );
             }
         }
-    ], [state.benchmark_ms, workflowsById]);
+    ], [workflowsById]);
 
     const table = useReactTable({
         data: filteredJobs,

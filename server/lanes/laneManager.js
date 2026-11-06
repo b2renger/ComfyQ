@@ -127,9 +127,17 @@ class LaneManager {
             owned: !!lane.worker?.process?.owned,
             state: status.state || 'unknown',
             busy: !!lane.executor?._currentJobId,
+            // Who loses a job if this lane closes: the panel asks first.
+            currentJob: this._currentJob(lane),
             vramGb: lane.vramGb,
             startedAt: lane.startedAt,
         };
+    }
+
+    _currentJob(lane) {
+        const id = lane.executor?._currentJobId;
+        const job = id ? this.queue.get?.(id) : null;
+        return job ? { id: job.id, userId: job.userId, prompt: String(job.prompt || '').slice(0, 80) } : null;
     }
 
     servedWorkflowIds() { return [...this.lanes.keys()]; }

@@ -71,6 +71,21 @@
       "title": "LTXVCropGuides"
     }
   },
+  "9900": {
+    "class_type": "Video Slice",
+    "inputs": {
+      "video": [
+        "5001",
+        0
+      ],
+      "start_time": 0,
+      "duration": 5,
+      "strict_duration": false
+    },
+    "_meta": {
+      "title": "Trim the upload (ComfyQ)"
+    }
+  },
   "5004:5600": {
     "inputs": {
       "vae_name": "ltx-2.5-audio-vae-bf16.safetensors"
@@ -966,21 +981,6 @@
     "class_type": "VAEDecodeTiled",
     "_meta": {
       "title": "VAE Decode (Tiled)"
-    }
-  },
-  "9900": {
-    "class_type": "Video Slice",
-    "inputs": {
-      "video": [
-        "5001",
-        0
-      ],
-      "start_time": 0,
-      "duration": 5,
-      "strict_duration": false
-    },
-    "_meta": {
-      "title": "Trim the upload (ComfyQ)"
     }
   }
 }

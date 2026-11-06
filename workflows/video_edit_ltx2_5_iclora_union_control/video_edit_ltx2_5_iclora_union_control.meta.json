@@ -103,28 +103,21 @@
       "order": 0
     },
     {
-      "key": "primitiveboolean_value_5014_5506",
-      "nodeId": "5014:5506",
-      "field": "value",
-      "type": "checkbox",
-      "label": "Use a start image",
-      "default": true,
-      "required": false,
-      "order": 1
-    },
-    {
       "key": "loadimage_image_2004",
       "nodeId": "2004",
       "field": "image",
       "type": "image",
-      "label": "Start image (first frame / look)",
+      "label": "Start image, optional (first frame / look)",
       "default": "",
       "required": false,
       "order": 2,
-      "disabledWhen": {
-        "param": "primitiveboolean_value_5014_5506",
-        "equals": false
-      }
+      "whenEmptySet": [
+        {
+          "nodeId": "5014:5506",
+          "field": "value",
+          "value": false
+        }
+      ]
     },
     {
       "key": "primitivestringmultiline_value_5508",
@@ -201,8 +194,7 @@
   ],
   "warmupParams": {
     "primitivestringmultiline_value_5508": "a claymation version of the scene, soft studio light",
-    "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
-    "primitiveboolean_value_5014_5506": false
+    "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
   },
   "presets": {}
 }

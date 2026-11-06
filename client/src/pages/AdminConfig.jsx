@@ -552,7 +552,17 @@ const AdminConfig = () => {
         finally { setComfyBusy(false); }
     };
 
+    // The buttons win over a sweep, but not silently: the bundle being measured
+    // gets recorded as failed.
+    const sweepConfirmed = (action) => !sweepRunning || window.confirm(
+        `A library sweep is running. ${action} ComfyUI now will fail the card it is measuring, and that card will read as broken until it is run again. Continue?`);
+
+    // Who loses a job. Empty when nothing is running on those lanes.
+    const stoppedJobsLine = (list) => list.filter(l => l.busy).map(l =>
+        `“${l.name}”${l.currentJob ? ` is generating for ${l.currentJob.userId}` : ' is generating'}`).join('; ');
+
     const restartComfy = async () => {
+        if (!sweepConfirmed('Restarting')) return;
         setComfyBusy(true);
         try {
             const res = await fetch(`${SERVER_URL}/admin/comfyui/restart`, { method: 'POST', headers: adminHeaders() });
@@ -568,6 +578,7 @@ const AdminConfig = () => {
     };
 
     const stopComfy = async () => {
+        if (!sweepConfirmed('Stopping')) return;
         setComfyBusy(true);
         try {
             const res = await fetch(`${SERVER_URL}/admin/comfyui/stop`, { method: 'POST', headers: adminHeaders() });
@@ -757,6 +768,8 @@ const AdminConfig = () => {
     };
 
     const closeLane = async (workflowId) => {
+        const running = stoppedJobsLine(lanes.filter(l => l.workflowId === workflowId));
+        if (running && !window.confirm(`${running}. Closing this lane stops that job, and it will read as failed. Continue?`)) return;
         setClosingLaneId(workflowId);
         try {
             const res = await fetch(`${SERVER_URL}/admin/lanes/${encodeURIComponent(workflowId)}`, {
@@ -773,6 +786,8 @@ const AdminConfig = () => {
     };
 
     const resetToAdmin = async () => {
+        const running = stoppedJobsLine(lanes);
+        if (running && !window.confirm(`${running}. Stopping serving stops those jobs, and they will read as failed. Continue?`)) return;
         setDeactivating(true);
         try {
             const res = await fetch(`${SERVER_URL}/admin/reset-to-admin`, {

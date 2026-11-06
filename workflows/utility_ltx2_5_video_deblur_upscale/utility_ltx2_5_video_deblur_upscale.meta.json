@@ -93,28 +93,21 @@
       "order": 0
     },
     {
-      "key": "primitiveboolean_value_5014_5506",
-      "nodeId": "5014:5506",
-      "field": "value",
-      "type": "checkbox",
-      "label": "Use a start image (optional)",
-      "default": false,
-      "required": false,
-      "order": 1
-    },
-    {
       "key": "loadimage_image_2004",
       "nodeId": "2004",
       "field": "image",
       "type": "image",
-      "label": "Start image (a sharp still of the first frame)",
+      "label": "Start image, optional (a sharp still of the first frame)",
       "default": "",
       "required": false,
       "order": 2,
-      "disabledWhen": {
-        "param": "primitiveboolean_value_5014_5506",
-        "equals": false
-      }
+      "whenEmptySet": [
+        {
+          "nodeId": "5014:5506",
+          "field": "value",
+          "value": false
+        }
+      ]
     },
     {
       "key": "primitivestringmultiline_value_5508",

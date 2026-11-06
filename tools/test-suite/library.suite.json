@@ -1013,7 +1013,6 @@
           "workflow": "video_edit_ltx2_5_iclora_canny_control",
           "note": "The grey 3D render's outlines are traced and kept, so every container in the stack becomes a toy brick in exactly the same place, and the camera move is unchanged.",
           "params": {
-            "primitiveboolean_value_5014_5506": false,
             "primitivestringmultiline_value_5508": "A glossy plastic toy cargo ship built from interlocking toy bricks: its stacked containers are bright red, yellow, blue and green bricks with little round studs on top, the hull is navy-blue plastic and the bridge tower is white plastic with tiny yellow windows. It sits on a smooth light-grey tabletop in a sunny kids' playroom, soft window light and a shallow macro-lens depth of field, like a toy photograph. Sound: a child humming nearby, the soft clatter of plastic bricks and a tiny toy ship horn that toots twice.",
             "loadvideo_file_5001": "asset:rough3Drender.mp4",
             "loadimage_image_2004": null
@@ -1024,7 +1023,6 @@
           "note": "Only the dancer's skeleton is kept: a knight in a castle hall performs the same moves. Compare with the depth card's example on the same clip, where the rooftop survives.",
           "keepRuntime": true,
           "params": {
-            "primitiveboolean_value_5014_5506": false,
             "primitivestringmultiline_value_5508": "A knight in polished silver plate armour with a flowing crimson cape and an open-faced helmet dances in a grand stone castle hall at night, tall red banners and flickering wall torches behind him, warm firelight glinting on the steel, cinematic lighting and a shallow depth of field. Sound: a lively medieval dance tune of drums and lute echoing through the hall, and the clank of armour plates with every step.",
             "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
             "loadimage_image_2004": null
@@ -1035,7 +1033,6 @@
           "note": "The dancer's video plus one clay-restyled first frame: the whole rooftop turns into claymation, keeping its depth, its positions and every move.",
           "keepRuntime": true,
           "params": {
-            "primitiveboolean_value_5014_5506": true,
             "primitivestringmultiline_value_5508": "A hand-crafted claymation stop-motion film: a bearded clay man with sculpted brown hair, a black plasticine hoodie with red sleeve bands and black clay trousers dances on a sage-green clay rooftop. Behind him puffy white clay clouds hang over a miniature clay town with red roofs, round green clay trees, a clay chimney and sagging clay wires. Visible fingerprints and plasticine texture on every surface, soft warm studio lighting, slightly jittery stop-motion movement. Sound: a playful bass-and-drums dance groove and soft squishy clay footsteps.",
             "resizeimagemasknode_resize_type_shorter_size_5548_5026": 512,
             "loadvideo_file_5001": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
@@ -1170,7 +1167,6 @@
           "note": "The 480p clip from the fast text-to-video card, redrawn at 960p: compare edges, faces and textures at the same size, and notice that the soundtrack is the original one.",
           "keepRuntime": true,
           "params": {
-            "primitiveboolean_value_5014_5506": false,
             "primitivestringmultiline_value_5508": "Sharp, highly detailed footage with clean textures, natural colours and crisp edges.",
             "resizeimagemasknode_resize_type_shorter_size_5548_5026": 960,
             "loadvideo_file_5001": {

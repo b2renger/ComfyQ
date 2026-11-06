@@ -71,6 +71,30 @@
       "title": "LTXVCropGuides"
     }
   },
+  "9900": {
+    "class_type": "Video Slice",
+    "inputs": {
+      "video": [
+        "5001",
+        0
+      ],
+      "start_time": 0,
+      "duration": 5,
+      "strict_duration": false
+    },
+    "_meta": {
+      "title": "Trim the upload (ComfyQ)"
+    }
+  },
+  "9910": {
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "Working resolution (ComfyQ: drives the resize + the annotator)"
+    },
+    "inputs": {
+      "value": 512
+    }
+  },
   "5004:5600": {
     "inputs": {
       "vae_name": "ltx-2.5-audio-vae-bf16.safetensors"
@@ -930,21 +954,6 @@
       "title": "VAE Decode (Tiled)"
     }
   },
-  "9900": {
-    "class_type": "Video Slice",
-    "inputs": {
-      "video": [
-        "5001",
-        0
-      ],
-      "start_time": 0,
-      "duration": 5,
-      "strict_duration": false
-    },
-    "_meta": {
-      "title": "Trim the upload (ComfyQ)"
-    }
-  },
   "5548:4986": {
     "class_type": "DWPreprocessor",
     "_meta": {
@@ -965,15 +974,6 @@
         "5548:5026",
         0
       ]
-    }
-  },
-  "9910": {
-    "class_type": "PrimitiveInt",
-    "_meta": {
-      "title": "Working resolution (ComfyQ: drives the resize + the annotator)"
-    },
-    "inputs": {
-      "value": 512
     }
   }
 }

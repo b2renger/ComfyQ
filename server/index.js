@@ -299,7 +299,9 @@ async function main() {
     // machine to student mode serving the batch's first workflow, which is what
     // starts the executor draining it. `runtime` is shared by reference, so in
     // student mode it picks up the live queue/executor instead.
-    app.use('/storyboard', access, storyboardRoutes.makeRouter({
+    // adminGate only: this is an admin page, and the access password is for students.
+    // With both layers, an access password and no admin password refused the admin.
+    app.use('/storyboard', storyboardRoutes.makeRouter({
         configManager, registry, runtime, adminGate: gate, exitForRestart
     }));
     // ★ Media serving in BOTH modes. It used to be mounted only in the student

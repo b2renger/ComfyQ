@@ -51,6 +51,52 @@
       "title": "Prompt (negative)"
     }
   },
+  "9900": {
+    "class_type": "Video Slice",
+    "inputs": {
+      "video": [
+        "5001",
+        0
+      ],
+      "start_time": 0,
+      "duration": 5,
+      "strict_duration": false
+    },
+    "_meta": {
+      "title": "Trim the upload (ComfyQ)"
+    }
+  },
+  "9901": {
+    "class_type": "ComfyMathExpression",
+    "inputs": {
+      "expression": "a*32",
+      "values.a": [
+        "5004:5606",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Size multiple = downscale factor x 32 (ComfyQ fix)"
+    }
+  },
+  "9902": {
+    "class_type": "ResizeImageMaskNode",
+    "inputs": {
+      "resize_type": "scale to multiple",
+      "resize_type.multiple": [
+        "9901",
+        1
+      ],
+      "scale_method": "lanczos",
+      "input": [
+        "5548:5026",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Snap frames to the latent grid (ComfyQ fix)"
+    }
+  },
   "5004:5600": {
     "inputs": {
       "vae_name": "ltx-2.5-audio-vae-bf16.safetensors"
@@ -199,7 +245,7 @@
   },
   "5014:5506": {
     "inputs": {
-      "value": false
+      "value": true
     },
     "class_type": "PrimitiveBoolean",
     "_meta": {
@@ -739,52 +785,6 @@
     "class_type": "VAEDecodeTiled",
     "_meta": {
       "title": "VAE Decode (Tiled)"
-    }
-  },
-  "9900": {
-    "class_type": "Video Slice",
-    "inputs": {
-      "video": [
-        "5001",
-        0
-      ],
-      "start_time": 0,
-      "duration": 5,
-      "strict_duration": false
-    },
-    "_meta": {
-      "title": "Trim the upload (ComfyQ)"
-    }
-  },
-  "9901": {
-    "class_type": "ComfyMathExpression",
-    "inputs": {
-      "expression": "a*32",
-      "values.a": [
-        "5004:5606",
-        1
-      ]
-    },
-    "_meta": {
-      "title": "Size multiple = downscale factor x 32 (ComfyQ fix)"
-    }
-  },
-  "9902": {
-    "class_type": "ResizeImageMaskNode",
-    "inputs": {
-      "resize_type": "scale to multiple",
-      "resize_type.multiple": [
-        "9901",
-        1
-      ],
-      "scale_method": "lanczos",
-      "input": [
-        "5548:5026",
-        0
-      ]
-    },
-    "_meta": {
-      "title": "Snap frames to the latent grid (ComfyQ fix)"
     }
   }
 }
