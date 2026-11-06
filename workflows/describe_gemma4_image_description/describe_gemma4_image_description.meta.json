@@ -67,7 +67,6 @@
     }
   ],
   "warmupParams": {},
-  "presets": {},
   "promptGuides": [
     {
       "label": "Gemma — understanding pictures (Google)",

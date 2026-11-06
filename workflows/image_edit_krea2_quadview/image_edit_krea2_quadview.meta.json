@@ -123,6 +123,5 @@
   "warmupParams": {
     "krea2editgroundedencode_prompt_119": "Convert the character in the image to a Character Sheet showing a face close-up, front full body, side full body and back full body views",
     "loadimage_image_72": "asset:Flux2-Klein_00001_.png"
-  },
-  "presets": {}
+  }
 }

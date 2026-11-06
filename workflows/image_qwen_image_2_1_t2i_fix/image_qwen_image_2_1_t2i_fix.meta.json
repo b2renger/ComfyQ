@@ -179,6 +179,5 @@
   "warmupParams": {
     "textencodeqwenimage21_prompt_459_452": "a single red apple on a white table",
     "ksampler_steps_459_458": 20
-  },
-  "presets": {}
+  }
 }

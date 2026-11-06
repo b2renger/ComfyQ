@@ -74,6 +74,5 @@
   ],
   "warmupParams": {
     "loadimage_image_1": "asset:01-portrait_remix.png"
-  },
-  "presets": {}
+  }
 }

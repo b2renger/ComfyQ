@@ -1592,8 +1592,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
                 requirements: { minVRAM: 0, models: [] },
                 estimatedDurationSec: 60,
                 exposedParameters: parsed.parameters,
-                warmupParams: {},
-                presets: {}
+                warmupParams: {}
             });
             fs.writeFileSync(path.join(dir, `${id}.meta.json`), JSON.stringify(meta, null, 2), 'utf8');
             registry.discover();
@@ -1646,39 +1645,6 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             const files = withoutExcluded(listModelFiles(root, dir, filter), exclude);
             res.json({ files, labels: files.map(prettyModelLabel) });
         } catch (e) { res.status(400).json({ error: e.message }); }
-    });
-
-    // Stage a workflow's original UI-format template into ComfyUI's user
-    // workflows folder (`<comfy root>/user/default/workflows/<id>.json`) so it
-    // shows up in ComfyUI's Workflows sidebar — one click to open as the full
-    // editable graph. This automates what the admin otherwise does by hand.
-    // ComfyUI (1.45) has no URL param to auto-open an arbitrary workflow, so the
-    // sidebar is the reliable, version-independent handoff. Requires the bundle
-    // to ship `<id>_template.json`; the client falls back to download+drag when
-    // it doesn't (API-only workflows) or when staging fails (bad/unset path).
-    router.post('/workflows/:id/stage-template', adminGate, (req, res) => {
-        try {
-            const id = req.params.id;
-            const entry = registry.get(id);
-            if (!entry) return res.status(404).json({ error: 'unknown workflow' });
-            if (!entry.hasTemplate) {
-                return res.status(409).json({ error: 'no-template', message: 'This workflow has no editable template yet — only the flat API graph is available.' });
-            }
-            const root = configManager.load().config.comfy_ui.root_path;
-            if (!root) return res.status(400).json({ error: 'ComfyUI root path is not configured (Admin → ComfyUI settings).' });
-            const openName = `${id}_template`;
-            // A workflow served in its own lane has its own ComfyUI with its own
-            // user directory; staging into the install's would put the workflow
-            // in front of the WRONG ComfyUI, and the lane's canvas would open
-            // empty.
-            const dir = path.join(laneUserRoot(id, root), 'default', 'workflows');
-            fs.mkdirSync(dir, { recursive: true });
-            const dest = path.join(dir, `${openName}.json`);
-            fs.copyFileSync(entry.templatePath, dest);
-            res.json({ ok: true, workflowName: id, openName, path: dest });
-        } catch (e) {
-            res.status(500).json({ error: e.message });
-        }
     });
 
     // Full "Open in ComfyUI" for the admin panel: stage the editable template AND

@@ -152,6 +152,5 @@
   ],
   "warmupParams": {
     "comfyswitchnode_on_false_129_211": "Reference sheet: a character and a room. Generated video: the character walks across the room."
-  },
-  "presets": {}
+  }
 }

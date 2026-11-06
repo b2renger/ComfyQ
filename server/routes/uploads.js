@@ -149,8 +149,6 @@ function makeRouter({ comfyConfig }) {
     }
 
     router.post('/upload', runUpload('file'), handleUpload);
-    // Backward compat with v1 client (still hits /upload-image).
-    router.post('/upload-image', runUpload('image'), handleUpload);
 
     // Serve a previously-uploaded INPUT file back to the client so "Use these
     // settings" can preview/play the reused asset. Restricted to ComfyQ's own

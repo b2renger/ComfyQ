@@ -201,7 +201,6 @@
     }
   ],
   "warmupParams": {},
-  "presets": {},
   "promptGuides": [
     {
       "label": "Wan 2.2 in ComfyUI — first/last frame",

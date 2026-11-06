@@ -229,9 +229,6 @@ const WARMUP_DIFF_OK = new Set([
     // The LTX 2.5 IC-LoRA trio calibrates with the start image OFF, because the
     // calibrator would otherwise stage a random picture as the first frame
     // (documented 2026-09-14). The start image changes no step count or size.
-    'video_edit_ltx2_5_iclora_canny_control:primitiveboolean_value_5014_5506',
-    'video_edit_ltx2_5_iclora_pose_control:primitiveboolean_value_5014_5506',
-    'video_edit_ltx2_5_iclora_union_control:primitiveboolean_value_5014_5506',
 ]);
 const NOT_COMPARED_TYPES = new Set(['image', 'video', 'audio', 'mask', 'model3d', 'text', 'textarea']);
 

@@ -68,26 +68,11 @@ function makeRouter({ registry, configManager, benchmarkService, adminGate }) {
         res.json({ parameters: e.effective.exposedParameters });
     });
 
-    router.get('/:id/presets/:name', (req, res) => {
-        const e = registry.get(req.params.id);
-        if (!e || e.unavailable) return res.status(404).json({ error: 'unknown or unavailable workflow' });
-        const preset = e.meta.presets?.[req.params.name];
-        if (!preset) return res.status(404).json({ error: 'unknown preset' });
-        res.json({ name: req.params.name, label: preset.label || req.params.name, values: preset.values || {} });
-    });
-
     router.post('/:id/calibrate', adminGate, async (req, res) => {
         try {
             const runtime = await benchmarkService.calibrate(req.params.id);
             res.json({ ok: true, runtime });
         } catch (e) { res.status(500).json({ error: e.message }); }
-    });
-
-    router.put('/:id/config-meta', express.json(), adminGate, (req, res) => {
-        try {
-            registry.writeConfigMeta(req.params.id, req.body);
-            res.json({ ok: true });
-        } catch (e) { res.status(400).json({ error: e.message }); }
     });
 
     return router;

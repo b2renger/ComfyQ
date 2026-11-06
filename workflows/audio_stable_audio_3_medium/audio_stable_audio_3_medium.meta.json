@@ -124,7 +124,6 @@
     }
   ],
   "warmupParams": {},
-  "presets": {},
   "promptGuides": [
     {
       "label": "Stable Audio 3 prompt guide (Stability AI)",

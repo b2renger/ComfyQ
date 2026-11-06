@@ -113,6 +113,5 @@
   ],
   "warmupParams": {
     "cliptextencode_text_6": "insert the reference object into the masked area"
-  },
-  "presets": {}
+  }
 }

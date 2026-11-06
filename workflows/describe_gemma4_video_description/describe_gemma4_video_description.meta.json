@@ -68,7 +68,6 @@
     }
   ],
   "warmupParams": {},
-  "presets": {},
   "promptGuides": [
     {
       "label": "Gemma — understanding video (Google)",

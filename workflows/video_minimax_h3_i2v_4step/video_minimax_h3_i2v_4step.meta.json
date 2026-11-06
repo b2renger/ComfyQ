@@ -142,6 +142,5 @@
   ],
   "warmupParams": {
     "minimaxh3imagetovideo_prompt_105_104": "<Picture 1> comes to life, slow camera push-in, soft ambient sound"
-  },
-  "presets": {}
+  }
 }

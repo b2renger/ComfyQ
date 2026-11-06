@@ -205,7 +205,6 @@ class WorkflowRegistry {
                     vramPeakGb: runtime.vramPeakGb || null,
                     vramResidentGb: runtime.vramResidentGb || null
                 } : null,
-                presets: Object.keys(merged.presets || {}),
                 parameterCount: merged.exposedParameters.filter(p => p.enabled !== false).length,
                 hidden: merged.hidden === true,
                 experimental: meta.experimental === true,
@@ -297,14 +296,6 @@ class WorkflowRegistry {
         this.mtimes.delete(id);
     }
 
-    writeConfigMeta(id, configMeta) {
-        const paths = this._bundlePaths(id);
-        if (!fs.existsSync(paths.folder)) throw new Error(`Workflow folder missing: ${id}`);
-        const validated = WorkflowConfigMeta.parse({ ...configMeta, id });
-        fs.writeFileSync(paths.configMetaPath, JSON.stringify(validated, null, 2), 'utf8');
-        this.cache.delete(id);
-        this.mtimes.delete(id);
-    }
 }
 
 module.exports = { WorkflowRegistry };

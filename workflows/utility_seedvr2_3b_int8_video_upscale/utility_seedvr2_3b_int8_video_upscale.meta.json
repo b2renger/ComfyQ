@@ -148,6 +148,5 @@
   ],
   "warmupParams": {
     "loadvideo_file_73": "asset:original.mp4"
-  },
-  "presets": {}
+  }
 }

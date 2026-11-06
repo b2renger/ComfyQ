@@ -31,8 +31,7 @@ function defaultConfig() {
         auth: { adminPasswordHash: '', accessPasswordHash: '' },
         queue: {
             dbPath: './server/data/comfyq.sqlite',
-            inputRetentionMinutes: 30,
-            outputRetentionDays: 30
+            inputRetentionMinutes: 30
         },
         workflows: { dir: './workflows', activeWorkflowId: null },
         // Sample media for one-click auto-calibration (see BenchmarkService).

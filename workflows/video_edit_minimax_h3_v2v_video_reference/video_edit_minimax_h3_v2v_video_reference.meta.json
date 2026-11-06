@@ -164,6 +164,5 @@
   "warmupParams": {
     "primitivestringmultiline_value_138": "Keep the motion and camera of Video 1. Turn the subject into a bronze statue in a sunny park. Audio: soft wind.",
     "loadvideo_file_147": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4"
-  },
-  "presets": {}
+  }
 }

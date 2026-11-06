@@ -152,7 +152,6 @@
     "loadvideo_file_240": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
     "loadimage_image_189": "asset:Flux2-Klein_00003_.png"
   },
-  "presets": {},
   "promptGuides": [
     {
       "label": "Wan Animate 2 in ComfyUI",

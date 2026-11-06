@@ -107,6 +107,5 @@
   ],
   "warmupParams": {
     "loadimage_image_72": "asset:Flux2-Klein_00001_.png"
-  },
-  "presets": {}
+  }
 }

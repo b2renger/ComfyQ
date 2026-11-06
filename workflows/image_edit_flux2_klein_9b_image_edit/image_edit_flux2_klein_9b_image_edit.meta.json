@@ -130,6 +130,5 @@
   ],
   "warmupParams": {
     "cliptextencode_text_75_74": "calibration"
-  },
-  "presets": {}
+  }
 }

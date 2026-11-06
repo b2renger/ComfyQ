@@ -136,7 +136,6 @@
     "vhs_loadvideo_video_33": "asset:2795750-uhd_3840_2160_25fps_1_1.mp4",
     "loadimage_image_189": "asset:Flux2-Klein_00003_.png"
   },
-  "presets": {},
   "promptGuides": [
     {
       "label": "ID-V2V — restyle a video from one frame",

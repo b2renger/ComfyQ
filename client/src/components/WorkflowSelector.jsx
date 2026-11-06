@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
     Image, Video, Wand2, Music, Box, LayoutGrid, List,
-    RefreshCw, ChevronRight, Sparkles, Clock, Tag,
+    RefreshCw, ChevronRight, Sparkles, Clock,
     Pencil, Trash2, Gauge, Cpu, FileText, Wrench, Search, X,
     ExternalLink, Power, Radio, Square, Brush, Film, FlaskConical, ShieldCheck, MemoryStick
 , PackageX } from 'lucide-react';
@@ -113,7 +113,6 @@ const VramChip = ({ vram, gpu, fit, servedHere, measured }) => {
  * WorkflowSelector
  * Lists workflows from /workflows and lets the admin pick one.
  * Calls onSelect(workflowDetails) when a workflow is chosen.
- * Calls onPresetSelect(name, values) when a preset chip is clicked.
  */
 // A node pack this machine does not have. Louder than a missing model on
 // purpose: ComfyUI rejects the whole prompt for an unknown class_type, so the
@@ -145,7 +144,7 @@ const MissingPackChip = ({ classes, packs, source }) => {
     );
 };
 
-const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowId, activeWorkflowId, onSelect, onPresetSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false, onValidate, validatingId = null,
+const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowId, activeWorkflowId, onSelect, onEdit, onDelete, onCalibrate, calibratingIds = new Set(), onOpenInComfy, openingComfyId = null, onActivate, activatingId = null, canActivate = true, onDeactivate, deactivating = false, serving = false, onValidate, validatingId = null,
     lanes = [], laneFit = {}, onServeAlongside = null, serveAlongsideId = null, onCloseLane = null, closingLaneId = null, onSweepRunning = null }) => {
     const [workflows, setWorkflows] = useState([]);
     // This machine's card, so "17.3 GB" can be judged against what it has —
@@ -239,18 +238,6 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
     };
 
     const handleClick = (w) => fetchDetails(w.id);
-
-    const handlePreset = async (name) => {
-        if (!selectedWorkflow) return;
-        try {
-            const res = await fetch(`${SERVER_URL}/workflows/${selectedWorkflow.id}/presets/${name}`, { headers: accessHeaders() });
-            if (!res.ok) throw new Error('Failed to apply preset');
-            const data = await res.json();
-            if (onPresetSelect) onPresetSelect(name, data.values);
-        } catch (err) {
-            console.error('[WorkflowSelector]', err);
-        }
-    };
 
     // Alphabetical by the model's name (case-insensitive, natural-number order), the
     // name the admin reads first, so one model's cards sit together; group filter +
@@ -517,11 +504,6 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
                                             <Gauge size={12} />without {w.disabledPerfFlags.map(f => PERF_FLAG_LABELS[f] || f).join(' + ')}
                                         </span>
                                     )}
-                                    {w.presets?.length > 0 && (
-                                        <span className="flex items-center gap-1">
-                                            <Tag size={12} />{w.presets.length} presets
-                                        </span>
-                                    )}
                                 </div>
                             </div>
                             {/* Primary per-card actions: open the editable graph in
@@ -649,26 +631,6 @@ const WorkflowSelector = ({ headers = {}, nodePackGaps = null, selectedWorkflowI
             </div>
             )}
 
-            {selectedWorkflow && selectedWorkflow.metadata?.presets && Object.keys(selectedWorkflow.metadata.presets).length > 0 && (
-                <Card className="mt-4 border-primary/30">
-                    <div className="flex items-center gap-2 mb-3">
-                        <Sparkles size={16} className="text-primary" />
-                        <span className="font-medium text-sm">Quick Presets</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                        {Object.entries(selectedWorkflow.metadata.presets).map(([name, preset]) => (
-                            <button
-                                key={name}
-                                onClick={() => handlePreset(name)}
-                                className="px-3 py-1.5 bg-background hover:bg-primary/10 border border-border hover:border-primary/50 rounded-lg text-sm transition-colors"
-                                title={preset.description || `Apply ${name} preset`}
-                            >
-                                {preset.label || name}
-                            </button>
-                        ))}
-                    </div>
-                </Card>
-            )}
         </div>
     );
 };

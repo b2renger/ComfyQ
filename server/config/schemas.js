@@ -208,12 +208,7 @@ const WorkflowMeta = z.object({
     }).default({ minVRAM: 0, models: [], disabledPerfFlags: [] }),
     estimatedDurationSec: z.number().positive().default(60),
     exposedParameters: z.array(ExposedParameter).default([]),
-    warmupParams: z.record(z.any()).default({}),
-    presets: z.record(z.object({
-        label: z.string().optional(),
-        description: z.string().optional(),
-        values: z.record(z.any()).default({})
-    })).default({})
+    warmupParams: z.record(z.any()).default({})
 });
 
 const WorkflowConfigMeta = z.object({
@@ -281,8 +276,7 @@ const AppConfig = z.object({
     }).default({ adminPasswordHash: '', accessPasswordHash: '' }),
     queue: z.object({
         dbPath: z.string().default('./server/data/comfyq.sqlite'),
-        inputRetentionMinutes: z.number().int().nonnegative().default(30),
-        outputRetentionDays: z.number().int().nonnegative().default(30)
+        inputRetentionMinutes: z.number().int().nonnegative().default(30)
     }).default({}),
     workflows: z.object({
         dir: z.string().default('./workflows'),

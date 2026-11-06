@@ -126,7 +126,6 @@
   "warmupParams": {
     "textencodeqwenimageeditplus_prompt_427_221_151": ""
   },
-  "presets": {},
   "promptGuides": [
     {
       "label": "Qwen-Image-Edit-2511-Unblur-Upscale - the adapter",

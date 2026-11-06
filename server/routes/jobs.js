@@ -94,10 +94,6 @@ function makeRouter({ queue, comfyConfig, registry }) {
         res.json({ job: _toWireJob(j) });
     });
 
-    router.get('/:id/events', (req, res) => {
-        res.json({ events: queue.eventsFor(req.params.id) });
-    });
-
     return router;
 }
 

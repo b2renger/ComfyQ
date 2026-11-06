@@ -99,6 +99,5 @@
   ],
   "warmupParams": {
     "loadimage_image_1": "asset:Tree.png"
-  },
-  "presets": {}
+  }
 }
