@@ -19,7 +19,7 @@ node -e "const m=require('./workflows/<id>/<id>.meta.json');
 |---|---|---|---|
 | `image_flux2_klein_9b_t2i` | `image_flux2_klein_9b_t2i` | image from text | ~16 s |
 | `image_edit_flux2_klein_9b_image_edit_ref` | same | image from **2 images** + text | ~44 s |
-| `ideogram_4_t2i` | `image_ideogram4_t2i` | flat text card | ~21 s |
+| `image_moss_image_t2i` | same | flat text card, from plain prose | ~23 s |
 | `ltx_2_5_i2v` | `video_ltx2_5_i2v` | video from **1 image** | ~50 s |
 | `ltx_2_5_flf2v` | `video_ltx2_5_flf2v` | video from **first + last frame** | ~67 s |
 | `stable_audio_3` | `audio_stable_audio_3_medium` | music or SFX | ~6 s |
@@ -45,7 +45,7 @@ document says what you asked for; the job runs what the grid allows.
 |---|---|---|
 | `image_flux2_klein_9b_t2i` | multiples of **16**, rounded **down** | **1920×1072** ⚠ |
 | `image_edit_flux2_klein_9b_image_edit_ref` | *no size control* — the graph hard-codes **1 megapixel** | source's aspect at ~1 MP (a 1920×1088 or 1920×1080 source → ≈**1360×768**) |
-| `ideogram_4_t2i` | *no width/height* — an aspect dropdown, plus a Megapixels setting that stays at 1 for a storyboard | mapped to **`16:9 (Widescreen)`** |
+| `image_moss_image_t2i` | *no width/height* — an aspect dropdown, plus a Megapixels setting that stays at 1 for a storyboard | mapped to **`16:9 (Widescreen)`** |
 | `ltx_2_5_i2v` | min 512, max 1920, multiples of **64** | **1920×1088** ⚠ |
 | `ltx_2_5_flf2v` | min 256, max 1920, multiples of **64** | **1920×1088** ⚠ |
 
@@ -80,7 +80,7 @@ Only shots on `image_flux2_klein_9b_t2i` (the anchors) and the video output actu
 render at it. **Key frames on `image_edit_flux2_klein_9b_image_edit_ref` are ~1 MP** —
 about 1360×768 from a 1920×1088 source (≈1376×752 from a 1280×704 one, as in
 The Red Thread) — because the graph hard-codes `megapixels: 1` with no exposed
-control, and **cards on `ideogram_4_t2i` are ~1 MP too** (≈1376×768): the card
+control, and **cards on `image_moss_image_t2i` are ~1 MP too** (≈1376×768): the card
 has a Megapixels setting, but a storyboard never sends it, so the graph's own
 value (1) is used. Raising its default in the workflow editor changes only the
 student form. The video shots then upsample from those. The film's *output* is
@@ -108,9 +108,14 @@ node -e "const s=require('./server/node_modules/image-size'),fs=require('fs');
 console.log(s(fs.readFileSync('<a rendered png>')))"
 ```
 
-`ideogram_4_t2i` has no width/height at all — only an aspect dropdown that
-**defaults to portrait**. Always give its cards a size so ComfyQ maps it to
-`16:9 (Widescreen)`; omit it and every card comes out 9:16.
+`image_moss_image_t2i` has no width/height at all — only an aspect dropdown that
+**defaults to square**. Always give its cards a size so ComfyQ maps it to the
+closest shape.
+
+Cards use MOSS rather than Ideogram 4 because Ideogram wants a JSON caption: plain
+prose usually comes back as a gray "blocked" picture, and the planner warns if it
+sees that. MOSS spelled its title exactly in the 2026-11-04 run, in two languages,
+from plain prose, at 11 GB against Ideogram's 25.7 GB.
 
 ### Cost of full HD
 
@@ -166,9 +171,9 @@ What `ref` fills, and in what order:
 | `image_edit_flux2_klein_9b_image_edit_ref` | **Source image** — the shot being edited | **Reference image** — what to bring in |
 | `ltx_2_5_flf2v` | **First frame** | **Last frame** |
 | `ltx_2_5_i2v` | the image to animate | — |
-| `image_flux2_klein_9b_t2i`, `ideogram_4_t2i`, `stable_audio_3` | none | — |
+| `image_flux2_klein_9b_t2i`, `image_moss_image_t2i`, `stable_audio_3` | none | — |
 
-A media slot left unbound is **not** empty: ComfyUI keeps whatever filename the
+A **mandatory** media slot left unbound is **not** empty: ComfyUI keeps whatever filename the
 bundle shipped with and renders a stranger's test picture while reporting
 success. ComfyQ refuses the document rather than let that happen.
 

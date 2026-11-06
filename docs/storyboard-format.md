@@ -1,13 +1,15 @@
 # Storyboard batches
 
+> **Experimental.** This format is to be reworked as a batch feature with job
+> dependencies. Today a batch runs one job at a time on the main lane, in order, so
+> close any extra lanes first.
+
 Upload one markdown document and ComfyQ queues **every generation it
 describes**, in the order that makes them possible: all the **images** first,
 then the **videos** (each one fed by an image the batch just produced), then
 the **audio**.
 
-A worked example lives in [storyboard-example.md](storyboard-example.md) — 42
-generations across 8 scenes, which is what the endpoints below were built
-against.
+Worked examples live in [batch-skill/examples](../batch-skill/examples/).
 
 ---
 
@@ -160,8 +162,8 @@ workflow that counts *frames* instead gets `5 × its frame rate`, snapped to the
 
 Sizes outside 64-8192 px are ignored, so `shot on 35mm film ... Kodak Portra
 400` is never mistaken for one. A workflow with no width/height but an
-aspect-ratio dropdown (the Ideogram title cards) gets the closest aspect
-option, so always give cards a size: Ideogram's default is 9:16 portrait. A
+aspect-ratio dropdown (the MOSS title cards) gets the closest aspect
+option, so always give cards a size: MOSS's default is square. A
 workflow with neither (an edit, which takes its size from its input image) is
 reported once as a warning rather than silently ignored.
 
@@ -271,7 +273,7 @@ Parse and plan, create nothing. Send either a multipart `file` field or a JSON
 body `{ markdown }`.
 
 ```bash
-curl -F file=@docs/storyboard-example.md \
+curl -F file=@batch-skill/examples/linear-the-lamplighter.md \
      -H "X-Admin-Password: $PW" \
      http://localhost:3000/storyboard/preview
 ```
@@ -282,7 +284,7 @@ Abridged — the response also carries `serving`, `outputFolder`, `outputDir`,
 
 ```jsonc
 {
-  "name": "storyboard-example.md",
+  "name": "linear-the-lamplighter.md",
   "phases": [ { "phase": 0, "label": "images", "count": 22 },
               { "phase": 1, "label": "videos", "count": 11 },
               { "phase": 2, "label": "audio",  "count": 9  } ],
@@ -366,7 +368,7 @@ ran. The example document goes from ~20 model loads to **6**:
 ```
  4x image_flux2_klein_9b_t2i            (the anchor plates)
 11x image_edit_flux2_klein_9b_image_edit_ref (every shot built from an anchor)
- 7x image_ideogram4_t2i           (the choice / end cards)
+ 7x image_moss_image_t2i          (the choice / end cards)
  1x video_ltx2_5_flf2v            (the loop)
 10x video_ltx2_5_i2v              (every other cut)
  9x audio_stable_audio_3_medium

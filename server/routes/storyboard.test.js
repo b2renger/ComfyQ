@@ -62,7 +62,7 @@ const check = (name, cond, extra = '') => {
 const srv = app.listen(0, async () => {
     const base = `http://127.0.0.1:${srv.address().port}`;
     const H = { 'X-Admin-Password': PW, 'Content-Type': 'application/json' };
-    const md = fs.readFileSync(path.join(REPO, 'docs', 'storyboard-example.md'), 'utf8');
+    const md = fs.readFileSync(path.join(REPO, 'server', 'storyboard', 'fixtures', 'example.md'), 'utf8');
     const cut = md.indexOf('\n## ');
     const broken = md.slice(0, cut) + '\n## A shot with no workflow line\njust words here\n' + md.slice(cut);
     try {

@@ -122,7 +122,7 @@ parsed. Never trust a report that printed only `p.errors`.
 
 Warnings are worth reading — the common ones are "one ref in two slots" and "a
 resolution was given for a workflow with no width/height", which is expected
-for edit shots. (Cards are not in that warning: a size on an `ideogram_4_t2i`
+for edit shots. (Cards are not in that warning: a size on an `image_moss_image_t2i`
 card is mapped onto its aspect dropdown.)
 
 Then queue it, either in the app (**/admin → Storyboard batch**) or:

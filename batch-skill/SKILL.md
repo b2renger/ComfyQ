@@ -244,7 +244,7 @@ A choice card may open with a **two-sentence recap** of what just happened,
 set small above the rule, with the options large below it:
 
 ```markdown
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. Two small lines across the upper third: "<sentence>. <sentence>." Below a thin horizontal rule, two large lines stacked: "<label A>" and "<label B>". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. <UI SUFFIX>
 ```
 
@@ -353,7 +353,7 @@ TrackType: Sound Effects. <room tone> Continuous, no musical content, no speech,
 <camera>. Initially <X>, then <Y>. <what stays fixed>. Audio: <sounds>, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 <flat two-panel card> the words: "<label A>" … the words: "<label B>". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. <UI SUFFIX>
 
 ## Music

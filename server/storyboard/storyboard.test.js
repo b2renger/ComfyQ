@@ -21,7 +21,7 @@ const { resolveChainedInputs, pickOutput } = require('../executor/chainedInputs'
 const sm = require('../queue/jobStateMachine');
 
 const REPO = path.resolve(__dirname, '..', '..');
-const EXAMPLE = path.join(REPO, 'docs', 'storyboard-example.md');
+const EXAMPLE = path.join(REPO, 'server', 'storyboard', 'fixtures', 'example.md');
 
 let passed = 0;
 function test(name, fn) {
@@ -106,6 +106,44 @@ test('an indented heading is still a heading, and #### is not swallowed', () => 
 test('a decorated anchor title keeps its anchor', () => {
     const r = parseStoryboard('# S | scene | -\n\n## \u{1F3AC} Anchor image 2\n### image_flux2_klein_9b_t2i\nplate');
     assert.strictEqual(r.items[0].anchorKey, 'A2');
+});
+
+test('an unnamed optional slot stays empty, as in the booking form', () => {
+    const doc = '# S | scene | -\n\n' +
+        '## Reference image 1\n### image_flux2_klein_9b_t2i | 1280x704\nfirst\n\n' +
+        '## Reference image 2\n### image_flux2_klein_9b_t2i | 1280x704\nsecond\n\n' +
+        '## Video cut 1\n### video_fastvideo_fasth3_i2v\nmoves\n\n' +
+        '## Video cut 2\n### video_fastvideo_fasth3_i2v\nmoves on\n';
+    const p = planStoryboard(parseStoryboard(doc), registry, { userId: 't', startAt: 1, spacing: 'asap', outputFolder: 'x' });
+    assert.deepStrictEqual(p.errors, []);
+    const cut1 = p.jobs.find(j => j.title === 'Video cut 1');
+    const cut2 = p.jobs.find(j => j.title === 'Video cut 2');
+    assert.strictEqual(cut1.deps.length, 1, 'a cut takes its own key frame, not the next one as a last frame');
+    assert.match(cut1.deps[0].sourceTitle, /Reference image 1/);
+    assert.match(cut2.deps[0].sourceTitle, /Reference image 2/);
+    assert.strictEqual(cut2.deps.length, 1);
+});
+
+test('a loop still drives every frame input, optional or not', () => {
+    const doc = '# S | scene | -\n\n' +
+        '## Reference image 1\n### image_flux2_klein_9b_t2i | 1280x704\nfirst\n\n' +
+        '## Video cut 1 (loop)\n### video_fastvideo_fasth3_i2v\nmoves\n';
+    const p = planStoryboard(parseStoryboard(doc), registry, { userId: 't', startAt: 1, spacing: 'asap', outputFolder: 'x' });
+    assert.strictEqual(p.jobs.find(j => /Video cut 1/.test(j.title)).deps.length, 2);
+});
+
+test('one anchor fills one slot of a card whose others are optional', () => {
+    const doc = '# LIBRARY | library | -\n\n## Anchor image 1\n### image_flux2_klein_9b_t2i | 1024x1024\na plate\n\n' +
+        '# S | scene | -\n\n## Reference image 1\n### image_krea2_turbo_style_reference | ref A1\na lighthouse\n';
+    const p = planStoryboard(parseStoryboard(doc), registry, { userId: 't', startAt: 1, spacing: 'asap', outputFolder: 'x' });
+    assert.deepStrictEqual(p.errors, []);
+    assert.strictEqual(p.jobs.find(j => j.title === 'Reference image 1').deps.length, 1, 'Krea takes style refs 2 and 3 only when they are named');
+});
+
+test('prose sent to an Ideogram caption field is warned about', () => {
+    const doc = '# S | scene | -\n\n## Reference image 1\n### image_ideogram4_t2i | 1280x704\nTHE END, in white letters\n';
+    const p = planStoryboard(parseStoryboard(doc), registry, { userId: 't', startAt: 1, spacing: 'asap', outputFolder: 'x' });
+    assert.ok(p.warnings.some(w => /plain prose/.test(w)), JSON.stringify(p.warnings));
 });
 
 test('a second ### under one ## is an error, not a silent overwrite', () => {
@@ -488,7 +526,7 @@ test('an implausible size is ignored rather than clamped into the graph', () => 
 });
 
 test('the real generator format parses: workflow | size | duration', () => {
-    const real = fs.readFileSync(path.join(REPO, 'docs', 'storyboard-the-red-thread.md'), 'utf8');
+    const real = fs.readFileSync(path.join(REPO, 'server', 'storyboard', 'fixtures', 'the-red-thread.md'), 'utf8');
     const r = parseStoryboard(real);
     assert.strictEqual(r.items.length, 54);
     assert.deepStrictEqual(r.errors, []);
@@ -512,7 +550,7 @@ test('an edit shot that names no anchor becomes a plain generation', () => {
     // anchor named in (ref AN). With no parenthetical, use WF_IMAGE and no
     // input." Generators emit the edit workflow and forget the parenthetical, so
     // the rule is applied rather than the whole document refused.
-    const real = fs.readFileSync(path.join(REPO, 'docs', 'storyboard-the-red-thread.md'), 'utf8');
+    const real = fs.readFileSync(path.join(REPO, 'server', 'storyboard', 'fixtures', 'the-red-thread.md'), 'utf8');
     const p = planStoryboard(parseStoryboard(real), registry, {});
     assert.deepStrictEqual(p.errors, []);
     assert.strictEqual(p.blockedReasons.length, 0);
@@ -539,7 +577,7 @@ test('an edit shot that names no anchor becomes a plain generation', () => {
 });
 
 test('naming the anchor still uses the edit workflow', () => {
-    const real = fs.readFileSync(path.join(REPO, 'docs', 'storyboard-the-red-thread.md'), 'utf8');
+    const real = fs.readFileSync(path.join(REPO, 'server', 'storyboard', 'fixtures', 'the-red-thread.md'), 'utf8');
     const withRefs = real.replace(/^## Reference image (\d+)$/gm, '## Reference image $1 (ref A2, A1)');
     const p = planStoryboard(parseStoryboard(withRefs), registry, {});
     assert.deepStrictEqual(p.errors, []);
@@ -561,7 +599,7 @@ test('with no anchors to fall back on, an edit with no ref is still refused', ()
 });
 
 test('adding the anchor to the ### line is all it takes', () => {
-    const real = fs.readFileSync(path.join(REPO, 'docs', 'storyboard-the-red-thread.md'), 'utf8');
+    const real = fs.readFileSync(path.join(REPO, 'server', 'storyboard', 'fixtures', 'the-red-thread.md'), 'utf8');
     // Exactly the edit the generator would make.
     const fixed = real.replace(/^### image_edit_flux2_klein_9b_image_edit_ref \| 1280x720$/gm,
         '### image_edit_flux2_klein_9b_image_edit_ref | 1280x720 | ref A2, A1');

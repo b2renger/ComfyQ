@@ -47,7 +47,7 @@ A wide unpeopled shot at eye level on a 35mm lens, deep focus, an empty granite 
 Static locked-off camera. Initially the red thread hangs still on the bollard, then it lifts and turns a few degrees in a slow breath of air and settles back to exactly where it began. Nothing else moves, the water beyond stays flat, the first and last frame are identical. Audio: a slow flat sea a long way off, one drip of water onto stone near the end, no music, no speech.
 
 ## Title card
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. Centred in the upper half, very large: "The Red Thread". Below a thin horizontal rule, much smaller: "Touch anywhere to begin". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -81,7 +81,7 @@ A medium wide shot in profile on a 50mm lens in deep focus, one small child crou
 Very slow dolly in. Initially the child looks left along the thread to where it goes over the quay edge, then she turns her head slowly to the right and follows it the other way toward the open shed, and holds there. Her fist stays closed on the thread, the ladder stays in frame left and the shed stays in frame right throughout, the horizon stays level. Audio: wool creaking under tension, gulls far off, a single rope knock against stone, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. Two small lines across the upper third: "The thread is tied at both ends. One end goes down the ladder, the other into the shed." Below a thin horizontal rule, two large lines stacked: "Climb down to the mud" and "Follow it into the rope shed". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -115,7 +115,7 @@ An unpeopled close-up at eye level on a 100mm lens with shallow focus, two threa
 Static locked-off camera. Initially both threads hang still against the stone, then the bright red one on the right draws tight and lifts away from the wall along its whole visible length toward the top of frame, and the pale one on the left stays exactly where it is. The camera does not move, the scored marks stay fixed and unchanged, nothing enters frame. Audio: one thread creaking against stone, grit falling on stone, water in a channel below, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. Two small lines across the upper third: "Every thread on this wall is a mend, and every mend is scored. One was tied today." Below a thin horizontal rule, two large lines stacked: "Read the marks on the stone" and "Follow the newest thread up". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -149,7 +149,7 @@ An unpeopled wide shot at eye level on a 35mm lens in deep focus, deep inside a 
 Very slow dolly in. Initially the spindle hangs still with a loose end of red wool trailing below it, then a draught takes that loose end and swings it slowly across the frame toward the foot of the stair, where it hangs pointing. The camera moves straight forward only, the spindle stays in frame left and the stair stays in frame right, the light does not change, no one appears. Audio: a hook creaking once, dry fibre settling, a floorboard flexing overhead, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. Two small lines across the upper third: "The thread was spun into the rope here. There is red wool on the spindle, and a stair going up." Below a thin horizontal rule, two large lines stacked: "Take a length from the spindle" and "Climb the stair to the loft". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -175,7 +175,7 @@ A close-up in profile on a 100mm macro lens with shallow focus, one small hand h
 Static locked-off camera. Initially the hand lies flat on the stone beside the nail, then it lifts cleanly away and out of the top of the frame, leaving the nail on its ledge and the bare granite untouched. The camera does not move, the nail and the empty patch of stone both stay in frame throughout, the new thread does not move. Audio: a palm lifting off wet stone, one drip close to camera, distant water, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. Two small lines across the upper third: "Every mend on this wall is scored beside its thread. Hers is tied and the stone beside it is bare." Below a thin horizontal rule, two large lines stacked: "Score her own mark beside it" and "Leave the stone unmarked". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -201,7 +201,7 @@ An unpeopled medium wide shot at eye level on a 50mm lens in deep focus, on the 
 Static locked-off camera. Initially the tools, the empty stool and the slack splice all sit still, then one gust crosses the quay, lifting a sleeve of the jacket and rolling the loose end of the splice a few centimetres across the stone, and everything settles again. The camera does not move, the bucket, the stool and the splice all stay in frame, nobody appears. Audio: canvas flapping once, rope rolling on granite, gulls a long way off, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. Two small lines across the upper third: "The thread ends at a bucket of tools and a half-finished splice. Whoever was working here is coming back." Below a thin horizontal rule, two large lines stacked: "Wait beside the tools" and "Finish the splice herself". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -227,7 +227,7 @@ A high-angle close-up on a 50mm lens, a cut length of red wool lying across two 
 Static locked-off camera. Initially the cut length lies still across the open palms, then the palms tip slowly to the left and the wool rolls once across them and comes to rest against the fingers. The camera does not move, the torn net stays in frame left and the ladder head stays in frame right throughout, nothing else moves. Audio: wool rolling on skin, one slow breath close to camera, the dry room tone of a wooden shed, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. Two small lines across the upper third: "She has a length of red wool and nothing is mended yet. The ladder still has a gap, and the net is still torn." Below a thin horizontal rule, two large lines stacked: "Mend the ladder rung" and "Mend the torn net". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -253,7 +253,7 @@ An unpeopled medium close-up on a 50mm lens, a grey slate board scored into rule
 Static locked-off camera. Initially the board and the hooks are still, then a draught comes up the stair and the two hung coils turn slowly on their hooks while the bare hook between them stays motionless, and everything settles. The camera does not move, the scored rows stay fixed and legible, the empty hook and the stairhead both stay in frame. Audio: a draught moving through a low room, iron turning on iron, rain on slates above, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. Two small lines across the upper third: "Every mend in the harbour is counted on this board. The last row is empty and one hook is bare." Below a thin horizontal rule, two large lines stacked: "Hang a coil on the empty hook" and "Go back down the stair". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -271,7 +271,7 @@ An extreme close-up at eye level on a 100mm macro lens with shallow focus, wet g
 Very slow dolly out. Initially the new marks and the new thread are alone in frame, then the camera draws back far enough to bring three older groups of marks above them into frame, and the new cuts stay the brightest of the four. The camera pulls back only slightly, the new thread stays centred, no hand returns to frame. Audio: a wide flat quiet with almost no reverberation, a channel of water below, one thread ticking on iron, no music, no speech.
 
 ## End card
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. One small line across the upper third: "She tied a thread and cut her mark beside it." Below a thin horizontal rule, one very large line: "Now the stone says who". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -289,7 +289,7 @@ An unpeopled close-up at eye level on a 50mm lens, a granite wall with dozens of
 Static locked-off camera. Initially the new thread hangs slack among the others, then it draws tight and every thread on the wall sways once at the same moment and settles again, and the bare stone beside it stays bare. The camera does not move, the wall stays fixed in frame, no hand appears. Audio: a soft collective rustle across the whole wall, one thread creaking against stone, distant water, no music, no speech.
 
 ## End card
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. One small line across the upper third: "She mended it and left no mark at all." Below a thin horizontal rule, one very large line: "Someone will find it and never know". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -307,7 +307,7 @@ An unpeopled close-up from a low angle on a 100mm lens with shallow focus, a rop
 Static locked-off camera. Initially the new rung hangs still, then the whole ladder takes a sudden load from above and the new lashing pulls tight without slipping, and the ladder swings once and steadies. The camera does not move, the granite behind stays fixed, no feet enter frame. Audio: rope creaking hard under a load, wool tightening on wood, water dripping onto mud below, no music, no speech.
 
 ## End card
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. One small line across the upper third: "The rung that was missing is a rung again." Below a thin horizontal rule, one very large line: "The next foot down will hold". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -325,7 +325,7 @@ An unpeopled high-angle close-up on a 50mm lens, a torn brown fishing net spread
 Slow dolly out. Initially the red repair fills the centre of the frame, then the camera draws back to bring the whole net into frame around it, and the red patch becomes one small square in a very large brown field. The camera moves straight back only, the repair stays centred, nothing enters frame. Audio: net fibre shifting on earth, a wooden mechanism ticking far off, the long dry room tone of a shed, no music, no speech.
 
 ## End card
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. One small line across the upper third: "Her repair is small and it does not match." Below a thin horizontal rule, one very large line: "It is a thing people do here". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music
@@ -343,7 +343,7 @@ An extreme wide shot at eye level on a 35mm lens in deep focus, a granite harbou
 Static locked-off camera. Initially the child is small in the distance walking away, then she carries on along the quay and out of the far edge of frame, and the loop of red thread in the foreground lifts once in a breath of air and settles back into the groove. The camera does not move, the horizon stays level, the thread ends where it began. Audio: boots receding on granite, a slow flat sea a long way off, one gull, no music, no speech.
 
 ## End card
-### ideogram_4_t2i | 1280x704
+### image_moss_image_t2i | 1280x704
 A flat text card, warm off-white ground, deep navy type, nothing else in the frame. One small line across the upper third: "She left it exactly where she found it." Below a thin horizontal rule, one very large line: "It will still be here tomorrow". Beneath that, much smaller: "Start again at the quay". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. Flat two-colour design, deep navy type on warm off-white, wide even margins, one thin horizontal rule, no texture, no gradient, no photograph, no illustration, no person.
 
 ## Music

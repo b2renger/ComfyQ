@@ -35,7 +35,7 @@ An extreme close-up at eye level of a loop of red twine spliced into the gap whe
 Static locked-off camera. Initially the twine hangs still, then it lifts and turns a few degrees in a slow breath of air and settles back to exactly where it began. Nothing else moves, the camera does not move, the first and last frame are identical. Audio: a slow flat sea a long way off, one drip of water onto stone near the end, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1280x720
+### image_moss_image_t2i | 1280x720
 A flat title card on a warm off-white ground with a single thin red rule running the full width beneath the title. Centred in the upper third, in a large rounded geometric sans-serif in deep navy, the words: "The Red Thread". Centred in the lower third, much smaller in the same face, the words: "Touch anywhere to begin". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep navy and warm off-white with one red rule, wide margins, crisp rounded geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -77,7 +77,7 @@ A wide shot at eye level from behind a small figure standing at the quay edge ho
 Very slow dolly in. Initially the figure faces the quay edge and the mud below, then she turns her head slowly to the right to look down the quay toward the distant shed, and holds there with the thread still taut in her fist. She stays with her back to camera throughout, the horizon stays level, nothing enters or leaves frame. Audio: wool creaking under tension, gulls far off, a single rope knock against stone, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1280x720
+### image_moss_image_t2i | 1280x720
 A flat two-panel card split by a thin red vertical rule down the exact centre. The left panel is a warm off-white ground carrying, centred, in a large rounded geometric sans-serif in deep navy, the words: "Climb down to the mud". The right panel is a deep navy ground carrying the same face in warm off-white, centred, the words: "Follow it along the quay". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep navy and warm off-white with one red rule, wide margins, crisp rounded geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -111,7 +111,7 @@ A wide shot from a low angle of a small figure standing on wet ochre tidal mud w
 Very slow dolly out. Initially the figure stands close to the wall with her fist raised toward the thread that runs to her hand, then she tips her head slowly back and lowers her arm, and every thread on the wall moves very slightly together in one breath of air. Her feet do not move, she stays turned away from camera, the wall stays centred in frame. Audio: a wide flat mudflat quiet with almost no reverberation, water trickling in a channel, one distant gull, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1280x720
+### image_moss_image_t2i | 1280x720
 A flat two-panel card split by a thin red vertical rule down the exact centre. The left panel is a warm off-white ground carrying, centred, in a large rounded geometric sans-serif in deep navy, the words: "Take the thread back". The right panel is a deep navy ground carrying the same face in warm off-white, centred, the words: "Tie one more beside it". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep navy and warm off-white with one red rule, wide margins, crisp rounded geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -145,7 +145,7 @@ A medium close-up at eye level of a wooden hand crank with one handle wrapped in
 Static locked-off camera. Initially the crank is mid-turn, then it completes two slow full rotations and the strands behind it draw in and lock together into one rope, the red thread disappearing inside the twist. The camera does not move, the framing is identical throughout, nothing else moves. Audio: a wooden mechanism ticking on every quarter turn, fibre squeaking as it tightens, the long dry room tone of a wooden shed, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1280x720
+### image_moss_image_t2i | 1280x720
 A flat two-panel card split by a thin red vertical rule down the exact centre. The left panel is a warm off-white ground carrying, centred, in a large rounded geometric sans-serif in deep navy, the words: "Turn the crank". The right panel is a deep navy ground carrying the same face in warm off-white, centred, the words: "Walk to the far end". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep navy and warm off-white with one red rule, wide margins, crisp rounded geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -171,7 +171,7 @@ A close-up at eye level of a granite sea wall covered in dozens of red and pale 
 Very slow dolly out. Initially the bare bolt is at the centre of frame, then the camera draws back to take in more and more of the threaded wall until the empty bolt is one small gap among dozens of threads that all go on moving together without it. Nothing enters frame, the wall stays level. Audio: a soft collective rustle across the whole wall, water in a channel, no music, no speech.
 
 ## End image
-### ideogram_4_t2i | 1280x720
+### image_moss_image_t2i | 1280x720
 A flat closing card on a deep navy ground with a single thin red rule across the lower third. Centred above the rule, in a large rounded geometric sans-serif in warm off-white, the words: "One thread, on its own". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep navy and warm off-white with one red rule, wide margins, crisp rounded geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -197,7 +197,7 @@ A close-up at eye level of a granite sea wall covered in dozens of red and pale 
 Static locked-off camera. Initially the new thread hangs slack among the others, then it draws tight and every thread on the wall shifts a few millimetres at the same moment and settles again together. The camera does not move, the wall stays fixed in frame, no hand appears. Audio: a soft collective rustle across the whole wall, one thread creaking against stone, distant water, no music, no speech.
 
 ## End image
-### ideogram_4_t2i | 1280x720
+### image_moss_image_t2i | 1280x720
 A flat closing card on a warm off-white ground with a single thin red rule across the lower third. Centred above the rule, in a large rounded geometric sans-serif in deep navy, the words: "Now they all move together". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep navy and warm off-white with one red rule, wide margins, crisp rounded geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -223,7 +223,7 @@ An extreme close-up at eye level of a finished pale rope where it leaves the she
 Static locked-off camera. Initially the rope hangs still in the opening, then it draws slowly outward toward the water and the single red fibre turns once around the twist and goes out of sight inside it. The camera does not move, the opening stays fixed in frame. Audio: fibre creaking under load, the sea opening up as the rope passes outside, one gull, no music, no speech.
 
 ## End image
-### ideogram_4_t2i | 1280x720
+### image_moss_image_t2i | 1280x720
 A flat closing card on a deep navy ground with a single thin red rule across the lower third. Centred above the rule, in a large rounded geometric sans-serif in warm off-white, the words: "It goes all the way back". Centred below the rule, much smaller in the same face, the words: "Start again at the quay". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep navy and warm off-white with one red rule, wide margins, crisp rounded geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music

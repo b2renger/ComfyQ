@@ -192,6 +192,11 @@ function closestAspect(param, width, height) {
     return best ? best.option : null;
 }
 
+// The booking form's rule: media is mandatory unless the card says otherwise.
+function isMandatory(p) {
+    return p.required !== false;
+}
+
 function isNegative(p) {
     return /negative/i.test(p.key) || /negative/i.test(p.label || '');
 }
@@ -387,8 +392,9 @@ function planStoryboard({ items, states = [], dropped: parserDropped = [] }, reg
         // Wiring rule 2: an image shot that needs an image in, but names no
         // anchor to use, is a plain generation. Swap in the anchors' own
         // text-to-image workflow — the prompt already carries the full subject
-        // and place description, which is why the rule exists.
-        if (phase === 0 && mediaParams.length > 0 && item.refs.length === 0
+        // and place description, which is why the rule exists. A card whose media
+        // is all optional (Krea's style references) runs fine without any.
+        if (phase === 0 && mediaParams.some(isMandatory) && item.refs.length === 0
             && anchorTakesNoInput && anchorEntry.id !== entry.id) {
             substituted.push({ where, from: entry.id, to: anchorEntry.id });
             substitutedFrom = entry.id;
@@ -417,7 +423,14 @@ function planStoryboard({ items, states = [], dropped: parserDropped = [] }, reg
             phase,
             params: ordered,
             mediaParams,
-            imageParams: ordered.filter(p => IMAGE_TYPES.has(p.type)),
+            // Mandatory slots first: what a shot names fills those before an
+            // optional one, and an optional slot nothing names stays empty, as in
+            // the booking form.
+            imageParams: [
+                ...ordered.filter(p => IMAGE_TYPES.has(p.type) && isMandatory(p)),
+                ...ordered.filter(p => IMAGE_TYPES.has(p.type) && !isMandatory(p)),
+            ],
+            mandatoryImages: ordered.filter(p => IMAGE_TYPES.has(p.type) && isMandatory(p)).length,
             paramValues: {},
             deps: [],
             notes: []
@@ -467,6 +480,12 @@ function planStoryboard({ items, states = [], dropped: parserDropped = [] }, reg
         spec.promptParamKey = candidates[0].p.key;
         spec.paramValues[spec.promptParamKey] = prompt;
         spec.prompt = prompt;
+        // The Ideogram card says it itself: prose usually comes back as a gray
+        // "blocked" picture, reported as a success.
+        if (candidates[0].p.format === 'ideogram4-caption' && !prompt.trim().startsWith('{')) {
+            warnings.push(`${where}: ${entry.id} wants a JSON caption, and this prompt is plain prose, ` +
+                'which usually comes back as a gray "blocked" picture. Use image_moss_image_t2i for a text card.');
+        }
 
         // A resolution written in the document overrides the workflow default.
         // Applied before the seed loop so clampParamValue still sees it as a
@@ -578,7 +597,10 @@ function planStoryboard({ items, states = [], dropped: parserDropped = [] }, reg
         const where = `"${item.title}" (${item.stateId})`;
 
         if (spec.imageParams.length > 0) {
-            const wanted = spec.imageParams.length;
+            // A cut numbered to a key frame takes that frame even into an optional
+            // slot (FastH3's first frame). Nothing else is pulled in to fill one:
+            // the next cut's key frame is not this cut's last frame.
+            const wanted = spec.phase === 0 ? spec.mandatoryImages : Math.max(1, spec.mandatoryImages);
             let sources;
             if (item.refs.length > 0) {
                 // An explicit "(ref Ax)" always wins, for an edit AND for a cut.
@@ -587,6 +609,8 @@ function planStoryboard({ items, states = [], dropped: parserDropped = [] }, reg
                     if (!src) fail(spec, `${where}: no "## Anchor image ${key.slice(1)}" defines ${key}.`);
                     return src;
                 }).filter(Boolean);
+            } else if (spec.phase === 0 && wanted === 0) {
+                sources = [];
             } else if (spec.phase === 0) {
                 // An image workflow that takes images in — an edit — with no ref
                 // to work from. Which anchor it edits changes the shot
@@ -645,7 +669,7 @@ function planStoryboard({ items, states = [], dropped: parserDropped = [] }, reg
             if (item.loop && sources.length > 0) {
                 // "## Video cut 1 (loop)" — first and last frame are the same
                 // key frame, stated rather than inferred from a shortfall.
-                sources = new Array(wanted).fill(sources[0]);
+                sources = new Array(spec.imageParams.length).fill(sources[0]);
             }
             if (sources.length > 0 && sources.length < wanted) {
                 // Fewer sources than slots — one image driving a first/last frame
@@ -678,6 +702,7 @@ function planStoryboard({ items, states = [], dropped: parserDropped = [] }, reg
         if (!spec.failed && !spec.blocked) {
             for (const p of spec.mediaParams) {
                 if (spec.deps.some(d => d.paramKey === p.key)) continue;
+                if (!isMandatory(p)) continue;
                 // A ref only ever fills an IMAGE slot, so suggesting one for a
                 // video or audio input would send the author round in a circle.
                 fail(spec, IMAGE_TYPES.has(p.type)

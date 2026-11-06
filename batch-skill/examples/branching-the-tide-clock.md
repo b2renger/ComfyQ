@@ -39,7 +39,7 @@ An extreme close-up at eye level of a brass tide clock face mounted high on a wa
 Static locked-off camera. Initially the stopped hand and the dust are perfectly still, then a slow shaft of light crosses the face from the left and the dust turns over once in it, and everything settles back to exactly where it began. The hand does not move, the camera does not move, the first and last frame are identical. Audio: very still dry air, a distant harbour through wood, one loose board ticking, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat title card on a pale sand ground with a single thin signal-orange rule running the full width beneath the title. Centred in the upper third, in a large geometric sans-serif in deep teal, the words: "The Tide Clock". Centred in the lower third, much smaller in the same face, the words: "Touch anywhere to begin". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -73,7 +73,7 @@ A wide shot at eye level from behind a small figure standing in a shuttered room
 Very slow dolly in. Initially the figure faces straight ahead between the two openings, then she turns her head slowly left toward the bright doorway and then right toward the dark stair, and holds there looking up. She stays turned away from camera, the horizon stays level, nothing enters or leaves frame. Audio: water lapping faintly through an open door, a hollow note of moving water in a copper pipe, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat two-panel card split by a thin signal-orange vertical rule down the exact centre. The left panel is a pale sand ground carrying, centred, in a large geometric sans-serif in deep teal, the words: "Go down to the water". The right panel is a deep teal ground carrying the same face in pale sand, centred, the words: "Go up to the mechanism". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -107,7 +107,7 @@ A wide shot at eye level from behind a small figure standing on wet steps, showi
 Very slow dolly in. Initially the figure stands still between the three, then she looks down at the bright ring beside her, out at the water, and last at the dark arch on the right, and holds there. She stays turned away from camera, the horizon stays level, nothing enters frame. Audio: water lapping, a rope creaking against iron, a hollow note of moving water in a pipe, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat three-panel card split by two thin signal-orange vertical rules into three equal panels. The left panel is a pale sand ground carrying, centred, in a geometric sans-serif in deep teal, the words: "Tie it to the ring". The centre panel is a deep teal ground carrying the same face in pale sand, the words: "Read the green gauge". The right panel is a pale sand ground in deep teal again, the words: "Follow the copper pipe". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -133,7 +133,7 @@ A wide shot at eye level from behind a small figure standing before a stopped br
 Very slow dolly in. Initially the figure stands centred between the broken gear and the stained pipe, then she reaches toward the gear, stops short, and turns her hand instead toward the pipe and holds it there. She stays turned away from camera, the movement stays fixed in frame, nothing enters. Audio: wind against a shuttered opening, a hollow note of moving water in a copper pipe, no ticking at all, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat two-panel card split by a thin signal-orange vertical rule down the exact centre. The left panel is a pale sand ground carrying, centred, in a large geometric sans-serif in deep teal, the words: "Cut new teeth for the gear". The right panel is a deep teal ground carrying the same face in pale sand, centred, the words: "Open the copper pipe". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -159,7 +159,7 @@ A wide shot at low eye level of a brass key tied to an iron mooring ring on the 
 Slow dolly out. Initially the tied key hangs clear above the water, then the water rises steadily until it touches the key and lifts it so that it floats out sideways on its lace, and the camera draws back to take in the whole flight. The horizon stays level, nothing enters frame. Audio: water rising against stone, a cord pulling taut, gulls at a middle distance, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat two-panel card split by a thin signal-orange vertical rule down the exact centre. The left panel is a pale sand ground carrying, centred, in a large geometric sans-serif in deep teal, the words: "Leave the key for the water". The right panel is a deep teal ground carrying the same face in pale sand, centred, the words: "Take the key back up". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -185,7 +185,7 @@ A medium close-up at eye level of a cleaned copper depth gauge on wet granite, i
 Static locked-off camera. Initially the waterline rests exactly on a marked figure, then it climbs one whole division and stops there, holding perfectly level. The camera does not move, the gauge stays fixed in frame. Audio: water rising against stone, a slow swell, gulls at a middle distance, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat two-panel card split by a thin signal-orange vertical rule down the exact centre. The left panel is a pale sand ground carrying, centred, in a large geometric sans-serif in deep teal, the words: "Write the number down". The right panel is a deep teal ground carrying the same face in pale sand, centred, the words: "Carry the number up". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -211,7 +211,7 @@ An extreme close-up at eye level of the joint where a copper pipe leaves granite
 Static locked-off camera. Initially one bright bead stands at the seam, then it swells, releases, and runs down the green stone leaving a clean bright line behind it. The camera does not move, the joint stays fixed in frame. Audio: a single drop releasing and running on stone, a hollow note in a pipe, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat two-panel card split by a thin signal-orange vertical rule down the exact centre. The left panel is a pale sand ground carrying, centred, in a large geometric sans-serif in deep teal, the words: "Follow the pipe inland". The right panel is a deep teal ground carrying the same face in pale sand, centred, the words: "Let the water find its way". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -237,7 +237,7 @@ A wide shot at eye level of a brass clock movement with its weight cable now tau
 Very slow dolly in. Initially the whole movement is taut and motionless, then one gear turns a single tooth, the escapement swings once, and the entire train takes up and begins to move steadily together. She does not move, the platform stays level, nothing enters frame. Audio: a first heavy tick, then a slow steady beat, wind against a shuttered opening, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat two-panel card split by a thin signal-orange vertical rule down the exact centre. The left panel is a pale sand ground carrying, centred, in a large geometric sans-serif in deep teal, the words: "Set it to the water". The right panel is a deep teal ground carrying the same face in pale sand, centred, the words: "Set it to the hour". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -263,7 +263,7 @@ A wide shot at eye level of a brass movement being driven by a tipping water tra
 Slow dolly out. Initially the train moves in short irregular pushes as the tray tips, then the pushes even out into one continuous motion and the camera draws back to take in the whole room. She does not move, the platform stays level, nothing enters frame. Audio: water filling and a tray tipping in a slow rhythm, brass turning between them, wind against a shuttered opening, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat two-panel card split by a thin signal-orange vertical rule down the exact centre. The left panel is a pale sand ground carrying, centred, in a large geometric sans-serif in deep teal, the words: "Let the sea keep the time". The right panel is a deep teal ground carrying the same face in pale sand, centred, the words: "Go back down and look". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -281,7 +281,7 @@ An extreme wide shot at low eye level of a tidal basin at high water, the granit
 Slow dolly out. Initially the knotted lace shows clearly above the water, then the surface rises over it and the knot goes on holding underwater while the camera draws steadily back to take in the whole basin. The horizon stays level, nothing enters frame. Audio: water at high slack with almost no movement, a rope creaking against iron, gulls far off, no music, no speech.
 
 ## End image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat closing card on a deep teal ground with a single thin signal-orange rule across the lower third. Centred above the rule, in a large geometric sans-serif in pale sand, the words: "It kept its own time". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -299,7 +299,7 @@ An extreme close-up at eye level of a brass tide clock face in a shuttered room,
 Very slow dolly in. Initially the hand rests on its mark and everything is still, then the hand moves one division and stops, and the dust in the air turns over once in the light. The camera moves in only slightly, the face stays centred, nothing enters frame. Audio: one soft mechanical movement, very still dry air, a distant harbour through wood, no music, no speech.
 
 ## End image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat closing card on a pale sand ground with a single thin signal-orange rule across the lower third. Centred above the rule, in a large geometric sans-serif in deep teal, the words: "Someone had to read it". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -317,7 +317,7 @@ An extreme close-up at eye level of clean bright water running from an opened co
 Slow dolly out. Initially one bright line runs down the green stone, then it widens and other lines start beside it until the whole face of the wall is running clean, and the camera draws back to show the water reaching the basin. The wall stays level, nothing enters frame. Audio: water running on stone growing from a trickle to a steady sheet, a hollow note in a pipe, no music, no speech.
 
 ## End image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat closing card on a deep teal ground with a single thin signal-orange rule across the lower third. Centred above the rule, in a large geometric sans-serif in pale sand, the words: "It only wanted letting through". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -335,7 +335,7 @@ A medium close-up at eye level of a brass gear turning in a working movement, th
 Static locked-off camera. Initially the three bright teeth come round into frame, then they engage in turn and pass on out of frame, and the gear brings them round again a second time. The camera does not move, the framing is identical throughout. Audio: a slow steady mechanical beat, brass turning on brass, wind against a shuttered opening, no music, no speech.
 
 ## End image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat closing card on a pale sand ground with a single thin signal-orange rule across the lower third. Centred above the rule, in a large geometric sans-serif in deep teal, the words: "The new part shows, and holds". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -353,7 +353,7 @@ An extreme wide shot at eye level down the length of a mechanism room, a brass m
 Slow dolly out. Initially the movement turns in the foreground and the figure is small in the doorway beyond it, then she steps out of the doorway into the light and is gone, and the movement goes on turning by itself while the camera continues to draw back. She never turns toward camera, the platform stays level, no one else enters frame. Audio: water filling and a tray tipping in a slow rhythm, brass turning steadily between them, a harbour heard through an open door, no music, no speech.
 
 ## End image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat closing card on a deep teal ground with a single thin signal-orange rule across the lower third. Centred above the rule, in a large geometric sans-serif in pale sand, the words: "The tide will wind it again". Centred below the rule, much smaller in the same face, the words: "Start again in the museum". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep teal and pale sand with one signal-orange rule, wide margins, crisp geometric sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music

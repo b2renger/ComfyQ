@@ -39,7 +39,7 @@ An extreme close-up at bench level of an unlit brass storm lantern standing alon
 Static locked-off camera. Initially the cold lantern stands perfectly still, then a slow draught crosses the room and turns the fogged chimney a few degrees on its base, and it settles back to exactly where it began. Nothing else moves and the first and last frame are identical. Audio: a stove ticking as it cools, one loose pane knocking in its frame, a flat muffled sea beyond the wall, no music, no speech.
 
 ## Choice image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat title card on a warm bone-white ground with a single thin amber rule running the full width beneath the title. Centred in the upper third, in a large humanist sans-serif in deep slate, the words: "The Lamplighter". Centred in the lower third, much smaller in the same face, the words: "Touch anywhere to begin". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep slate and warm bone-white with one amber rule, wide margins, crisp humanist sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
@@ -177,7 +177,7 @@ An extreme wide shot at eye level from the open gallery looking out over a dark 
 Slow dolly out. Initially the beam lies flat and still across the water, then it begins to sweep, travelling out across the dark sea and off the right of frame, and comes back around from the left as the camera draws steadily back. The rail stays level, nothing enters frame. Audio: a heavy brass mechanism turning slowly, wind past ironwork, the sea very distant, no music, no speech.
 
 ## End image
-### ideogram_4_t2i | 1920x1088
+### image_moss_image_t2i | 1920x1088
 A flat closing card on a deep slate ground with a single thin amber rule across the lower third. Centred above the rule, in a large humanist sans-serif in warm bone-white, the words: "It was never the same flame". No imagery of any kind. All text is sharp and perfectly rendered. No other text anywhere in the image. flat graphic design card, deep slate and warm bone-white with one amber rule, wide margins, crisp humanist sans-serif, vector-clean, no texture, no photographic content, no illustration
 
 ## Music
