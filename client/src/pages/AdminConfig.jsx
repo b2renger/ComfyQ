@@ -25,6 +25,7 @@ import LinkOut from '../components/ui/ExternalLink';
 // machine runs, then the server itself, then the ComfyUI behind it, then upkeep.
 const ADMIN_TABS = [
     { key: 'workflows', label: 'Workflows', icon: Sparkles },
+    { key: 'batches', label: 'Batches', icon: Clapperboard },
     { key: 'server', label: 'Manage server', icon: ShieldCheck },
     { key: 'comfyui', label: 'Manage ComfyUI', icon: Server },
     { key: 'maintenance', label: 'Maintenance', icon: Wrench },
@@ -1071,28 +1072,6 @@ const AdminConfig = () => {
                     </div>
                 </Card>
                 <Card>
-                    <div className="flex items-center justify-between mb-3">
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                            <Clapperboard size={18} /> Storyboard batch
-                        </h2>
-                        <Badge variant={config?.mode === 'student' ? 'success' : 'default'}>
-                            {config?.mode === 'student' ? 'Serving' : 'Idle'}
-                        </Badge>
-                    </div>
-                    <p className="text-xs text-muted mb-3">
-                        Upload one markdown storyboard and queue every generation it describes, in the
-                        order that makes them possible: all the images first, then the videos that use
-                        those images as their frames, then the audio. The document names its own
-                        workflows — within each of those three groups the shots are ordered so each
-                        model is loaded once, and queueing starts the machine if it is idle.
-                    </p>
-                    <StoryboardUpload
-                        adminPassword={adminPassword}
-                        serving={config?.mode === 'student'}
-                        notify={showToast}
-                    />
-                </Card>
-                <Card>
                     <div className="flex items-center justify-between mb-4">
                         <h2 className="text-lg font-semibold flex items-center gap-2"><Upload size={18} /> Add Workflow</h2>
                     </div>
@@ -1109,6 +1088,31 @@ const AdminConfig = () => {
                 </>
             )}
 
+            {/* Batches have their own tab (the owner, 2026-11-09): a batch is a
+                piece of work of its own, not a step in picking a workflow. */}
+            {tab === 'batches' && (
+                <Card>
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                            <Clapperboard size={18} /> Batch
+                        </h2>
+                        <Badge variant={config?.mode === 'student' ? 'success' : 'default'}>
+                            {config?.mode === 'student' ? 'Serving' : 'Idle'}
+                        </Badge>
+                    </div>
+                    <p className="text-xs text-muted mb-3">
+                        Upload a table (.csv, one job per row) and queue every job it describes. Rows run
+                        in the order written, one at a time, each after the rows whose results it uses;
+                        the batch waits behind jobs students have already booked. A markdown storyboard
+                        still works too, and is experimental. Queueing starts the machine if it is idle.
+                    </p>
+                    <StoryboardUpload
+                        adminPassword={adminPassword}
+                        serving={config?.mode === 'student'}
+                        notify={showToast}
+                    />
+                </Card>
+            )}
             {tab === 'server' && (
                 <>
                 <Card>

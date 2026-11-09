@@ -10,6 +10,11 @@
 // Both write paths accept either a multipart upload (field `file`) or a JSON
 // body `{ markdown }`, so it works from a browser file picker and from curl.
 //
+// A .csv or .tsv upload, or a JSON body `{ table }`, is a batch table instead
+// (docs/batch-format.md, server/batch/). It answers in the same shape and is
+// queued the same way, so the one card takes either; the batches it makes are
+// listed, retried and removed by the routes below like any other.
+//
 // Preview and queue run the SAME parse + plan, so what an admin approves is
 // exactly what gets created; queueing is a separate call purely so a 40-job,
 // hour-long batch is never one accidental click away.
@@ -21,6 +26,7 @@
 // is then switched to student mode serving the batch's own first workflow —
 // which is what brings the executor up to drain it.
 
+const path = require('path');
 const express = require('express');
 const multer = require('multer');
 const { v4: uuidv4 } = require('uuid');
@@ -28,6 +34,10 @@ const { JobQueue } = require('../queue/jobQueue');
 const sm = require('../queue/jobStateMachine');
 const { parseStoryboard } = require('../storyboard/storyboardParser');
 const { planStoryboard } = require('../storyboard/storyboardPlanner');
+const { planBatch } = require('../batch/batchPlan');
+const { assetEnv } = require('../batch/assetEnv');
+const batchQueue = require('../batch/batchQueue');
+const { listModelFiles, withoutExcluded } = require('../workflows/modelOptions');
 const cleanup = require('../storage/jobCleanup');
 const { sweepBlocksRestart, SWEEP_RUNNING_MESSAGE } = require('./sweepGuard');
 
@@ -80,8 +90,14 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
     }
 
     // Accept the document from a file field or a JSON body, whichever came.
+    // A table carries `table` instead of `markdown`.
     function readMarkdown(req) {
+        if (req.file && batchQueue.isTableName(req.file.originalname)) {
+            return { table: req.file.buffer.toString('utf8'), name: req.file.originalname };
+        }
         if (req.file) return { markdown: req.file.buffer.toString('utf8'), name: req.file.originalname };
+        const table = req.body?.table;
+        if (typeof table === 'string' && table.trim()) return { table, name: req.body?.name || 'batch.csv' };
         const md = req.body?.markdown;
         if (typeof md === 'string' && md.trim()) return { markdown: md, name: req.body?.name || 'storyboard.md' };
         return null;
@@ -106,9 +122,10 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
 
         // The multipart path is capped by multer; a JSON body is only bounded
         // by express.json's much larger limit, so cap it here too.
-        if (Buffer.byteLength(doc.markdown, 'utf8') > MAX_BYTES) {
+        if (Buffer.byteLength(doc.markdown ?? doc.table, 'utf8') > MAX_BYTES) {
             throw { status: 413, error: `Storyboard too large (max ${MAX_BYTES / 1024 / 1024} MB).` };
         }
+        if (doc.table != null) return buildTablePlan(req, queue, doc);
 
         let parsed;
         try { parsed = parseStoryboard(doc.markdown); }
@@ -131,6 +148,32 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
         return { doc, parsed, plan, spacing, userId, outputFolder };
     }
 
+    // A batch table: plan it against this machine's cards, assets folder and
+    // queue. Pictures from the assets folder go through the upload guard here,
+    // so the preview already says which are too large.
+    function buildTablePlan(req, queue, doc) {
+        const config = configManager.resolvePaths(configManager.load().config);
+        const assetsDir = config.assets?.dir || null;
+        const comfyRoot = config.comfy_ui?.root_path;
+        const plan = planBatch(doc.table, registry, {
+            ...assetEnv(assetsDir),
+            getJob: batchQueue.jobLookup(queue),
+            optionsFor: (p) => comfyRoot
+                ? withoutExcluded(listModelFiles(comfyRoot, p.optionsDir || 'loras', p.optionsFilter || ''), p.optionsExclude)
+                : null,
+        });
+        if (assetsDir && plan.jobs.length) {
+            plan.errors.push(...batchQueue.checkAssetImages(plan, assetsDir));
+            plan.errors.sort((a, b) => (a.row ?? 0) - (b.row ?? 0));
+        }
+        const spacing = req.body?.spacing === 'asap' ? 'asap' : 'estimated';
+        const outputFolder = String(req.body?.folder ?? doc.name.replace(/\.[^.]+$/, '')).slice(0, 80);
+        const userId = String(req.body?.user_id || req.body?.userId || 'storyboard').slice(0, 64);
+        const busyUntil = queue.latestActiveStart();
+        const startAt = Math.max(Date.now(), busyUntil ? busyUntil + TAIL_PAD_MS : 0);
+        return { doc, table: true, plan, preview: batchQueue.toPreview(plan, registry), assetsDir, config, spacing, userId, outputFolder, startAt };
+    }
+
     // A batch runs one job at a time on one ComfyUI, because later jobs consume
     // what earlier ones made. Extra lanes would compete with it for the card.
     function extraLanesMessage() {
@@ -142,8 +185,22 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
     router.post('/preview', adminGate, uploadOrJson, (req, res) => {
         const c = ctx();
         try {
-            const { doc, parsed, plan, outputFolder } = buildPlan(req, c.queue);
+            const built = buildPlan(req, c.queue);
             const lanesWarning = extraLanesMessage();
+            if (built.table) {
+                const p = built.preview;
+                return res.json({
+                    name: built.doc.name,
+                    format: 'table',
+                    serving: c.serving,
+                    outputFolder: built.outputFolder,
+                    outputDir: c.comfyConfig?.output_dir || null,
+                    states: [],
+                    ...p,
+                    warnings: [...(lanesWarning ? [lanesWarning] : []), ...p.warnings],
+                });
+            }
+            const { doc, parsed, plan, outputFolder } = built;
             res.json({
                 name: doc.name,
                 serving: c.serving,
@@ -168,6 +225,73 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
         } finally { c.release(); }
     });
 
+    // Admin mode drains nothing: serve the batch's first workflow, so the
+    // restart that follows brings the executor up. → the workflow id.
+    function startServing(workflowId) {
+        configManager.update(cfg => {
+            cfg.workflows.activeWorkflowId = workflowId;
+            cfg.mode = 'student';
+            // Nothing is served in admin mode: no extra lane to bring back.
+            cfg.workflows.extraLaneWorkflowIds = [];
+            return cfg;
+        });
+        console.log(`[Storyboard] starting the queue — serving "${workflowId}" (first workflow in the batch)`);
+        return workflowId;
+    }
+
+    // Queue a planned table. → { status, body } for a refusal, else { body, restartTo }.
+    // There is no force for a table: a row is fixed in the spreadsheet, and a
+    // batch with a hole in it is found an hour later.
+    function queueTable(built, c) {
+        const { plan, preview } = built;
+        if (plan.errors.length || plan.blocked.length) {
+            return { status: 422, body: {
+                error: plan.summary,
+                errors: preview.errors,
+                blockedReasons: preview.blockedReasons,
+                warnings: preview.warnings,
+                hint: 'Fix the table and upload it again.'
+            } };
+        }
+        if (plan.jobs.length === 0) return { status: 422, body: { error: 'Nothing to queue.', errors: [] } };
+        if (plan.jobs.length > MAX_JOBS) {
+            return { status: 413, body: { error: `That table makes ${plan.jobs.length} jobs; the limit is ${MAX_JOBS}.` } };
+        }
+        const staged = plan.jobs.some(j => j.assets.length)
+            ? batchQueue.stageAssets(plan, built.assetsDir, path.resolve(built.config.comfy_ui.root_path, 'input'))
+            : new Map();
+        const batchId = uuidv4();
+        const batchLabel = String(built.doc.name || 'batch.csv').slice(0, 120);
+        const rows = batchQueue.buildInserts(plan, {
+            batchId, batchLabel, folder: built.outputFolder, userId: built.userId,
+            startAt: built.startAt, spacing: built.spacing, staged,
+        });
+        // One transaction: a half-written batch would leave dependants
+        // pointing at jobs that do not exist.
+        c.queue.db.transaction(() => { for (const r of rows) c.queue.insert(r); })();
+        console.log(`[Storyboard] queued ${rows.length} job(s) from the table "${batchLabel}" — batch ${batchId.slice(0, 8)}, `
+            + `${plan.modelLoads} model load(s)${staged.size ? `, ${staged.size} file(s) from the assets folder` : ''}`);
+        const restartTo = c.serving ? null : startServing(plan.jobs[0].workflowId);
+        return { restartTo, body: {
+            ok: true,
+            format: 'table',
+            batchId,
+            batchLabel,
+            outputFolder: rows[0].outputPrefix.split('/')[0],
+            totalJobs: rows.length,
+            phases: preview.phases,
+            workflowRuns: preview.workflowRuns,
+            modelLoads: preview.modelLoads,
+            totalEstimatedSec: preview.totalEstimatedSec,
+            startingWorkflowId: restartTo,
+            restarting: !!restartTo,
+            warnings: preview.warnings,
+            errors: [],
+            jobs: rows.map((r, i) => ({ id: r.id, order: i, title: plan.jobs[i].key, workflowId: r.workflowId,
+                scheduledAt: r.scheduledAt, dependsOn: r.deps.map(d => d.sourceJobId) })),
+        } };
+    }
+
     router.post('/queue', adminGate, uploadOrJson, (req, res) => {
         const c = ctx();
         let restartTo = null;
@@ -180,7 +304,14 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
             }
             const lanesRefusal = extraLanesMessage();
             if (lanesRefusal) return res.status(409).json({ error: lanesRefusal, code: 'lanes-open' });
-            const { doc, parsed, plan } = buildPlan(req, c.queue);
+            const built = buildPlan(req, c.queue);
+            if (built.table) {
+                const answer = queueTable(built, c);
+                if (answer.status) return res.status(answer.status).json(answer.body);
+                restartTo = answer.restartTo;
+                return res.json(answer.body);
+            }
+            const { doc, parsed, plan } = built;
 
             // Refuse the batch outright when any item could not be planned. A
             // storyboard is one piece of work: queueing 38 of 42 generations
@@ -266,17 +397,7 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
             // its own workflows, so serve the one it starts with and restart —
             // that is what brings the executor up. Already serving: the running
             // executor picks the batch up on its next tick, no restart.
-            if (!c.serving) {
-                restartTo = plan.jobs[0].workflowId;
-                configManager.update(cfg => {
-                    cfg.workflows.activeWorkflowId = restartTo;
-                    cfg.mode = 'student';
-                    // Nothing is served in admin mode: no extra lane to bring back.
-                    cfg.workflows.extraLaneWorkflowIds = [];
-                    return cfg;
-                });
-                console.log(`[Storyboard] starting the queue — serving "${restartTo}" (first workflow in the batch)`);
-            }
+            if (!c.serving) restartTo = startServing(plan.jobs[0].workflowId);
 
             res.json({
                 ok: true,

@@ -1,0 +1,7 @@
+id,workflow,prompt,image,image2,repeat,seed,notes
+# A portrait, three looks at it, and a short film of each.
+hero,image_moss_image_t2i,"Studio portrait of a ceramicist in a blue work apron, holding a freshly thrown bowl, soft window light, 50mm",,,,1234,the picture everything else uses
+look,image_edit_flux3_klein_image_edit,"Same person, same pose, the apron is now bright orange",hero,,3,,three tries; keep the best
+move,video_ltx2_5_i2v,"She turns the bowl slowly in her hands and smiles at the camera",look,,,,one film per look
+# Every picture in a folder, upscaled.
+keys,utility_seedvr2_4k_upscale,,folder:Keyframes,,,,

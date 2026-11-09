@@ -192,8 +192,8 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
 
     const pickFile = (f) => {
         if (!f) return;
-        if (!/\.(md|markdown|txt)$/i.test(f.name)) {
-            setPreviewError('Please choose a markdown (.md) storyboard.');
+        if (!/\.(md|markdown|txt|csv|tsv)$/i.test(f.name)) {
+            setPreviewError('Please choose a batch table (.csv) or a markdown (.md) storyboard.');
             return;
         }
         setFile(f);
@@ -315,14 +315,15 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
                         ${isDragging ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/50'}`}
                 >
                     <input
-                        ref={inputRef} type="file" accept=".md,.markdown,text/markdown"
+                        ref={inputRef} type="file" accept=".csv,.tsv,text/csv,.md,.markdown,text/markdown"
                         onChange={(e) => pickFile(e.target.files?.[0])}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                     />
                     <FileText size={28} className="mx-auto mb-2 text-muted" />
-                    <p className="text-sm font-medium">Drop a storyboard .md file, or click to choose one</p>
+                    <p className="text-sm font-medium">Drop a batch table (.csv) or a storyboard (.md), or click to choose one</p>
                     <p className="text-xs text-muted mt-1">
-                        Every shot it describes is queued: images first, then the videos that use them, then audio.
+                        A table runs one job per row, in the order written, after the rows it uses
+                        (see docs/batch-format.md). A storyboard runs images first, then the videos, then audio.
                     </p>
                 </div>
             )}
@@ -375,7 +376,7 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
                         <div className="text-xs text-muted">
                             <p className="flex items-center gap-1.5 mb-1">
                                 <Layers size={12} />
-                                Grouped into {preview.modelLoads} model load{preview.modelLoads === 1 ? '' : 's'},
+                                {preview.format === 'table' ? 'Runs as' : 'Grouped into'} {preview.modelLoads} model load{preview.modelLoads === 1 ? '' : 's'},
                                 in this order:
                             </p>
                             <div className="flex flex-wrap gap-1.5">
@@ -387,9 +388,9 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
                                 ))}
                             </div>
                             <p className="mt-1">
-                                Each load costs roughly 5–55 s on this rig (longer on a first load from
-                                disk) on top of the estimate above, so the shots
-                                are ordered to load every model once rather than once per shot.
+                                {preview.format === 'table'
+                                    ? 'A table runs in the order it is written, and the estimate above counts each load. Rows of one workflow written together load it once.'
+                                    : 'Each load costs roughly 5–55 s on this rig (longer on a first load from disk) on top of the estimate above, so the shots are ordered to load every model once rather than once per shot.'}
                             </p>
                         </div>
                     )}

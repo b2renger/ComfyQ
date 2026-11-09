@@ -1,7 +1,15 @@
 # Batch feature plan
 
-A draft for the owner to correct before the work starts. It replaces the experimental
-storyboard planner. Written 2026-11-06, to be started after the sweep.
+A draft for the owner to correct. It replaces the experimental storyboard planner.
+Written 2026-11-06.
+
+**Status (2026-11-09):** stages 1 and 2 are written and tested with stand-ins, not yet
+on a real batch. The format is in [batch-format.md](batch-format.md), the code in
+[server/batch/](../server/batch/). A `.csv` dropped on the storyboard card is read as a
+table, previewed and queued by the same routes; `folder:` and `repeat` (stage 5) came
+with stage 1. The card has its own **Batches** tab in the admin panel. The owner
+answered the four questions on 2026-11-09 (at the end of this page); the table editor
+they asked for is stage 7.
 
 ## What the owner asked for
 
@@ -88,15 +96,65 @@ when the converter passes its tests on the three examples.
 4. The report and exact repeat. About half a day.
 5. `folder:` and `repeat`. About half a day.
 6. The skill and the converter. About a day.
+7. A table editor in the Batches tab: open a `.csv` or start a new one, edit it as a
+   grid, and check it with the same validator as an upload before queueing. About two
+   days. See below.
 
 Each stage is tested with stand-ins, then with one small real batch on the rig.
 
-## Questions for the owner
+## The table editor (stage 7)
 
-1. **CSV or something else?** CSV opens in a spreadsheet but makes long prompts with
-   line breaks awkward. I recommend CSV, with long prompts allowed to come from a
-   text file beside it (`text:scene-3.txt`).
-2. **Who can run a batch?** Today, an admin. Should students ever be able to?
-3. **Does a batch wait for students' jobs,** or take the machine? I recommend
-   waiting behind what is already booked, as today.
-4. **Should the batch page live in the admin panel,** or on its own page?
+Asked for by the owner on 2026-11-09: a built-in way to see and edit a batch, with
+import and a new batch from scratch. A first sketch, to settle before it is built:
+
+- **Import** a `.csv` (the upload today), or **New batch** for an empty table with the
+  `id`, `workflow`, `prompt` and `image` columns.
+- A grid, one row per job, edited in place. The `workflow` cell is a dropdown of the
+  cards (owner, 2026-11-09). Once a row has a card, its settings are offered as columns,
+  picked by label rather than typed by key, and a setting with choices is a dropdown too.
+- **An input cell is a picker with two kinds of source** (owner, 2026-11-09):
+  - a file that exists: one from the assets folder, or a whole folder;
+  - **a file that does not exist yet**: the output of another row, which has not run.
+    Only rows whose card makes that kind are offered (picture-making rows for a picture
+    input), and picking one is what makes this row wait for it.
+- **The run order is shown**, with what each row waits on, so "the videos run after the
+  images they use" is visible before anything is queued.
+- Each change is checked by the planner as it is, so a bad cell is marked in place, with
+  the same message the upload would give.
+- **Export** gives back the `.csv`, so a batch made here can still be kept, versioned,
+  or written by the skill and opened here.
+- **Queue** runs the same preview and queue routes as an upload.
+
+The table stays the format: the editor reads and writes it and nothing else, so the
+skill, a spreadsheet and the editor are interchangeable.
+
+## Dependencies: what is guaranteed
+
+The owner asked (2026-11-09) how a batch makes sure, for example, that the pictures a
+t2i row makes exist before the i2v row that uses them runs. What holds today:
+
+- **A cell that names a row is a dependency.** The job waits in the queue
+  (`job_deps`) until its source is **completed**; rows run in dependency order even
+  when the source is written below.
+- **The output is checked when the job starts** (`server/executor/chainedInputs.js`): it
+  takes the source's actual output of the right kind. A source that completed without
+  one, or whose file was deleted, fails the job with that reason; it never runs on the
+  card's default input.
+- **A failure stops only what depends on it** (`dependency-failed`); the rest carry on,
+  and Retry failed reruns both.
+- **Refused before anything runs:** a reference to nothing, a loop, an input of the wrong
+  kind (a picture-making row into a video input).
+
+**Not guaranteed:** a source that completes with a black or empty picture counts as
+done, and its dependants use it. The test suite's black-output check could run on a
+chained input before it is used, failing the dependant with "the picture from hero is
+black". Recommended, not built.
+
+## The owner's answers (2026-11-09)
+
+1. **CSV or something else?** CSV, with long prompts from a text file
+   (`text:scene-3.txt`). The owner adds: a built-in tool to view and edit the table,
+   with import and a new batch (stage 7).
+2. **Who can run a batch?** An admin.
+3. **Does a batch wait for students' jobs?** Yes, it waits behind what is booked.
+4. **Where does the batch page live?** The admin panel, in its own tab.
