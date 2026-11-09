@@ -105,7 +105,12 @@ Each stage is tested with stand-ins, then with one small real batch on the rig.
 ## The table editor (stage 7)
 
 Asked for by the owner on 2026-11-09: a built-in way to see and edit a batch, with
-import and a new batch from scratch. A first sketch, to settle before it is built:
+import and a new batch from scratch. **A first version is built** (2026-11-09,
+[BatchEditor.jsx](../client/src/components/admin/BatchEditor.jsx), top of the Batches tab),
+following the sketch below. Its parts render with every card (checked server-side). It has
+not been clicked through in a browser yet, because the admin password guards it. One
+difference from the sketch: rows are a list you open one at a time, not a spreadsheet grid,
+because each card has its own inputs and settings. The sketch:
 
 - **Import** a `.csv` (the upload today), or **New batch** for an empty table with the
   `id`, `workflow`, `prompt` and `image` columns.

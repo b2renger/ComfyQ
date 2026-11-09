@@ -241,6 +241,35 @@ test('no workflow column, an empty table, a row too wide', () => {
     assert.ok(/needs quotes/.test(messages(wide)), messages(wide));
 });
 
+// ---- the card list the editor builds rows from
+test('describeCards: every column it offers is one the planner reads the same way', () => {
+    const { describeCards } = require('./batchPlan');
+    const cards = describeCards(registry);
+    assert.ok(cards.length >= 70, `${cards.length} cards`);
+    for (const c of cards) {
+        const ps = params(c.id).filter(p => p.enabled !== false);
+        for (const i of c.inputs) {
+            assert.strictEqual(columnTarget(i.column, ps)?.key, i.key, `${c.id}: column ${i.column}`);
+        }
+        if (c.prompt) assert.strictEqual(columnTarget('prompt', ps)?.key, c.prompt.key, `${c.id}: prompt`);
+        for (const s of c.settings) assert.strictEqual(columnTarget(s.key, ps)?.key, s.key, `${c.id}: setting ${s.key}`);
+        const keys = [c.prompt?.key, c.negative?.key, c.seed?.key, ...c.inputs.map(i => i.key), ...c.settings.map(s => s.key)].filter(Boolean);
+        assert.strictEqual(new Set(keys).size, keys.length, `${c.id}: a field offered twice`);
+    }
+    const edit = cards.find(c => c.id === EDIT);
+    assert.deepStrictEqual(edit.inputs.map(i => [i.column, i.kind, i.required]), [['image', 'image', true]]);
+    assert.strictEqual(cards.find(c => c.id === T2I).produces, 'image');
+    const flf = cards.find(c => c.id === 'video_ltx2_5_flf2v');
+    assert.deepStrictEqual(flf.inputs.map(i => i.column), ['image', 'image2']);
+});
+test('a row written from the card list plans with no error', () => {
+    const { describeCards } = require('./batchPlan');
+    const t2i = describeCards(registry).find(c => c.id === T2I);
+    const steps = t2i.settings.find(s => s.key === 'steps_107');
+    const p = plan(`id,workflow,prompt,${steps.key}\nhero,${t2i.id},a red door,${steps.max}\n`);
+    assert.deepStrictEqual(p.errors, [], messages(p));
+});
+
 // ---- the assets folder on disk
 test('assetEnv: names stay inside the assets folder', () => {
     const fs = require('fs');
@@ -266,6 +295,12 @@ test('assetEnv: names stay inside the assets folder', () => {
         assert.deepStrictEqual(e.listAssets(null).sort(), ['a.png', 'scene.txt']);
         assert.strictEqual(e.listAssets('..'), null);
         assert.strictEqual(assetEnv(null).assetExists('a.png'), false, 'no assets folder set: nothing exists');
+        const kindOf = (n) => (/\.png$/.test(n) ? 'image' : /\.txt$/.test(n) ? 'text' : null);
+        const cat = e.catalog({ classify: kindOf });
+        assert.deepStrictEqual(cat.files.map(f => f.path), ['a.png', 'scene.txt', 'shots/b.png']);
+        assert.deepStrictEqual(cat.folders, [{ path: 'shots', counts: { image: 1 } }]);
+        assert.strictEqual(e.catalog({ classify: kindOf, maxFiles: 1 }).truncated, true, 'the cap says it was hit');
+        assert.deepStrictEqual(assetEnv(null).catalog().files, []);
     } finally { fs.rmSync(tmp, { recursive: true, force: true }); }
 });
 

@@ -12,7 +12,7 @@ const MAX_TEXT_BYTES = 256 * 1024;
 
 function assetEnv(assetsDir) {
     if (!assetsDir) {
-        return { assetExists: () => false, listAssets: () => null, readText: () => null, dir: null };
+        return { assetExists: () => false, listAssets: () => null, readText: () => null, catalog: () => ({ files: [], folders: [], truncated: false }), dir: null };
     }
     let root;
     try { root = fs.realpathSync(assetsDir); } catch { root = null; }
@@ -40,6 +40,35 @@ function assetEnv(assetsDir) {
                     .filter(d => d.isFile() && !d.name.startsWith('.'))
                     .map(d => d.name);
             } catch { return null; }
+        },
+        // What the batch editor's picker offers: files of a kind it can use, and
+        // the folders holding them, a few levels deep. Capped, so a huge assets
+        // folder cannot freeze the page; `truncated` says when the cap was hit.
+        //   → { files: [{ path, kind }], folders: [{ path, counts: { image: n, … } }], truncated }
+        catalog: ({ maxDepth = 3, maxFiles = 3000, classify } = {}) => {
+            const files = [];
+            const folders = [];
+            let truncated = false;
+            const walk = (rel, depth) => {
+                let entries;
+                try { entries = fs.readdirSync(rel ? path.join(root, rel) : root, { withFileTypes: true }); } catch { return; }
+                const counts = {};
+                for (const d of entries.sort((a, b) => a.name.localeCompare(b.name))) {
+                    if (d.name.startsWith('.')) continue;
+                    const p = rel ? `${rel}/${d.name}` : d.name;
+                    if (d.isDirectory()) { if (depth < maxDepth) walk(p, depth + 1); continue; }
+                    if (!d.isFile()) continue;
+                    const kind = classify ? classify(d.name) : null;
+                    if (!kind) continue;
+                    counts[kind] = (counts[kind] || 0) + 1;
+                    if (files.length >= maxFiles) { truncated = true; continue; }
+                    files.push({ path: p, kind });
+                }
+                if (rel && Object.keys(counts).length) folders.push({ path: rel, counts });
+            };
+            if (root) walk('', 0);
+            folders.sort((a, b) => a.path.localeCompare(b.path));
+            return { files, folders, truncated };
         },
         readText: (name) => {
             const p = inside(name);

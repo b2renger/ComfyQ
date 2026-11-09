@@ -97,8 +97,9 @@ whose output kind cannot be told in advance.
 
 ## Running one
 
-An admin runs a batch from the **Batches** tab of the admin panel: drop the `.csv`, read
-the preview, queue. It waits behind jobs students have already booked, then runs one
+An admin runs a batch from the **Batches** tab of the admin panel: write it in the
+**Batch editor** there (or open a `.csv` in it), or drop a `.csv` on the upload card; read
+the preview, queue. The editor writes the same file: **Export** gives back the `.csv`. It waits behind jobs students have already booked, then runs one
 job at a time on the main lane. Close any extra lane first.
 
 A picture from the assets folder goes through the same check as an upload (no HEIC, at

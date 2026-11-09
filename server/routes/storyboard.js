@@ -34,10 +34,11 @@ const { JobQueue } = require('../queue/jobQueue');
 const sm = require('../queue/jobStateMachine');
 const { parseStoryboard } = require('../storyboard/storyboardParser');
 const { planStoryboard } = require('../storyboard/storyboardPlanner');
-const { planBatch } = require('../batch/batchPlan');
+const { planBatch, describeCards } = require('../batch/batchPlan');
 const { assetEnv } = require('../batch/assetEnv');
 const batchQueue = require('../batch/batchQueue');
 const { listModelFiles, withoutExcluded } = require('../workflows/modelOptions');
+const { classify } = require('../media/mediaTypes');
 const cleanup = require('../storage/jobCleanup');
 const { sweepBlocksRestart, SWEEP_RUNNING_MESSAGE } = require('./sweepGuard');
 
@@ -424,6 +425,32 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
             // After the response is on the wire, not before.
             if (restartTo && exitForRestart) setTimeout(() => exitForRestart('student'), 250);
         }
+    });
+
+    // The batch editor's two lists: the cards a row can name, in the table's
+    // terms, and what the assets folder holds for its input picker. Read-only.
+    router.get('/cards', adminGate, (req, res) => {
+        try {
+            const config = configManager.resolvePaths(configManager.load().config);
+            const comfyRoot = config.comfy_ui?.root_path;
+            res.json({ cards: describeCards(registry, {
+                optionsFor: (p) => comfyRoot
+                    ? withoutExcluded(listModelFiles(comfyRoot, p.optionsDir || 'loras', p.optionsFilter || ''), p.optionsExclude)
+                    : null,
+            }) });
+        } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    router.get('/assets', adminGate, (req, res) => {
+        try {
+            const config = configManager.resolvePaths(configManager.load().config);
+            const env = assetEnv(config.assets?.dir || null);
+            const kindOf = (name) => {
+                const k = classify(name).kind;
+                return ['image', 'video', 'audio', 'model3d'].includes(k) ? k : (/\.txt$/i.test(name) ? 'text' : null);
+            };
+            res.json({ dir: env.dir, ...env.catalog({ classify: kindOf }) });
+        } catch (e) { res.status(500).json({ error: e.message }); }
     });
 
     router.get('/batches', adminGate, (req, res) => {

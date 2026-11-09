@@ -153,11 +153,18 @@ function toPreview(plan, registry) {
         totalShots: new Set(plan.jobs.map(j => j.id)).size + plan.blocked.length,
         totalEstimatedSec: plan.totalEstimatedSec,
         summary: plan.errors.length || plan.blocked.length ? plan.summary : null,
+        // The same problems with their row and column, for the batch editor to
+        // mark the cell they belong to (the strings below are for the card).
+        problems: plan.errors.map(e => ({ row: e.row ?? null, column: e.column ?? null, message: e.message })),
+        cautions: plan.warnings.map(e => ({ row: e.row ?? null, column: e.column ?? null, message: e.message })),
+        blocked: plan.blocked,
         errors: plan.errors.map(line),
         warnings: plan.warnings.map(line),
         blockedReasons: plan.blocked.map(b => `${where(b.row)} (${b.id}) waits on ${b.waitsOn.join(', ')}.`),
         jobs: plan.jobs.map(j => ({
             order: j.order,
+            row: j.row,
+            rowId: j.id,
             stateId: `row ${j.row}`,
             title: j.key,
             notes: [],

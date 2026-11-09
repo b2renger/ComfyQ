@@ -148,6 +148,24 @@ const srv = app.listen(0, '127.0.0.1', async () => {
             { ...H, 'Content-Type': 'application/json' }));
         check('a JSON { table } body works, and job:<prefix> finds the job', status === 200 && d.errors.length === 0 && /^job /.test(d.jobs[0].deps[0].sourceTitle), `${status} ${JSON.stringify(d.errors)}`);
 
+        // The batch editor's lists.
+        let r = await fetch(base + '/storyboard/cards', { headers: H });
+        d = await r.json();
+        check('the card list answers', r.status === 200 && d.cards.length >= 70, `${r.status}`);
+        check('a card says its inputs in table columns', d.cards.find(c => c.id === EDIT)?.inputs[0]?.column === 'image');
+        r = await fetch(base + '/storyboard/cards');
+        check('the card list needs the admin password', r.status === 401, String(r.status));
+        r = await fetch(base + '/storyboard/assets', { headers: H });
+        d = await r.json();
+        check('the assets list has files and folders by kind', r.status === 200
+            && d.files.some(f => f.path === 'Woman.png' && f.kind === 'image')
+            && d.folders.some(f => f.path === 'shots' && f.counts.image === 2), JSON.stringify(d).slice(0, 300));
+
+        ({ status, d } = await post('/storyboard/preview', JSON.stringify({ table: `workflow,prompt,image\n${EDIT},x,\n` }), { ...H, 'Content-Type': 'application/json' }));
+        check('a problem comes with its row and column for the editor', d.problems?.[0]?.row === 2 && d.problems[0].column === 'image', JSON.stringify(d.problems));
+        ({ status, d } = await post('/storyboard/preview', JSON.stringify({ table: GOOD }), { ...H, 'Content-Type': 'application/json' }));
+        check('each job names its row', d.jobs.every(j => Number.isInteger(j.row) && j.rowId), JSON.stringify(d.jobs[0]));
+
         const md = fs.readFileSync(path.join(REPO, 'server', 'storyboard', 'fixtures', 'example.md'), 'utf8');
         ({ status, d } = await post('/storyboard/preview', form(md, 'red.md')));
         check('a .md file is still a storyboard', status === 200 && d.format !== 'table' && d.totalJobs === 42, `${status} ${d.totalJobs}`);

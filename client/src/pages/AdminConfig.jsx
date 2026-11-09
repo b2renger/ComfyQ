@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen, Gauge, Clapperboard, ListChecks, Sparkles, Wrench } from 'lucide-react';
+import { Power, Save, ArrowLeft, Upload, RefreshCw, Settings, KeyRound, CheckCircle2, AlertTriangle, Pencil, Trash2, OctagonAlert, ShieldCheck, XCircle, RotateCcw, Eraser, History, Server, Globe, Square, HardDrive, ScanSearch, Lock, LockOpen, Gauge, Clapperboard, Table2, ListChecks, Sparkles, Wrench } from 'lucide-react';
 import WorkflowSelector from '../components/WorkflowSelector';
 import WorkflowMetaEditor from '../components/admin/WorkflowMetaEditor';
 import StoryboardUpload from '../components/admin/StoryboardUpload';
+import BatchEditor from '../components/admin/BatchEditor';
 import RunningWorkflows from '../components/admin/RunningWorkflows';
 import ModelPrune from '../components/admin/ModelPrune';
 import ModelDownloads from '../components/admin/ModelDownloads';
@@ -1091,10 +1092,25 @@ const AdminConfig = () => {
             {/* Batches have their own tab (the owner, 2026-11-09): a batch is a
                 piece of work of its own, not a step in picking a workflow. */}
             {tab === 'batches' && (
+                <>
                 <Card>
                     <div className="flex items-center justify-between mb-3">
                         <h2 className="text-lg font-semibold flex items-center gap-2">
-                            <Clapperboard size={18} /> Batch
+                            <Table2 size={18} /> Batch editor
+                        </h2>
+                    </div>
+                    <p className="text-xs text-muted mb-3">
+                        Make a batch here, or open a .csv to change it: one row per job, each with its card, prompt,
+                        inputs and settings. An input can be a file from the assets folder, every file of a folder,
+                        or the result of another row that has not run yet; that row then runs first. Every change is
+                        checked as you go, and Export gives back the .csv.
+                    </p>
+                    <BatchEditor adminPassword={adminPassword} notify={showToast} />
+                </Card>
+                <Card>
+                    <div className="flex items-center justify-between mb-3">
+                        <h2 className="text-lg font-semibold flex items-center gap-2">
+                            <Clapperboard size={18} /> Upload a batch, and its progress
                         </h2>
                         <Badge variant={config?.mode === 'student' ? 'success' : 'default'}>
                             {config?.mode === 'student' ? 'Serving' : 'Idle'}
@@ -1112,6 +1128,7 @@ const AdminConfig = () => {
                         notify={showToast}
                     />
                 </Card>
+                </>
             )}
             {tab === 'server' && (
                 <>

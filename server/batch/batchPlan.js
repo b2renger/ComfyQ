@@ -529,4 +529,60 @@ function finish(jobs, { errors, warnings, blocked = [] }) {
     return { jobs, errors, warnings, blocked, summary, totalEstimatedSec: Math.round(total), modelLoads: loads, unknownDurations: unknown };
 }
 
-module.exports = { planBatch, columnTarget, readMediaCell, MEDIA_TYPES };
+// The cards a table can name, described in the table's own terms, for the batch
+// editor: which column holds each input, which field "prompt" and "negative"
+// reach, and every other setting by key. Built from the same rules the planner
+// applies (columnTarget, enabledParams, isSeed), so the editor can never offer a
+// column the planner would refuse.
+//   optionsFor(param) → [values]|null   the choices of a lora param on this machine
+function describeCards(registry, { optionsFor } = {}) {
+    const cards = [];
+    for (const s of registry.summaries({ includeUnavailable: false, includeHidden: false })) {
+        const entry = registry.get(s.id);
+        if (!entry) continue;
+        const params = enabledParams(entry);
+        const prompt = columnTarget('prompt', params);
+        const negative = columnTarget('negative', params);
+        const seed = params.find(isSeed) || null;
+        const inputs = [];
+        for (const type of MEDIA_TYPES) {
+            params.filter(p => p.type === type).forEach((p, i) => inputs.push({
+                column: i === 0 ? type : `${type}${i + 1}`,
+                key: p.key,
+                type,
+                kind: KIND_FOR_TYPE[type],
+                label: p.label || p.key,
+                required: p.required !== false,
+            }));
+        }
+        const taken = new Set([prompt?.key, negative?.key, seed?.key, ...inputs.map(i => i.key)].filter(Boolean));
+        const settings = params.filter(p => !taken.has(p.key)).map(p => ({
+            key: p.key,
+            label: p.label || p.key,
+            type: p.type,
+            default: p.default ?? null,
+            options: p.type === 'lora' ? (optionsFor ? optionsFor(p) : null) : (Array.isArray(p.options) ? p.options : null),
+            min: Number.isFinite(p.min) ? p.min : null,
+            max: Number.isFinite(p.max) ? p.max : null,
+            step: Number.isFinite(p.step) ? p.step : null,
+        }));
+        const rt = entry.runtime || {};
+        cards.push({
+            id: entry.id,
+            title: cardName(entry),
+            name: entry.meta?.name || null,
+            category: entry.summary?.category || entry.meta?.category || null,
+            experimental: !!entry.meta?.experimental,
+            produces: predictOutputKind(entry),
+            prompt: prompt ? { key: prompt.key, label: prompt.label || prompt.key, default: prompt.default ?? '' } : null,
+            negative: negative ? { key: negative.key, label: negative.label || negative.key, default: negative.default ?? '' } : null,
+            seed: seed ? { key: seed.key, max: Number.isFinite(seed.max) ? seed.max : null } : null,
+            inputs,
+            settings,
+            estimatedSec: rt.warmDurationSec || rt.estimatedDurationSec || entry.meta?.estimatedDurationSec || null,
+        });
+    }
+    return cards.sort((a, b) => String(a.category).localeCompare(String(b.category)) || a.title.localeCompare(b.title));
+}
+
+module.exports = { planBatch, describeCards, columnTarget, readMediaCell, MEDIA_TYPES };
