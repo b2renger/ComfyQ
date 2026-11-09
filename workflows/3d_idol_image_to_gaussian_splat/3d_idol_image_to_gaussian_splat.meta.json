@@ -1,0 +1,120 @@
+{
+  "schemaVersion": 1,
+  "id": "3d_idol_image_to_gaussian_splat",
+  "name": "IDOL — image to 3D",
+  "title": "Turn a picture into 3D, with a turntable video",
+  "summary": "Give it one picture of an object or a character and get a soft 3D \"splat\", a rough mesh and a short video that turns around it. A sibling of TripoSplat, with its own model.",
+  "description": "IDOL, run through ComfyUI's TripoSplat nodes: one picture in, a 3D Gaussian splat out.\n\nUse a clean picture with the subject in the middle. Leave \"Remove the background\" on for a photo with a busy background; turn it off only for a PNG whose background is already transparent.\n\nOutputs: the splat (.spz) to spin in the splat viewer, a mesh (.glb) extracted from it, and a 3-second video orbiting the splat.",
+  "category": "3d",
+  "experimental": true,
+  "tags": [
+    "idol",
+    "triposplat",
+    "3d",
+    "gaussian-splat",
+    "image-to-3d"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "3d_idol_image_to_gaussian_splat.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 8,
+    "models": [
+      {
+        "type": "unet",
+        "file": "idol_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Idol/resolve/main/diffusion_models/idol_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Idol"
+      },
+      {
+        "type": "vae",
+        "file": "idol_decoder_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Idol/resolve/main/vae/idol_decoder_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Idol"
+      },
+      {
+        "type": "vae",
+        "file": "flux2-vae.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/flux2-dev/resolve/main/split_files/vae/flux2-vae.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/flux2-dev"
+      },
+      {
+        "type": "clip",
+        "file": "dino_v3_vit_h_bf16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Idol/resolve/main/clip_vision/dino_v3_vit_h_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Idol"
+      },
+      {
+        "type": "other",
+        "file": "birefnet.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/BiRefNet/resolve/main/background_removal/birefnet.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/BiRefNet"
+      }
+    ]
+  },
+  "estimatedDurationSec": 40,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_99",
+      "nodeId": "99",
+      "field": "image",
+      "type": "image",
+      "label": "Picture of the object",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "switch_mask_source_88_35",
+      "nodeId": "88:35",
+      "field": "switch",
+      "type": "checkbox",
+      "label": "Remove the background",
+      "default": true,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "ksampler_steps_88_6",
+      "nodeId": "88:6",
+      "field": "steps",
+      "type": "number",
+      "label": "Steps",
+      "default": 20,
+      "min": 4,
+      "max": 50,
+      "step": 1,
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "ksampler_seed_88_6",
+      "nodeId": "88:6",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 46,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "vaedecodetriposplat_num_gaussians_88_55",
+      "nodeId": "88:55",
+      "field": "num_gaussians",
+      "type": "number",
+      "label": "Number of gaussians",
+      "default": 262144,
+      "min": 32768,
+      "max": 1048576,
+      "step": 32768,
+      "required": true,
+      "order": 4
+    }
+  ],
+  "warmupParams": {}
+}

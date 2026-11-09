@@ -1,0 +1,111 @@
+{
+  "schemaVersion": 1,
+  "id": "image_p_h3_image_edit",
+  "name": "P-H3-Image — edit a picture",
+  "title": "Change a picture by asking",
+  "summary": "Upload a picture and say what to change: \"make it night\", \"paint the door red\". Say what must stay as it is, too: its prompt writer, which would do that for you, does not run on this machine yet.",
+  "description": "Pruna's P-H3-Image edits a picture from a request, run here as a LoRA on MiniMax H3.\n\nThe model edits best from a brief that names what to change and what to keep (\"Make it night; keep the people, the building and the framing\"); a bare request can make it redraw the whole scene.\n\nIt comes with a prompt upsampler (a Qwen3.5-9B writer) that looks at the picture and writes that brief. On this ComfyUI build the writer fails (a bug in the Qwen 3.5 decode, the same one that stops the other prompt improvers), so it is off.\n\nThe result has the size of the picture you upload (up to 2048 × 2048). It takes 8 steps, without a negative prompt.",
+  "category": "image-edit",
+  "experimental": true,
+  "tags": [
+    "p-h3-image",
+    "minimax",
+    "h3",
+    "image-edit",
+    "prompt-upsampler"
+  ],
+  "promptGuides": [
+    {
+      "label": "P-H3-Image — prompting (Pruna)",
+      "url": "https://huggingface.co/PrunaAI/P-H3-Image#prompting",
+      "tip": "A one-line request is enough: the prompt upsampler writes the full prompt. Put any words to be written in quotes."
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_p_h3_image_edit.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 28,
+    "models": [
+      {
+        "type": "unet",
+        "file": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "lora",
+        "file": "p-h3-image_lora_bf16.safetensors",
+        "url": "https://huggingface.co/PrunaAI/p-h3-image-comfy/resolve/main/loras/p-h3-image_lora_bf16.safetensors",
+        "source": "https://huggingface.co/PrunaAI/p-h3-image-comfy"
+      },
+      {
+        "type": "clip",
+        "file": "p-h3-image_text_encoder_int8_convrot.safetensors",
+        "url": "https://huggingface.co/PrunaAI/p-h3-image-comfy/resolve/main/text_encoders/p-h3-image_text_encoder_int8_convrot.safetensors",
+        "source": "https://huggingface.co/PrunaAI/p-h3-image-comfy"
+      },
+      {
+        "type": "clip",
+        "file": "p-h3-image_prompt_upsampler_w4a8.safetensors",
+        "url": "https://huggingface.co/PrunaAI/p-h3-image-comfy/resolve/main/text_encoders/p-h3-image_prompt_upsampler_w4a8.safetensors",
+        "source": "https://huggingface.co/PrunaAI/p-h3-image-comfy"
+      },
+      {
+        "type": "vae",
+        "file": "p-h3-image_vae_int8_convrot.safetensors",
+        "url": "https://huggingface.co/PrunaAI/p-h3-image-comfy/resolve/main/vae/p-h3-image_vae_int8_convrot.safetensors",
+        "source": "https://huggingface.co/PrunaAI/p-h3-image-comfy"
+      }
+    ]
+  },
+  "estimatedDurationSec": 60,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_26",
+      "nodeId": "26",
+      "field": "image",
+      "type": "image",
+      "label": "Picture to edit",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "request_24",
+      "nodeId": "24",
+      "field": "value",
+      "type": "textarea",
+      "label": "What to change — say what to keep, too",
+      "default": "change the lighting to night time",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "upsampler_23",
+      "nodeId": "23",
+      "field": "switch",
+      "type": "checkbox",
+      "label": "Write an edit brief from my request (prompt upsampler) ⚠ fails on this ComfyUI build (the Qwen 3.5 decode: \"Unsupported Flash Attention tensor strides\"), so it is off",
+      "default": false,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "seed_12",
+      "nodeId": "12",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 691899913323484,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 3
+    }
+  ],
+  "warmupParams": {}
+}
