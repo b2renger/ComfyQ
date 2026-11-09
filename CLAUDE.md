@@ -8,15 +8,14 @@ Portable project knowledge for ComfyQ (multi-user ComfyUI workflow scheduler). T
 - **New dated entries go at the top of PROJECT-HISTORY.md.** Add something here only if it changes what is true now or adds a rule.
 - Open decisions and backlog: [docs/review-2026-11-05.md](docs/review-2026-11-05.md). What comes next: [docs/roadmap.md](docs/roadmap.md). User-facing overview: [README.md](README.md). The plan to 2026-07, frozen: [implementation_plan.md](implementation_plan.md). Notes that used to live only in machine-local memory: [docs/machine-memory/](docs/machine-memory/).
 
-## Current state (2026-11-06)
+## Current state (2026-11-09)
 
 - The **v2 rebuild is the active code on `main`**. The `v2` branch is a stale snapshot; the v1 monolith lives on `poc1` / `poc2`. Ignore older text that says "checkout v2".
 - **80 bundles** in `workflows/`, 19 flagged experimental. `workflows/_candidate_workflows/` is the owner's staging: leave it alone.
-- **80 captioned examples** (user `examples`), seeded from the test suite in [tools/test-suite](tools/test-suite/README.md). Results of the last full run: [docs/showcase-research/run-2026-11-04.md](docs/showcase-research/run-2026-11-04.md), [docs/workflow-assessment.md](docs/workflow-assessment.md).
+- **80 captioned examples** (user `examples`), seeded from the full test-suite run of 2026-11-09 ([tools/test-suite](tools/test-suite/README.md)): 104 of 105 runs clean, every picture opened, and four examples replayed to identical pixels and samples from their recorded settings. Notes: [docs/showcase-research/run-2026-11-09.md](docs/showcase-research/run-2026-11-09.md). The owner's listening pass goes in [docs/showcase-feedback-2026-11-09.md](docs/showcase-feedback-2026-11-09.md).
 - **Discovery** is at v2.1.0; `desktop/` has unreleased changes.
-- ⚠ **The 2026-11-05 review is committed and pushed (`c29201b`..`cda84aa`), but no fix has run on a real job yet.** Tests are green (`npm run test:storyboard`), with stand-ins for ComfyUI. The first real check is question 19.
-- ⚠ **9 cards with `whenEmpty: "unlink"` ran with a black placeholder from 2026-09-21 to 2026-11-05.** Their examples and `runtime.json` were made that way and need a re-run (question 19 of the review).
-- Decided by the owner (2026-11-06): ComfyUI's port stays open on the LAN for now; scan folders stay as they are; cleaning outputs or history removes the showcase too, with no exemption. The 12 cards with a higher VRAM peak in git history stay as they are. Questions 10 onward are still open.
+- **Batch tables** (2026-11-09): a `.csv` of jobs, one per row, previewed and queued from the admin panel's **Batches** tab ([docs/batch-format.md](docs/batch-format.md), [server/batch/](server/batch/)). Stages 1-2 of [the plan](docs/batch-feature-plan.md) are done, tested with stand-ins and **not yet run on a real batch**; the table editor is stage 7.
+- Decided by the owner (2026-11-06): ComfyUI's port stays open on the LAN for now; scan folders stay as they are; cleaning outputs or history removes the showcase too, with no exemption. The 12 cards with a higher VRAM peak in git history stay as they are. Questions 10-49 are answered; 38 waits for the batch rework, 34 for the 3090.
 
 ## How the machine runs
 
