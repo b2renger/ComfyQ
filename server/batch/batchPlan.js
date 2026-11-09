@@ -26,13 +26,20 @@ const { resolveWorkflowAlias, buildIndex } = require('../storyboard/workflowReso
 const { predictOutputKind } = require('../storyboard/storyboardPlanner');
 const { isSeedParam } = require('../benchmark/benchmarkService');
 const { classify } = require('../media/mediaTypes');
+const { splitPipeline, outputKind, extraAssets } = require('./deriveOps');
 const kindOf = (file) => classify(file).kind;
 
 const MEDIA_TYPES = ['image', 'mask', 'video', 'audio', 'model3d'];
 // What a job output must be to fill a parameter of this type.
 const KIND_FOR_TYPE = { image: 'image', mask: 'image', video: 'video', audio: 'audio', model3d: 'model3d' };
-const RESERVED = new Set(['id', 'workflow', 'prompt', 'negative', 'repeat', 'seed', 'note', 'notes', 'comment']);
-const ID_RX = /^[A-Za-z][A-Za-z0-9_-]{0,47}$/;
+// Columns that are not a card's setting. stage, caption and keepRuntime are the
+// test suite's (tools/test-suite): a batch reads past them.
+const RESERVED = new Set(['id', 'workflow', 'prompt', 'negative', 'repeat', 'seed', 'note', 'notes', 'comment',
+    'stage', 'caption', 'keepruntime']);
+// A letter or digit first ("3d_pixal3d_multi_views" is a card's id), then letters,
+// digits, - _ and @ ("video_ltx2_5_t2v@compare" is a test-suite variant).
+const ID_RX = /^[A-Za-z0-9][A-Za-z0-9_@-]{0,79}$/;
+const REF_RX = /^([A-Za-z0-9][A-Za-z0-9_@-]*)(?:\.(\d+))?(?:#(\d+))?$/;
 const MAX_REPEAT = 100;
 
 function isSeed(p) { return p.type === 'number' && isSeedParam(p); }
@@ -119,11 +126,13 @@ function readValue(raw, p, env) {
             return { value: hit };
         }
         case 'camera': {
+            // Checked as JSON, kept as written: the value travels as the text a
+            // booking sends, so a suite run and its replay send the same thing.
             try {
                 const obj = JSON.parse(v);
                 if (!obj || typeof obj !== 'object' || Array.isArray(obj)) throw new Error();
-                return { value: obj };
-            } catch { return { error: `a camera setting is written as JSON, such as {"azimuth":0,"elevation":0,"distance":1}.` }; }
+                return { value: v };
+            } catch { return { error: `a camera setting is written as JSON, such as {"horizontal": 0, "vertical": 0, "zoom": 5}.` }; }
         }
         default:
             return { value: v };
@@ -141,27 +150,37 @@ function unsafeName(name) {
 // A media cell, read but not yet resolved against the other rows.
 //   { asset } | { folder } | { job, outputIndex } | { row, copy, outputIndex } | { error }
 function readMediaCell(raw) {
-    const v = raw.trim();
+    // "file:a.mp4 | frame(0) | crop(…)": a file, then the steps that prepare it.
+    let base;
+    let derive = [];
+    try { ({ base, ops: derive } = splitPipeline(raw)); }
+    catch (e) { return { error: `"${raw.trim()}": ${e.message}` }; }
+    const v = base;
     let m;
+    // "empty": leave an optional input empty on purpose. In a batch that is what
+    // an empty cell does too; the test suite tells the two apart (an input it
+    // does not name gets an asset picked for it).
+    if (/^empty$/i.test(v) && !derive.length) return { empty: true };
     if ((m = /^file:(.+)$/i.exec(v))) {
         const name = m[1].trim();
         const bad = unsafeName(name);
-        return bad ? { error: `"${v}": ${bad}` } : { asset: name };
+        return bad ? { error: `"${v}": ${bad}` } : { asset: name, derive };
     }
     if ((m = /^folder:(.*)$/i.exec(v))) {
         const dir = m[1].trim().replace(/[\\/]+$/, '');
         const bad = dir ? unsafeName(dir) : null;
-        return bad ? { error: `"${v}": ${bad}` } : { folder: dir };
+        return bad ? { error: `"${v}": ${bad}` } : { folder: dir, derive };
     }
+    if (derive.length) return { error: `"${raw.trim()}": steps (| …) prepare a file from the assets folder; another row's or job's result cannot be prepared yet.` };
     if ((m = /^job:([0-9a-f-]{8,36})(?:#(\d+))?$/i.exec(v))) {
         return { job: m[1].toLowerCase(), outputIndex: m[2] ? Number(m[2]) - 1 : 0 };
     }
-    if ((m = /^([A-Za-z][A-Za-z0-9_-]*)(?:\.(\d+))?(?:#(\d+))?$/.exec(v))) {
+    if ((m = REF_RX.exec(v))) {
         if (m[3] !== undefined && Number(m[3]) < 1) return { error: `"${v}": outputs are counted from 1.` };
         if (m[2] !== undefined && Number(m[2]) < 1) return { error: `"${v}": copies are counted from 1.` };
         return { row: m[1], copy: m[2] ? Number(m[2]) : null, outputIndex: m[3] ? Number(m[3]) - 1 : 0 };
     }
-    return { error: `"${v}" is not an input. Write the id of a row, file:NAME for a file in the assets folder, folder:NAME/ for each file in a folder, or job:ID.` };
+    return { error: `"${v}" is not an input. Write the id of a row, file:NAME for a file in the assets folder, folder:NAME/ for each file in a folder, job:ID, or empty.` };
 }
 
 function randomSeed(p, random) {
@@ -237,7 +256,7 @@ function planBatch(text, registry, env = {}) {
         }
         r.id = col(rec.cells, 'id') || `row${rec.row}`;
         if (!ID_RX.test(r.id)) {
-            err(rec.row, 'id', `"${r.id}" cannot be an id: start with a letter, then letters, digits, - or _.`);
+            err(rec.row, 'id', `"${r.id}" cannot be an id: a letter or digit, then letters, digits, - _ or @.`);
             r.ok = false;
         } else if (byId.has(r.id)) {
             err(rec.row, 'id', `The id "${r.id}" is already used on row ${byId.get(r.id).row}.`);
@@ -252,6 +271,13 @@ function planBatch(text, registry, env = {}) {
         catch (e) { err(rec.row, 'workflow', e.message); r.ok = false; rows.push(r); continue; }
         const params = enabledParams(r.entry);
         r.params = params;
+
+        // The test suite's own columns, carried to the jobs for its loader.
+        r.extra = { stage: col(rec.cells, 'stage'), caption: col(rec.cells, 'caption'), keepRuntime: col(rec.cells, 'keepruntime') };
+        if (r.extra.keepRuntime && !/^(yes|no|true|false|oui|non|1|0|x)$/i.test(r.extra.keepRuntime)) {
+            err(rec.row, 'keepRuntime', 'keepRuntime is yes or no.');
+            r.ok = false;
+        }
 
         const rep = col(rec.cells, 'repeat');
         r.repeat = 1;
@@ -293,6 +319,8 @@ function planBatch(text, registry, env = {}) {
                 continue;
             }
             if (isSeed(p)) { err(rec.row, column, `Use the "seed" column for the seed.`); r.ok = false; continue; }
+            // "empty" sets a text field to nothing; an empty cell leaves the card's default.
+            if (/^empty$/i.test(raw.trim()) && ['textarea', 'text'].includes(p.type)) { r.values[p.key] = ''; continue; }
             const got = readValue(raw.trim(), p, env);
             if (got.error) { err(rec.row, column, got.error); r.ok = false; continue; }
             r.values[p.key] = got.value;
@@ -317,15 +345,30 @@ function planBatch(text, registry, env = {}) {
         for (const m of r.media) {
             const want = KIND_FOR_TYPE[m.param.type];
             const ref = m.ref;
-            if (ref.asset) {
+            // What a file becomes once its steps (| …) are applied; null when the
+            // steps cannot take it (a crop on a video), with the reason in `why`.
+            let why = null;
+            const madeFrom = (file) => {
+                try { return outputKind(kindOf(file), ref.derive); } catch (e) { why = e.message; return null; }
+            };
+            for (const extra of extraAssets(ref.derive)) {
+                if (!env.assetExists || !env.assetExists(extra)) { err(r.row, m.column, `There is no file "${extra}" in the assets folder.`); r.ok = false; }
+            }
+            if (ref.empty) {
+                if (m.param.required !== false) { err(r.row, m.column, `${cardName(r.entry)} needs ${article(m.param.type)} here (${m.param.label || m.param.key}); it cannot be left empty.`); r.ok = false; }
+            } else if (ref.asset) {
                 if (!env.assetExists || !env.assetExists(ref.asset)) { err(r.row, m.column, `There is no file "${ref.asset}" in the assets folder.`); r.ok = false; continue; }
-                const kind = kindOf(ref.asset);
-                if (kind !== want) { err(r.row, m.column, `"${ref.asset}" is ${article(kind)}, and this input takes ${article(want)}.`); r.ok = false; }
+                const kind = madeFrom(ref.asset);
+                if (!kind) { err(r.row, m.column, `"${ref.asset}": ${why}`); r.ok = false; }
+                else if (kind !== want) {
+                    err(r.row, m.column, `"${ref.asset}"${ref.derive.length ? ', prepared,' : ''} is ${article(kind)}, and this input takes ${article(want)}.`);
+                    r.ok = false;
+                }
             } else if (ref.folder !== undefined) {
                 const files = env.listAssets ? env.listAssets(ref.folder) : null;
                 if (!files) { err(r.row, m.column, `There is no folder "${ref.folder || '.'}" in the assets folder.`); r.ok = false; continue; }
-                ref.files = files.filter(f => kindOf(f) === want).sort((a, b) => a.localeCompare(b));
-                if (!ref.files.length) { err(r.row, m.column, `The folder "${ref.folder || '.'}" has no ${want} file.`); r.ok = false; }
+                ref.files = files.filter(f => madeFrom(f) === want).sort((a, b) => a.localeCompare(b));
+                if (!ref.files.length) { err(r.row, m.column, `The folder "${ref.folder || '.'}" has no ${want} file${ref.derive.length ? ' these steps can prepare' : ''}.`); r.ok = false; }
             } else if (ref.job) {
                 const job = env.getJob ? env.getJob(ref.job) : null;
                 if (!job) { err(r.row, m.column, `There is no job ${ref.job}.`); r.ok = false; continue; }
@@ -349,7 +392,7 @@ function planBatch(text, registry, env = {}) {
                     else if (!kind) warn(r.row, m.column, `What ${cardName(src.entry)} makes could not be told in advance; the job fails if it is not ${article(want)}.`);
                 }
             }
-            if (m.param.type === 'mask' && !ref.asset) {
+            if (m.param.type === 'mask' && (ref.row !== undefined || ref.job)) {
                 warn(r.row, m.column, `A mask is read from the picture's transparency. A generated picture has none, so nothing would be masked.`);
             }
         }
@@ -459,11 +502,15 @@ function planBatch(text, registry, env = {}) {
                 if (r.seedParam) paramValues[r.seedParam.key] = r.seed != null ? r.seed + rep : randomSeed(r.seedParam, random);
                 const deps = [];
                 const assets = [];
+                const emptyInputs = [];
+                // `derive` only when there are steps, so a plain file stays { paramKey, file }.
+                const withSteps = (a, ref) => (ref.derive?.length ? { ...a, derive: ref.derive } : a);
                 for (const m of r.media) {
                     const kind = KIND_FOR_TYPE[m.param.type];
                     const ref = m.ref;
-                    if (ref.asset) assets.push({ paramKey: m.param.key, file: ref.asset });
-                    else if (ref.files) assets.push({ paramKey: m.param.key, file: ref.folder ? `${ref.folder}/${ref.files[item]}` : ref.files[item] });
+                    if (ref.empty) emptyInputs.push(m.param.key);
+                    else if (ref.asset) assets.push(withSteps({ paramKey: m.param.key, file: ref.asset }, ref));
+                    else if (ref.files) assets.push(withSteps({ paramKey: m.param.key, file: ref.folder ? `${ref.folder}/${ref.files[item]}` : ref.files[item] }, ref));
                     else if (ref.jobId) deps.push({ paramKey: m.param.key, sourceJobId: ref.jobId, outputIndex: ref.outputIndex, kind });
                     else {
                         const src = copiesOf.get(m.source);
@@ -485,6 +532,12 @@ function planBatch(text, registry, env = {}) {
                     paramValues,
                     deps,
                     assets,
+                    emptyInputs,
+                    // What the row set itself, as opposed to the card's defaults
+                    // filled in above: the test suite records only these as its own.
+                    setKeys: Object.keys(r.values),
+                    seedSet: r.seedParam && r.seed != null ? r.seedParam.key : null,
+                    cells: r.extra,
                     estimatedDurationSec: rt.warmDurationSec || rt.estimatedDurationSec || r.entry.meta?.estimatedDurationSec || null,
                     modelLoadSec: rt.modelLoadSec || 0
                 };

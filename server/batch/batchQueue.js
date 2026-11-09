@@ -24,23 +24,30 @@ const PHASE_ORDER = ['images', 'videos', 'audio', '3D models', 'texts', 'other']
 const where = (row, column) => `Row ${row}${column ? `, ${column}` : ''}`;
 const line = (e) => (e.row ? `${where(e.row, e.column)}: ${e.message}` : e.message);
 
-// Every distinct asset of the plan, with the jobs (row, column) that use it.
+// One staged file: an asset, with the steps that prepare it (none for most).
+const stageKey = (a) => `${a.file}${a.derive?.length ? ` | ${JSON.stringify(a.derive)}` : ''}`;
+
+// Every distinct staged file of the plan, with the jobs (row, column) that use it.
 function assetUses(plan) {
     const uses = new Map();
     for (const j of plan.jobs) {
         for (const a of j.assets) {
-            if (!uses.has(a.file)) uses.set(a.file, []);
-            uses.get(a.file).push({ row: j.row, paramKey: a.paramKey });
+            const k = stageKey(a);
+            if (!uses.has(k)) uses.set(k, { file: a.file, derive: a.derive || [], uses: [] });
+            uses.get(k).uses.push({ row: j.row, paramKey: a.paramKey });
         }
     }
     return uses;
 }
 
 // The guard an upload goes through (no HEIC, a size in bytes and in pixels),
-// for each picture the plan takes from the assets folder. → [{ row, column, message }]
+// for each picture the plan takes from the assets folder as it is. A prepared
+// one is checked once it is made (stageAssets): its steps may be what shrinks it.
+// → [{ row, column, message }]
 function checkAssetImages(plan, assetsDir) {
     const errors = [];
-    for (const [file, uses] of assetUses(plan)) {
+    for (const { file, derive, uses } of assetUses(plan).values()) {
+        if (derive.length) continue;
         const verdict = inspectUpload(path.join(assetsDir, file), file);
         if (verdict.ok) continue;
         const rows = [...new Set(uses.map(u => u.row))];
@@ -53,22 +60,43 @@ function safeName(name) {
     return path.basename(name).replace(/[^A-Za-z0-9._-]/g, '_').slice(-80) || 'file';
 }
 
-// Copy each asset into ComfyUI's input folder. → Map(file → staged name)
-function stageAssets(plan, assetsDir, inputDir) {
+// Copy each asset into ComfyUI's input folder, preparing it first when the
+// table gives steps (deriveInput, the test suite's own). → Map(stageKey → staged name)
+//   derive: async ({ src, ops, dest }) → dest   (injected, so a test needs no python)
+// A prepared picture goes through the upload guard here; it throws, naming the
+// row, when one does not pass, and nothing is queued.
+async function stageAssets(plan, assetsDir, inputDir, { derive } = {}) {
     const staged = new Map();
     fs.mkdirSync(inputDir, { recursive: true });
-    for (const file of assetUses(plan).keys()) {
-        const src = path.join(assetsDir, file);
-        const hash = crypto.createHash('sha1').update(fs.readFileSync(src)).digest('hex').slice(0, 16);
-        const name = `comfyq_session__batch_${hash}__${safeName(file)}`;
-        const dest = path.join(inputDir, name);
-        if (!fs.existsSync(dest)) {
-            // Through a temporary name, so a half-copied file never carries the real one.
-            const tmp = `${dest}.part`;
-            fs.copyFileSync(src, tmp);
-            fs.renameSync(tmp, dest);
+    for (const [key, unit] of assetUses(plan)) {
+        let src = path.join(assetsDir, unit.file);
+        let base = safeName(unit.file);
+        let tmpMade = null;
+        if (unit.derive.length) {
+            if (!derive) throw new Error(`Row ${unit.uses[0].row}: "${unit.file}" has steps, and nothing here can prepare it.`);
+            const ext = unit.derive.some(o => ['trim', 'vscale', 'vblur', 'mute', 'encode'].includes(o.op)) ? 'mp4' : 'png';
+            tmpMade = path.join(inputDir, `comfyq_batchprep_${crypto.randomBytes(6).toString('hex')}.${ext}`);
+            try { await derive({ src, ops: unit.derive, dest: tmpMade }); }
+            catch (e) { throw new Error(`Row ${unit.uses[0].row}: "${unit.file}" could not be prepared: ${e.message}`); }
+            src = tmpMade;
+            base = `${base.replace(/\.[^.]+$/, '')}_prepared.${ext}`;
+            const verdict = inspectUpload(src, base);
+            if (!verdict.ok) { fs.rmSync(src, { force: true }); throw new Error(`Row ${unit.uses[0].row}: "${unit.file}", prepared: ${verdict.error}`); }
         }
-        staged.set(file, name);
+        try {
+            const hash = crypto.createHash('sha1').update(fs.readFileSync(src)).digest('hex').slice(0, 16);
+            const name = `comfyq_session__batch_${hash}__${base}`;
+            const dest = path.join(inputDir, name);
+            if (!fs.existsSync(dest)) {
+                // Through a temporary name, so a half-copied file never carries the real one.
+                const tmp = `${dest}.part`;
+                fs.copyFileSync(src, tmp);
+                fs.renameSync(tmp, dest);
+            }
+            staged.set(key, name);
+        } finally {
+            if (tmpMade) fs.rmSync(tmpMade, { force: true });
+        }
     }
     return staged;
 }
@@ -96,7 +124,7 @@ function buildInserts(plan, { batchId, batchLabel, folder, userId, startAt, spac
         }
         const paramValues = { ...j.paramValues };
         for (const a of j.assets) {
-            const name = staged.get(a.file);
+            const name = staged.get(stageKey(a));
             if (!name) throw new Error(`internal: "${a.file}" was not staged`);
             paramValues[a.paramKey] = name;
         }

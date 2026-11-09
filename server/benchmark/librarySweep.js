@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 const { readAccessLog, invalidateAccessLog, namesOpenedBetween } = require('../workflows/modelAccessLog');
 const { flagsFromArgv } = require('../workers/perfFlags');
 const { classify } = require('../media/mediaTypes');
-const { parseMediaSpec, kindForParam, assetFile, MEDIA_TYPES, VIDEO_DERIVE_OPS } = require('./suitePlan');
+const { parseMediaSpec, kindForParam, assetFile, MEDIA_TYPES } = require('./suitePlan');
 const { isSeedParam } = require('./benchmarkService');
 
 // Run every workflow in the library once, and write down what happened.
@@ -40,7 +40,7 @@ const { isSeedParam } = require('./benchmarkService');
 
 const DATA_DIR = path.resolve(__dirname, '..', 'data');
 const STATS_SCRIPT = path.resolve(__dirname, '..', '..', 'tools', 'maintenance', 'output_stats.py');
-const DERIVE_SCRIPT = path.resolve(__dirname, '..', '..', 'tools', 'test-suite', 'derive_input.py');
+const { deriveInput, derivedExt, comfyPython } = require('./deriveInput');
 const STATS_TIMEOUT_MS = 120000;
 // The longest value an ingredient row records whole (see _ingredients).
 const MAX_RECORDED_CHARS = 64 * 1024;
@@ -758,32 +758,8 @@ class LibrarySweep {
     _derive(src, ops, name) {
         const dir = path.join(this._dataDir, 'suite-inputs', this._run?.stamp || 'adhoc');
         fs.mkdirSync(dir, { recursive: true });
-        const video = (ops || []).some(o => VIDEO_DERIVE_OPS.includes(o?.op));
-        const dest = path.join(dir, `${name}.${video ? 'mp4' : 'png'}`);
-        return new Promise((resolve, reject) => {
-            const py = this._python();
-            if (!py || !fs.existsSync(DERIVE_SCRIPT)) return reject(new Error('ComfyUI\'s python or derive_input.py is missing'));
-            const boot = "import runpy, sys, os; p = sys.argv[1]; "
-                + "sys.path.insert(0, os.path.dirname(os.path.abspath(p))); "
-                + "sys.argv = sys.argv[1:]; runpy.run_path(p, run_name='__main__')";
-            let out = '', err = '';
-            const child = spawn(py, ['-c', boot, DERIVE_SCRIPT], {
-                env: { ...process.env, PYTHONIOENCODING: 'utf-8', PYTHONUTF8: '1' }, windowsHide: true,
-            });
-            const timer = setTimeout(() => { try { child.kill(); } catch { /* gone */ } reject(new Error('timed out')); }, 120000);
-            child.stdout.on('data', d => { out += d.toString('utf8'); });
-            child.stderr.on('data', d => { err += d.toString('utf8'); });
-            child.on('error', e => { clearTimeout(timer); reject(e); });
-            child.on('close', () => {
-                clearTimeout(timer);
-                let res = null;
-                try { res = JSON.parse(out); } catch { /* fall through */ }
-                if (res?.ok && fs.existsSync(dest)) return resolve(dest);
-                reject(new Error(res?.error || err.trim().split('\n').pop() || 'no result'));
-            });
-            const assets = this._config()?.assets?.dir || null;
-            try { child.stdin.write(JSON.stringify({ src, dest, ops, assets })); child.stdin.end(); } catch { /* closed */ }
-        });
+        const dest = path.join(dir, `${name}.${derivedExt(ops)}`);
+        return deriveInput({ python: this._python(), src, ops, dest, assetsDir: this._config()?.assets?.dir || null });
     }
 
     /**
@@ -998,13 +974,7 @@ class LibrarySweep {
     }
 
     _python() {
-        const cfg = this._config() || {};
-        const root = cfg.comfy_ui?.root_path || '';
-        const exe = cfg.comfy_ui?.python_executable || '';
-        const cands = [];
-        if (exe) cands.push(path.isAbsolute(exe) ? exe : path.resolve(root || '.', exe));
-        if (root) cands.push(path.resolve(root, '..', 'python_embeded', 'python.exe'));
-        return cands.find(p => { try { return fs.statSync(p).isFile(); } catch { return false; } }) || null;
+        return comfyPython(this._config() || {});
     }
 
     /** Pixel/frame stats through ComfyUI's own python (PIL, numpy, cv2, av). */

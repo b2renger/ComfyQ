@@ -13,8 +13,10 @@ const path = require('path');
 // bundle restyles. The examples then read as one pipeline, and two bundles that
 // do the same job are given the same inputs, so they can be compared.
 //
-// The file lives in tools/test-suite/<name>.suite.json and is committed: it IS
-// the test configuration. Shape:
+// The file lives in tools/test-suite/ and is committed: it IS the test
+// configuration. Since 2026-11-09 the library's is a batch table,
+// library.suite.csv (see suiteFromTable below and docs/batch-format.md), which
+// the batch editor opens, edits and runs. The older JSON shape is still read:
 //
 //   { "name": "...", "description": "...",
 //     "stages": [ { "name": "Text to image", "runs": [
@@ -98,16 +100,102 @@ function assetFile(assetsDir, spec) {
     try { return fs.statSync(full).isFile() ? full : null; } catch { return null; }
 }
 
+// A suite by name: <name>.suite.csv (a batch table, the format since 2026-11-09),
+// else <name>.suite.json.
 function suitePath(name) {
     if (!/^[A-Za-z0-9_-]+$/.test(String(name || ''))) {
         throw new Error(`a suite name is letters, digits, - and _ only (got "${name}")`);
     }
-    return path.join(SUITE_DIR, `${name}.suite.json`);
+    const csv = path.join(SUITE_DIR, `${name}.suite.csv`);
+    return fs.existsSync(csv) ? csv : path.join(SUITE_DIR, `${name}.suite.json`);
+}
+
+// The library a .csv suite is read against when the caller has none to give.
+function defaultRegistry() {
+    const { WorkflowRegistry } = require('../workflows/workflowRegistry');
+    const r = new WorkflowRegistry(path.resolve(__dirname, '..', '..', 'workflows'));
+    r.discover();
+    return r;
+}
+
+const yes = (v) => /^(yes|true|oui|1|x)$/i.test(String(v || '').trim());
+
+/**
+ * A suite written as a batch table (docs/batch-format.md), read by the batch
+ * planner itself, so the suite and a batch cannot read one cell two ways.
+ *
+ * One row is one run. Its id is its card ("image_moss_image_t2i"), or
+ * "<card>@<variant>" for a second run of the card (a comparison, an option),
+ * which keeps runtime.json and is never seeded as an example. The suite's own
+ * columns: `stage` (carried down to the rows below until the next one),
+ * `caption` (the note an example shows), `keepRuntime` (yes or no). An input is
+ * file:NAME, with steps when it is prepared (file:a.mp4 | frame(0)), or `empty`
+ * to leave an optional input empty on purpose; one the row does not name gets
+ * an asset picked by the calibrator. The params of a run are only what its row
+ * sets: the card's defaults stay the card's.
+ *
+ * The planner's problems are kept in `loadErrors`, and validateSuite reports
+ * them with the rest, so a broken table stops the run before it starts.
+ */
+function suiteFromTable(text, registry, { name, file } = {}) {
+    const { planBatch } = require('../batch/batchPlan');
+    const { parseCsv } = require('../batch/csv');
+    const { classify } = require('../media/mediaTypes');
+    // Existence is checked by run-suite --check and by the sweep before each run,
+    // with the assets folder of the machine that runs it.
+    const plan = planBatch(text, registry, { assetExists: () => true, listAssets: () => null, random: () => 0 });
+    const loadErrors = plan.errors.map(e => `${e.row ? `row ${e.row}${e.column ? `, ${e.column}` : ''}: ` : ''}${e.message}`);
+    for (const b of plan.blocked) loadErrors.push(`row ${b.row} (${b.id}) waits on ${b.waitsOn.join(', ')}`);
+    const description = (parseCsv(text).records.slice(1).find(r => String(r.cells[0] || '').trim().startsWith('#'))?.cells[0] || '')
+        .trim().replace(/^#\s*/, '');
+    const stages = [];
+    let stage = null;
+    const runs = [];
+    for (const job of [...plan.jobs].sort((a, b) => a.row - b.row)) {
+        if (job.key !== job.id) { loadErrors.push(`row ${job.row} (${job.id}): a suite row is one run; repeat and folder: make several`); continue; }
+        const workflow = job.workflowId;
+        let variant = null;
+        if (job.id !== workflow) {
+            if (!job.id.startsWith(`${workflow}@`)) { loadErrors.push(`row ${job.row}: a suite row's id is its card (${workflow}) or ${workflow}@<variant>, not "${job.id}"`); continue; }
+            variant = job.id.slice(workflow.length + 1);
+        }
+        if (job.cells?.stage) stage = job.cells.stage;
+        const stageName = stage || 'Stage 1';
+        if (!stages.includes(stageName)) stages.push(stageName);
+        const params = {};
+        for (const k of job.setKeys) params[k] = job.paramValues[k];
+        if (job.seedSet) params[job.seedSet] = job.paramValues[job.seedSet];
+        for (const a of job.assets) {
+            params[a.paramKey] = a.derive
+                ? { from: `asset:${a.file}`, kind: classify(a.file).kind, derive: a.derive }
+                : `asset:${a.file}`;
+        }
+        for (const k of job.emptyInputs) params[k] = null;
+        if (job.deps.length) loadErrors.push(`row ${job.row} (${job.id}): a suite row takes files, not another row's result`);
+        runs.push({
+            workflow,
+            variant,
+            id: job.id,
+            row: job.row,
+            stage: stageName,
+            stageIndex: stages.indexOf(stageName),
+            note: job.cells?.caption || null,
+            keepRuntime: yes(job.cells?.keepRuntime) || !!variant,
+            params,
+        });
+    }
+    return { name, description, file, runs, loadErrors, format: 'table' };
 }
 
 /** Read a suite by name, or by path for the CLI. Flattens the stages into runs. */
-function loadSuite(nameOrPath) {
-    const file = /[\\/]|\.json$/.test(String(nameOrPath)) ? path.resolve(nameOrPath) : suitePath(nameOrPath);
+function loadSuite(nameOrPath, registry = null) {
+    const file = /[\\/]|\.(json|csv)$/.test(String(nameOrPath)) ? path.resolve(nameOrPath) : suitePath(nameOrPath);
+    if (/\.csv$/i.test(file)) {
+        return suiteFromTable(fs.readFileSync(file, 'utf8'), registry || defaultRegistry(), {
+            name: path.basename(file).replace(/\.suite\.csv$|\.csv$/i, ''),
+            file,
+        });
+    }
     const raw = JSON.parse(fs.readFileSync(file, 'utf8'));
     const runs = [];
     for (const [si, stage] of (raw.stages || []).entries()) {
@@ -139,7 +227,7 @@ function loadSuite(nameOrPath) {
  * Errors stop the run; warnings are printed.
  */
 function validateSuite(suite, registry) {
-    const errors = [];
+    const errors = [...(suite.loadErrors || [])];
     const warnings = [];
     const seen = new Map();
     suite.runs.forEach((run, i) => {
@@ -181,4 +269,4 @@ function validateSuite(suite, registry) {
     return { errors, warnings };
 }
 
-module.exports = { loadSuite, validateSuite, parseMediaSpec, kindForParam, assetFile, suitePath, SUITE_DIR, MEDIA_TYPES, DERIVE_OPS, VIDEO_DERIVE_OPS };
+module.exports = { loadSuite, suiteFromTable, validateSuite, parseMediaSpec, kindForParam, assetFile, suitePath, SUITE_DIR, MEDIA_TYPES, DERIVE_OPS, VIDEO_DERIVE_OPS };

@@ -626,7 +626,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
     router.post('/library-sweep/run', adminGate, express.json(), async (req, res) => {
         const sw = runtime?.sweep;
         if (!sw) return res.status(503).json({ error: 'the sweep is not available' });
-        // `suite`: the NAME of a committed test suite (tools/test-suite/<name>.suite.json),
+        // `suite`: the NAME of a committed test suite (tools/test-suite/<name>.suite.csv, or .json),
         // never a path or a body of params — the configuration lives in the repo.
         // loadSuite also takes a path (the CLI uses that), so the name is checked
         // here first: a path from a browser would read any JSON the server can see.
@@ -635,7 +635,7 @@ function makeRouter({ configManager, registry, adminGate, exitForRestart, runtim
             try { suitePath(String(req.body.suite)); } catch (e) {
                 return res.status(400).json({ error: e.message });
             }
-            try { suite = loadSuite(String(req.body.suite)); } catch (e) {
+            try { suite = loadSuite(String(req.body.suite), registry); } catch (e) {
                 return res.status(400).json({ error: `cannot read suite "${req.body.suite}": ${e.message}` });
             }
             const check = validateSuite(suite, registry);

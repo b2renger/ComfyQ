@@ -94,12 +94,12 @@ assert.ok(v.errors.some(e => /mixes "frame"/.test(e)), 'frame + video ops is ref
     real.discover();
     const lib = loadSuite('library');
     const check = validateSuite(lib, real);
-    assert.deepStrictEqual(check.errors, [], `tools/test-suite/library.suite.json no longer fits the library:\n  ${check.errors.join('\n  ')}`);
+    assert.deepStrictEqual(check.errors, [], `tools/test-suite/library.suite.csv no longer fits the library:\n  ${check.errors.join('\n  ')}`);
     const inSuite = new Set(lib.runs.map(r => r.workflow));
     const bundles = real.list({ includeUnavailable: true, includeHidden: true }).map(e => e.id);
     const without = bundles.filter(id => !inSuite.has(id));
     assert.deepStrictEqual(without, [],
-        `bundle(s) with no run in tools/test-suite/library.suite.json, so no example: ${without.join(', ')}`);
+        `bundle(s) with no run in tools/test-suite/library.suite.csv, so no example: ${without.join(', ')}`);
 
     // ★ A suite leaves most settings unset, and an unset setting runs the api.json
     // LITERAL, not the card's default. Thirty literals once disagreed with their

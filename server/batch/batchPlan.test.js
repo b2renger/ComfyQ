@@ -135,7 +135,7 @@ test('a long prompt from a text file', () => {
     assert.strictEqual(p.jobs[0].prompt, 'A long prompt,\nover two lines.');
 });
 test('ids: unique, and written so a cell can name them', () => {
-    const p = plan(`id,workflow,prompt\nhero,${T2I},x\nhero,${T2I},y\n2nd,${T2I},z\n`);
+    const p = plan(`id,workflow,prompt\nhero,${T2I},x\nhero,${T2I},y\n-x,${T2I},z\n`);
     assert.strictEqual(p.errors.length, 2, messages(p));
     assert.ok(/already used on row 2/.test(messages(p)));
 });
@@ -239,6 +239,44 @@ test('no workflow column, an empty table, a row too wide', () => {
     assert.ok(/empty/.test(plan('\n\n').errors[0].message));
     const wide = plan(`workflow,prompt\n${T2I},a,b\n`);
     assert.ok(/needs quotes/.test(messages(wide)), messages(wide));
+});
+
+// ---- prepared inputs, "empty", the test suite's ids and columns
+test('a prepared input: the steps travel with the file, and what they make is checked', () => {
+    const p = plan(`workflow,prompt,image\n${EDIT},x,"file:clip.mp4 | frame(0) | crop(0, 0.16, 1, 0.91)"\n${EDIT},x,file:Woman.png | scale(0.3) | jpeg(40)\n`);
+    assert.deepStrictEqual(p.errors, [], messages(p));
+    assert.deepStrictEqual(p.jobs[0].assets[0].derive, [{ op: 'frame', index: 0 }, { op: 'crop', box: [0, 0.16, 1, 0.91] }]);
+    assert.deepStrictEqual(p.jobs[1].assets[0].derive, [{ op: 'scale', factor: 0.3 }, { op: 'jpeg', quality: 40 }]);
+    const bad = plan(`workflow,prompt,image\n${EDIT},x,"file:clip.mp4 | trim(0, 2)"\n${EDIT},x,file:clip.mp4 | scale(0.5)\n${EDIT},x,file:Woman.png | zoom(2)\n${EDIT},x,hero | scale(0.5)\nhero,${T2I},y,\n`);
+    assert.ok(/prepared, is a video/.test(messages(bad)), messages(bad));
+    assert.ok(/take a frame/.test(messages(bad)), messages(bad));
+    assert.ok(/"zoom" is not an operation/.test(messages(bad)), messages(bad));
+    assert.ok(/cannot be prepared yet/.test(messages(bad)), messages(bad));
+    assert.ok(Object.prototype.hasOwnProperty.call(plan(`workflow,prompt,image\n${EDIT},x,file:Woman.png\n`).jobs[0].assets[0], 'derive') === false, 'a plain file has no steps');
+});
+test('a composite names its overlay, which must exist', () => {
+    const p = plan(`workflow,prompt,image\n${EDIT},x,"file:Woman.png | composite(file:nope.webp, 0.1, 0.6, 0.3, 0.9)"\n`);
+    assert.ok(/no file "nope.webp"/.test(messages(p)), messages(p));
+});
+test('"empty" leaves an optional input empty, and is refused on a required one', () => {
+    const FLEX = 'video_pika_h3_flex_fl2va';
+    const ok = plan(`workflow,prompt,image,image2\n${FLEX},x,file:Woman.png,empty\n`);
+    assert.deepStrictEqual(ok.errors, [], messages(ok));
+    assert.strictEqual(ok.jobs[0].emptyInputs.length, 1);
+    const bad = plan(`workflow,prompt,image\n${EDIT},x,empty\n`);
+    assert.ok(/cannot be left empty/.test(messages(bad)), messages(bad));
+});
+test('ids may start with a digit and hold @; a cell can name them', () => {
+    const p = plan(`id,workflow,prompt,image\n3d_x@v1,${T2I},a,\nnext,${EDIT},b,3d_x@v1#2\n`);
+    assert.deepStrictEqual(p.errors, [], messages(p));
+    assert.deepStrictEqual(p.jobs[1].deps[0].sourceKey, '3d_x@v1');
+});
+test('the test suite columns: read past by a batch, kept for the suite', () => {
+    const p = plan(`id,workflow,stage,caption,keepRuntime,prompt\nhero,${T2I},1 — Pictures,"A door, red",yes,x\n`);
+    assert.deepStrictEqual(p.errors, [], messages(p));
+    assert.deepStrictEqual(p.jobs[0].cells, { stage: '1 — Pictures', caption: 'A door, red', keepRuntime: 'yes' });
+    assert.deepStrictEqual(p.jobs[0].setKeys, ['prompt_117'], 'only what the row set, not the defaults');
+    assert.ok(/keepRuntime is yes or no/.test(messages(plan(`workflow,keepRuntime,prompt\n${T2I},maybe,x\n`))));
 });
 
 // ---- the card list the editor builds rows from

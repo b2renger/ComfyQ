@@ -26,6 +26,7 @@
 // is then switched to student mode serving the batch's own first workflow —
 // which is what brings the executor up to drain it.
 
+const fs = require('fs');
 const path = require('path');
 const express = require('express');
 const multer = require('multer');
@@ -39,6 +40,8 @@ const { assetEnv } = require('../batch/assetEnv');
 const batchQueue = require('../batch/batchQueue');
 const { listModelFiles, withoutExcluded } = require('../workflows/modelOptions');
 const { classify } = require('../media/mediaTypes');
+const { deriveInput, comfyPython } = require('../benchmark/deriveInput');
+const { suitePath, suiteFromTable, validateSuite } = require('../benchmark/suitePlan');
 const cleanup = require('../storage/jobCleanup');
 const { sweepBlocksRestart, SWEEP_RUNNING_MESSAGE } = require('./sweepGuard');
 
@@ -243,7 +246,7 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
     // Queue a planned table. → { status, body } for a refusal, else { body, restartTo }.
     // There is no force for a table: a row is fixed in the spreadsheet, and a
     // batch with a hole in it is found an hour later.
-    function queueTable(built, c) {
+    async function queueTable(built, c) {
         const { plan, preview } = built;
         if (plan.errors.length || plan.blocked.length) {
             return { status: 422, body: {
@@ -258,9 +261,19 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
         if (plan.jobs.length > MAX_JOBS) {
             return { status: 413, body: { error: `That table makes ${plan.jobs.length} jobs; the limit is ${MAX_JOBS}.` } };
         }
-        const staged = plan.jobs.some(j => j.assets.length)
-            ? batchQueue.stageAssets(plan, built.assetsDir, path.resolve(built.config.comfy_ui.root_path, 'input'))
-            : new Map();
+        // Files first, prepared where the table gives steps. A file that cannot be
+        // prepared, or comes out too large, stops the batch before any row is written.
+        let staged;
+        try {
+            const python = comfyPython(built.config);
+            staged = plan.jobs.some(j => j.assets.length)
+                ? await batchQueue.stageAssets(plan, built.assetsDir, path.resolve(built.config.comfy_ui.root_path, 'input'), {
+                    derive: ({ src, ops, dest }) => deriveInput({ python, src, ops, dest, assetsDir: built.assetsDir }),
+                })
+                : new Map();
+        } catch (e) {
+            return { status: 422, body: { error: e.message, errors: [e.message] } };
+        }
         const batchId = uuidv4();
         const batchLabel = String(built.doc.name || 'batch.csv').slice(0, 120);
         const rows = batchQueue.buildInserts(plan, {
@@ -293,7 +306,7 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
         } };
     }
 
-    router.post('/queue', adminGate, uploadOrJson, (req, res) => {
+    router.post('/queue', adminGate, uploadOrJson, async (req, res) => {
         const c = ctx();
         let restartTo = null;
         try {
@@ -307,7 +320,7 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
             if (lanesRefusal) return res.status(409).json({ error: lanesRefusal, code: 'lanes-open' });
             const built = buildPlan(req, c.queue);
             if (built.table) {
-                const answer = queueTable(built, c);
+                const answer = await queueTable(built, c);
                 if (answer.status) return res.status(answer.status).json(answer.body);
                 restartTo = answer.restartTo;
                 return res.json(answer.body);
@@ -451,6 +464,36 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
             };
             res.json({ dir: env.dir, ...env.catalog({ classify: kindOf }) });
         } catch (e) { res.status(500).json({ error: e.message }); }
+    });
+
+    // The test suite, as the table it is (tools/test-suite/<name>.suite.csv), for
+    // the batch editor to open and save without a file. By NAME only: a path
+    // from a browser must never choose which file is read or written.
+    router.get('/suite/:name', adminGate, (req, res) => {
+        let file;
+        try { file = suitePath(req.params.name); } catch (e) { return res.status(400).json({ error: e.message }); }
+        if (!/\.csv$/.test(file) || !fs.existsSync(file)) return res.status(404).json({ error: `there is no table for the suite "${req.params.name}"` });
+        res.json({ name: req.params.name, file: path.relative(path.resolve(__dirname, '..', '..'), file), table: fs.readFileSync(file, 'utf8') });
+    });
+
+    // Save an edited suite. It is checked as a batch table AND as a suite (one
+    // run per row, ids that are cards or card@variant, every card known) before
+    // the file is replaced, so a save can never leave a suite that will not run.
+    router.put('/suite/:name', adminGate, express.json({ limit: '4mb' }), (req, res) => {
+        let file;
+        try { file = suitePath(req.params.name); } catch (e) { return res.status(400).json({ error: e.message }); }
+        if (!/\.csv$/.test(file)) return res.status(409).json({ error: `the suite "${req.params.name}" is not a table; convert it with tools/test-suite/to_table.cjs first` });
+        const table = req.body?.table;
+        if (typeof table !== 'string' || !table.trim()) return res.status(400).json({ error: 'No table was sent.' });
+        if (Buffer.byteLength(table, 'utf8') > MAX_BYTES) return res.status(413).json({ error: `The table is too large (max ${MAX_BYTES / 1024 / 1024} MB).` });
+        const suite = suiteFromTable(table, registry, { name: req.params.name, file });
+        const check = validateSuite(suite, registry);
+        if (check.errors.length) return res.status(422).json({ error: `${check.errors.length} problem(s): the suite was not saved.`, errors: check.errors, warnings: check.warnings });
+        const tmp = `${file}.part`;
+        fs.writeFileSync(tmp, table.replace(/\r?\n/g, '\r\n'));
+        fs.renameSync(tmp, file);
+        console.log(`[Storyboard] saved the test suite "${req.params.name}" from the batch editor: ${suite.runs.length} runs`);
+        res.json({ ok: true, runs: suite.runs.length, warnings: check.warnings });
     });
 
     router.get('/batches', adminGate, (req, res) => {

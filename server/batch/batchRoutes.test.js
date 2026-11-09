@@ -166,6 +166,49 @@ const srv = app.listen(0, '127.0.0.1', async () => {
         ({ status, d } = await post('/storyboard/preview', JSON.stringify({ table: GOOD }), { ...H, 'Content-Type': 'application/json' }));
         check('each job names its row', d.jobs.every(j => Number.isInteger(j.row) && j.rowId), JSON.stringify(d.jobs[0]));
 
+        // The test suite, as a table the editor opens and saves. Read-only here:
+        // a test must not write the repo's suite, so only refused saves are sent.
+        const suiteFile = path.join(REPO, 'tools', 'test-suite', 'library.suite.csv');
+        const before = fs.readFileSync(suiteFile, 'utf8');
+        r = await fetch(base + '/storyboard/suite/library', { headers: H });
+        d = await r.json();
+        check('the suite opens as its table', r.status === 200 && d.table === before && /library\.suite\.csv$/.test(d.file), `${r.status} ${d.file}`);
+        r = await fetch(base + '/storyboard/suite/..%2Fx', { headers: H });
+        check('a suite is named, never a path', r.status === 400, String(r.status));
+        const put = (name, table) => fetch(base + `/storyboard/suite/${name}`, { method: 'PUT', headers: { ...H, 'Content-Type': 'application/json' }, body: JSON.stringify({ table }) });
+        r = await put('library', `id,workflow,prompt\nnot_a_card_id,${T2I},x\n`);
+        d = await r.json();
+        check('a suite that would not run is not saved', r.status === 422 && d.errors.some(e => /card/.test(e)), `${r.status} ${JSON.stringify(d.errors)}`);
+        r = await put('library', 'id,prompt\nx,y\n');
+        check('nor a table that is not one', r.status === 422, String(r.status));
+        check('the suite file is untouched', fs.readFileSync(suiteFile, 'utf8') === before);
+        r = await put('no_such_suite', `id,workflow\n${T2I},${T2I}\n`);
+        check('a suite that is not a table is not overwritten', r.status === 409, String(r.status));
+        r = await fetch(base + '/storyboard/suite/library', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        check('saving the suite needs the admin password', r.status === 401, String(r.status));
+
+        // Prepared inputs are made at staging, once each, and checked as uploads are.
+        const bq = require('./batchQueue');
+        const fakePlan = (derive) => ({ jobs: [
+            { key: 'a', row: 2, assets: [{ paramKey: 'img', file: 'Woman.png', derive }] },
+            { key: 'b', row: 3, assets: [{ paramKey: 'img', file: 'Woman.png', derive }] },
+            { key: 'c', row: 4, assets: [{ paramKey: 'img', file: 'Woman.png' }] },
+        ] });
+        const stageDir = path.join(tmp, 'stage-input');
+        let made = 0;
+        const derive = async ({ src, ops, dest }) => { made++; fs.writeFileSync(dest, png(ops[0].factor === 99 ? 3000 : 16, 16)); return dest; };
+        const prepared = await bq.stageAssets(fakePlan([{ op: 'scale', factor: 0.25 }]), assets, stageDir, { derive });
+        check('a prepared file is made once for every row that uses it', made === 1 && prepared.size === 2, `${made} ${prepared.size}`);
+        check('it is staged under a name that is never swept', [...prepared.values()].every(n => n.startsWith('comfyq_session__batch_'))
+            && [...prepared.values()].some(n => /_prepared\.png$/.test(n)), JSON.stringify([...prepared.values()]));
+        check('no preparation file is left behind', fs.readdirSync(stageDir).every(n => n.startsWith('comfyq_session__batch_')), fs.readdirSync(stageDir).join(', '));
+        let refused = null;
+        try { await bq.stageAssets(fakePlan([{ op: 'scale', factor: 99 }]), assets, stageDir, { derive }); } catch (e) { refused = e.message; }
+        check('a prepared picture too large for an upload is refused, naming its row', /^Row 2: "Woman.png", prepared: Image is too large/.test(refused || ''), refused);
+        refused = null;
+        try { await bq.stageAssets(fakePlan([{ op: 'scale', factor: 0.5 }]), assets, stageDir, {}); } catch (e) { refused = e.message; }
+        check('without a way to prepare it, a prepared file is refused', /nothing here can prepare it/.test(refused || ''), refused);
+
         const md = fs.readFileSync(path.join(REPO, 'server', 'storyboard', 'fixtures', 'example.md'), 'utf8');
         ({ status, d } = await post('/storyboard/preview', form(md, 'red.md')));
         check('a .md file is still a storyboard', status === 200 && d.format !== 'table' && d.totalJobs === 42, `${status} ${d.totalJobs}`);

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, useId } from 'react';
 import {
     Plus, Upload, Download, FilePlus2, Trash2, Copy, ChevronDown, ChevronRight, ArrowUp, ArrowDown,
-    AlertTriangle, XCircle, CheckCircle2, Loader2, ListOrdered, RefreshCw, Play,
+    AlertTriangle, XCircle, CheckCircle2, Loader2, ListOrdered, RefreshCw, Play, FlaskConical, Save,
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
@@ -35,10 +35,26 @@ function fmtDuration(sec) {
 function readDraft() {
     try {
         const d = JSON.parse(localStorage.getItem(DRAFT_KEY) || 'null');
-        if (d && Array.isArray(d.rows)) return { name: String(d.name || 'batch'), rows: d.rows.filter(r => r && r.uid && r.cells) };
+        if (d && Array.isArray(d.rows)) return { name: String(d.name || 'batch'), rows: d.rows.filter(r => r && r.uid && r.cells), suite: typeof d.suite === 'string' ? d.suite : null };
     } catch { /* no storage, or a draft from another version */ }
     return null;
 }
+
+// A text box that keeps what is typed and commits it on leaving the box, on
+// Enter, or when it matches one of `options` (a pick from its list). A cell
+// rebuilt from the parsed value on every key press loses what parsing drops:
+// a "|" being typed, a space at the end of "Capture d'".
+const DraftInput = ({ value, onCommit, options, ...props }) => {
+    const [draft, setDraft] = useState(value);
+    useEffect(() => { setDraft(value); }, [value]);
+    const commit = (v) => { if (v !== value) onCommit(v); };
+    return (
+        <input {...props} value={draft}
+            onChange={e => { setDraft(e.target.value); if (options?.includes(e.target.value)) commit(e.target.value); }}
+            onBlur={() => commit(draft)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); commit(draft); } }} />
+    );
+};
 
 // ---- one input of a row ---------------------------------------------------
 
@@ -52,6 +68,7 @@ const InputPicker = ({ input, value, rows, cards, selfUid, assets, onChange, pro
     const cardOf = (id) => cards.find(c => c.id === id);
     const setType = (type) => {
         if (type === 'none') onChange('');
+        else if (type === 'empty') onChange('empty');
         else if (type === 'row') onChange(fromRows[0]?.cells.id || '');
         else if (type === 'file') onChange(files[0] ? `file:${files[0].path}` : 'file:');
         else if (type === 'folder') onChange(folders[0] ? `folder:${folders[0].path}/` : 'folder:');
@@ -66,7 +83,8 @@ const InputPicker = ({ input, value, rows, cards, selfUid, assets, onChange, pro
             <div className="flex flex-wrap gap-1.5">
                 <select className={`${fieldCls(problem)} w-auto`} value={ref.type === 'raw' ? 'raw' : ref.type}
                     onChange={e => setType(e.target.value)}>
-                    <option value="none">{input.required ? '— choose —' : 'Leave empty'}</option>
+                    <option value="none">{input.required ? '— choose —' : 'Not set'}</option>
+                    {!input.required && <option value="empty">Empty, on purpose</option>}
                     <option value="row">Result of another row</option>
                     <option value="file">A file from the assets folder</option>
                     <option value="folder">Every file of a folder</option>
@@ -94,9 +112,10 @@ const InputPicker = ({ input, value, rows, cards, selfUid, assets, onChange, pro
                 )}
                 {ref.type === 'file' && (
                     <>
-                        <input className={`${fieldCls(problem)} flex-1 min-w-[12rem]`} list={listId} value={ref.path || ''}
+                        <DraftInput className={`${fieldCls(problem)} flex-1 min-w-[12rem]`} list={listId} value={ref.path || ''}
+                            options={files.map(f => f.path)}
                             placeholder={`a ${KIND_LABEL[kind] || kind} in the assets folder`}
-                            onChange={e => onChange(`file:${e.target.value}`)} />
+                            onCommit={v => onChange(formatRef({ ...ref, path: v.trim() }))} />
                         <datalist id={listId}>{files.map(f => <option key={f.path} value={f.path} />)}</datalist>
                     </>
                 )}
@@ -108,15 +127,23 @@ const InputPicker = ({ input, value, rows, cards, selfUid, assets, onChange, pro
                     </select>
                 )}
                 {ref.type === 'job' && (
-                    <input className={`${fieldCls(problem)} flex-1 min-w-[12rem] font-mono`} value={ref.job || ''}
+                    <DraftInput className={`${fieldCls(problem)} flex-1 min-w-[12rem] font-mono`} value={ref.job || ''}
                         placeholder="job id, or its first 8 characters"
-                        onChange={e => onChange(formatRef({ ...ref, job: e.target.value.trim() }))} />
+                        onCommit={v => onChange(formatRef({ ...ref, job: v.trim() }))} />
                 )}
                 {ref.type === 'raw' && (
-                    <input className={`${fieldCls(problem)} flex-1 min-w-[12rem] font-mono`} value={ref.raw}
-                        onChange={e => onChange(e.target.value)} />
+                    <DraftInput className={`${fieldCls(problem)} flex-1 min-w-[12rem] font-mono`} value={ref.raw}
+                        onCommit={v => onChange(v)} />
                 )}
             </div>
+            {(ref.type === 'file' || ref.type === 'folder') && (
+                <DraftInput className={`${fieldCls(problem)} font-mono text-xs`} value={ref.steps || ''}
+                    placeholder="Steps, if any: scale(0.5) | jpeg(40) — or frame(0) | crop(0, 0.16, 1, 0.91) on a video"
+                    onCommit={v => onChange(formatRef({ ...ref, steps: v.trim() }))} />
+            )}
+            {ref.type === 'none' && !input.required && (
+                <p className="text-xs text-muted">Not set: in a batch the input stays empty; the test suite picks a file for it. "Empty, on purpose" leaves it empty in both.</p>
+            )}
             {ref.type === 'row' && !fromRows.length && (
                 <p className="text-xs text-muted">No row makes a {KIND_LABEL[kind] || kind} yet: add one, then pick it here. It does not have to be above.</p>
             )}
@@ -177,9 +204,9 @@ const SettingField = ({ setting, value, onChange, onRemove, problem }) => {
 // ---- one row ---------------------------------------------------------------
 
 // Columns a row may hold whatever its card: everything else must be the card's.
-const ROW_COLUMNS = new Set(['id', 'workflow', 'prompt', 'negative', 'repeat', 'seed', 'notes']);
+const ROW_COLUMNS = new Set(['id', 'workflow', 'prompt', 'negative', 'repeat', 'seed', 'notes', 'stage', 'caption', 'keepRuntime']);
 
-const RowItem = ({ row, index, count, rows, cards, cardById, assets, problems, cautions, jobs, blocked, open, onToggle, onCells, onRemove, onDuplicate, onMove }) => {
+const RowItem = ({ row, index, count, rows, cards, cardById, assets, problems, cautions, jobs, blocked, open, suite, onToggle, onCells, onRemove, onDuplicate, onMove }) => {
     const card = cardById.get(row.cells.workflow);
     const c = row.cells;
     const problemAt = (column) => problems.filter(p => p.column === column).map(p => p.message).join(' ') || null;
@@ -193,7 +220,7 @@ const RowItem = ({ row, index, count, rows, cards, cardById, assets, problems, c
     const changeWorkflow = (id) => {
         const next = cardById.get(id);
         const keep = { id: c.id, workflow: id };
-        for (const k of ['prompt', 'notes', 'repeat']) if (c[k] !== undefined) keep[k] = c[k];
+        for (const k of ['prompt', 'notes', 'repeat', 'stage', 'caption', 'keepRuntime']) if (c[k] !== undefined) keep[k] = c[k];
         if (next?.negative && c.negative !== undefined) keep.negative = c.negative;
         if (next?.seed && c.seed !== undefined) keep.seed = c.seed;
         for (const i of next?.inputs || []) if (c[i.column] !== undefined) keep[i.column] = c[i.column];
@@ -249,6 +276,30 @@ const RowItem = ({ row, index, count, rows, cards, cardById, assets, problems, c
                         </div>
                     </div>
                     {rowProblems.map((p, i) => <p key={i} className="text-xs text-danger">{p.message}</p>)}
+
+                    {(suite || c.stage !== undefined || c.caption !== undefined || c.keepRuntime !== undefined) && (
+                        <div className="grid grid-cols-1 sm:grid-cols-[14rem_1fr_7rem] gap-2 p-2 rounded-lg bg-background/40 border border-border/60">
+                            <div className="space-y-1">
+                                <label className="text-xs text-muted">Stage <span className="text-muted/60">· carried to the rows below</span></label>
+                                <input className={fieldCls(problemAt('stage'))} value={c.stage || ''} onChange={e => set('stage', e.target.value)} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs text-muted">Caption <span className="text-muted/60">· shown with the example</span></label>
+                                <textarea rows={2} className={`${fieldCls(problemAt('caption'))} resize-y`} value={c.caption || ''} onChange={e => set('caption', e.target.value)} />
+                            </div>
+                            <div className="space-y-1">
+                                <label className="text-xs text-muted" title="Leave this card's timings as they are">Keep timings</label>
+                                <select className={fieldCls(problemAt('keepRuntime'))} value={/^(yes|true|1|x|oui)$/i.test(c.keepRuntime || '') ? 'yes' : ''}
+                                    onChange={e => set('keepRuntime', e.target.value || undefined)}>
+                                    <option value="">no</option>
+                                    <option value="yes">yes</option>
+                                </select>
+                            </div>
+                            {suite && c.id && c.workflow && c.id !== c.workflow && !c.id.startsWith(`${c.workflow}@`) && (
+                                <p className="text-xs text-danger sm:col-span-3">In the test suite a row's id is its card ({c.workflow}), or {c.workflow}@something for a second run of it.</p>
+                            )}
+                        </div>
+                    )}
 
                     {card?.prompt && (
                         <div className="space-y-1">
@@ -356,6 +407,11 @@ const BatchEditor = ({ adminPassword, notify }) => {
     const [showOrder, setShowOrder] = useState(false);
     const [queueing, setQueueing] = useState(false);
     const [confirmNew, setConfirmNew] = useState(false);
+    // The test suite this table is (its name), when it was opened with Open the test suite:
+    // it is then saved back to tools/test-suite and run by the library sweep, not queued.
+    const [suite, setSuite] = useState(draft?.suite || null);
+    const [suiteBusy, setSuiteBusy] = useState(null);
+    const [confirmRun, setConfirmRun] = useState(false);
     const fileRef = useRef(null);
     const queueingRef = useRef(false);
 
@@ -378,8 +434,8 @@ const BatchEditor = ({ adminPassword, notify }) => {
 
     // Keep the draft, so a reload or a server restart does not lose the work.
     useEffect(() => {
-        try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ name, rows })); } catch { /* storage off */ }
-    }, [name, rows]);
+        try { localStorage.setItem(DRAFT_KEY, JSON.stringify({ name, rows, suite })); } catch { /* storage off */ }
+    }, [name, rows, suite]);
 
     const csv = useMemo(() => csvFromRows(rows), [rows]);
 
@@ -496,6 +552,7 @@ const BatchEditor = ({ adminPassword, notify }) => {
             const { rows: imported, skipped } = tableFromCsv(await f.text());
             setRows(imported);
             setName(f.name.replace(/\.[^.]+$/, '') || 'batch');
+            setSuite(null);
             setOpenUid(null);
             notify?.(`Opened ${f.name}: ${imported.length} row${imported.length === 1 ? '' : 's'}${skipped ? `, ${skipped} comment row${skipped === 1 ? '' : 's'} left out` : ''}.`);
         } catch (e) {
@@ -516,13 +573,71 @@ const BatchEditor = ({ adminPassword, notify }) => {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
     };
     const newBatch = () => {
-        if (rows.length && !confirmNew) { setConfirmNew(true); return; }
         setConfirmNew(false);
         setRows([]);
         setName('batch');
+        setSuite(null);
         setPreview(null);
         setOpenUid(null);
     };
+
+    // ---- the test suite (tools/test-suite/library.suite.csv): opened, saved and
+    // run from here, with no file to load. It runs through the library sweep,
+    // which times every card and makes the examples, not through the queue.
+    const SUITE = 'library';
+    const [savedCsv, setSavedCsv] = useState(null);
+    const openSuite = async () => {
+        setConfirmNew(false);
+        setSuiteBusy('open');
+        try {
+            const res = await fetch(`${SERVER_URL}/storyboard/suite/${SUITE}`, { headers: authHeaders() });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'The test suite did not open.');
+            const { rows: loaded } = tableFromCsv(data.table);
+            setRows(loaded);
+            setName(`${SUITE}.suite`);
+            setSuite(SUITE);
+            setSavedCsv(csvFromRows(loaded));
+            setOpenUid(null);
+            notify?.(`Opened the test suite: ${loaded.length} runs (${data.file}).`);
+        } catch (e) { notify?.(e.message, 'err'); }
+        finally { setSuiteBusy(null); }
+    };
+    // Replacing rows that are there asks first: confirmNew holds what comes next.
+    const replaceRows = (action) => {
+        if (rows.length && confirmNew !== action) { setConfirmNew(action); return; }
+        if (action === 'suite') openSuite(); else newBatch();
+    };
+    const saveSuite = async () => {
+        setSuiteBusy('save');
+        try {
+            const res = await fetch(`${SERVER_URL}/storyboard/suite/${suite}`, {
+                method: 'PUT', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ table: csv }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error([data.error, ...(data.errors || []).slice(0, 5)].join(' '));
+            setSavedCsv(csv);
+            notify?.(`Saved the test suite: ${data.runs} runs. Commit tools/test-suite/${suite}.suite.csv to keep it.`);
+        } catch (e) { notify?.(e.message, 'err'); }
+        finally { setSuiteBusy(null); }
+    };
+    // Runs the SAVED suite, so it is offered only when there is nothing unsaved.
+    const runSuite = async () => {
+        if (!confirmRun) { setConfirmRun(true); return; }
+        setConfirmRun(false);
+        setSuiteBusy('run');
+        try {
+            const res = await fetch(`${SERVER_URL}/admin/library-sweep/run`, {
+                method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ suite }),
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error([data.error, ...(data.errors || []).slice(0, 5)].join(' '));
+            notify?.(`The test suite is running: ${data.total ?? rows.length} runs. Follow it under Maintenance → Run the whole library.`);
+        } catch (e) { notify?.(e.message, 'err'); }
+        finally { setSuiteBusy(null); }
+    };
+    // Unknown counts as unsaved: after a reload the draft is not known to be on disk.
+    const suiteUnsaved = !!suite && csv !== savedCsv;
 
     const queue = async () => {
         if (queueingRef.current) return;
@@ -555,8 +670,11 @@ const BatchEditor = ({ adminPassword, notify }) => {
             <div className="flex flex-wrap items-center gap-2">
                 <input className={`${FIELD} border-border w-48`} value={name} title="The file name, and the output folder"
                     onChange={e => setName(e.target.value.replace(/[\\/:*?"<>|]/g, ''))} />
-                <Button size="sm" variant="secondary" icon={FilePlus2} onClick={newBatch}>
-                    {confirmNew ? 'Discard these rows?' : 'New batch'}
+                <Button size="sm" variant="secondary" icon={FilePlus2} onClick={() => replaceRows('new')}>
+                    {confirmNew === 'new' ? 'Discard these rows?' : 'New batch'}
+                </Button>
+                <Button size="sm" variant="secondary" icon={FlaskConical} isLoading={suiteBusy === 'open'} onClick={() => replaceRows('suite')}>
+                    {confirmNew === 'suite' ? 'Replace these rows with the test suite?' : 'Open the test suite'}
                 </Button>
                 {confirmNew && <Button size="sm" variant="ghost" onClick={() => setConfirmNew(false)}>Keep them</Button>}
                 <Button size="sm" variant="secondary" icon={Upload} onClick={() => fileRef.current?.click()}>Import .csv</Button>
@@ -572,7 +690,7 @@ const BatchEditor = ({ adminPassword, notify }) => {
                     <RowItem key={row.uid} row={row} index={i} count={rows.length} rows={rows} cards={cards} cardById={cardById}
                         assets={assets} problems={problemsBy.get(row.uid) || []} cautions={cautionsBy.get(row.uid) || []}
                         jobs={jobsBy.get(row.uid) || 0} blocked={blockedBy.get(row.uid)}
-                        open={openUid === row.uid} onToggle={toggle} onCells={setCellsWithRename}
+                        open={openUid === row.uid} suite={!!suite} onToggle={toggle} onCells={setCellsWithRename}
                         onRemove={removeRow} onDuplicate={duplicateRow} onMove={moveRow} />
                 ))}
                 {!rows.length && (
@@ -622,15 +740,35 @@ const BatchEditor = ({ adminPassword, notify }) => {
                             ))}
                         </ol>
                     )}
-                    <div className="flex flex-wrap items-center gap-3 pt-1">
-                        <Button size="sm" icon={Play} isLoading={queueing} disabled={!canQueue} onClick={queue}>
-                            {preview?.totalJobs ? `Queue ${preview.totalJobs} job${preview.totalJobs === 1 ? '' : 's'}` : 'Queue'}
-                        </Button>
-                        <span className="text-xs text-muted">
-                            One job at a time on the main lane, after the jobs already booked. Results go to the
-                            output folder <span className="text-foreground">{name || 'batch'}</span>.
-                        </span>
-                    </div>
+                    {suite ? (
+                        <div className="flex flex-wrap items-center gap-3 pt-1">
+                            <Button size="sm" variant="secondary" icon={Save} isLoading={suiteBusy === 'save'}
+                                disabled={!suiteUnsaved || checking || problemCount > 0} onClick={saveSuite}
+                                title={problemCount ? 'Fix the problems first' : suiteUnsaved ? '' : 'Nothing to save'}>
+                                {suiteUnsaved ? 'Save to the test suite' : 'Saved'}
+                            </Button>
+                            <Button size="sm" icon={Play} isLoading={suiteBusy === 'run'} disabled={suiteUnsaved || problemCount > 0 || !rows.length}
+                                onClick={runSuite} title={suiteUnsaved ? 'Save first: the run reads the saved suite' : ''}>
+                                {confirmRun ? `Start all ${rows.length} runs (about 4 h)?` : 'Run the test suite'}
+                            </Button>
+                            {confirmRun && <Button size="sm" variant="ghost" onClick={() => setConfirmRun(false)}>Not now</Button>}
+                            <span className="text-xs text-muted">
+                                The test suite (<span className="text-foreground">tools/test-suite/{suite}.suite.csv</span>) runs
+                                through the library sweep in admin mode: every card is timed and its row becomes its example.
+                                Its progress is under Maintenance.
+                            </span>
+                        </div>
+                    ) : (
+                        <div className="flex flex-wrap items-center gap-3 pt-1">
+                            <Button size="sm" icon={Play} isLoading={queueing} disabled={!canQueue} onClick={queue}>
+                                {preview?.totalJobs ? `Queue ${preview.totalJobs} job${preview.totalJobs === 1 ? '' : 's'}` : 'Queue'}
+                            </Button>
+                            <span className="text-xs text-muted">
+                                One job at a time on the main lane, after the jobs already booked. Results go to the
+                                output folder <span className="text-foreground">{name || 'batch'}</span>.
+                            </span>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

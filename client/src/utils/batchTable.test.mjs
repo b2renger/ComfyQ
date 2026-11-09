@@ -25,6 +25,11 @@ test('comment and empty rows are not rows; an unclosed quote is refused', () => 
     assert.strictEqual(skipped, 1);
     assert.throws(() => parseCsv('a,b\n"open,x\n'), /Row 2/);
 });
+test('the suite columns keep their names, whatever case the file used', () => {
+    const { rows } = tableFromCsv('ID,Workflow,KEEPRUNTIME,Stage,caption\nx,moss,yes,1 — Pictures,a door\n');
+    assert.deepStrictEqual(rows[0].cells, { id: 'x', workflow: 'moss', keepRuntime: 'yes', stage: '1 — Pictures', caption: 'a door' });
+    assert.deepStrictEqual(columnsFor(rows), ['id', 'workflow', 'stage', 'caption', 'keepRuntime']);
+});
 test('columns: lead, inputs in type order, settings as first seen, tail; empty ones dropped', () => {
     const rows = [
         { cells: { workflow: 'a', id: 'x', notes: 'n', image2: 'y', steps_1: '3', image: 'file:a.png' } },
@@ -33,9 +38,12 @@ test('columns: lead, inputs in type order, settings as first seen, tail; empty o
     assert.deepStrictEqual(columnsFor(rows), ['id', 'workflow', 'prompt', 'image', 'image2', 'video', 'steps_1', 'cfg_2', 'notes']);
 });
 test('input cells read and written back unchanged', () => {
-    for (const v of ['', 'hero', 'hero#2', 'hero.3', 'hero.3#2', 'file:shots/a.png', 'folder:Keyframes/', 'job:3f2a9c1e#2']) {
+    for (const v of ['', 'hero', 'hero#2', 'hero.3', 'hero.3#2', 'file:shots/a.png', 'folder:Keyframes/', 'job:3f2a9c1e#2',
+        'empty', '3d_x@v1#2', 'file:clip.mp4 | frame(0) | crop(0, 0.16, 1, 0.91)', 'folder:Keyframes/ | scale(0.5)']) {
         assert.strictEqual(formatRef(parseRef(v)), v, v);
     }
+    assert.deepStrictEqual(parseRef('file:a.png | scale(0.3) | jpeg(40)'), { type: 'file', path: 'a.png', steps: 'scale(0.3) | jpeg(40)' });
+    assert.strictEqual(parseRef('hero | scale(0.5)').type, 'raw', 'steps on a row result are kept as typed, for the server to explain');
     assert.deepStrictEqual(parseRef('hero.3#2'), { type: 'row', row: 'hero', copy: 3, output: 2 });
     assert.deepStrictEqual(parseRef('12 bad'), { type: 'raw', raw: '12 bad' }, 'kept as typed for the server to explain');
     assert.strictEqual(formatRef({ type: 'row', row: 'hero', copy: null, output: 1 }), 'hero');

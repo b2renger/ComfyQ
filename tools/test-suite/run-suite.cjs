@@ -70,7 +70,7 @@ const suiteArg = positional[0] || 'library';
 const { config } = configManager.load();
 const registry = new WorkflowRegistry(path.resolve(REPO, config.workflows.dir));
 registry.discover();
-const suite = loadSuite(suiteArg);
+const suite = loadSuite(suiteArg, registry);
 const check = validateSuite(suite, registry);
 
 console.log(`suite      ${suite.name} — ${suite.runs.length} runs (${path.relative(REPO, suite.file)})`);

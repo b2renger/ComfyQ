@@ -32,7 +32,8 @@ them into the `examples` jobs students can browse in **All jobs**.
 
 | file | what it is |
 |---|---|
-| [`library.suite.json`](library.suite.json) | every workflow in the library, in five stages with a showcase example each, then the comparisons and the options (rebuilt 2026-11-04 from per-family research; the previous one-story version is in git history) |
+| [`library.suite.csv`](library.suite.csv) | every workflow in the library, in five stages with a showcase example each, then the comparisons and the options (rebuilt 2026-11-04 from per-family research). Since 2026-11-09 a batch table ([docs/batch-format.md](../../docs/batch-format.md)): open, edit, save and run it from the admin panel's **Batches** tab, nothing to upload. One row per run; its id is the card, or `card@variant`; the suite's own columns are `stage`, `caption` and `keepRuntime`; an input is `file:NAME`, with steps when it is prepared (`file:clip.mp4 \| frame(0) \| crop(0, 0.16, 1, 0.91)`), or `empty` to leave it empty on purpose. The JSON it replaced is in git history |
+| [`to_table.cjs`](to_table.cjs) | writes a JSON suite as a table and proves the table reads back the same, run by run (`node tools/test-suite/to_table.cjs <name>`; refuses to overwrite a table) |
 | [`run-suite.cjs`](run-suite.cjs) | runs a suite from the command line |
 | [`suiteAssets.cjs`](suiteAssets.cjs) | lists every assets-folder file a suite names and which are missing, so `--check` and `--dry` can show them before the GPU is booked (tested by `suiteAssets.test.cjs`) |
 | [`derive_input.py`](derive_input.py) | makes an input from an output or an asset: a frame, a crop, a hole, a circle, a paste-in, damage (blur, noise, JPEG), a trimmed / shrunk / muted clip |

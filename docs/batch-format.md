@@ -31,7 +31,7 @@ each of the four pictures in `Keyframes`.
 
 | column | meaning |
 |---|---|
-| `id` | a name for the row, so other rows can use its result. A letter first, then letters, digits, `-` or `_`. Optional: a row with no id is `row<N>` |
+| `id` | a name for the row, so other rows can use its result. A letter or digit first, then letters, digits, `-`, `_` or `@`. Optional: a row with no id is `row<N>` |
 | `workflow` | the card. The full bundle id, or any part of it that names one card only (`moss_image_t2i`) |
 | `prompt` | the card's prompt |
 | `negative` | its negative prompt |
@@ -51,6 +51,8 @@ without its exact case or punctuation (`1:1 (square)`). A camera setting is JSON
 
 **A long prompt** can come from a text file in the assets folder: `text:scene-3.txt`.
 
+**A text field set to nothing:** `empty` (an empty cell keeps the card's default).
+
 ## Inputs
 
 | cell | means |
@@ -61,6 +63,27 @@ without its exact case or punctuation (`1:1 (square)`). A camera setting is JSON
 | `file:Woman.png` | a file in the assets folder (`file:portraits/a.png` for a subfolder) |
 | `folder:portraits/` | one job per file of the right kind in that folder, in name order |
 | `job:<id>` | an output of a job that already exists, by its id or its first 8 characters (`job:3f2a9c1e#2`) |
+| `empty` | leave an optional input empty on purpose (an empty cell does the same in a batch; the test suite tells them apart) |
+
+**A prepared file.** After a `file:` or `folder:` cell, steps separated by `|` prepare it
+before it is used, the way the test suite makes a damaged photo for a restorer or the first
+frame of a clip:
+
+```
+file:Woman.png | scale(0.3) | blur(1.2) | jpeg(40)
+file:clip.mp4 | frame(0) | crop(0, 0.16, 1, 0.91)
+file:original.mp4 | trim(3, 2) | vscale(0.375) | encode(35)
+```
+
+On a picture: `scale(f)`, `crop(x0, y0, x1, y1)` (fractions of the picture), `flip`,
+`blur(r)`, `jpeg(quality)`, `noise(sigma, seed)`, `transparent(rect|ellipse, x0, y0, x1, y1)`
+(a hole, for a mask), `circle(x0, y0, x1, y1, #colour, width)`,
+`composite(file:overlay, x0, y0, x1, y1)`. On a video: `frame(i)` first, which makes a picture,
+or `trim(start, duration)`, `vscale(f)`, `vblur(r)`, `mute`, `encode(crf)`. What the steps make
+must be what the input takes. The work is done by
+[tools/test-suite/derive_input.py](../tools/test-suite/derive_input.py), with ComfyUI's python, when
+the batch is queued; a prepared picture then goes through the upload check. Steps cannot yet
+prepare another row's result.
 
 A row may use a row written below it. Rows run in the order written, except that a row
 moves down far enough to come after the rows it uses.
@@ -94,6 +117,24 @@ A row that only waits on a broken row is listed as blocked, with the row it wait
 Warnings do not stop a batch: a setting the card's own switch turns off, a mask taken
 from a generated picture (it has no transparency, so nothing would be masked), a card
 whose output kind cannot be told in advance.
+
+## The test suite is a table
+
+[tools/test-suite/library.suite.csv](../tools/test-suite/library.suite.csv) is written in this
+format (since 2026-11-09; the JSON it replaced read back run for run the same, checked by
+[to_table.cjs](../tools/test-suite/to_table.cjs)). In the Batches tab, **Open the test suite**
+loads it into the editor, **Save to the test suite** writes it back after checking it, and
+**Run the test suite** starts it, with no file to load. What makes it a suite:
+
+- one row is one run; its `id` is its card, or `card@variant` for a second run of the card (a
+  comparison, an option), which keeps the card's timings and is never made an example;
+- `stage` names the group a row starts (it carries down to the rows below), `caption` is what
+  the example says about its result, `keepRuntime` (yes) leaves the card's timings alone;
+- an input the row does not name gets an asset picked by the calibrator; `empty` leaves it empty.
+
+A suite runs through the library sweep (every card timed, its result made an example), not
+through the queue, so the editor offers Run instead of Queue for it. A batch reads past the
+suite's columns.
 
 ## Running one
 

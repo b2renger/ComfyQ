@@ -205,7 +205,7 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
                                 title={serving ? 'Stop serving first — a sweep holds the GPU for about 2½–3 hours.' : undefined}>
                                 <Play size={14} /> Run every workflow
                             </Button>
-                            {/* The committed test suite (tools/test-suite/library.suite.json):
+                            {/* The committed test suite (tools/test-suite/library.suite.csv, a batch table):
                                 every workflow in dependency order, each fed the suite's
                                 prompts and an earlier workflow's result, so the examples
                                 read as one pipeline and same-job cards can be compared. */}
@@ -231,12 +231,12 @@ const LibrarySweep = ({ headers, onToast, mode, pollMs = 4000, refreshKey = 0 })
                 <p className="text-xs text-warning mb-3">
                     This occupies the GPU for roughly 2½–3 hours,
                     recalibrates every bundle's timing and VRAM figures{confirming === 'suite' && <> —
-                    except the runs marked <code>keepRuntime</code> (15 in <code>library.suite.json</code>),
+                    except the runs marked <code>keepRuntime</code> (15 in <code>library.suite.csv</code>),
                     whose figures are kept</>}, and writes sample outputs into
                     ComfyUI's output folder. It can be stopped between workflows. Hand-measured timings
                     (<code>source: manual</code>) are put back afterwards.
                     {confirming === 'suite' && <> The test suite feeds each workflow the prompts in{' '}
-                    <code>tools/test-suite/library.suite.json</code> and earlier workflows' results; a run
+                    <code>tools/test-suite/library.suite.csv</code> and earlier workflows' results; a run
                     whose input is missing is skipped with the reason. Afterwards,{' '}
                     <code>node tools/maintenance/seed_examples.cjs --replace</code> turns the results into
                     the examples.</>}

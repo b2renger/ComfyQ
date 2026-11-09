@@ -1103,7 +1103,8 @@ const AdminConfig = () => {
                         Make a batch here, or open a .csv to change it: one row per job, each with its card, prompt,
                         inputs and settings. An input can be a file from the assets folder, every file of a folder,
                         or the result of another row that has not run yet; that row then runs first. Every change is
-                        checked as you go, and Export gives back the .csv.
+                        checked as you go, and Export gives back the .csv. The test suite is a table too: Open the test
+                        suite edits it, saves it back and runs it, with nothing to load.
                     </p>
                     <BatchEditor adminPassword={adminPassword} notify={showToast} />
                 </Card>

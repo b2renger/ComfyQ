@@ -70,8 +70,11 @@ export function toCsv(header, records) {
 }
 
 // Columns that come first and last, whatever the cards: the rest sit between.
-const LEAD = ['id', 'workflow', 'prompt', 'negative'];
+// stage, caption and keepRuntime are the test suite's (tools/test-suite).
+const LEAD = ['id', 'workflow', 'stage', 'caption', 'keepRuntime', 'prompt', 'negative'];
 const TAIL = ['repeat', 'seed', 'notes'];
+// A header as typed → the name the editor keeps it under.
+const CANONICAL = new Map([...LEAD, ...TAIL].map(c => [c.toLowerCase(), c]));
 const MEDIA_RX = /^(image|mask|video|audio|model3d)(\d*)$/;
 const MEDIA_ORDER = ['image', 'mask', 'video', 'audio', 'model3d'];
 
@@ -93,7 +96,8 @@ export function tableFromCsv(text) {
         header.forEach((h, i) => {
             if (!h) return;
             const v = String(rec[i] ?? '');
-            const key = LEAD.includes(h.toLowerCase()) || TAIL.includes(h.toLowerCase()) || MEDIA_RX.test(h.toLowerCase()) ? h.toLowerCase() : h;
+            const low = h.toLowerCase();
+            const key = CANONICAL.get(low) || (MEDIA_RX.test(low) ? low : h);
             if (v.trim() !== '') cells[key] = v;
         });
         rows.push({ uid: newUid(), cells });
@@ -119,6 +123,8 @@ export function columnsFor(rows) {
     });
     return [
         ...LEAD.filter(k => k === 'id' || k === 'workflow' || used.has(k)),
+        // (settings are pushed in first-seen order above; the LEAD and TAIL
+        // columns never land there, whatever case a file wrote them in)
         ...media,
         ...settings,
         ...TAIL.filter(k => used.has(k)),
@@ -134,27 +140,37 @@ export function csvFromRows(rows) {
 // recognise comes back as { raw } so it is kept as typed, and the server says
 // what is wrong with it.
 //   ''              → { type: 'none' }
+//   empty           → { type: 'empty' }        left empty on purpose
 //   hero#2, hero.3  → { type: 'row', row, copy, output }
-//   file:a.png      → { type: 'file', path }
-//   folder:dir/     → { type: 'folder', path }
+//   file:a.png      → { type: 'file', path, steps }
+//   folder:dir/     → { type: 'folder', path, steps }
 //   job:<id>#2      → { type: 'job', job, output }
+// `steps` is what follows the file, as written: "scale(0.3) | jpeg(40)".
 export function parseRef(value) {
-    const v = String(value ?? '').trim();
+    const [head, ...rest] = String(value ?? '').split('|');
+    const v = head.trim();
+    const steps = rest.map(s => s.trim()).filter(Boolean).join(' | ');
     let m;
-    if (!v) return { type: 'none' };
-    if ((m = /^file:(.+)$/i.exec(v))) return { type: 'file', path: m[1].trim() };
-    if ((m = /^folder:(.*)$/i.exec(v))) return { type: 'folder', path: m[1].trim().replace(/[\\/]+$/, '') };
-    if ((m = /^job:([0-9a-f-]+)(?:#(\d+))?$/i.exec(v))) return { type: 'job', job: m[1], output: m[2] ? Number(m[2]) : 1 };
-    if ((m = /^([A-Za-z][A-Za-z0-9_-]*)(?:\.(\d+))?(?:#(\d+))?$/.exec(v))) {
+    if (!v && !steps) return { type: 'none' };
+    if (/^empty$/i.test(v) && !steps) return { type: 'empty' };
+    // An empty name is a picker just switched to "a file" or "a job", still to fill.
+    if ((m = /^file:(.*)$/i.exec(v))) return { type: 'file', path: m[1].trim(), steps };
+    if ((m = /^folder:(.*)$/i.exec(v))) return { type: 'folder', path: m[1].trim().replace(/[\\/]+$/, ''), steps };
+    if (steps) return { type: 'raw', raw: String(value).trim() };
+    if ((m = /^job:([0-9a-f-]*)(?:#(\d+))?$/i.exec(v))) return { type: 'job', job: m[1], output: m[2] ? Number(m[2]) : 1 };
+    if ((m = /^([A-Za-z0-9][A-Za-z0-9_@-]*)(?:\.(\d+))?(?:#(\d+))?$/.exec(v))) {
         return { type: 'row', row: m[1], copy: m[2] ? Number(m[2]) : null, output: m[3] ? Number(m[3]) : 1 };
     }
     return { type: 'raw', raw: v };
 }
 
+const withSteps = (base, steps) => (steps ? `${base} | ${steps}` : base);
+
 export function formatRef(ref) {
     switch (ref?.type) {
-        case 'file': return ref.path ? `file:${ref.path}` : '';
-        case 'folder': return `folder:${ref.path ? `${ref.path}/` : ''}`;
+        case 'empty': return 'empty';
+        case 'file': return ref.path ? withSteps(`file:${ref.path}`, ref.steps) : '';
+        case 'folder': return withSteps(`folder:${ref.path ? `${ref.path}/` : ''}`, ref.steps);
         case 'job': return ref.job ? `job:${ref.job}${ref.output > 1 ? `#${ref.output}` : ''}` : '';
         case 'row': return ref.row ? `${ref.row}${ref.copy ? `.${ref.copy}` : ''}${ref.output > 1 ? `#${ref.output}` : ''}` : '';
         case 'raw': return ref.raw;
