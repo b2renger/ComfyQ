@@ -49,6 +49,18 @@ const cfg = JSON.parse(fs.readFileSync(path.join(REPO, 'config.json'), 'utf8'));
 const COMFY = cfg.comfy_ui.root_path;
 const OUT = cfg.comfy_ui.output_dir || path.join(COMFY, 'output');
 const INP = path.join(COMFY, 'input');
+// It writes into the queue by default, so an option it does not know (a typo,
+// --help) stops it before anything is touched.
+{
+    const args = process.argv.slice(2);
+    const bad = args.filter((a, i) => a.startsWith('-') && !['--dry', '--replace', '--only'].includes(a) && !a.startsWith('--only='));
+    const onlyAt = args.indexOf('--only');
+    if (bad.length || (onlyAt >= 0 && (!args[onlyAt + 1] || args[onlyAt + 1].startsWith('-')))) {
+        console.error(bad.length ? `Unknown option ${bad.join(', ')}. Nothing was written.` : '--only needs a list of bundles. Nothing was written.');
+        console.error('Usage: node tools/maintenance/seed_examples.cjs [--dry] [--only a,b] [--replace]');
+        process.exit(1);
+    }
+}
 const DRY = process.argv.includes('--dry');
 const USER = 'examples';
 // `--only a,b,c` seeds just those bundles. Seeding INSERTS rather than
@@ -79,7 +91,7 @@ console.log('sweep       %s  (%d bundles, finished %s)', path.basename(latest), 
 const { loadSuite } = require(path.join(REPO, 'server', 'benchmark', 'suitePlan'));
 // The same-run check and the output filter live in exampleRules.cjs, where they
 // are tested (exampleRules.test.cjs).
-const { sameRun, showableOutputs } = require(path.join(__dirname, 'exampleRules.cjs'));
+const { sameRun, showableOutputs, wholeValue } = require(path.join(__dirname, 'exampleRules.cjs'));
 const suiteRuns = new Map();
 const captionFor = (r) => {
     const name = r.suite?.name;
@@ -139,10 +151,18 @@ let made = 0, noOutput = 0, failedRow = 0, replaced = 0;
 const lostInputs = [];
 const skipped = [];
 
+// A value a report from before 2026-11-09 cut short, made whole only when that
+// can be known (exampleRules.wholeValue): three of four long prompts would
+// otherwise have been seeded with the card's default prompt.
+const wholeOf = (r, ing) => wholeValue(ing, literalOf(r.id, ing.node));
+const cutBeyondRepair = (r) => (r.ingredients || []).filter(ing => ing.truncated && wholeOf(r, ing) === null);
+
 // Replace rather than add: drop the example of every bundle this run seeds,
 // decided BEFORE inserting so a bundle whose new row fails is not left empty
-// for nothing -- it keeps its old example.
-const seeding = rows.filter(r => !r.variantOf && (!ONLY || ONLY.has(r.id)) && r.ok && (r.outputs || []).length).map(r => r.id);
+// for nothing -- it keeps its old example. A row with a value cut beyond repair
+// is not seeded, so its old example stays too.
+const seeding = rows.filter(r => !r.variantOf && (!ONLY || ONLY.has(r.id)) && r.ok && (r.outputs || []).length
+    && !cutBeyondRepair(r).length).map(r => r.id);
 if (REPLACE && seeding.length && !DRY) {
     const del = db.prepare("DELETE FROM jobs WHERE user_id = ? AND workflow_id = ?");
     for (const id of seeding) replaced += del.run(USER, id).changes;
@@ -151,6 +171,11 @@ for (const r of rows) {
     if (r.variantOf) continue;     // a test-only run: it never replaces a card's example
     if (ONLY && !ONLY.has(r.id)) continue;
     if (!r.ok) { failedRow++; skipped.push(r.id + (r.skipped ? ' (a test-suite input was missing)' : ' (the sweep run failed)')); continue; }
+    const cut = cutBeyondRepair(r);
+    if (cut.length) {
+        skipped.push(`${r.id} (the report cut ${cut.map(i => `${i.key} at ${String(i.value || '').length} of ${i.truncated} characters`).join(', ')}; its old example is kept)`);
+        continue;
+    }
 
     // Outputs. `file` is already output-root-relative, which is what /images
     // serves; kind and mime come from ComfyQ's classifier so each result lands
@@ -185,10 +210,7 @@ for (const r of rows) {
     let prompt = null;
     for (const ing of (r.ingredients || [])) {
         let v = ing.value;
-        if (ing.truncated) {                                   // the report cut it; the graph has it whole
-            const whole = literalOf(r.id, ing.node);
-            if (typeof whole === 'string' && whole.length >= String(v || '').length) v = whole;
-        }
+        if (ing.truncated) v = wholeOf(r, ing);   // never null here: such rows were skipped
         const isMedia = ['image', 'video', 'audio', 'mask', 'model3d'].includes(ing.type);
         if (ing.sourcePath && fs.existsSync(ing.sourcePath)) {
             v = stage(ing.sourcePath);

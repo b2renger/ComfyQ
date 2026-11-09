@@ -108,4 +108,15 @@ function showableOutputs(outputs) {
     });
 }
 
-module.exports = { sameRun, sameMedia, isSeedIngredient, showableOutputs, rowFrom };
+// A value a report from before 2026-11-09 cut at 2000 characters, made whole
+// from the graph literal. The literal is the card's DEFAULT, which is what ran
+// only when the suite left the field alone: it is taken only when it is exactly
+// the cut value completed. Otherwise the example would show, and replay, a
+// prompt that did not make its picture. → the whole value, or null.
+function wholeValue(ing, literal) {
+    if (!ing || !ing.truncated) return ing ? ing.value : null;
+    const kept = String(ing.value || '');
+    return (typeof literal === 'string' && literal.length === ing.truncated && literal.startsWith(kept)) ? literal : null;
+}
+
+module.exports = { sameRun, sameMedia, isSeedIngredient, showableOutputs, rowFrom, wholeValue };

@@ -403,6 +403,22 @@ console.log('\nthe newer seed shapes are labelled calibration too');
     ok('a seed in a widget group the suite named says so', by.seed_1.from === 'the test suite' && by.seed_1.value === 222);
 }
 
+console.log('\na long prompt is recorded whole');
+{
+    // ★ Examples are replayed from these rows. A prompt cut at 2000 characters
+    // replayed as a different picture (Ideogram, 2026-11-09).
+    const { sweep } = make({ entries: [entry('one')], calibrator: { calibrate: async () => ({}) } });
+    const e = entry('p', {
+        effective: { exposedParameters: [{ key: 'prompt_1', label: 'Prompt', type: 'textarea', nodeId: '1', field: 'text' }] },
+        apiWorkflow: { 1: { class_type: 'CLIPTextEncode', inputs: { text: 'short default' } } },
+    });
+    const long = 'a'.repeat(2579);
+    const [row] = sweep._ingredients(e, { paramValues: { prompt_1: long }, suiteKeys: ['prompt_1'] });
+    ok('all 2579 characters, no truncated marker', row.value === long && row.truncated === undefined);
+    const [huge] = sweep._ingredients(e, { paramValues: { prompt_1: 'b'.repeat(70000) }, suiteKeys: ['prompt_1'] });
+    ok('only a pathological value is cut, and says so', huge.truncated === 70000 && huge.value.length < 70000);
+}
+
 console.log('\na sweep holds the calibrator from its first bundle to its last');
 {
     const log = [];

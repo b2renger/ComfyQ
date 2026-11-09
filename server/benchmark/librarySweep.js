@@ -42,6 +42,8 @@ const DATA_DIR = path.resolve(__dirname, '..', 'data');
 const STATS_SCRIPT = path.resolve(__dirname, '..', '..', 'tools', 'maintenance', 'output_stats.py');
 const DERIVE_SCRIPT = path.resolve(__dirname, '..', '..', 'tools', 'test-suite', 'derive_input.py');
 const STATS_TIMEOUT_MS = 120000;
+// The longest value an ingredient row records whole (see _ingredients).
+const MAX_RECORDED_CHARS = 64 * 1024;
 
 class LibrarySweep {
     /**
@@ -636,11 +638,15 @@ class LibrarySweep {
                 row.from = 'left empty';
                 row.value = null;
             }
-            // A prompt can be thousands of characters; keep the report readable and
-            // say so rather than silently cutting it.
-            if (typeof row.value === 'string' && row.value.length > 2000) {
+            // ★ The whole value: an example is replayed from these rows ("Use these
+            //   settings"), and a prompt cut at 2000 characters made a different
+            //   picture. Seeding filled the cut from the graph literal, which is the
+            //   card's DEFAULT prompt, not the one the suite ran (2026-11-09: three
+            //   of four long prompts would have been seeded wrong). The cap only
+            //   guards against a pathological value; a prompt is far below it.
+            if (typeof row.value === 'string' && row.value.length > MAX_RECORDED_CHARS) {
                 row.truncated = row.value.length;
-                row.value = row.value.slice(0, 2000);
+                row.value = row.value.slice(0, MAX_RECORDED_CHARS);
             }
             out.push(row);
         }

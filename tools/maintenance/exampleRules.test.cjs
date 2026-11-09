@@ -4,7 +4,7 @@
 // ("the same run"), and which outputs an example shows. Fixtures use the shapes
 // the sweep really records (librarySweep._resolveSuiteParams / _ingredients).
 const assert = require('assert');
-const { sameRun, sameMedia, isSeedIngredient, showableOutputs } = require('./exampleRules.cjs');
+const { sameRun, sameMedia, isSeedIngredient, showableOutputs, wholeValue } = require('./exampleRules.cjs');
 
 let passed = 0;
 function check(name, fn) {
@@ -89,6 +89,17 @@ check('core save nodes\' image beside a video of the same prefix is kept', () =>
         { kind: 'image', file: 'bench_x_17938_00001_.png' },
     ]);
     assert.strictEqual(shown.length, 2);
+});
+
+check('a cut value is made whole only by the text it was cut from', () => {
+    const full = 'x'.repeat(2000) + 'tail';
+    const cut = { value: 'x'.repeat(2000), truncated: full.length };
+    assert.strictEqual(wholeValue(cut, full), full, 'the default prompt was what ran');
+    assert.strictEqual(wholeValue(cut, 'a different default prompt, longer than the cut one' + 'y'.repeat(3000)), null,
+        'Ideogram, 2026-11-09: the default is another prompt');
+    assert.strictEqual(wholeValue(cut, 'short default'), null, 'FastVideo omniref: the default is shorter than the cut');
+    assert.strictEqual(wholeValue(cut, 'x'.repeat(2000) + 'other'), null, 'same start, different length');
+    assert.strictEqual(wholeValue({ value: 'whole' }, 'anything'), 'whole', 'a value that was not cut stays');
 });
 
 console.log(`${passed} passed`);
