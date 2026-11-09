@@ -360,6 +360,44 @@ console.log('\nrefusing to update ComfyUI over work it would stash');
         achk.updateAvailable === true && /v0\.44\.0/.test(achk.verdict) && achk.aheadOfNewestTag === false);
 
     // -----------------------------------------------------------------------
+    console.log('\n★ what we wait for from ComfyUI: the check says when a release holds it');
+    // RelayVSR landed on master after v0.44.0 (2026-11-05). The owner chose to
+    // wait for a stable release; the check that fetches releases says when.
+    const wOrigin = repo('comfy-wait-origin', { 'comfyui_version.py': '__version__ = "0.44.2"\n' });
+    git(wOrigin, 'tag', 'v0.44.2');
+    fs.writeFileSync(path.join(wOrigin, 'model_vsr.py'), '# RelayVSR\n');
+    git(wOrigin, 'add', '-A');
+    git(wOrigin, 'commit', '-qm', 'Support RelayVSR');
+    const awaited = execFileSync('git', ['-C', wOrigin, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+    const wClone = path.join(TMP, 'comfy-wait');
+    execFileSync('git', ['clone', '-q', wOrigin, wClone], { windowsHide: true });
+    git(wClone, 'checkout', '-q', 'v0.44.2');
+    const waitingFile = path.join(TMP, 'comfyui-waiting.json');
+    fs.writeFileSync(waitingFile, JSON.stringify({ waiting: [
+        { since: '2026-11-09', what: 'RelayVSR', commit: awaited, then: 'Build the RelayVSR card.' },
+        { since: '2026-11-09', what: 'Something never fetched', commit: 'f'.repeat(40), then: 'x' },
+    ] }));
+    const wu = new Updater({ config: () => ({ comfy_ui: { root_path: wClone, python_executable: '' } }), mode: () => 'admin', waitingFile });
+    let wchk = await wu.checkComfy();
+    ok('before a release holds it: still waiting', wchk.waiting[0].known === true && wchk.waiting[0].release === null
+        && /Still waiting \(since 2026-11-09\): RelayVSR/.test(wchk.verdict), wchk.verdict);
+    ok('a commit this checkout does not have is unknown, not "not released"', wchk.waiting[1].known === false
+        && /Whether Something never fetched has been released is unknown/.test(wchk.verdict));
+    fs.writeFileSync(path.join(wOrigin, 'comfyui_version.py'), '__version__ = "0.45.0"\n');
+    git(wOrigin, 'commit', '-aqm', 'ComfyUI v0.45.0');
+    git(wOrigin, 'tag', 'v0.45.0');
+    fs.writeFileSync(path.join(wOrigin, 'comfyui_version.py'), '__version__ = "0.45.1"\n');
+    git(wOrigin, 'commit', '-aqm', 'ComfyUI v0.45.1');
+    git(wOrigin, 'tag', 'v0.45.1');
+    wchk = await wu.checkComfy();
+    ok('once a release holds it, the check names the FIRST such release and what to do',
+        wchk.waiting[0].release === 'v0.45.0' && /RelayVSR is in v0\.45\.0\. Build the RelayVSR card\./.test(wchk.verdict), wchk.verdict);
+    ok('the update itself is offered as usual', wchk.updateAvailable === true);
+    const real = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'tools', 'maintenance', 'comfyui-waiting.json'), 'utf8'));
+    ok('the repo\'s list reads, and every entry has a full commit id', Array.isArray(real.waiting)
+        && real.waiting.every(w => /^[0-9a-f]{40}$/.test(w.commit) && w.what && w.then && w.since));
+
+    // -----------------------------------------------------------------------
     console.log('\n★ a folder git refuses over its owner says so, with the fix');
     // A drive cloned onto another machine belongs to another Windows user, and
     // git then refuses every read ("dubious ownership"). The pack used to show

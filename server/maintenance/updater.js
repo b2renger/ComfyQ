@@ -40,6 +40,8 @@ const { listInstalledPacks, readRequirements, invalidateNodePacks } = require('.
 // restart is the operator's call because the machine may be mid-class.
 
 const GIT_TIMEOUT_MS = 3 * 60 * 1000;
+// What ComfyQ is waiting for from ComfyUI (see comfyWaiting).
+const WAITING_FILE = path.resolve(__dirname, '..', '..', 'tools', 'maintenance', 'comfyui-waiting.json');
 const UPDATE_TIMEOUT_MS = 15 * 60 * 1000;
 const PIP_TIMEOUT_MS = 30 * 60 * 1000;
 
@@ -123,9 +125,10 @@ class Updater {
      * @param {() => object} opts.config  read fresh, so an edited path is honoured
      * @param {() => string} [opts.mode]  'admin' | 'student'
      */
-    constructor({ config, mode = () => 'admin' }) {
+    constructor({ config, mode = () => 'admin', waitingFile = WAITING_FILE }) {
         this._config = config;
         this._mode = mode;
+        this._waitingFile = waitingFile;
         this._run = null;       // the one update in flight, or the last finished
         this._child = null;
         this._scan = null;      // the last "what has updates?" sweep
@@ -345,7 +348,40 @@ class Updater {
                 + 'Development has moved on past it, but an untagged commit is not a release, so '
                 + 'updating now would land on this same version.';
         }
-        return { ok: true, ...after, fetched, updateAvailable: available, verdict, output: log.slice(-60) };
+        // What we are waiting for from ComfyUI, and whether a release holds it yet.
+        const waiting = fetched ? this.comfyWaiting(after.root) : [];
+        for (const w of waiting) {
+            verdict += w.release
+                ? ` ★ ${w.what} is in ${w.release}. ${w.then}`
+                : w.known ? ` Still waiting (since ${w.since}): ${w.what}, which no release holds yet.`
+                    : ` Whether ${w.what} has been released is unknown: its commit is not in this checkout.`;
+        }
+        return { ok: true, ...after, fetched, updateAvailable: available, verdict, waiting, output: log.slice(-60) };
+    }
+
+    /**
+     * The ComfyUI changes listed in tools/maintenance/comfyui-waiting.json, each
+     * with the oldest RELEASE tag that holds its commit (git tag --contains), or
+     * none yet. An entry was a note in a doc until 2026-11-09; a note nobody
+     * re-reads does not say when the wait is over, so the check that fetches the
+     * releases says it.
+     *   → [{ what, since, then, commit, known, release }]
+     */
+    comfyWaiting(root) {
+        let list = [];
+        try { list = JSON.parse(fs.readFileSync(this._waitingFile, 'utf8')).waiting || []; } catch { return []; }
+        return list.filter(w => w && w.commit && w.what).map(w => {
+            // rev-parse prints the id when the commit is here (_gitSync reads empty
+            // output and a failure alike as null, so cat-file -e would never say yes).
+            const known = !!this._gitSync(root, ['rev-parse', '--verify', '--quiet', `${w.commit}^{commit}`]);
+            const tags = known ? (this._gitSync(root, ['tag', '--list', 'v*', '--contains', w.commit]) || '').split(/\r?\n/).filter(Boolean) : [];
+            let oldest = null;
+            for (const t of tags) {
+                const r = tagRank(t);
+                if (r != null && (!oldest || r < oldest.rank)) oldest = { tag: t, rank: r };
+            }
+            return { what: w.what, since: w.since || null, then: w.then || '', commit: w.commit, known, release: oldest ? oldest.tag : null };
+        });
     }
 
     /**

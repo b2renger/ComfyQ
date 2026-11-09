@@ -1,0 +1,11 @@
+{
+  "about": "ComfyUI changes ComfyQ is waiting for. Maintenance > Install updates > Check fetches ComfyUI's releases and says, for each entry, whether a stable release holds its commit yet, and what to do then (server/maintenance/updater.js, comfyWaiting). Remove an entry once it is done.",
+  "waiting": [
+    {
+      "since": "2026-11-09",
+      "what": "RelayVSR video upscaling: the built-in nodes RelayVSRConditioning and VSR Decode",
+      "commit": "2f8943324e1eae89a5ee6c7db93602299246b5f1",
+      "then": "Update ComfyUI, then build the experimental RelayVSR card (weights: huggingface.co/Comfy-Org/RelayVSR, x2 and x4). The owner chose to wait for a stable release rather than run a community pack (2026-11-09)."
+    }
+  ]
+}
