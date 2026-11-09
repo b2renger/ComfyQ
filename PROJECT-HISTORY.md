@@ -4,6 +4,28 @@ The dated log of the project: every decision, bug, measurement and the reason be
 
 Entries are records of their date. Numbers and behaviours in them may be out of date, and a later entry or a `⚠ superseded` note says so. Links to removed bundles are records too. Everything below was moved from CLAUDE.md on 2026-11-06, verbatim.
 
+## Latest progress (2026-11-09 night: H3 text to video in 2K, an experimental card)
+
+- **Owner, 2026-11-09:** "install the best candidates of the two packs and make an experimental workflow… we need a classic workflow and an api one". The two packs compared (one read-only agent, at the owner's request):
+  - `1038lab/ComfyUI-Open-H3-Regenerate-2K` (A, installed at `5552c70`, tested earlier today);
+  - `slmonker/ComfyUI-OpenH3Regenerate2KIC` (B, read at `a85bd96`, not installed).
+- **A was kept. The five takeaways:**
+  1. ★ **They run two different NVIDIA models.** B runs **Open-H3-Regenerate-2K-IC** ("in-context", released 2026-11-08): video-to-video with the draft fed as `<Video 1>` through core `MiniMaxH3ReferenceToVideo`, three LoRAs on ref2va (IC, HyperFlow 8-step, LMS Sharp), sigmas `0.834942, 0.696852, 0.468753, 0`, and a fixed silence latent for the audio rows. NVIDIA says IC keeps faces, lip sync and lettering better (no metrics published).
+  2. Both packs are thin: neither patches core and neither installs anything; torch is untouched. A downloads its weights when they are missing; B has no network code. Core 0.44.2 has `ManualSigmas`, `StringFormat` and `LTXVConcatAVLatent`, so a pack-free graph may be possible (not tested).
+  3. B needs about 11 GB of new LoRAs. One of them, HyperFlow, has no stated source: the only copy found is a RunningHub mirror.
+  4. ★ **B in ComfyUI approximates NVIDIA's IC sampler.** NVIDIA sets a HyperFlow endpoint time on every step, and core has no such embedder. B's own example workflows disagree with its README.
+  5. Neither adds speed. ★ The agent found Sol-Attn already in core (`BlockSparseAttention`, method `sol-attn`, `comfy_extras/nodes_sparse_attention.py`), but it falls back to dense attention silently; not tried yet. B's sequence is about 28% longer: an estimate, not measured.
+  - Its recommendation: A now; B only after a 1920×1088 test on a face or speech clip shows it holds them better and fits in 32 GB.
+- **`video_minimax_h3_t2v_2k`** ("Make a sharp film clip in 2K", experimental):
+  - **The graph is exactly the one tested earlier today.** The H3 turbo t2v draft runs with the turbo LoRA fixed on (no Fast-mode switch) at 1344×768, 124 frames. Then core `LatentUpscaleModelLoader` + `MiniMaxH3LatentUpscaleWithModel`, then ref2va + `AILab_OpenH3_Regenerate_2K` (BF16, sharp curve **off**: it is not loaded when off, `AILab_OpenH3.py:268`, and it is inert anyway; 3 steps; audio locked), then a 3-step Euler `SamplerCustomAdvanced` (refine noise literal 7), then decode with the draft's sound. 23 nodes.
+  - Exposed parameters: the prompt, the **Size** select (`"1920"` default, or `"2560"`, written to `31.width`, with `linkedValues` writing `31.height` 1088 / 1440; ComfyUI converts the string with `int()` at validation, `execution.py:1008`, as the seamless-loop length select already relies on), and the draft seed.
+  - The template came from `tools/api-to-ui` (round trip identical) plus a MarkdownNote with the pipeline, the pack and every model link, which `harvest.cjs` read for provenance. It is also copied into ComfyUI's `user/default/workflows/` so it shows in the Workflows sidebar.
+  - ★ The old turbo graph lacked 0.44.2's `CreateVideo.chroma_subsampling` / `codec` and `SaveVideo["format.codec"]`; the converter's round trip caught it.
+  - minVRAM 32. The timeline books the default size, so a 2560 job overruns its slot, and the description says so.
+  - Suite row added after the turbo card (109 runs), seed 424242. Its caption was written from the 1:1 comparison of this exact job (the 1920×1088 probe: same prompt, seeds and sizes).
+  - ⚠ **Not calibrated, no example yet:** the machine went into student mode (FLUX.3 Klein) at 21:13 while the card was being built, and `run-suite` refuses then. ComfyQ was not switched back and nothing was sent to the serving ComfyUI. To finish, in admin mode: `node tools/test-suite/run-suite.cjs library --only video_minimax_h3_t2v_2k`, open the output, then `node tools/maintenance/seed_examples.cjs --only video_minimax_h3_t2v_2k`.
+- **RelayVSR:** still waiting. Its commit `2f89433` is on ComfyUI master only (`v0.44.2...2f89433` diverged, 14 ahead / 11 behind); `release/v0.44` has no copy and there is no v0.45 tag yet (checked 2026-11-09 night).
+
 ## Latest progress (2026-11-09 evening: three experimental cards from ComfyUI's own templates)
 
 The owner added three candidates; all three are **identical to ComfyUI's own templates** in the 0.44.2 template package (`comfyui_workflow_templates_json/templates/`; the only difference, ImageCompare's saved view state), all nodes are core, all models were on the drive. 80 → **83 bundles**, all three experimental, calibrated, in the suite (108 runs) and seeded as examples. Each example replays **pixel-identical** to the run its caption was written from.

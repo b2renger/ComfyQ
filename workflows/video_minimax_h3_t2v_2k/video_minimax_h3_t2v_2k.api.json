@@ -1,0 +1,330 @@
+{
+  "1": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "H3 transformer"
+    }
+  },
+  "2": {
+    "class_type": "LoraLoaderModelOnly",
+    "inputs": {
+      "model": [
+        "1",
+        0
+      ],
+      "lora_name": "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+      "strength_model": 1
+    },
+    "_meta": {
+      "title": "4-step turbo LoRA"
+    }
+  },
+  "8": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+      "type": "minimax",
+      "device": "default"
+    },
+    "_meta": {
+      "title": "Qwen3-VL text encoder"
+    }
+  },
+  "9": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_video_vae_fp16.safetensors"
+    },
+    "_meta": {
+      "title": "video VAE"
+    }
+  },
+  "10": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "minimax_h3_audio_vae_fp32.safetensors"
+    },
+    "_meta": {
+      "title": "audio VAE"
+    }
+  },
+  "11": {
+    "class_type": "MiniMaxH3ImageToVideo",
+    "inputs": {
+      "clip": [
+        "8",
+        0
+      ],
+      "vae": [
+        "9",
+        0
+      ],
+      "prompt": "A slow cinematic dolly shot through a sunlit forest, dust motes drifting in shafts of light, gentle ambient wind and distant birdsong",
+      "width": 1344,
+      "height": 768,
+      "length": 124
+    },
+    "_meta": {
+      "title": "prompt + latent"
+    }
+  },
+  "12": {
+    "class_type": "BasicGuider",
+    "inputs": {
+      "model": [
+        "2",
+        0
+      ],
+      "conditioning": [
+        "11",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "guider (cfg-free)"
+    }
+  },
+  "13": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "res_multistep"
+    },
+    "_meta": {
+      "title": "sampler"
+    }
+  },
+  "14": {
+    "class_type": "BasicScheduler",
+    "inputs": {
+      "model": [
+        "2",
+        0
+      ],
+      "scheduler": "simple",
+      "steps": 4,
+      "denoise": 1
+    },
+    "_meta": {
+      "title": "sigmas"
+    }
+  },
+  "15": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 424242
+    },
+    "_meta": {
+      "title": "seed"
+    }
+  },
+  "16": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "15",
+        0
+      ],
+      "guider": [
+        "12",
+        0
+      ],
+      "sampler": [
+        "13",
+        0
+      ],
+      "sigmas": [
+        "14",
+        0
+      ],
+      "latent_image": [
+        "11",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "sample"
+    }
+  },
+  "30": {
+    "class_type": "LatentUpscaleModelLoader",
+    "inputs": {
+      "model_name": "minimax_h3_latent_upscaler_3d_conv_v1_bf16.safetensors"
+    },
+    "_meta": {
+      "title": "Load H3 latent upscaler"
+    }
+  },
+  "31": {
+    "class_type": "MiniMaxH3LatentUpscaleWithModel",
+    "inputs": {
+      "model": [
+        "30",
+        0
+      ],
+      "samples": [
+        "16",
+        0
+      ],
+      "width": 1920,
+      "height": 1088
+    },
+    "_meta": {
+      "title": "Upscale the draft (size)"
+    }
+  },
+  "32": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "_meta": {
+      "title": "Load H3 ref2va (refiner base)"
+    }
+  },
+  "33": {
+    "class_type": "AILab_OpenH3_Regenerate_2K",
+    "inputs": {
+      "model": [
+        "32",
+        0
+      ],
+      "model_name": "Open-H3-Regenerate-2K (BF16)",
+      "strength": 1,
+      "sharp_curve": false,
+      "steps": "3",
+      "lock_audio": true,
+      "unload_model": false,
+      "latent": [
+        "31",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Open-H3 Regenerate 2K"
+    }
+  },
+  "34": {
+    "class_type": "BasicGuider",
+    "inputs": {
+      "model": [
+        "33",
+        0
+      ],
+      "conditioning": [
+        "11",
+        0
+      ]
+    },
+    "_meta": {
+      "title": "Refine guider"
+    }
+  },
+  "35": {
+    "class_type": "RandomNoise",
+    "inputs": {
+      "noise_seed": 7
+    },
+    "_meta": {
+      "title": "Refine noise"
+    }
+  },
+  "36": {
+    "class_type": "KSamplerSelect",
+    "inputs": {
+      "sampler_name": "euler"
+    },
+    "_meta": {
+      "title": "Refine sampler"
+    }
+  },
+  "37": {
+    "class_type": "SamplerCustomAdvanced",
+    "inputs": {
+      "noise": [
+        "35",
+        0
+      ],
+      "guider": [
+        "34",
+        0
+      ],
+      "sampler": [
+        "36",
+        0
+      ],
+      "sigmas": [
+        "33",
+        2
+      ],
+      "latent_image": [
+        "33",
+        1
+      ]
+    },
+    "_meta": {
+      "title": "Refine (3 steps)"
+    }
+  },
+  "38": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": [
+        "37",
+        0
+      ],
+      "vae": [
+        "9",
+        0
+      ]
+    }
+  },
+  "39": {
+    "class_type": "VAEDecodeAudio",
+    "inputs": {
+      "samples": [
+        "37",
+        0
+      ],
+      "vae": [
+        "10",
+        0
+      ]
+    }
+  },
+  "40": {
+    "class_type": "CreateVideo",
+    "inputs": {
+      "images": [
+        "38",
+        0
+      ],
+      "audio": [
+        "39",
+        0
+      ],
+      "fps": 24,
+      "bit_depth": "auto",
+      "color_space": "sRGB",
+      "chroma_subsampling": "auto",
+      "codec": "none"
+    }
+  },
+  "41": {
+    "class_type": "SaveVideo",
+    "inputs": {
+      "video": [
+        "40",
+        0
+      ],
+      "filename_prefix": "video/MiniMaxH3_2K",
+      "format": "auto",
+      "format.codec": "auto",
+      "codec": "auto"
+    }
+  }
+}

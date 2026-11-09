@@ -1,0 +1,145 @@
+{
+  "schemaVersion": 1,
+  "id": "video_minimax_h3_t2v_2k",
+  "name": "MiniMax H3 — text to video + audio in 2K (turbo draft + Open-H3-Regenerate-2K)",
+  "title": "Make a sharp film clip in 2K",
+  "summary": "Describe a scene and its sounds; you get a 5-second clip with its soundtrack, redrawn at Full HD or 2K with much finer detail. It takes several minutes, so book it ahead.",
+  "description": "A 768p MiniMax H3 clip (4-step turbo draft, 1344x768, 124 frames, picture and sound made together) is enlarged by ComfyUI's own H3 latent upscaler and then **regenerated in 3 steps by NVIDIA's Open-H3-Regenerate-2K** on the H3 ref2va model. The refine adds real detail the draft does not have (bark, foliage, light edges) while keeping the scene, the light, the camera move and the soundtrack; it starts from a lot of noise, so small things can shift.\n\n**Size** is the only cost setting: 1920x1088 took about 6 min on an RTX 5090, 2560x1440 about 12.5 min, and both fill a 32 GB card. The timeline books the time of the default size, so a 2K job runs past its slot. Length is fixed at 124 frames (about 5 s at 24 fps).\n\nNeeds the node pack **ComfyUI-Open-H3-Regenerate-2K** (1038lab, GPL-3.0) for the one refine node; everything else is core ComfyUI. Sharp curve is off: its 50 curve branches are all zero, so it adds nothing.",
+  "category": "i2v",
+  "experimental": true,
+  "tags": [
+    "minimax",
+    "h3",
+    "text-to-video",
+    "t2v",
+    "2k",
+    "upscale",
+    "open-h3-regenerate-2k",
+    "audio",
+    "video"
+  ],
+  "promptGuides": [
+    {
+      "label": "MiniMax H3 video prompt guide — MiniMax",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3/blob/main/docs/VIDEO_PROMPT_WRITING_GUIDE_base_en.md",
+      "tip": "Start with the overall style and opening framing, then describe what happens in order. Name camera moves with their speed (\"slowly pulls out\"), and describe sounds and music concretely — instruments, tempo — rather than moods."
+    },
+    {
+      "label": "H3 prompt tips for ComfyUI — Comfy-Org",
+      "url": "https://docs.comfy.org/tutorials/video/minimax/minimax-h3-prompt-guide"
+    }
+  ],
+  "thumbnail": null,
+  "author": "ComfyQ (MiniMax H3 template + 1038lab Open-H3-Regenerate-2K)",
+  "version": "1.0.0",
+  "workflowFile": "video_minimax_h3_t2v_2k.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 32,
+    "models": [
+      {
+        "type": "unet",
+        "file": "minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "unet",
+        "file": "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_video_vae_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_video_vae_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_audio_vae_fp32.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/vae/minimax_h3_audio_vae_fp32.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "lora",
+        "file": "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/loras/minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "lora",
+        "file": "open_h3_regenerate_2k_bf16.safetensors",
+        "url": "https://huggingface.co/1038lab/Open-H3-Regenerate-2K/resolve/main/lora/open_h3_regenerate_2k_bf16.safetensors",
+        "source": "https://huggingface.co/1038lab/Open-H3-Regenerate-2K"
+      },
+      {
+        "type": "other",
+        "file": "minimax_h3_latent_upscaler_3d_conv_v1_bf16.safetensors",
+        "url": "https://huggingface.co/1038lab/Open-H3-Regenerate-2K/resolve/main/latent_upscale_models/minimax_h3_latent_upscaler_3d_conv_v1_bf16.safetensors",
+        "source": "https://huggingface.co/1038lab/Open-H3-Regenerate-2K"
+      }
+    ]
+  },
+  "estimatedDurationSec": 370,
+  "exposedParameters": [
+    {
+      "key": "minimaxh3imagetovideo_prompt_11",
+      "nodeId": "11",
+      "field": "prompt",
+      "type": "textarea",
+      "label": "Prompt (scene / action / camera / sound)",
+      "default": "A slow cinematic dolly shot through a sunlit forest, dust motes drifting in shafts of light, gentle ambient wind and distant birdsong",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "size_31",
+      "nodeId": "31",
+      "field": "width",
+      "type": "select",
+      "label": "Size",
+      "default": "1920",
+      "options": [
+        "1920",
+        "2560"
+      ],
+      "optionLabels": [
+        "1920 × 1088, Full HD (about 6 min)",
+        "2560 × 1440, 2K (about 12.5 min)"
+      ],
+      "required": false,
+      "order": 1,
+      "linkedValues": [
+        {
+          "nodeId": "31",
+          "field": "height",
+          "map": {
+            "1920": 1088,
+            "2560": 1440
+          }
+        }
+      ]
+    },
+    {
+      "key": "randomnoise_noise_seed_15",
+      "nodeId": "15",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 424242,
+      "min": 0,
+      "max": 999999999999,
+      "step": 1,
+      "required": false,
+      "order": 2
+    }
+  ],
+  "warmupParams": {}
+}
