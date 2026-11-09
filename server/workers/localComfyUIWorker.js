@@ -431,6 +431,22 @@ class LocalComfyUIWorker extends Worker {
                     nodeType: data.node_type || null,
                 },
             });
+        } else if (type === 'execution_interrupted') {
+            // ★ Somebody stopped this prompt from outside ComfyQ: the Stop button in
+            // ComfyUI's own page, or a call to /interrupt. Our own cancel() clears
+            // the current job before ComfyUI's answer arrives, so it never gets
+            // here. ComfyUI ends an interrupted prompt with the same "executing,
+            // node null" as a finished one, so without this the job was collected
+            // as COMPLETED with whatever it had made so far: on 2026-11-09 the
+            // suite recorded a run stopped at step 2 of 20 as "ok, 1 output".
+            this._resetCurrent();
+            this._setState('idle');
+            this.emit('failed', {
+                jobId, promptId,
+                errorReason: 'Stopped in ComfyUI before it finished.',
+                errorPhase: 'executing',
+                errorDetail: { exceptionType: 'interrupted', nodeId: data.node_id ?? null, nodeType: data.node_type || null },
+            });
         } else if (type === 'execution_cached') {
             // nodes were cached, just informational
         }

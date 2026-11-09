@@ -190,6 +190,36 @@ function makeWorker() {
         assert.deepStrictEqual(failed, []);
     });
 
+    // ★ An interrupt from outside ComfyQ ends a prompt with the same "executing,
+    // node null" as a finished one. It used to be collected as completed.
+    await test('a prompt stopped in ComfyUI fails the job; the trailing "finished" is ignored', async () => {
+        const { w } = makeWorker();
+        w.currentJobId = 'job-1';
+        w.currentPromptId = 'prompt-1';
+        const failed = [];
+        const finished = [];
+        w.on('failed', (e) => failed.push(e));
+        w.on('execution-finished', (e) => finished.push(e));
+        w._handleWsMessage({ type: 'execution_interrupted', data: { prompt_id: 'prompt-1', node_id: '76', node_type: 'KSampler' } });
+        w._handleWsMessage({ type: 'executing', data: { prompt_id: 'prompt-1', node: null } });
+        assert.strictEqual(failed.length, 1);
+        assert.strictEqual(failed[0].jobId, 'job-1');
+        assert.ok(/Stopped in ComfyUI/.test(failed[0].errorReason));
+        assert.deepStrictEqual(finished, []);
+        assert.strictEqual(w.currentJobId, null);
+    });
+
+    await test('an interrupt of another prompt is not ours', async () => {
+        const { w } = makeWorker();
+        w.currentJobId = 'job-1';
+        w.currentPromptId = 'prompt-1';
+        const failed = [];
+        w.on('failed', (e) => failed.push(e));
+        w._handleWsMessage({ type: 'execution_interrupted', data: { prompt_id: 'someone-else' } });
+        assert.deepStrictEqual(failed, []);
+        assert.strictEqual(w.currentJobId, 'job-1');
+    });
+
     // ★ clampParamValue snapped every value through `* 1e6 / 1e6`, which loses
     // integer precision above ~9e9: a recalled seed of 730608533992019 reached
     // ComfyUI as 730608533992018 while the job recorded …019.

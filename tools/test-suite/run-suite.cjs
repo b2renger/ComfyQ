@@ -46,6 +46,22 @@ const { loadSuite, validateSuite, parseMediaSpec, MEDIA_TYPES } = require(path.j
 const { suiteAssets, missingAssetLines } = require(path.join(__dirname, 'suiteAssets.cjs'));
 
 const args = process.argv.slice(2);
+// Running is the default, so a flag this script does not know (a typo, --help)
+// must stop it rather than start a suite of several hours.
+const KNOWN_FLAGS = ['--check', '--dry', '--only', '--from', '--data-dir'];
+const unknown = args.filter(a => a.startsWith('-') && !KNOWN_FLAGS.includes(a));
+if (unknown.length) {
+    console.error(`Unknown option ${unknown.join(', ')}. Nothing was run.`);
+    console.error('Usage: node tools/test-suite/run-suite.cjs [suite] [--check] [--dry] [--only a,b] [--from <id>] [--data-dir <dir>]');
+    process.exit(1);
+}
+for (const name of ['--only', '--from', '--data-dir']) {
+    const i = args.indexOf(name);
+    if (i >= 0 && (!args[i + 1] || args[i + 1].startsWith('-'))) {
+        console.error(`${name} needs a value. Nothing was run.`);
+        process.exit(1);
+    }
+}
 const flag = (name) => args.includes(name);
 const value = (name) => { const i = args.indexOf(name); return i >= 0 ? args[i + 1] : null; };
 const positional = args.filter((a, i) => !a.startsWith('--') && !['--only', '--from', '--data-dir'].includes(args[i - 1]));
