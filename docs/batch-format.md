@@ -85,8 +85,31 @@ must be what the input takes. The work is done by
 the batch is queued; a prepared picture then goes through the upload check. Steps cannot yet
 prepare another row's result.
 
-A row may use a row written below it. Rows run in the order written, except that a row
-moves down far enough to come after the rows it uses.
+A row may use a row written below it.
+
+## The run order
+
+A job always runs after the jobs whose results it uses. Within that, the batch is
+**ordered to load models as few times as possible**, because every change of card
+unloads every model and loads the next card's: 1 to 135 s on the 5090, a median of
+12 s, measured by each card's calibration. A card that runs with other speed-up flags
+(one that switches off Sage attention or fp16 accumulation) also restarts ComfyUI,
+counted as about a minute. So the jobs of one card run together wherever their
+inputs allow, cards with the same flags run next to each other, and a batch queued
+while the machine serves a card starts with that card's jobs.
+
+The order is searched exactly for ordinary batches and is the cheapest one the inputs
+allow; a very large batch with many cross dependencies keeps the best order found in
+a fixed budget. When reordering saves nothing, the order as written is kept. Seeds
+are drawn before the order is chosen, so the order never changes what a job makes.
+The preview says how many loads and restarts the order needs, against the order as
+written, and the run order list marks each load and restart.
+
+**Keep the table's order** (the batch editor) or **Order: As written** (the upload
+card) runs the rows in the order written instead, each row moved down only far
+enough to come after the rows it uses. A test suite keeps its own order: it runs
+through the library sweep, which times every card from cold. The decision model is
+[server/batch/runOrder.js](../server/batch/runOrder.js).
 
 **One job, or several.** A row makes one job per file of a `folder:`, and one job per
 job of a row it uses that made several (with `repeat` or a folder). Those are paired in

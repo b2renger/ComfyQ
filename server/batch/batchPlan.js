@@ -27,6 +27,7 @@ const { predictOutputKind } = require('../storyboard/storyboardPlanner');
 const { isSeedParam } = require('../benchmark/benchmarkService');
 const { classify } = require('../media/mediaTypes');
 const { splitPipeline, outputKind, extraAssets } = require('./deriveOps');
+const { orderRun, costOf, flagsKey } = require('./runOrder');
 const kindOf = (file) => classify(file).kind;
 
 const MEDIA_TYPES = ['image', 'mask', 'video', 'audio', 'model3d'];
@@ -194,7 +195,8 @@ function cardName(entry) {
 }
 
 // planBatch(text, registry, env) →
-//   { jobs, errors, warnings, blocked, summary, totalEstimatedSec, modelLoads }
+//   { jobs, errors, warnings, blocked, summary, totalEstimatedSec, modelLoads,
+//     restarts, ordering }
 //
 // env: {
 //   assetExists(name) → bool        a file in the assets folder
@@ -203,10 +205,18 @@ function cardName(entry) {
 //   getJob(id) → { id, status, workflowId, outputs } | null   an existing job, by id or unique prefix
 //   optionsFor(param) → [values]|null   the choices of a lora param on this machine
 //   random() → [0, 1)               for fresh seeds (Math.random by default)
+//   order                           'fewest-loads': reorder for the fewest model loads
+//                                   and restarts (runOrder.js); otherwise the table's
+//                                   order, each row moved only below the rows it uses
+//   comfyFlags                      the rig's comfy_ui config: which speed-up flags are on
+//   startWorkflowId                 the card the main lane has loaded now, if serving
 // }
 //
-// A job: { key, row, order, workflowId, workflowName, workflowVersion, prompt,
-//          promptParamKey, paramValues, deps, assets, estimatedDurationSec }
+// A job: { key, row, order, writtenOrder, workflowId, workflowName, workflowVersion,
+//          prompt, promptParamKey, paramValues, deps, assets, estimatedDurationSec,
+//          modelLoadSec, flags, setup, setupSec }
+//   setup:  what runs before it: null, 'load' (the card's models) or 'restart'
+//           (ComfyUI with other speed-up flags, then the load); setupSec its time
 //   deps:   [{ paramKey, sourceKey, outputIndex, kind }]    another job of this batch
 //         | [{ paramKey, sourceJobId, outputIndex, kind }]  a job that already exists
 //   assets: [{ paramKey, file }]   files to stage from the assets folder
@@ -539,7 +549,8 @@ function planBatch(text, registry, env = {}) {
                     seedSet: r.seedParam && r.seed != null ? r.seedParam.key : null,
                     cells: r.extra,
                     estimatedDurationSec: rt.warmDurationSec || rt.estimatedDurationSec || r.entry.meta?.estimatedDurationSec || null,
-                    modelLoadSec: rt.modelLoadSec || 0
+                    modelLoadSec: rt.modelLoadSec || 0,
+                    flags: flagsKey(r.entry.meta, env.comfyFlags || null),
                 };
                 list.push(job);
                 jobs.push(job);
@@ -547,7 +558,22 @@ function planBatch(text, registry, env = {}) {
         }
         copiesOf.set(r, list);
     }
-    return finish(jobs, { errors, warnings, blocked });
+
+    // ---- pass 5: the run order ----------------------------------------------
+    // The table's order, each row below the rows it uses, is what the queue runs
+    // unless `order` asks for the fewest model loads (runOrder.js). Seeds were
+    // drawn above, so they do not depend on the order.
+    jobs.forEach((j, i) => { j.writtenOrder = i; });
+    const startEntry = env.startWorkflowId ? registry.get(env.startWorkflowId) : null;
+    const start = startEntry ? { workflowId: startEntry.id, flags: flagsKey(startEntry.meta, env.comfyFlags || null) } : null;
+    let ordering = null;
+    if (env.order === 'fewest-loads') {
+        const r = orderRun(jobs, { start });
+        ordering = { mode: 'fewest-loads', changed: r.changed, exact: r.exact,
+            written: { loads: r.written.loads, restarts: r.written.restarts, setupSec: Math.round(r.written.setupSec) } };
+        if (r.changed) jobs.splice(0, jobs.length, ...r.jobs);
+    }
+    return finish(jobs, { errors, warnings, blocked }, { start, ordering });
 }
 
 function article(kind) {
@@ -557,29 +583,35 @@ function article(kind) {
     return /^[aeiou]/.test(k) ? `an ${k}` : `a ${k}`;
 }
 
-function finish(jobs, { errors, warnings, blocked = [] }) {
+function finish(jobs, { errors, warnings, blocked = [] }, { start = null, ordering = null } = {}) {
     jobs.forEach((j, i) => { j.order = i; });
     // In row order, as someone fixing the spreadsheet reads them.
     const byRow = (a, b) => (a.row ?? 0) - (b.row ?? 0);
     errors.sort(byRow);
     warnings.sort(byRow);
     blocked.sort(byRow);
-    // What the batch costs: each job's own time, plus a model load wherever
-    // the workflow changes from the job before.
-    let total = 0;
-    let loads = 0;
-    let last = null;
+    // What the batch costs: each job's own time, plus what runs before it when
+    // the card changes (runOrder.costOf: a model load, and a ComfyUI restart when
+    // the speed-up flags change too). The same model the order was chosen by.
+    const cost = costOf(jobs, { start });
+    let total = cost.setupSec;
     const unknown = [];
-    for (const j of jobs) {
-        if (j.workflowId !== last) { loads++; total += j.modelLoadSec || 0; last = j.workflowId; }
+    jobs.forEach((j, i) => {
+        j.setup = cost.steps[i].setup;
+        j.setupSec = cost.steps[i].setupSec;
         if (j.estimatedDurationSec) total += j.estimatedDurationSec;
         else unknown.push(j.key);
-    }
+    });
+    const loads = cost.loads;
+    const restarts = cost.restarts;
     const total_rows = new Set(jobs.map(j => j.id)).size;
     const summary = errors.length || blocked.length
         ? `${errors.length} problem${errors.length === 1 ? '' : 's'}${blocked.length ? `, and ${blocked.length} row${blocked.length === 1 ? '' : 's'} waiting on a row with one` : ''}. Nothing is queued until the table is fixed.`
-        : `${jobs.length} job${jobs.length === 1 ? '' : 's'} from ${total_rows} row${total_rows === 1 ? '' : 's'}, ${loads} model load${loads === 1 ? '' : 's'}.`;
-    return { jobs, errors, warnings, blocked, summary, totalEstimatedSec: Math.round(total), modelLoads: loads, unknownDurations: unknown };
+        : `${jobs.length} job${jobs.length === 1 ? '' : 's'} from ${total_rows} row${total_rows === 1 ? '' : 's'}, ${loads} model load${loads === 1 ? '' : 's'}`
+            + `${restarts ? `, ${restarts} ComfyUI restart${restarts === 1 ? '' : 's'}` : ''}.`;
+    if (ordering) ordering.savedSec = Math.max(0, Math.round(ordering.written.setupSec - cost.setupSec));
+    return { jobs, errors, warnings, blocked, summary, totalEstimatedSec: Math.round(total), modelLoads: loads, restarts,
+        ordering, unknownDurations: unknown };
 }
 
 // The cards a table can name, described in the table's own terms, for the batch

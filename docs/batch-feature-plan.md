@@ -11,6 +11,11 @@ with stage 1. The card has its own **Batches** tab in the admin panel. The owner
 answered the four questions on 2026-11-09 (at the end of this page); the table editor
 they asked for is stage 7.
 
+**2026-11-10:** a batch is ordered for the fewest model loads and ComfyUI restarts its
+inputs allow ([server/batch/runOrder.js](../server/batch/runOrder.js), "The run order"
+in [batch-format.md](batch-format.md)), asked for by the owner. Tested with stand-ins
+and against brute force; not yet run on a real batch.
+
 ## What the owner asked for
 
 - Run any kind of batched generation, not only films.

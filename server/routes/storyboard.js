@@ -165,6 +165,12 @@ function makeRouter({ configManager, registry, runtime, adminGate, exitForRestar
             optionsFor: (p) => comfyRoot
                 ? withoutExcluded(listModelFiles(comfyRoot, p.optionsDir || 'loras', p.optionsFilter || ''), p.optionsExclude)
                 : null,
+            // The fewest model loads and restarts the inputs allow, unless the
+            // admin keeps the table's order (runOrder.js). It starts from the card
+            // the main lane has loaded when the machine is serving.
+            order: req.body?.order === 'written' ? 'written' : 'fewest-loads',
+            comfyFlags: config.comfy_ui,
+            startWorkflowId: runtime?.executor ? config.workflows?.activeWorkflowId || null : null,
         });
         if (assetsDir && plan.jobs.length) {
             plan.errors.push(...batchQueue.checkAssetImages(plan, assetsDir));

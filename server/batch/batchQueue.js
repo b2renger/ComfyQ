@@ -118,8 +118,10 @@ function buildInserts(plan, { batchId, batchLabel, folder, userId, startAt, spac
     return plan.jobs.map((j, i) => {
         if (i > 0) {
             const prev = plan.jobs[i - 1];
-            const gapSec = spacing === 'asap' ? 0
-                : (prev.estimatedDurationSec || 0) + (j.workflowId !== prev.workflowId ? (j.modelLoadSec || 0) : 0);
+            // What runs before this job (a model load, a ComfyUI restart): the
+            // planner's own cost model, so the timeline matches the preview.
+            const setupSec = j.setupSec ?? (j.workflowId !== prev.workflowId ? (j.modelLoadSec || 0) : 0);
+            const gapSec = spacing === 'asap' ? 0 : (prev.estimatedDurationSec || 0) + setupSec;
             at += Math.max(1, Math.round(gapSec * 1000));
         }
         const paramValues = { ...j.paramValues };
@@ -177,6 +179,10 @@ function toPreview(plan, registry) {
         phases,
         workflowRuns,
         modelLoads: plan.modelLoads,
+        restarts: plan.restarts || 0,
+        // { mode, changed, exact, written: { loads, restarts, setupSec }, savedSec }
+        // when the order was chosen for the fewest loads; null for the table's order.
+        ordering: plan.ordering || null,
         totalJobs: plan.jobs.length,
         totalShots: new Set(plan.jobs.map(j => j.id)).size + plan.blocked.length,
         totalEstimatedSec: plan.totalEstimatedSec,
@@ -198,6 +204,11 @@ function toPreview(plan, registry) {
             notes: [],
             workflowId: j.workflowId,
             estimatedDurationSec: j.estimatedDurationSec,
+            // Where the table had it (0-based, with each row below the rows it
+            // uses), and what runs before it: null, 'load' or 'restart'.
+            writtenOrder: j.writtenOrder ?? j.order,
+            setup: j.setup || null,
+            setupSec: j.setupSec || 0,
             deps: [
                 ...j.deps.map(d => ({ paramLabel: labelOf(j, d.paramKey), sourceTitle: d.sourceKey ? `${d.sourceKey}${d.outputIndex ? ` #${d.outputIndex + 1}` : ''}` : `job ${d.sourceJobId.slice(0, 8)}` })),
                 ...j.assets.map(a => ({ paramLabel: labelOf(j, a.paramKey), sourceTitle: a.file })),

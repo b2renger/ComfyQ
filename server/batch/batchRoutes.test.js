@@ -102,6 +102,17 @@ const srv = app.listen(0, '127.0.0.1', async () => {
         check('a job says what it uses', d.jobs[1].deps[0].sourceTitle === 'hero' && d.jobs[2].deps[0].sourceTitle === 'Woman.png', JSON.stringify(d.jobs[1].deps));
         check('folder copies are named', d.jobs.map(j => j.title).join(' ') === 'hero look same again each.1 each.2', d.jobs.map(j => j.title).join(' '));
 
+        // The run order (runOrder.js): fewest loads unless the admin keeps the table's.
+        const MIXED = ['id,workflow,prompt,image', `a,${T2I},one,`, `ea,${EDIT},blue,a`, `b,${T2I},two,`, `eb,${EDIT},green,b`].join('\n');
+        ({ status, d } = await post('/storyboard/preview', form(MIXED)));
+        check('a table is ordered for the fewest loads by default',
+            status === 200 && d.jobs.map(j => j.title).join(' ') === 'a b ea eb' && d.modelLoads === 2
+            && d.ordering?.changed === true && d.ordering.written.loads === 4, `${status} ${d.jobs?.map(j => j.title).join(' ')} ${JSON.stringify(d.ordering)}`);
+        ({ status, d } = await post('/storyboard/preview', form(MIXED, 'shots.csv', { order: 'written' })));
+        check('order=written keeps the table\'s order',
+            status === 200 && d.jobs.map(j => j.title).join(' ') === 'a ea b eb' && d.modelLoads === 4 && d.ordering === null,
+            `${status} ${d.jobs?.map(j => j.title).join(' ')}`);
+
         ({ status } = await post('/storyboard/preview', form(GOOD), {}));
         check('the admin password is required', status === 401, String(status));
 

@@ -405,6 +405,10 @@ const BatchEditor = ({ adminPassword, notify }) => {
     const [checking, setChecking] = useState(false);
     const [checkError, setCheckError] = useState(null);
     const [showOrder, setShowOrder] = useState(false);
+    // The server orders a batch for the fewest model loads (server/batch/runOrder.js);
+    // ticked, the table's own order is kept, each row moved only below the rows it uses.
+    const [keepOrder, setKeepOrder] = useState(false);
+    const orderMode = keepOrder ? 'written' : 'fewest-loads';
     const [queueing, setQueueing] = useState(false);
     const [confirmNew, setConfirmNew] = useState(false);
     // The test suite this table is (its name), when it was opened with Open the test suite:
@@ -449,7 +453,7 @@ const BatchEditor = ({ adminPassword, notify }) => {
                 const res = await fetch(`${SERVER_URL}/storyboard/preview`, {
                     method: 'POST', signal: ctrl.signal,
                     headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ table: csv, name: `${name || 'batch'}.csv` }),
+                    body: JSON.stringify({ table: csv, name: `${name || 'batch'}.csv`, order: orderMode }),
                 });
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.error || `The check failed (${res.status}).`);
@@ -462,7 +466,7 @@ const BatchEditor = ({ adminPassword, notify }) => {
             }
         }, 600);
         return () => { clearTimeout(t); ctrl.abort(); };
-    }, [csv, name, rows.length, authHeaders]);
+    }, [csv, name, rows.length, authHeaders, orderMode]);
 
     // The table's row N (the header is row 1) is the editor's row N - 2.
     const at = useCallback((list) => {
@@ -647,7 +651,7 @@ const BatchEditor = ({ adminPassword, notify }) => {
             const res = await fetch(`${SERVER_URL}/storyboard/queue`, {
                 method: 'POST',
                 headers: { ...authHeaders(), 'Content-Type': 'application/json' },
-                body: JSON.stringify({ table: csv, name: `${name || 'batch'}.csv`, folder: name || 'batch' }),
+                body: JSON.stringify({ table: csv, name: `${name || 'batch'}.csv`, folder: name || 'batch', order: orderMode }),
             });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'The batch was not queued.');
@@ -714,15 +718,32 @@ const BatchEditor = ({ adminPassword, notify }) => {
                         ) : preview ? (
                             <span className="flex items-center gap-1.5 text-success">
                                 <CheckCircle2 size={14} />
-                                {preview.totalJobs} job{preview.totalJobs === 1 ? '' : 's'}, {preview.modelLoads} model load{preview.modelLoads === 1 ? '' : 's'}, about {fmtDuration(preview.totalEstimatedSec)}
+                                {preview.totalJobs} job{preview.totalJobs === 1 ? '' : 's'}, {preview.modelLoads} model load{preview.modelLoads === 1 ? '' : 's'}
+                                {preview.restarts > 0 && <>, {preview.restarts} ComfyUI restart{preview.restarts === 1 ? '' : 's'}</>}, about {fmtDuration(preview.totalEstimatedSec)}
                             </span>
                         ) : null}
+                        {!suite && rows.length > 1 && (
+                            <label className="flex items-center gap-1.5 text-xs text-muted cursor-pointer"
+                                title="Unticked, the batch runs in the order that loads models the fewest times its inputs allow. Ticked, it runs in the table's order, each row only moved below the rows it uses.">
+                                <input type="checkbox" checked={keepOrder} onChange={e => setKeepOrder(e.target.checked)} />
+                                Keep the table&apos;s order
+                            </label>
+                        )}
                         {preview?.jobs?.length > 0 && (
                             <button type="button" className="ml-auto text-xs text-muted hover:text-foreground flex items-center gap-1" onClick={() => setShowOrder(s => !s)}>
                                 <ListOrdered size={13} /> {showOrder ? 'Hide' : 'Show'} the run order
                             </button>
                         )}
                     </div>
+                    {!suite && !problemCount && preview?.ordering?.changed && (
+                        <p className="text-xs text-muted">
+                            Reordered so models load {preview.modelLoads} time{preview.modelLoads === 1 ? '' : 's'} instead
+                            of {preview.ordering.written.loads}
+                            {preview.ordering.written.restarts !== preview.restarts && <> and ComfyUI restarts {preview.restarts} time{preview.restarts === 1 ? '' : 's'} instead of {preview.ordering.written.restarts}</>}
+                            {preview.ordering.savedSec > 0 && <>: about {fmtDuration(preview.ordering.savedSec)} less</>}.
+                            {' '}Every job still runs after the jobs whose results it uses.
+                        </p>
+                    )}
                     {tableProblems.map((p, i) => <p key={i} className="text-xs text-danger">{p.message}</p>)}
                     {(preview?.warnings || []).filter(w => !/^Row \d+/.test(w)).map((w, i) => (
                         <p key={i} className="text-xs text-warning flex items-start gap-1.5"><AlertTriangle size={13} className="shrink-0 mt-0.5" />{w}</p>
@@ -735,6 +756,14 @@ const BatchEditor = ({ adminPassword, notify }) => {
                                     <span className="font-medium">{j.title}</span>
                                     <span className="text-muted truncate">{cardById.get(j.workflowId)?.title || j.workflowId}</span>
                                     {j.deps?.length > 0 && <span className="text-muted truncate">· after {j.deps.map(d => d.sourceTitle).join(', ')}</span>}
+                                    {j.setup && (
+                                        <span className={`shrink-0 ${j.setup === 'restart' ? 'text-warning' : 'text-muted'}`}
+                                            title={j.setup === 'restart'
+                                                ? 'This card runs with other speed-up flags, so ComfyUI restarts (about a minute) before its models load.'
+                                                : 'The models of the job before are unloaded and this card loads its own.'}>
+                                            · {j.setup === 'restart' ? 'restarts ComfyUI, loads' : 'loads'} {j.setupSec ? fmtDuration(j.setupSec) : ''}
+                                        </span>
+                                    )}
                                     <span className="ml-auto text-muted shrink-0">{fmtDuration(j.estimatedDurationSec)}</span>
                                 </li>
                             ))}

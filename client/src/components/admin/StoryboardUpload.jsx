@@ -84,6 +84,9 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
     const [previewError, setPreviewError] = useState(null);
     const [queueing, setQueueing] = useState(false);
     const [spacing, setSpacing] = useState('estimated');
+    // A table: the fewest model loads its inputs allow, or the order it is written
+    // in (server/batch/runOrder.js). A markdown storyboard groups its shots either way.
+    const [order, setOrder] = useState('fewest-loads');
     const [showJobs, setShowJobs] = useState(false);
     const [folder, setFolder] = useState('');
     const [batches, setBatches] = useState([]);
@@ -166,7 +169,7 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
     // `folderOverride`: the folder to send for a newly picked file. The state
     // update in pickFile has not landed yet when this runs, so `folder` here is
     // still the previous document's.
-    const runPreview = async (f, folderOverride) => {
+    const runPreview = async (f, folderOverride, orderOverride) => {
         const fld = folderOverride !== undefined ? folderOverride : folder;
         setPreviewing(true);
         setPreviewError(null);
@@ -175,6 +178,7 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
             const form = new FormData();
             form.append('file', f);
             if (fld) form.append('folder', fld);
+            form.append('order', orderOverride || order);
             // No Content-Type — the browser must set the multipart boundary.
             const res = await fetch(`${SERVER_URL}/storyboard/preview`, {
                 method: 'POST', headers: authHeaders(), body: form
@@ -221,6 +225,7 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
             const form = new FormData();
             form.append('file', file);
             form.append('spacing', spacing);
+            form.append('order', order);
             form.append('label', file.name);
             if (folder) form.append('folder', folder);
             const res = await fetch(`${SERVER_URL}/storyboard/queue`, {
@@ -389,7 +394,11 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
                             </div>
                             <p className="mt-1">
                                 {preview.format === 'table'
-                                    ? 'A table runs in the order it is written, and the estimate above counts each load. Rows of one workflow written together load it once.'
+                                    ? (preview.ordering?.changed
+                                        ? `Reordered so models load ${preview.modelLoads} times instead of ${preview.ordering.written.loads}${preview.ordering.savedSec > 0 ? `, about ${fmtDuration(preview.ordering.savedSec)} less` : ''}. Every job still runs after the jobs whose results it uses; the estimate above counts each load${preview.restarts ? ` and ComfyUI restart (${preview.restarts})` : ''}.`
+                                        : preview.ordering
+                                            ? 'The order as written already loads models as few times as the inputs allow. The estimate above counts each load.'
+                                            : 'A table runs in the order it is written, and the estimate above counts each load. Rows of one workflow written together load it once.')
                                     : 'Each load costs roughly 5–55 s on this rig (longer on a first load from disk) on top of the estimate above, so the shots are ordered to load every model once rather than once per shot.'}
                             </p>
                         </div>
@@ -515,6 +524,17 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
                                 <option value="asap">Back to back (dedicated machine)</option>
                             </select>
                         </label>
+                        {preview.format === 'table' && (
+                            <label className="flex items-center gap-2 text-xs text-muted">
+                                Order
+                                <select value={order}
+                                    onChange={(e) => { setOrder(e.target.value); if (file) runPreview(file, undefined, e.target.value); }}
+                                    className="bg-background border border-border rounded-lg px-2 py-1 text-xs text-foreground">
+                                    <option value="fewest-loads">Fewest model loads</option>
+                                    <option value="written">As written</option>
+                                </select>
+                            </label>
+                        )}
                         <Button icon={Upload} onClick={queueBatch} isLoading={queueing || restarting} disabled={!canQueue}>
                             {restarting ? 'Starting…'
                                 : queueing ? 'Queueing…'
