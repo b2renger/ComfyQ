@@ -760,9 +760,16 @@ const AdminConfig = () => {
     const servingByLanes = lanes.length > 0;
     const servingByMode = config?.mode === 'student';
     useEffect(() => {
-        if (config && servingByLanes !== servingByMode) reloadConfig({ drafts: false });
+        if (config && servingByLanes !== servingByMode) { reloadConfig({ drafts: false }); reloadComfyStatus(); }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [servingByLanes, servingByMode]);
+
+    // The machine's network addresses, for the students' links on the Running
+    // card: the ComfyUI status lists http://<LAN IP>:<port> for every network
+    // interface (routes/admin.js lanUrls), the same addresses Discovery reports.
+    const lanIps = React.useMemo(() => [...new Set((comfyStatus?.urls || []).map(u => {
+        try { return new URL(u).hostname; } catch { return null; }
+    }).filter(Boolean))], [comfyStatus]);
 
     const serveAlongside = async (workflowId) => {
         setServeAlongsideId(workflowId);
@@ -1032,6 +1039,7 @@ const AdminConfig = () => {
                         deactivating={deactivating}
                         lanAccess={!!config.comfy_ui?.lan_access}
                         restarts={comfyRestarts}
+                        lanIps={lanIps}
                     />
                 <Card>
                     <div className="flex items-center justify-between mb-4">

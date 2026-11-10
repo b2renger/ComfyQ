@@ -2,7 +2,7 @@ import React from 'react';
 import { Radio, Square, RefreshCw, Power, MemoryStick, ExternalLink, Users } from 'lucide-react';
 import Card from '../ui/Card';
 import Badge from '../ui/Badge';
-import LinkOut from '../ui/ExternalLink';
+import LinkOut, { CopyLinkButton } from '../ui/ExternalLink';
 
 /**
  * What this machine is serving right now, one row per lane, each stoppable.
@@ -20,9 +20,16 @@ import LinkOut from '../ui/ExternalLink';
  *
  * Each row also links to the two interfaces a lane has: the student page opened
  * on that lane (`/user?workflow=<id>`, the same link the Discovery app opens) and
- * that lane's own ComfyUI on its port. Both are built from the address this
- * panel was opened on, so they work from a laptop too — except the ComfyUI one
- * when ComfyUI listens on localhost only, which is said rather than linked.
+ * that lane's own ComfyUI on its port.
+ *
+ * ★ The student link is written out on its own line with a copy button, built
+ * on the machine's NETWORK address (owner, 2026-11-10: "give the address for
+ * students for the appropriate lane… copy the combo directly to the students
+ * pages not the admin pages"). It used to be built from this page's origin, so
+ * a panel opened on the rig copied http://localhost:5173/…, which no student
+ * can open. Opened from another computer, this page's own host is already a
+ * network address and is kept. Students always use ComfyQ's web port (this
+ * page's), never the lane's ComfyUI port: the `workflow` parameter picks the lane.
  */
 
 // Closing a lane stops a job it is generating (laneManager.close aborts it), so
@@ -33,11 +40,20 @@ const JOB_STOPPED_NOTE = ' A job that is generating is stopped and fails with'
 const RunningWorkflows = ({
     lanes = [], card = null, serving = false,
     onCloseLane = null, closingLaneId = null,
-    onDeactivate = null, deactivating = false, lanAccess = false, restarts = null,
+    onDeactivate = null, deactivating = false, lanAccess = false, restarts = null, lanIps = [],
 }) => {
     const host = window.location.hostname;
     const onRig = host === 'localhost' || host === '127.0.0.1' || host === '::1' || host === '[::1]';
     const comfyReachable = lanAccess || onRig;
+    // The address students reach this machine on (see the note at the top).
+    const netHost = onRig ? (lanIps[0] || null) : host;
+    const webPort = window.location.port ? `:${window.location.port}` : '';
+    const studentUrl = (id) => netHost
+        ? `${window.location.protocol}//${netHost}${webPort}/user?workflow=${encodeURIComponent(id)}`
+        : null;
+    // A ComfyUI that listens on the network is linked by that address too, so
+    // the copied link works from another computer.
+    const comfyHost = lanAccess && netHost ? netHost : host;
     const linkCls = 'inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-background border border-border text-muted hover:text-foreground hover:border-primary/50 transition-colors';
     const free = card?.vramGb
         ? Math.max(0, +(card.vramGb - card.usedGb - 2).toFixed(2))
@@ -85,6 +101,7 @@ const RunningWorkflows = ({
                     <div className="space-y-2">
                         {lanes.map(l => {
                             const closing = closingLaneId === l.workflowId;
+                            const forStudents = studentUrl(l.workflowId);
                             return (
                                 <div key={l.workflowId}
                                     className="flex items-center gap-3 flex-wrap px-3 py-2 rounded-lg bg-surface border border-border">
@@ -104,7 +121,7 @@ const RunningWorkflows = ({
 
                                     <div className="ml-auto flex items-center gap-2 flex-wrap">
                                     <LinkOut
-                                        href={`${window.location.origin}/user?workflow=${encodeURIComponent(l.workflowId)}`}
+                                        href={forStudents || `${window.location.origin}/user?workflow=${encodeURIComponent(l.workflowId)}`}
                                         className={linkCls}
                                         title="Open the student page in a new tab, with this workflow picked for booking."
                                     >
@@ -112,7 +129,7 @@ const RunningWorkflows = ({
                                     </LinkOut>
                                     {comfyReachable ? (
                                         <LinkOut
-                                            href={`${window.location.protocol}//${host}:${l.port}/`}
+                                            href={`${window.location.protocol}//${comfyHost}:${l.port}/`}
                                             className={linkCls}
                                             title={`Open the ComfyUI this lane runs on (port ${l.port}) in a new tab.`}
                                         >
@@ -157,6 +174,26 @@ const RunningWorkflows = ({
                                             <span>{closing ? 'Closing…' : 'Close lane'}</span>
                                         </button>
                                     )}
+                                    </div>
+
+                                    {/* The address to give students for this lane. */}
+                                    <div className="basis-full flex items-center gap-2 min-w-0 text-xs">
+                                        <span className="text-muted shrink-0">For students:</span>
+                                        {forStudents ? (
+                                            <>
+                                                <code className="text-foreground truncate select-all" title={forStudents}>{forStudents}</code>
+                                                <CopyLinkButton url={forStudents} size={13} label="Copy the students' link" />
+                                                {onRig && lanIps.length > 1 && (
+                                                    <span className="text-muted truncate" title={lanIps.join(', ')}>
+                                                        (also on {lanIps.slice(1).join(', ')})
+                                                    </span>
+                                                )}
+                                            </>
+                                        ) : (
+                                            <span className="text-warning">
+                                                no network address found for this machine. Students open http://&lt;its IP&gt;{webPort}/user?workflow={l.workflowId}
+                                            </span>
+                                        )}
                                     </div>
                                 </div>
                             );

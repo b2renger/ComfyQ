@@ -4,6 +4,13 @@ The dated log of the project: every decision, bug, measurement and the reason be
 
 Entries are records of their date. Numbers and behaviours in them may be out of date, and a later entry or a `⚠ superseded` note says so. Links to removed bundles are records too. Everything below was moved from CLAUDE.md on 2026-11-06, verbatim.
 
+## Latest progress (2026-11-10: the students' link for each lane)
+
+- **Owner, 2026-11-10:** "When a machine is serving two lanes. We need to give the address for students for the appropriate lane (ip + port) and we should be able to copy the combo directly to the students pages not the admin pages."
+- **Cause:** the Running card built the *Student page* link (and the copy button beside it) from the panel's own origin. On the rig the panel is opened as `localhost`, so the copy gave `http://localhost:5173/user?workflow=…`, which no student can open.
+- **Fix (client only):** each lane row has a **For students:** line with the full link and its own copy button: `http://<LAN IP>:<web port>/user?workflow=<card>`. The LAN IP comes from `/admin/comfyui/status` (`urls`, built by `lanUrls` in `routes/admin.js`, the same interfaces Discovery reports). A panel opened from another computer keeps its own host, which is already a network address. The port is ComfyQ's web port, never the lane's ComfyUI port: `?workflow=` picks the lane. The ComfyUI link uses the LAN IP too when ComfyUI listens on the network. Extra interfaces are listed after the first one; that case is untested.
+- **Checked in headless Chrome** with IDOL served: opened as `localhost:5173/admin` and as `10.10.17.170:5173/admin`, both rows read `For students: http://10.10.17.170:5173/user?workflow=3d_idol_image_to_gaussian_splat`, and the Stop serving button showed. A second lane was not opened to test with.
+
 ## Latest progress (2026-11-10: the 2K card calibrated and seeded)
 
 - The owner cleared the admin password and said the machine was unused. The agent stopped serving through `POST /admin/reset-to-admin`; the lane was idle. A watcher then ran `run-suite.cjs library --only video_minimax_h3_t2v_2k` once the server answered in admin mode with no lane. That closes the "⚠ Not calibrated" item of the 2026-11-09 night entry.
