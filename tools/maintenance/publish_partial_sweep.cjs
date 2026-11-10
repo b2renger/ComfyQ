@@ -93,6 +93,32 @@ function buildReport({ lines, prev, libraryIds, jsonlName, summarize }) {
     return { report, carried: carriedRows.length, rule };
 }
 
+/**
+ * Where a killed run stopped, from the runs it planned (`ids` on its start line,
+ * variants as `<card>@<variant>`). `from` is the earliest planned run after which
+ * nothing ran clean: `run-suite.cjs --from <from>` redoes that tail and nothing
+ * else. A failure before it is listed apart, to re-run with `--only`.
+ *
+ * ★ Counting missing CARDS (the library list below, "Run the remaining N") cannot
+ * see a variant run that was never reached, nor a card whose row is a failure:
+ * on 2026-11-10 that dropped the crashed card and 24 of 25 variant runs. Pure.
+ *
+ * @returns {null | { from: string|null, notReached: string[], failedBefore: string[] }}
+ */
+function resumePoint(lines) {
+    const head = lines.find(l => l.type === 'start') || {};
+    if (!Array.isArray(head.ids) || !head.ids.length) return null;
+    const rows = new Map(lines.filter(l => l.type === 'bundle').map(l => [l.id, l]));
+    const clean = (id) => !!rows.get(id)?.ok;
+    let i = head.ids.length;
+    while (i > 0 && !clean(head.ids[i - 1])) i--;
+    return {
+        from: i < head.ids.length ? head.ids[i] : null,
+        notReached: head.ids.filter(id => !rows.has(id)),
+        failedBefore: head.ids.slice(0, i).filter(id => !clean(id)),
+    };
+}
+
 /** The published report that goes with a run's .jsonl: the folder it is in. */
 function reportPathFor(jsonl) {
     return path.join(path.dirname(path.resolve(jsonl)), 'library-sweep-latest.json');
@@ -134,9 +160,18 @@ function main(argv) {
     const missing = libraryIds.filter(id => !have.has(id));
     console.log('library   %d bundles; %d done, %d still to run', libraryIds.length, libraryIds.length - missing.length, missing.length);
     console.log(JSON.stringify(missing));
+    const resume = resumePoint(lines);
+    const suiteName = lines.find(l => l.type === 'start')?.suite?.name;
+    if (resume && suiteName) {
+        console.log('runs      %d not reached', resume.notReached.length);
+        if (resume.from) console.log('resume    node tools/test-suite/run-suite.cjs %s --from %s', suiteName, resume.from);
+        if (resume.failedBefore.length) {
+            console.log('failed    before that: node tools/test-suite/run-suite.cjs %s --only %s', suiteName, resume.failedBefore.join(','));
+        }
+    }
     if (DRY) console.log('\n(dry run - nothing was written)');
 }
 
-module.exports = { buildReport, reportPathFor };
+module.exports = { buildReport, reportPathFor, resumePoint };
 
 if (require.main === module) main(process.argv.slice(2));

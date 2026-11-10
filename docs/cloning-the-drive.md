@@ -43,12 +43,17 @@ stopped captioning while reporting success.
 > node tools/maintenance/publish_partial_sweep.cjs server/data/library-sweep-<stamp>.jsonl
 > ```
 >
-> That publishes the rows that did finish and prints the bundles still to run.
-> Sweep just those: press **Run the remaining N of the test suite** on the sweep
-> card (it carries on with the test suite's prompts, inputs and captions), or
-> from a terminal run `node tools/test-suite/run-suite.cjs library --only <the
-> ids it printed, separated by commas>`. Either way the report merges the two
-> halves into one complete run.
+> That publishes the rows that did finish and prints the bundles still to run,
+> then a `resume` line: run that command (`run-suite.cjs library --from <the
+> run it stopped in>`). It redoes the run that was going and every run after
+> it, the comparison and option runs (`<card>@<variant>`) included, and nothing
+> that already finished. The report merges the two halves into one complete
+> run. A `failed` line names a run that failed earlier, to re-run with `--only`.
+>
+> **Run the remaining N of the test suite** on the sweep card counts missing
+> *cards*, so it skips the card whose row is a failure and every variant run
+> that was never reached (on 2026-11-10: the crashed card and 24 of 25). After
+> a run that stopped part-way, use the `resume` line instead.
 >
 > If the continuation is interrupted too, rescue it the same way from its own
 > `.jsonl`: a killed subset run keeps the rows already published and adds its

@@ -8,7 +8,7 @@ const assert = require('assert');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { buildReport, reportPathFor } = require('./publish_partial_sweep.cjs');
+const { buildReport, reportPathFor, resumePoint } = require('./publish_partial_sweep.cjs');
 
 let passed = 0;
 function check(name, fn) {
@@ -88,6 +88,28 @@ check('a .jsonl in another folder (a --data-dir experiment) publishes into that 
 check('the ordinary server/data .jsonl still publishes the server/data report', () => {
     const data = path.resolve(__dirname, '..', '..', 'server', 'data');
     assert.strictEqual(reportPathFor(path.join(data, 'library-sweep-x.jsonl')), path.join(data, 'library-sweep-latest.json'));
+});
+
+check('the resume point is the earliest run after which nothing ran clean, variants included', () => {
+    // The 2026-11-10 shape: a clean stretch, the run the GPU died in, then runs
+    // never reached, variants among them; plus an earlier failure.
+    const head = { type: 'start', ids: ['a', 'b', 'c', 'd', 'a@v', 'b@v'], suite: { name: 'library' } };
+    const lines = [head,
+        { type: 'bundle', ...row('a') },
+        { type: 'bundle', id: 'b', ok: false },
+        { type: 'bundle', ...row('c') },
+        { type: 'bundle', id: 'd', ok: false }];
+    const r = resumePoint(lines);
+    assert.strictEqual(r.from, 'd');
+    assert.deepStrictEqual(r.notReached, ['a@v', 'b@v']);
+    assert.deepStrictEqual(r.failedBefore, ['b']);
+});
+
+check('a run that reached its end has nothing to resume; an old .jsonl without ids gives no answer', () => {
+    const done = resumePoint([{ type: 'start', ids: ['a', 'b'] }, { type: 'bundle', ...row('a') }, { type: 'bundle', ...row('b') }]);
+    assert.strictEqual(done.from, null);
+    assert.deepStrictEqual(done.notReached, []);
+    assert.strictEqual(resumePoint([{ type: 'start', bundles: 2 }, { type: 'bundle', ...row('a') }]), null);
 });
 
 console.log(`${passed} passed`);

@@ -476,6 +476,36 @@ console.log('\na suite remainder that names a bundle the suite does not still ru
     only.sweep.clear();
 }
 
+console.log('\na resume takes the suite\'s tail by run, not by card');
+{
+    // ★ Resuming after a lost GPU (2026-11-10), `--from` passed the tail's CARD ids,
+    // so every card whose variant came later had its finished main run planned again.
+    const runs = [
+        { workflow: 'a', id: 'a', stage: 'S', params: {} },
+        { workflow: 'b', id: 'b', stage: 'S', params: {} },
+        { workflow: 'a', id: 'a@v', variant: 'v', stage: 'T', params: {} },
+        { workflow: 'b', id: 'b@v', variant: 'v', stage: 'T', params: {} },
+    ];
+    const pick = (o) => runs.filter(r => LibrarySweep.selectsRun(r, o)).map(r => r.id).join(',');
+    ok('nothing narrowed: every run', pick({}) === 'a,b,a@v,b@v');
+    ok('a card id takes its main run and its variants (as before)', pick({ ids: ['a'] }) === 'a,a@v');
+    ok('<card>@<variant> takes that run alone', pick({ ids: ['a@v'] }) === 'a@v');
+    ok('runIds take exactly the runs named: a card id there is its main run only', pick({ runIds: ['b', 'a@v'] }) === 'b,a@v');
+    ok('both given, both must hold', pick({ ids: ['a'], runIds: ['a@v', 'b@v'] }) === 'a@v');
+    ok('a run with no id is its card\'s main run', LibrarySweep.selectsRun({ workflow: 'a' }, { runIds: ['a'] }) === true);
+
+    let planned = null;
+    const calibrator = { calibrate: async () => ({ estimatedDurationSec: 5 }) };
+    const { sweep } = make({ entries: [entry('a'), entry('b')], calibrator });
+    const origExecute = sweep._execute.bind(sweep);
+    sweep._execute = (wanted, cal) => { planned = wanted; return origExecute(wanted, cal); };
+    const r = await sweep.start({ suite: { name: 't', runs }, runIds: ['a@v', 'b@v'] });
+    for (let i = 0; i < 100 && sweep.status().state === 'running'; i++) await new Promise(res => setTimeout(res, 20));
+    ok('start with runIds plans only those runs, in suite order',
+        r.ok === true && r.total === 2 && planned.map(w => w.run.id).join(',') === 'a@v,b@v');
+    sweep.clear();
+}
+
 console.log('\nthe recorder\'s absence must be visible, not read as "nothing was opened"');
     {
         // ★ With no log on disk, "0 models opened" and "we were not recording" look

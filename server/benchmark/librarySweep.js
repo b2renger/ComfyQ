@@ -110,6 +110,22 @@ class LibrarySweep {
     }
 
     /** Counts over any set of rows — the live run's, or a merged report's. */
+    /**
+     * Whether a suite run is in a narrowed sweep. `ids` names cards, or single
+     * runs: a card id takes the card's run and all its variants; `<card>@<variant>`
+     * takes that run alone. `runIds` takes exactly the runs it names (a card id
+     * there is the card's own run, not its variants): `--from` resumes with it,
+     * since a card id would also bring back the main run of every card whose
+     * variants come later, a run that already finished. Both given: both must hold.
+     * The CLI's --dry prints with this too, so a preview cannot disagree with the run.
+     */
+    static selectsRun(run, { ids = null, runIds = null } = {}) {
+        const id = run.id || run.workflow;
+        if (Array.isArray(ids) && ids.length && !ids.includes(run.workflow) && !ids.includes(id)) return false;
+        if (Array.isArray(runIds) && !runIds.includes(id)) return false;
+        return true;
+    }
+
     static summarize(results, recorderAvailable) {
         const ok = results.filter(x => x.ok);
         const flagged = results.filter(x => (x.flagged || []).length);
@@ -223,6 +239,8 @@ class LibrarySweep {
      * @param {string[]} [opts.ids]  a subset, default every available bundle
      * @param {object}   [opts.suite]  a loaded test suite (suitePlan.loadSuite): runs
      *   its bundles in ITS order with its inputs; `ids` then narrows it
+     * @param {string[]} [opts.runIds]  with a suite: exactly these runs, by run id
+     *   (see selectsRun)
      */
     async start(opts = {}) {
         // ★ 'stopping' is still running: the loop finishes the workflow it is on.
@@ -257,7 +275,7 @@ class LibrarySweep {
             // workflow that is fed it runs.
             const byId = new Map(entries.map(e => [e.id, e]));
             wanted = opts.suite.runs
-                .filter(r => !narrow || narrow.includes(r.workflow))
+                .filter(r => LibrarySweep.selectsRun(r, { ids: narrow, runIds: opts.runIds }))
                 .filter(r => byId.has(r.workflow))
                 .map(r => ({ entry: byId.get(r.workflow), run: r }));
             // ★ A remainder ("Run the remaining N") is computed from the LIBRARY, so

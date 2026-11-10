@@ -8,8 +8,11 @@
  *   --check   validate the suite against the library, list every asset it names
  *             that is not in the assets folder, and stop
  *   --dry     validate, then print every run and where each input will come from
- *   --only    run just these bundles and their variants, in the suite's order
- *   --from    start at this bundle and run the rest of the suite
+ *   --only    run just these bundles and their variants, in the suite's order;
+ *             <bundle>@<variant> names one run alone
+ *   --from    start at this run (a bundle or <bundle>@<variant>) and run the rest
+ *             of the suite: only the runs after it, not the earlier main runs of
+ *             cards whose variants come later
  *   --data-dir write the report somewhere else (an experiment that must not
  *             replace the published report, and so the examples). Inputs from
  *             earlier results then come from THAT folder's last report, so in
@@ -93,24 +96,35 @@ if (flag('--check')) {
     process.exit(0);
 }
 
+// --only names cards (each with its variants) or single runs (<card>@<variant>).
+// --from takes the suite's tail by RUN: by card it brought back the main run of
+// every card whose variants come later, runs that had already finished (21 extra
+// on 2026-11-10, resuming after a lost GPU).
 let ids = null;
-if (value('--only')) ids = value('--only').split(',').map(s => s.trim()).filter(Boolean);
-if (value('--from')) {
-    const i = suite.runs.findIndex(r => r.workflow === value('--from'));
-    if (i < 0) { console.error(`--from: "${value('--from')}" is not in the suite`); process.exit(1); }
-    ids = suite.runs.slice(i).map(r => r.workflow);
+let runIds = null;
+if (value('--only')) {
+    ids = value('--only').split(',').map(s => s.trim()).filter(Boolean);
+    const unknownRuns = ids.filter(id => id.includes('@') && !suite.runs.some(r => (r.id || r.workflow) === id));
+    if (unknownRuns.length) { console.error(`--only: not a run of the suite: ${unknownRuns.join(', ')}. Nothing was run.`); process.exit(1); }
 }
+if (value('--from')) {
+    const from = value('--from');
+    const i = suite.runs.findIndex(r => (r.id || r.workflow) === from || r.workflow === from);
+    if (i < 0) { console.error(`--from: "${from}" is not in the suite`); process.exit(1); }
+    runIds = suite.runs.slice(i).map(r => r.id || r.workflow);
+}
+const selected = (r) => LibrarySweep.selectsRun(r, { ids, runIds });
 
 if (flag('--dry')) {
     let stage = null;
     for (const r of suite.runs) {
-        if (ids && !ids.includes(r.workflow)) continue;
+        if (!selected(r)) continue;
         if (r.stage !== stage) { stage = r.stage; console.log(`\n== ${stage}`); }
         const entry = registry.get(r.workflow);
         const exposed = new Map((entry?.effective?.exposedParameters || []).map(p => [p.key, p]));
         const media = Object.entries(r.params).filter(([k]) => MEDIA_TYPES.includes(exposed.get(k)?.type));
         const est = entry?.runtime?.coldDurationSec || entry?.meta?.estimatedDurationSec || '?';
-        console.log(`  ${r.workflow}  (~${est}s)`);
+        console.log(`  ${r.id || r.workflow}  (~${est}s)`);
         for (const [k, spec] of media) {
             const m = parseMediaSpec(spec);
             const desc = m.empty ? 'left empty' : m.asset ? m.asset
@@ -145,7 +159,7 @@ process.on('SIGINT', () => {
 });
 
 (async () => {
-    const started = await sweep.start({ suite, ids: ids || undefined });
+    const started = await sweep.start({ suite, ids: ids || undefined, runIds: runIds || undefined });
     if (!started.ok) { console.error(`[Suite] ${started.error}`); process.exit(1); }
     console.log(`[Suite] running ${started.total} workflow(s)`);
     let last = 0;

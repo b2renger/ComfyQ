@@ -45,8 +45,8 @@ them into the `examples` jobs students can browse in **All jobs**.
 node tools/test-suite/run-suite.cjs library --check          # validate against the library
 node tools/test-suite/run-suite.cjs library --dry            # print every run and where each input comes from
 node tools/test-suite/run-suite.cjs library                  # everything (about 2½–3 h on a 5090; 2 h 31 min on 2026-11-04)
-node tools/test-suite/run-suite.cjs library --only a,b       # just these, in suite order
-node tools/test-suite/run-suite.cjs library --from <id>      # resume from one bundle
+node tools/test-suite/run-suite.cjs library --only a,b       # just these cards (with their variants), in suite order; a@v is one run
+node tools/test-suite/run-suite.cjs library --from <id>      # resume: this run and every run after it, nothing earlier
 node tools/test-suite/run-suite.cjs library --data-dir <dir> # an experiment: the report goes to <dir>
 node tools/maintenance/seed_examples.cjs --replace           # then: the results become the examples
 ```
