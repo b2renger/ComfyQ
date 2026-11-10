@@ -4,6 +4,12 @@ The dated log of the project: every decision, bug, measurement and the reason be
 
 Entries are records of their date. Numbers and behaviours in them may be out of date, and a later entry or a `⚠ superseded` note says so. Links to removed bundles are records too. Everything below was moved from CLAUDE.md on 2026-11-06, verbatim.
 
+## Latest progress (2026-11-10: the Running card lost its Stop serving button)
+
+- **Owner, 2026-11-10:** "the button to stop a workflow has vanished". Their screenshot showed the Running card with one lane (FLUX.3 Klein on :8188) and no **Stop serving** button.
+- **Cause:** with one lane, the button shows only when `config.mode === 'student'` (`RunningWorkflows.jsx`). The admin panel polls `/admin/lanes` every 5 s, but it reads `/admin/config`, and so the mode, only on load and after the tab's own actions. The machine had started serving at 21:13 while that tab was open, so the tab showed the lane and still believed it was in admin mode. The header's *Reset to admin* and *Stop & kill all* were missing for the same reason. The server itself was in student mode with `.serving` written.
+- **Fix (client only):** `AdminConfig.jsx` re-reads the config whenever "a lane is listed" and "mode is student" disagree. A reload that brings back the same mode changes neither value, so it cannot loop. Not reproduced in a browser: starting serving needs the admin password, which the agent does not have. The client builds.
+
 ## Latest progress (2026-11-09 night: H3 text to video in 2K, an experimental card)
 
 - **Owner, 2026-11-09:** "install the best candidates of the two packs and make an experimental workflow… we need a classic workflow and an api one". The two packs compared (one read-only agent, at the owner's request):

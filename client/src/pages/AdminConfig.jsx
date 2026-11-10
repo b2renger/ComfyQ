@@ -750,6 +750,20 @@ const AdminConfig = () => {
         return () => clearInterval(t);
     }, [refreshLanes]);
 
+    // The mode is read when the panel opens and after this tab's own actions;
+    // the lanes every 5 s. Serving that starts or stops elsewhere (another tab,
+    // the Discovery app, a boot that resumes serving) showed up as a lane while
+    // this tab still said admin mode, so the header buttons and the Running
+    // card's "Stop serving" never appeared (owner, 2026-11-10). When the two
+    // disagree, read the config again. It cannot loop: a reload that brings
+    // back the same mode changes neither value.
+    const servingByLanes = lanes.length > 0;
+    const servingByMode = config?.mode === 'student';
+    useEffect(() => {
+        if (config && servingByLanes !== servingByMode) reloadConfig({ drafts: false });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [servingByLanes, servingByMode]);
+
     const serveAlongside = async (workflowId) => {
         setServeAlongsideId(workflowId);
         showToast('Starting a second ComfyUI for this workflow — this takes a minute…');
