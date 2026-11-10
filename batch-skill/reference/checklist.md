@@ -125,7 +125,7 @@ resolution was given for a workflow with no width/height", which is expected
 for edit shots. (Cards are not in that warning: a size on an `image_moss_image_t2i`
 card is mapped onto its aspect dropdown.)
 
-Then queue it, either in the app (**/admin → Storyboard batch**) or:
+Then queue it, either in the app (the admin panel's **Batches** tab) or:
 
 ```bash
 curl -F file=@path/to/story.md -F folder=my-film \

@@ -1,15 +1,19 @@
-# batch-skill — writing ComfyQ storyboards
+# batch-skill — writing ComfyQ batches
 
-A skill that teaches an LLM to author the markdown files ComfyQ's **batch
-feature** consumes: one document describing a whole film, which ComfyQ queues
-as images → the videos made from those images → audio.
+A skill that teaches an LLM to author what ComfyQ's **batch feature** consumes:
+a **batch table** (`.csv`, one job per row, on any card of the library), or a
+**storyboard** (`.md`, one document describing a whole film, which ComfyQ
+queues as images → the videos made from those images → audio).
 
 ```
 batch-skill/
-  SKILL.md                  the skill itself — grammar, wiring, craft rules
+  SKILL.md                  the skill itself: Part 1 the table, Part 2 the storyboard
   reference/
-    workflows.md            ids, sizes, durations, media slots — the hard numbers
-    checklist.md            27 checks to run before emitting, + offline validation
+    cards.md                every card: id, title, model, what it does, columns (generated)
+    workflows.md            the storyboard's six cards: sizes, durations, media slots
+    checklist.md            27 storyboard checks to run before emitting, + offline validation
+  tools/
+    cards.cjs               writes cards.md from the cards; --check says if it is out of date
   examples/
     linear-the-lamplighter.md    a straight-through film, 43 shots
     branching-the-tide-clock.md  depth-3 branching, 2- and 3-way choices, 83 shots
@@ -22,11 +26,29 @@ batch-skill/
 directory, then invoke it by name:
 
 ```powershell
-Copy-Item -Recurse batch-skill "$env:USERPROFILE\.claude\skills\comfyq-storyboard"
+Copy-Item -Recurse batch-skill "$env:USERPROFILE\.claude\skills\comfyq-batch"
 ```
 
-**As a prompt** — paste `SKILL.md` and the two `reference/` files as context,
-then ask for the story. That is how the examples here were written.
+(It was `comfyq-storyboard` before 2026-11-10, when it covered storyboards only.
+A copy installed under the old name does not follow the repo: copy it again.)
+
+**As a prompt** — paste `SKILL.md` and `reference/cards.md` for a table, or
+`SKILL.md`, `reference/workflows.md` and `reference/checklist.md` for a
+storyboard, then ask. That is how the storyboard examples here were written.
+
+## The card list
+
+`reference/cards.md` is generated from the cards' own metadata (title, model
+name, summary, description, prompt guides) and from the columns the batch
+planner gives each card: the same data the Batches tab shows. After a card is
+added, removed or edited, write it again:
+
+```bash
+node batch-skill/tools/cards.cjs
+```
+
+`npm run test:storyboard` runs it with `--check` and fails when the file is out
+of date, so a stale list is caught before a commit.
 
 ## Verifying a storyboard before spending GPU time
 
@@ -53,7 +75,7 @@ Both **PARSE** and **PLAN** errors must be **0** — they are different lists,
 and a parse error can drop a shot, or keep it in a form you did not write,
 without failing the plan (see
 [reference/checklist.md](reference/checklist.md)). Then queue it from
-**/admin → Storyboard batch**, or:
+the admin panel's **Batches** tab, or:
 
 ```bash
 curl -F file=@batch-skill/examples/linear-the-lamplighter.md \
@@ -62,15 +84,12 @@ curl -F file=@batch-skill/examples/linear-the-lamplighter.md \
      http://localhost:3000/storyboard/queue
 ```
 
-Queueing on an idle machine starts it serving the batch's **first** workflow
-only. Each example uses six workflows, and the shots on the other five stay
-pending until each of those is served too. In the admin panel's workflow
-library, press **Serve alongside** on its card (when it fits in memory beside
-what is running), or select its card and press **Activate & start student
-mode** under the library to replace the main workflow. Replacing it stops a
-shot that is generating on the old workflow: that shot and the shots waiting on
-it show as failed, and **Retry failed** on the batch queues them again. They
-run once their workflow is served again.
+Queueing on an idle machine starts it serving the batch's first workflow. A
+batch does not use lanes: the main lane takes every one of its shots, whatever
+workflow each names, one at a time, and loads each workflow's models in turn
+(`LaneManager._prepareRun`), so nothing else has to be served. Close any extra
+lane first: ComfyQ refuses a batch beside one. A shot that fails shows on the
+batch, and **Retry failed** queues it again.
 
 ## The three examples
 

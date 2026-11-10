@@ -239,22 +239,18 @@ an idle machine queueing writes the batch to the queue and then starts the
 machine serving the batch's *first* workflow, which takes a few seconds. If the
 machine is already serving, nothing restarts.
 
-**Only the shots whose workflow is being served actually run.** Each workflow
-the machine serves has its own queue, so a batch that uses several workflows
-runs the shots of the served one and leaves the others **pending** until their
-workflow is served too. In the admin panel's workflow library, press **Serve
-alongside** on its card (when it fits in memory beside what is running), or
-select its card and press **Activate & start student mode** under the library
-to replace the main workflow. Replacing it stops a shot that is generating on
-the old workflow: that shot and the shots waiting on it show as failed, and
-**Retry failed** on the batch queues them again. They run once their workflow
-is served again. A shot waiting on a shot from another workflow runs once that
-one has finished.
+**Every shot runs, whatever its workflow.** A batch does not use lanes (since
+2026-11-06): the main lane takes all of its shots, one at a time and in order,
+and between workflows unloads the models and sets the speed-up flags the next
+one runs with (`LaneManager._prepareRun`). Nothing else has to be served.
+ComfyQ refuses a batch beside an extra lane, and an extra lane beside an
+unfinished batch, so close extra lanes first. A shot waiting on another runs
+once that one has finished.
 
 [storyboard-smoke.md](storyboard-smoke.md) is a 4-shot version (one plate, one
 edit, one cut, one ambience — about two minutes of GPU time plus model loads) for
 proving the chain works on a rig before committing to a full document. It uses
-four workflows, so it only completes once all four have been served.
+four workflows, which the main lane loads in turn.
 
 ---
 
@@ -429,16 +425,10 @@ Run the checks with `npm run test:storyboard` (no ComfyUI needed).
   estimate). The card shows the count before
   you commit. That is the floor: the shots cannot be reordered further without
   breaking their dependencies.
-* **A batch only runs on the workflows the machine is serving.** Queueing on an
-  idle machine starts its *first* workflow; the shots on every other workflow
-  stay pending until that workflow is served as well. In the admin panel's
-  workflow library, press **Serve alongside** on its card (when it fits in
-  memory beside what is running), or select its card and press **Activate &
-  start student mode** under the library to replace the main workflow.
-  Replacing it stops a shot that is generating on the old workflow: that shot
-  and the shots waiting on it show as failed, and **Retry failed** on the batch
-  queues them again. They run once their workflow is served again. Nothing
-  switches workflows for you as the batch moves on.
+* **A batch runs on the main lane alone** (since 2026-11-06). Queueing on an
+  idle machine starts its *first* workflow, and the main lane then loads each
+  workflow in turn as the batch reaches it. A batch is refused beside an extra
+  lane, and an extra lane beside an unfinished batch.
 * **Stopping a batch.** Use **Stop & remove** on the batch in the Storyboard
   batch card (or `DELETE /storyboard/batches/:id`). Its jobs belong to the
   `storyboard` user, so the ✕ on a single shot's card in the student page asks

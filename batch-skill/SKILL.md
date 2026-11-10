@@ -1,20 +1,208 @@
 ---
-name: comfyq-storyboard
-description: Write a ComfyQ storyboard .md — the batch file that queues a whole film (images, then the videos made from them, then audio) in one upload. Use when asked to write, generate, fix or review a storyboard/batch markdown for ComfyQ, or to turn a story idea into shots ComfyQ can render.
+name: comfyq-batch
+description: Write a ComfyQ batch — a batch table (.csv, one job per row, any of the library's cards) or a storyboard (.md, a whole film of images, then the videos made from them, then audio) — that queues many jobs in one upload. Use when asked to write, generate, fix or review a batch table, a storyboard or batch markdown for ComfyQ, to choose which cards (models) a batch should use, or to turn an idea into jobs ComfyQ can render.
 ---
 
-# Writing a ComfyQ storyboard
+# Writing a ComfyQ batch
+
+A batch queues many jobs at once. ComfyQ reads two formats:
+
+| | **batch table** (`.csv`) | **storyboard** (`.md`) |
+|---|---|---|
+| what | one row per job, on any of the library's cards | a whole film: images → videos made from them → audio |
+| cards | all of them: [reference/cards.md](reference/cards.md) | six: [reference/workflows.md](reference/workflows.md) |
+| order | the fewest model loads the inputs allow | images, then videos, then audio |
+| status | the batch feature's format | experimental, to be reworked as a batch table |
+
+**Write a table** unless the user asks for a storyboard or a branching film.
+Part 1 is the table; Part 2 the storyboard.
+
+Either way ComfyQ **refuses the whole batch** if one row or shot is wrong, by
+design: a job with a missing input renders the card's leftover test picture and
+reports success. Run the offline check before you hand anything over.
+
+---
+
+# Part 1 — The batch table
+
+The full reference is [docs/batch-format.md](../docs/batch-format.md). What
+follows is what you need to write one that queues.
+
+## T1 · Choosing the cards
+
+Every card is in [reference/cards.md](reference/cards.md), grouped by what it
+does. Each entry gives:
+
+- the **id**, which is what goes in the `workflow` cell. Copy it; never guess one.
+  A part of an id that names one card only also works (`moss_image_t2i`), but
+  write the full id;
+- the **title** students see, the **model** it runs, and what it makes
+  (image, video, audio, model3d, text);
+- **what it does**, in plain words, then the **technical description**. Read
+  the description before you use a card: it says what the card is good and bad
+  at, the sizes it works at, and options to leave alone (several cards have an
+  "improve the prompt with AI" switch that fails on this ComfyUI build);
+- its **prompting guides** and a one-line tip: write the prompt the way the
+  model's own guide says;
+- its **columns**: the prompt, the negative, the seed and the media inputs, and
+  its **settings** with their keys, ranges, choices and defaults.
+
+Several cards often do the same job with different models (a fast and a fine
+edit, three text-to-video models). Use the title and the model to pick. Say
+which you chose and why when the choice is not obvious.
+
+**Experimental** cards serve normally; the label means the owner has not signed
+them off yet. Prefer a validated card when two do the same job.
+
+On the machine itself, refresh the list first, since the library changes:
+`node batch-skill/tools/cards.cjs` (the Batches tab reads the same data).
+
+## T2 · The file
+
+```csv
+id,workflow,prompt,image,repeat,seed,notes
+hero,image_moss_image_t2i,"Studio portrait of a ceramicist, soft window light",,,1234,the picture everything uses
+look,image_edit_flux3_klein_image_edit,"Same person, the apron is now orange",hero,3,,three tries
+move,video_ltx2_5_i2v,"She turns the bowl slowly and smiles",look,,,one film per look
+keys,utility_seedvr2_4k_upscale,,folder:Keyframes,,,
+```
+
+That is 11 jobs: one portrait, three edits of it, a film of each edit, and an
+upscale of each of the four pictures in `Keyframes`.
+
+- The first row names the columns; one must be `workflow`. Commas, semicolons
+  or tabs separate cells (read from the first row).
+- A cell with a comma, a quote or a line break goes in double quotes; a quote
+  inside is doubled (`""`).
+- A row whose first cell starts with `#` is a comment. Empty rows are skipped.
+
+| column | meaning |
+|---|---|
+| `id` | a name, so other rows can use the result: a letter or digit, then letters, digits, `-`, `_`, `@` |
+| `workflow` | the card's id ([reference/cards.md](reference/cards.md)) |
+| `prompt`, `negative` | the card's prompt and negative prompt, when it has them |
+| `image`, `image2`, …, `video`, `audio`, `mask`, `model3d` | its media inputs, in the order cards.md lists them |
+| `repeat` | run the row this many times (1–100) |
+| `seed` | a fixed seed; empty draws a fresh one, which the job records |
+| `notes` | for people; ignored |
+| a setting key | that setting (`steps`, `megapixels`, `primitiveint_value_2`…), as cards.md names it |
+
+A table can mix cards. A column a card lacks must be **empty** on that card's
+rows. An empty setting keeps the card's default. Numbers must sit in the
+card's range (`1,5` reads as 1.5); yes/no takes `yes`, `no`, `true`, `false`,
+`1`, `0`, `x`. `text:scene-3.txt` reads a long prompt from the assets folder,
+and `empty` sets a text field to nothing.
+
+## T3 · Inputs
+
+| cell | means |
+|---|---|
+| `hero` | the first output of the row `hero` |
+| `hero#2` | its second output |
+| `hero.3` | the third job of a row that made several |
+| `file:Woman.png` | a file in the assets folder (`file:portraits/a.png`) |
+| `folder:portraits/` | one job per file of the right kind in that folder, in name order |
+| `job:<id>` | an output of a job that already exists |
+| `empty` | an optional input left empty on purpose |
+
+After `file:` or `folder:`, steps separated by `|` prepare the file first
+(`file:clip.mp4 | frame(0)` makes a picture of the first frame;
+`file:Woman.png | scale(0.3) | blur(1.2) | jpeg(40)` a damaged photo for a
+restorer). The list is in [docs/batch-format.md](../docs/batch-format.md).
+
+- **A required input must be filled.** cards.md marks each one required or optional.
+- **The kinds must match:** a video into a picture input is refused. A
+  generated picture has no transparency, so a `mask` from another row masks nothing.
+- **One job or several:** a row makes one job per file of a `folder:`, and one
+  per job of a row it uses that made several, paired in order (`move` above
+  films `look.1`, `look.2`, `look.3`). Name one (`look.2`) to use only that.
+  Two inputs that would make different numbers of jobs are an error. `repeat`
+  multiplies what is left.
+- **Seeds** step by one per repeat. The jobs of one folder share a seed, and
+  so share a look.
+
+## T4 · The run order
+
+Write the rows in the order a person reads them. A row may use a row written
+below it. ComfyQ runs every job after the jobs whose results it uses, and
+within that, in the order that **loads models the fewest times**. Every change
+of card unloads every model and loads the next card's (1 to 135 s on the 5090,
+12 s typically). A card that runs with other speed-up flags also restarts
+ComfyUI, counted as about a minute. Seeds are drawn before the order is chosen,
+so the order never changes a result. The admin can keep the table's order
+instead (**Keep the table's order**).
+
+So you do not need to group rows by card yourself. Do count the cards, though:
+**each distinct card costs at least one model load.** Six cards where three
+would do costs minutes.
+
+## T5 · What is refused
+
+Nothing is queued while the table has an error, and each error names its row
+and column:
+
+- no `workflow` column; a card that is not installed, or a name that matches two;
+- a setting the card does not have, a value out of range, a choice it does not offer;
+- an input that names nothing, a missing file, a path outside the assets folder,
+  an input of the wrong kind, a required input left empty;
+- a row that uses its own result, rows that wait on each other in a loop,
+  inputs that cannot be paired, `hero.4` when `hero` made three;
+- a `seed` on a card that has none;
+- more than **500 jobs**, or a file over **2 MB**.
+
+A row that only waits on a broken row is listed as blocked. Warnings (a setting
+the card's own switch turns off, a mask from a generated picture) do not stop it.
+
+## T6 · Check it offline, then hand it over
+
+On the machine, run this from the ComfyQ folder. It is the same planner the
+Batches tab uses, with the same assets folder, and needs no ComfyUI:
+
+```bash
+node -e "
+const fs=require('fs'),path=require('path');
+const {WorkflowRegistry}=require('./server/workflows/workflowRegistry');
+const {planBatch}=require('./server/batch/batchPlan');
+const {assetEnv}=require('./server/batch/assetEnv');
+const configManager=require('./server/config/configManager');
+const cfg=configManager.resolvePaths(configManager.load().config);
+const r=new WorkflowRegistry(path.resolve('workflows')); r.discover();
+const p=planBatch(fs.readFileSync(process.argv[1],'utf8'), r, {...assetEnv(cfg.assets?.dir||null), order:'fewest-loads', comfyFlags:cfg.comfy_ui});
+console.log(p.summary);
+for (const e of p.errors) console.log('ERROR   row', e.row, e.column||'', e.message);
+for (const w of p.warnings) console.log('WARNING row', w.row, w.column||'', w.message);
+for (const b of p.blocked) console.log('BLOCKED', JSON.stringify(b));
+for (const j of p.jobs) console.log(String(j.order+1).padStart(3), j.key, j.workflowId, j.setup||'');
+" my-batch.csv
+```
+
+The first line says how many jobs and model loads, or how many problems. Fix
+every `ERROR` and re-run until there are none. Not on the machine? Say the table
+is unchecked.
+
+The admin then opens it in the **Batch editor** of the admin panel's
+**Batches** tab (or drops it on the upload card there), reads the preview, and
+queues it. The editor shows each card's model and description, as cards.md
+does. A batch waits behind jobs students have already booked, then runs one
+job at a time on the main lane, whatever card each names; extra lanes must be
+closed first.
+
+**Emit the CSV and nothing else** unless asked: no preamble, no code fence
+around it. Before a large batch, tell the user the job count and the cards
+first.
+
+---
+
+# Part 2 — The storyboard
 
 You are writing **one markdown file**. ComfyQ parses it and queues every shot it
 describes, in the order that makes them possible: **all the images first, then
 the videos that consume those images as their frames, then the audio.**
 
 Get the grammar exactly right and the whole film queues in one click. Get one
-line wrong and ComfyQ **refuses the entire document** — by design, because a
-shot with a missing input renders the workflow's leftover test picture and
-reports success.
+line wrong and ComfyQ **refuses the entire document**.
 
-Read this file, then [reference/workflows.md](reference/workflows.md) for the
+Read this part, then [reference/workflows.md](reference/workflows.md) for the
 exact ids and limits, and [reference/checklist.md](reference/checklist.md)
 before you emit. Three complete worked examples live in
 [examples/](examples/).

@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
+import { CardName } from './CardText';
 import { SERVER_URL } from '../../utils/api';
 
 // StoryboardUpload — drop one markdown document, see exactly what it will
@@ -133,6 +134,18 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
     }, [authHeaders]);
 
     useEffect(() => { loadBatches(); }, [loadBatches]);
+
+    // The cards, to name each one by its title and model rather than its id.
+    // Display only: a list that does not load leaves the ids, as before.
+    const [cards, setCards] = useState(() => new Map());
+    useEffect(() => {
+        let gone = false;
+        fetch(`${SERVER_URL}/storyboard/cards`, { headers: authHeaders() })
+            .then(r => (r.ok ? r.json() : null))
+            .then(d => { if (!gone && d?.cards) setCards(new Map(d.cards.map(c => [c.id, c]))); })
+            .catch(() => { /* server restarting: the ids stay */ });
+        return () => { gone = true; };
+    }, [authHeaders]);
 
     const busy = batches.some(b => (b.pending || 0) + (b.running || 0) > 0);
     // Poll unconditionally. Gating this on "is anything busy?" meant that after
@@ -388,7 +401,7 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
                                 {preview.workflowRuns.map((r, i) => (
                                     <span key={i}
                                         className="inline-flex items-center gap-1 border border-border rounded px-1.5 py-0.5">
-                                        <span className="text-foreground tabular-nums">{r.count}×</span> {r.workflowId}
+                                        <span className="text-foreground tabular-nums">{r.count}×</span> <CardName card={cards.get(r.workflowId)} id={r.workflowId} />
                                     </span>
                                 ))}
                             </div>
@@ -476,7 +489,7 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
                                                             )}
                                                         </td>
                                                         <td className="px-2 py-1.5 text-muted">
-                                                            {j.workflowId}
+                                                            <CardName card={cards.get(j.workflowId)} id={j.workflowId} />
                                                             {j.substitutedFrom && (
                                                                 <span className="block italic">
                                                                     named no anchor, so not {j.substitutedFrom}
@@ -553,7 +566,7 @@ const StoryboardUpload = ({ adminPassword, serving, notify }) => {
                     {!serving && canQueue && (
                         <p className="text-xs text-muted">
                             This machine isn't serving yet. Queueing will start it on{' '}
-                            <span className="text-foreground">{preview.jobs[0].workflowId}</span> — the first
+                            <CardName card={cards.get(preview.jobs[0].workflowId)} id={preview.jobs[0].workflowId} className="text-foreground" /> — the first
                             workflow the storyboard uses — and restart the server, which takes a few seconds.
                         </p>
                     )}

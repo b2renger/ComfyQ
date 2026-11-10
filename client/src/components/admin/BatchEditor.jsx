@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import Button from '../ui/Button';
 import Badge from '../ui/Badge';
+import { CardName, CardAbout } from './CardText';
 import { SERVER_URL } from '../../utils/api';
 import {
     tableFromCsv, csvFromRows, parseRef, formatRef, sourceRows, freeId, newUid,
@@ -99,6 +100,7 @@ const InputPicker = ({ input, value, rows, cards, selfUid, assets, onChange, pro
                             {fromRows.map(r => (
                                 <option key={r.uid} value={r.cells.id}>
                                     {r.cells.id} — {cardOf(r.cells.workflow)?.title || r.cells.workflow}
+                                    {cardOf(r.cells.workflow)?.name ? ` · ${cardOf(r.cells.workflow).name}` : ''}
                                 </option>
                             ))}
                         </select>
@@ -244,7 +246,7 @@ const RowItem = ({ row, index, count, rows, cards, cardById, assets, problems, c
                 <span className="text-xs text-muted tabular-nums w-5 shrink-0">{index + 1}</span>
                 <span className="text-sm font-medium shrink-0">{c.id || <em className="text-muted">no id</em>}</span>
                 <span className="text-xs text-muted truncate">
-                    {card ? card.title : c.workflow ? <span className="text-danger">{c.workflow}</span> : 'no workflow yet'}
+                    {card ? <CardName card={card} /> : c.workflow ? <span className="text-danger">{c.workflow}</span> : 'no workflow yet'}
                     {c.prompt ? ` · ${c.prompt.slice(0, 70)}${c.prompt.length > 70 ? '…' : ''}` : ''}
                     {inputsLine ? ` · ${inputsLine}` : ''}
                 </span>
@@ -269,13 +271,14 @@ const RowItem = ({ row, index, count, rows, cards, cardById, assets, problems, c
                                 {!card && <option value={c.workflow || ''}>{c.workflow ? `${c.workflow} (not a card here)` : '— choose a card —'}</option>}
                                 {groups.map(([cat, list]) => (
                                     <optgroup key={cat} label={cat}>
-                                        {list.map(k => <option key={k.id} value={k.id}>{k.title}{k.experimental ? ' (experimental)' : ''}</option>)}
+                                        {list.map(k => <option key={k.id} value={k.id}>{k.title}{k.name && k.name !== k.title ? ` · ${k.name}` : ''}{k.experimental ? ' (experimental)' : ''}</option>)}
                                     </optgroup>
                                 ))}
                             </select>
                         </div>
                     </div>
                     {rowProblems.map((p, i) => <p key={i} className="text-xs text-danger">{p.message}</p>)}
+                    <CardAbout key={card?.id || 'none'} card={card} />
 
                     {(suite || c.stage !== undefined || c.caption !== undefined || c.keepRuntime !== undefined) && (
                         <div className="grid grid-cols-1 sm:grid-cols-[14rem_1fr_7rem] gap-2 p-2 rounded-lg bg-background/40 border border-border/60">
@@ -754,7 +757,7 @@ const BatchEditor = ({ adminPassword, notify }) => {
                                 <li key={j.order} className="flex gap-2">
                                     <span className="text-muted tabular-nums w-6 shrink-0 text-right">{j.order + 1}</span>
                                     <span className="font-medium">{j.title}</span>
-                                    <span className="text-muted truncate">{cardById.get(j.workflowId)?.title || j.workflowId}</span>
+                                    <CardName card={cardById.get(j.workflowId)} id={j.workflowId} className="text-muted truncate" />
                                     {j.deps?.length > 0 && <span className="text-muted truncate">· after {j.deps.map(d => d.sourceTitle).join(', ')}</span>}
                                     {j.setup && (
                                         <span className={`shrink-0 ${j.setup === 'restart' ? 'text-warning' : 'text-muted'}`}
