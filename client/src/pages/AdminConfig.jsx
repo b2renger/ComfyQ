@@ -1140,9 +1140,10 @@ const AdminConfig = () => {
                         </Badge>
                     </div>
                     <p className="text-xs text-muted mb-3">
-                        Upload a table (.csv, one job per row) and queue every job it describes. Rows run
-                        in the order written, one at a time, each after the rows whose results it uses;
-                        the batch waits behind jobs students have already booked. A markdown storyboard
+                        Upload a table (.csv, one job per row) and queue every job it describes. Jobs run
+                        one at a time, each after the rows whose results it uses, in the order that loads
+                        models the fewest times (or as written, under Order); the batch waits behind jobs
+                        students have already booked. A markdown storyboard
                         still works too, and is experimental. Queueing starts the machine if it is idle.
                     </p>
                     <StoryboardUpload
