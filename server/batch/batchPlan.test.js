@@ -300,6 +300,20 @@ test('describeCards: every column it offers is one the planner reads the same wa
     const flf = cards.find(c => c.id === 'video_ltx2_5_flf2v');
     assert.deepStrictEqual(flf.inputs.map(i => i.column), ['image', 'image2']);
 });
+test('describeCards: each card carries its model, summary and description, as its meta says', () => {
+    const { describeCards } = require('./batchPlan');
+    const cards = describeCards(registry);
+    const fs = require('fs');
+    const meta = (id) => JSON.parse(fs.readFileSync(path.resolve(__dirname, '..', '..', 'workflows', id, `${id}.meta.json`), 'utf8'));
+    const t2i = cards.find(c => c.id === T2I);
+    const m = meta(T2I);
+    assert.strictEqual(t2i.name, m.name);
+    assert.ok(t2i.summary && t2i.summary === m.summary, 'summary');
+    assert.ok(t2i.description && t2i.description === m.description, 'description');
+    // The Batches tab shows them for every card: none comes without.
+    const bare = cards.filter(c => !c.name || !c.summary || !c.description).map(c => c.id);
+    assert.deepStrictEqual(bare, [], `cards without a model name, summary or description: ${bare.join(', ')}`);
+});
 test('a row written from the card list plans with no error', () => {
     const { describeCards } = require('./batchPlan');
     const t2i = describeCards(registry).find(c => c.id === T2I);

@@ -4,7 +4,7 @@
   "name": "FLUX.3 Klein distilled — fast text to image",
   "title": "Make a picture in seconds",
   "summary": "Write a detailed description and get a high-quality picture — the fastest picture card, light enough to share the computer with another card. It can also place things where you draw boxes.",
-  "description": "Generate an image from a text prompt with Black Forest Labs' FLUX.3 Image Klein, distilled build: 16 steps and no guidance, so it is the quick one. Write full sentences: subject, action, setting, light, style; put any text to render in \"quotes\". FLUX.3 is trained on long, detailed captions. Its AI improver (a Qwen 3.5 model that writes that caption for you) fails on this ComfyUI build with \"Unsupported Flash Attention tensor strides\", so leave it off and write the caption yourself: the medium first, then the scene, the light, the camera, and where each subject sits. To place things, draw boxes in the layout and cite them as <obj_1>, <obj_2>… in the prompt. Experimental.",
+  "description": "Generate an image from a text prompt with Black Forest Labs' FLUX.3 Image Klein, distilled build: 16 steps and no guidance, so it is the quick one. Write full sentences: subject, action, setting, light, style; put any text to render in \"quotes\". FLUX.3 is trained on long, detailed captions. Its AI improver (a Qwen 3.5 model that writes that caption for you) fails on this ComfyUI build with \"Unsupported Flash Attention tensor strides\", so leave it off and write the caption yourself: the medium first, then the scene, the light, the camera, and where each subject sits. To place things, draw boxes in the layout and cite them as <obj_1>, <obj_2>… in the prompt.",
   "category": "t2i",
   "tags": [
     "flux3",

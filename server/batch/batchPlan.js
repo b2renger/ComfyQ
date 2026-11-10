@@ -656,6 +656,10 @@ function describeCards(registry, { optionsFor } = {}) {
             id: entry.id,
             title: cardName(entry),
             name: entry.meta?.name || null,
+            // What the card does, in plain words and technically: the batch
+            // editor shows both beside the model name (owner, 2026-11-10).
+            summary: s.summary || '',
+            description: s.description || '',
             category: entry.summary?.category || entry.meta?.category || null,
             experimental: !!entry.meta?.experimental,
             produces: predictOutputKind(entry),
