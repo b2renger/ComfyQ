@@ -4,6 +4,15 @@ The dated log of the project: every decision, bug, measurement and the reason be
 
 Entries are records of their date. Numbers and behaviours in them may be out of date, and a later entry or a `⚠ superseded` note says so. Links to removed bundles are records too. Everything below was moved from CLAUDE.md on 2026-11-06, verbatim.
 
+## Latest progress (2026-11-10: the 2K card calibrated and seeded)
+
+- The owner cleared the admin password and said the machine was unused. The agent stopped serving through `POST /admin/reset-to-admin`; the lane was idle. A watcher then ran `run-suite.cjs library --only video_minimax_h3_t2v_2k` once the server answered in admin mode with no lane. That closes the "⚠ Not calibrated" item of the 2026-11-09 night entry.
+- **`video_minimax_h3_t2v_2k` at its default (1920×1088, draft seed 424242):** ran clean, 421 s cold = about 45 s model load + 376 s generation. VRAM peak 29.56 GB; the card peaked at 31.3 GB of 32. The ComfyUI already on :8188 was reused, with `--fast` and no Sage. Seeds were kept (`seedsRandomized: 0`).
+  - ★ The 45 s "load" is only what comes before the draft sampler's first progress event: the text encoder, fl2va and the start of its initialisation. The ref2va load (about 76 s "Model Initializing" inside refine step 1) and the latent upscaler are billed as generation. That fits the booking: a 32 GB card cannot keep both 20 GB H3 models and the 15 GB text encoder resident, so every job reloads them.
+  - Refine steps took about 95 s each at 1920×1088. The draft took 22 s per step.
+- **The output was opened.** `output_stats.py`: 124 frames, 24 fps, 1920×1088, no flags. ★ Frames 0, 31, 62, 93 and 122 are **pixel-identical** to the 2026-11-09 probe (`probe_openh3_2k_1920x1088_00001_.mp4`), and the audio is sample-identical (AAC, 32 kHz stereo, 5.17 s, peak 0.0605, RMS 0.0089). So the caption, written from that probe, describes this exact video. A contact sheet showed the forward dolly through the sunlit forest, with textured bark at 1:1. The sound is quiet (peak about −24 dBFS): worth the owner's ear.
+- Seeded with `seed_examples.cjs --only video_minimax_h3_t2v_2k`: **84 examples**. The video is served (`/images/…` 200). The feedback sheet of 2026-11-09 was not regenerated: it belongs to that full run and may hold the owner's notes.
+
 ## Latest progress (2026-11-10: the Running card lost its Stop serving button)
 
 - **Owner, 2026-11-10:** "the button to stop a workflow has vanished". Their screenshot showed the Running card with one lane (FLUX.3 Klein on :8188) and no **Stop serving** button.
