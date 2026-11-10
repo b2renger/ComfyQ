@@ -6,7 +6,6 @@
   "summary": "Give it one picture of an object or a character and get a soft 3D \"splat\", a rough mesh and a short video that turns around it. A sibling of TripoSplat, with its own model.",
   "description": "IDOL, run through ComfyUI's TripoSplat nodes: one picture in, a 3D Gaussian splat out.\n\nUse a clean picture with the subject in the middle. Leave \"Remove the background\" on for a photo with a busy background; turn it off only for a PNG whose background is already transparent.\n\nOutputs: the splat (.spz) to spin in the splat viewer, a mesh (.glb) extracted from it, and a 3-second video orbiting the splat.",
   "category": "3d",
-  "experimental": true,
   "tags": [
     "idol",
     "triposplat",

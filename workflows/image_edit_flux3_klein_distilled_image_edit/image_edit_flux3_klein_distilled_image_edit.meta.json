@@ -6,7 +6,6 @@
   "summary": "Describe a change — a new style, colour, object or light — and get the edited picture. The result keeps your picture's shape and layout; a box can point at exactly what to change.",
   "description": "Edit a picture by describing the change, with Black Forest Labs' FLUX.3 Image Klein distilled build (16 steps). Refer to your picture as <ref_image_0>, and say what must stay the same as well as what changes — or, as Black Forest Labs recommend, describe the finished picture in full with the edit folded in. The AI improver (\"Improve the instruction with AI\") fails on this ComfyUI build, so leave it off and write the instruction in full. The result keeps the shape of your picture. To change one exact thing, draw a box around it over your picture and cite it as <obj_1> in the instruction; say in words what must stay. Experimental.",
   "category": "image-edit",
-  "experimental": true,
   "tags": [
     "flux3",
     "klein",
