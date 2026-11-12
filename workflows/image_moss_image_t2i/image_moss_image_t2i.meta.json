@@ -43,8 +43,8 @@
       {
         "type": "clip",
         "file": "qwen3.5_9b_w4a8_gptq.safetensors",
-        "url": "https://huggingface.co/Comfy-Org/MOSS-Image/resolve/main/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors",
-        "source": "https://huggingface.co/Comfy-Org/MOSS-Image"
+        "url": "https://huggingface.co/Comfy-Org/Qwen3.5/resolve/main/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen3.5"
       },
       {
         "type": "vae",

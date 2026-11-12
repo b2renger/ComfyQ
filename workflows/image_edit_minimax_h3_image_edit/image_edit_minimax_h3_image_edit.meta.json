@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "id": "image_edit_minimax_h3_image_edit",
+  "name": "MiniMax-H3-Image — edit a picture",
+  "title": "Edit a picture, large and sharp",
+  "summary": "Give it a picture and say what to change; everything else stays where it was, and the result comes back larger, at about 4 megapixels.",
+  "description": "Edit a picture by describing the change, with MiniMax-H3-Image (the same checkpoint as its text-to-image card). The picture is read as <Picture 1> in the instruction; the model rewrites what the instruction asks for and keeps the rest of the frame. The picture is first scaled to the working size (4 megapixels by default: the model does not work well at low resolution) and the result takes its shape, so a small picture comes back larger. About 19 seconds once the models are loaded. 6 distilled steps, no CFG. On a test asking for night time it kept every figure and object exactly in place but made a blue dusk rather than a dark night: name the light you want (lamps, shadows, darkness). The prompt improver, which would turn a short instruction into a full description of the result, fails on this ComfyUI build, so it is off. Experimental.",
+  "category": "image-edit",
+  "experimental": true,
+  "tags": [
+    "minimax",
+    "h3",
+    "h3-image",
+    "image-edit",
+    "high-resolution"
+  ],
+  "promptGuides": [
+    {
+      "label": "MiniMax-H3-Image — model card (MiniMax)",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3-Image",
+      "tip": "Describe the whole picture in English, in detail. There is no negative prompt: write what to avoid into the prompt too. Your pictures are <Picture 1>, <Picture 2>… in upload order."
+    },
+    {
+      "label": "MiniMax-H3-Image in ComfyUI (Comfy docs)",
+      "url": "https://docs.comfy.org/tutorials/image/minimax/minimax-h3-image"
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_edit_minimax_h3_image_edit.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 30,
+    "models": [
+      {
+        "type": "unet",
+        "file": "minimax_h3_image_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3-Image/resolve/main/diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3-Image"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3.5_9b_w4a8_gptq.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen3.5/resolve/main/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen3.5"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_image_vae_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3-Image/resolve/main/vae/minimax_h3_image_vae_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3-Image"
+      }
+    ]
+  },
+  "estimatedDurationSec": 19,
+  "exposedParameters": [
+    {
+      "key": "loadimage_image_45",
+      "nodeId": "45",
+      "field": "image",
+      "type": "image",
+      "label": "Picture to edit",
+      "default": "",
+      "required": true,
+      "maxInputEdge": 2048,
+      "order": 0
+    },
+    {
+      "key": "instruction_43",
+      "nodeId": "43",
+      "field": "value",
+      "type": "textarea",
+      "label": "What to change — call your picture <Picture 1>, and say what to keep",
+      "default": "Change the lighting in <Picture 1> to night time. Keep every object, its shape and its place exactly the same.",
+      "required": true,
+      "order": 1
+    },
+    {
+      "key": "improver_61",
+      "nodeId": "61",
+      "field": "value",
+      "type": "checkbox",
+      "label": "Write a full caption from my prompt first (prompt improver, Qwen 3.5 9B) ⚠ fails on this ComfyUI build (the Qwen 3.5 decode: \"Unsupported Flash Attention tensor strides\", still on 0.45.2), so it is off",
+      "default": false,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "megapixels_56",
+      "nodeId": "56",
+      "field": "resize_type.megapixels",
+      "type": "number",
+      "label": "Working size in megapixels (4 to 16; best near 16, slower)",
+      "default": 4,
+      "min": 4,
+      "max": 16,
+      "step": 1,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "seed_38",
+      "nodeId": "38",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 42,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 4
+    }
+  ],
+  "warmupParams": {}
+}

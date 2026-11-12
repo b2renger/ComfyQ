@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "id": "utility_relayvsr_video_x2_upscale",
+  "name": "RelayVSR — video upscale 2x",
+  "title": "Enlarge a video twice, in one pass",
+  "summary": "Give it a video clip and get it back twice as wide and twice as tall, sharper, in one fast pass; the sound and the frame rate are kept. Not for square videos yet.",
+  "description": "Upscale a video exactly 2x with RelayVSR, built into ComfyUI since 0.45. A large Wan-based model paints reference latents for keyframes (one every 15 frames) in one sampling step, and a light \"Flash\" decoder carries them across every frame, so a clip is restored in one streaming pass. This is the 2x pair retrained by LightX2V for the step after H3 generation; the factor comes from the weights, not from a setting. On a 4-second 864x480 clip made by the H3 turbo card it returned 1728x960 in about 18 seconds, all 96 frames at 24 fps with the sound, using about 5 GB of graphics memory: denim seams, hair and the faces in the background came out clearly sharper than a plain enlargement. Only the part of the clip between \"Start at\" and \"Length\" is upscaled (5 seconds at most), so a long upload cannot exhaust the card. \"Detail kept\" sets how much of the detail the decoder adds over a plain bicubic enlargement is kept (1 = all of it). ⚠ A SQUARE video fails on this machine: a bug in the plain-PyTorch fallback of comfy-kitchen, which this rig uses because its PyTorch is older than CUDA 13 (found 2026-11-12). Crop it to 16:9 or 9:16 first. Experimental.",
+  "category": "preprocessor",
+  "experimental": true,
+  "tags": [
+    "relayvsr",
+    "upscale",
+    "super-resolution",
+    "restore",
+    "video",
+    "wan"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "utility_relayvsr_video_x2_upscale.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 8,
+    "models": [
+      {
+        "type": "unet",
+        "file": "relayvsr_x2_lightx2v_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/RelayVSR/resolve/main/diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/RelayVSR"
+      },
+      {
+        "type": "vae",
+        "file": "relayvsr_flash_vae_x2_fp32.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/RelayVSR/resolve/main/vae/relayvsr_flash_vae_x2_fp32.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/RelayVSR"
+      }
+    ]
+  },
+  "estimatedDurationSec": 20,
+  "exposedParameters": [
+    {
+      "key": "source_video_1",
+      "nodeId": "1",
+      "field": "file",
+      "type": "video",
+      "label": "Video to enlarge",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "start_202",
+      "nodeId": "202",
+      "field": "start_time",
+      "type": "number",
+      "label": "Start at (seconds)",
+      "default": 0,
+      "min": 0,
+      "max": 3600,
+      "step": 0.1,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "length_202",
+      "nodeId": "202",
+      "field": "duration",
+      "type": "number",
+      "label": "Length to enlarge (seconds)",
+      "default": 5,
+      "min": 1,
+      "max": 5,
+      "step": 0.5,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "detail_108_104",
+      "nodeId": "108:104",
+      "field": "detail",
+      "type": "number",
+      "label": "Detail kept (1 = all the detail the model adds)",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "seed_108_6",
+      "nodeId": "108:6",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 42,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": false,
+      "order": 4
+    }
+  ],
+  "warmupParams": {}
+}

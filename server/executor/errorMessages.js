@@ -34,12 +34,27 @@ const NONE_RX = /\bnone\b|nonetype/i;
 const NO_AUDIO_MESSAGE =
     'Your video has no sound track, and this workflow keeps the original audio. Please upload a clip that has sound.';
 
+// RelayVSR's Flash decoder (VSRDecode) on a SQUARE video, on a rig whose torch is
+// older than cu130: ComfyUI then disables comfy-kitchen's CUDA backend, and the
+// plain-torch fallback of window_attention caches its per-axis key tables by
+// (start, size, window), shared by both axes. In a square frame cut into
+// non-square tiles the second axis reads the first axis's table, and the mask no
+// longer matches the queries (found 2026-11-12, comfy-kitchen 0.2.41). Keyed on
+// the node AND the message: the same tensor error elsewhere is someone else's.
+const VSR_NODE_RX = /^VSRDecode$/;
+const VSR_SQUARE_RX = /size of tensor a \(\d+\) must match the size of tensor b \(\d+\)/i;
+const VSR_SQUARE_MESSAGE =
+    'This video upscaler cannot enlarge a square video on this machine yet (a known bug in ' +
+    "ComfyUI's comfy-kitchen fallback). Please crop or export the clip to a non-square shape " +
+    '(for example 16:9 or 9:16) and run it again.';
+
 // message: the raw exception text from ComfyUI; nodeType: the failing node's
 // class_type (both available on the execution_error event and in history status).
 function humanizeFailure(message, nodeType) {
     const msg = String(message ?? '').trim();
     const node = String(nodeType ?? '');
     if (SAGE_RX.test(msg)) return SAGE_MESSAGE;
+    if (VSR_NODE_RX.test(node) && VSR_SQUARE_RX.test(msg)) return VSR_SQUARE_MESSAGE;
     if (NO_AUDIO_MSG_RX.test(msg) || (NO_AUDIO_NODE_RX.test(node) && NONE_RX.test(msg) && !MEMORY_RX.test(msg))) {
         return NO_AUDIO_MESSAGE;
     }

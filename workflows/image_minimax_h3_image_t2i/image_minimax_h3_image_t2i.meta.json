@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "id": "image_minimax_h3_image_t2i",
+  "name": "MiniMax-H3-Image — text to image",
+  "title": "Make a very large, detailed picture",
+  "summary": "Describe a picture in detail and get it back large and finely drawn: posters, packaging, photos, diagrams with readable text.",
+  "description": "Generate an image from a text prompt with MiniMax-H3-Image, an open-weights image model whose single checkpoint handles both text-to-image and editing. Generation is distilled to 6 steps with no CFG. It does not work well at low resolution: it is made for about 4 to 20 megapixels and is at its best near 16 MP. At the default 4 MP (2048x2048) a picture takes about 16 seconds once the models are loaded; 16 MP (4096x4096) took 46 seconds, visibly finer, but fills the whole 32 GB graphics card. Describe the whole picture in detail, in English (subject, setting, light, materials, any words to be written in quotes), and write what to avoid into the prompt too: there is no negative prompt. The prompt improver that would write such a description from a short request fails on this ComfyUI build, so it is off. It may add things the prompt does not ask for. Not the same model as the 'MiniMax H3 — text to image' card, which runs the H3 video model on a single frame. Experimental.",
+  "category": "t2i",
+  "experimental": true,
+  "tags": [
+    "minimax",
+    "h3",
+    "h3-image",
+    "text2image",
+    "typography",
+    "high-resolution"
+  ],
+  "promptGuides": [
+    {
+      "label": "MiniMax-H3-Image — model card (MiniMax)",
+      "url": "https://huggingface.co/MiniMaxAI/MiniMax-H3-Image",
+      "tip": "Describe the whole picture in English, in detail. There is no negative prompt: write what to avoid into the prompt too. Your pictures are <Picture 1>, <Picture 2>… in upload order."
+    },
+    {
+      "label": "MiniMax-H3-Image in ComfyUI (Comfy docs)",
+      "url": "https://docs.comfy.org/tutorials/image/minimax/minimax-h3-image"
+    }
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "image_minimax_h3_image_t2i.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 30,
+    "models": [
+      {
+        "type": "unet",
+        "file": "minimax_h3_image_pruned_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3-Image/resolve/main/diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3-Image"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3/resolve/main/text_encoders/qwen3vl_32b_minimax_h3_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3"
+      },
+      {
+        "type": "clip",
+        "file": "qwen3.5_9b_w4a8_gptq.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/Qwen3.5/resolve/main/text_encoders/qwen3.5_9b_w4a8_gptq.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/Qwen3.5"
+      },
+      {
+        "type": "vae",
+        "file": "minimax_h3_image_vae_fp16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/MiniMax-H3-Image/resolve/main/vae/minimax_h3_image_vae_fp16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/MiniMax-H3-Image"
+      }
+    ]
+  },
+  "estimatedDurationSec": 16,
+  "exposedParameters": [
+    {
+      "key": "prompt_23_24",
+      "nodeId": "23:24",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt — describe the whole picture in detail",
+      "default": "The image is a cheerful toy-packaging poster built around a handmade plush fox floating above a summer meadow, drawn in a warm, fairly saturated palette: clear sky blue deepening toward the top, rich burnt-sienna and terracotta plush for the fox, warm cream, fresh sage green in the meadow, cornflower and cherry-red accents on the small props, and buttercup yellow in the lettering, with bright afternoon sun from the upper left and crisp short shadows. The fox is the hero, sewn from long-staple mohair-type plush in warm burnt sienna and hand-stuffed so its silhouette is slightly lumpy; the pile is long and irregular, single fibres catching the light along its outline as a bright hairy halo against the sky, matted in patches where it has been handled, with cream muzzle, chest bib and sock paws, small pointed ears with soft cream inner felt, matte dark eyes with a dull highlight, a stitched smile, brushed felt blush patches, a small black felt nose, and a brush tail whose long pile fades to cream at the tip. It floats tilted in the air, hind legs tucked, one foreleg raised holding a small bunch of felt daisies in off-white and dusty rose, a thin felt collar with a small dull brass bell around its neck. Around and behind it the scene is populated rather than empty: a small plush mushroom friend sits on the grass at the lower right, its rounded cap in cherry red felt with cream spots and a stitched face on a cream stalk; a tiny round plush bird in cornflower blue perches on the fox's tail, its body made of short dense pile with a small felt beak; a second, much smaller fox plush lies on its back on the grass at the lower left, legs in the air; three felt daisies on thin wire stems stand in the meadow, and a scatter of loose felt petals and two small acorns lie among the lit blades; a few soft felt cloud puffs hang on thin white strings from the upper right, and a folded paper plane with a dashed trail glides across the sky toward the fox. Thin white line doodles are drawn flat over the blue: four small four-point stars, one larger outlined star at the left, a loose squiggle beside the raised paw, and a dotted vertical line at the right, all in a loose dry hand-drawn stroke. The typography is set in soft matte material rather than glossy plastic: across the top of the frame the word \"MINIMAX\" is inflatable and rounded but reads as thick felted wool, in warm buttercup-cream with a faint fibre texture, edges slightly soft and imperfect, lit gently from above with a shaded underside and no specular shine, filling the full width and slightly arched; directly beneath, smaller and centred, \"H3\" sits between two small dots, and below it a second small bouncy line reads \"IMAGE MODEL\" in the same felted cream. Along the bottom, on the white cloud band, a heavy bold sans-serif logotype reads \"TEXT TO IMAGE\" in saturated cornflower blue, tracked wide across almost the full width, its ink slightly uneven as if printed on soft paper. Just above the right end of that line a small right-aligned block of the same cornflower is stacked in four short lines reading \"ONE CHECKPOINT\", \"TWO TASKS\", \"SIX STEPS\", \"NO CFG\". All lettering is English only, with no Chinese characters anywhere on the poster, and the light is bright and even with soft shadows under every plush object.",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "improver_23_22",
+      "nodeId": "23:22",
+      "field": "switch",
+      "type": "checkbox",
+      "label": "Write a full caption from my prompt first (prompt improver, Qwen 3.5 9B) ⚠ fails on this ComfyUI build (the Qwen 3.5 decode: \"Unsupported Flash Attention tensor strides\", still on 0.45.2), so it is off",
+      "default": false,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "aspect_ratio_14",
+      "nodeId": "14",
+      "field": "aspect_ratio",
+      "type": "select",
+      "label": "Aspect ratio",
+      "default": "1:1 (Square)",
+      "options": [
+        "1:1 (Square)",
+        "2:3 (Portrait Photo)",
+        "3:2 (Photo)",
+        "3:4 (Portrait Standard)",
+        "4:3 (Standard)",
+        "9:16 (Portrait Widescreen)",
+        "16:9 (Widescreen)",
+        "21:9 (Ultrawide)"
+      ],
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "megapixels_14",
+      "nodeId": "14",
+      "field": "megapixels",
+      "type": "number",
+      "label": "Size in megapixels (4 to 16; best near 16, slower)",
+      "default": 4,
+      "min": 4,
+      "max": 16,
+      "step": 1,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "seed_23_7",
+      "nodeId": "23:7",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 42,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": true,
+      "order": 4
+    }
+  ],
+  "warmupParams": {}
+}
