@@ -92,5 +92,14 @@ const tick = () => new Promise(r => setTimeout(r, 10));
     check('a step that exits non-zero on its own is reported as failed',
         r3.status().status === 'failed' && /exited with code 2/.test(r3.status().error));
 
+    // Every python step names a script that is really in tools/maintenance: a
+    // typo would otherwise surface only when an admin presses the button.
+    const { MAINT_DIR } = require('./scriptRunner');
+    const fsx = require('fs'); const pathx = require('path');
+    const missing = TASKS.flatMap(t => t.steps.filter(s => s.kind === 'python' && !fsx.existsSync(pathx.join(MAINT_DIR, s.script))).map(s => `${t.key}: ${s.script}`));
+    check(`every task's python script exists (${missing.join(', ') || 'all found'})`, missing.length === 0);
+    check('the comfy-kitchen fixes are a task that modifies the install',
+        TASKS.some(t => t.key === 'kitchen-fixes' && t.mutating === true && t.steps[0].script === 'fix_comfy_kitchen.py'));
+
     console.log(`scriptRunner: all ${ok.length} checks passed`);
 })().catch((e) => { console.error(e); process.exit(1); });

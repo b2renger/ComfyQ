@@ -4,7 +4,7 @@
   "name": "MiniMax-H3-Image — edit a picture",
   "title": "Edit a picture, large and sharp",
   "summary": "Give it a picture and say what to change; everything else stays where it was, and the result comes back larger, at about 4 megapixels.",
-  "description": "Edit a picture by describing the change, with MiniMax-H3-Image (the same checkpoint as its text-to-image card). The picture is read as <Picture 1> in the instruction; the model rewrites what the instruction asks for and keeps the rest of the frame. The picture is first scaled to the working size (4 megapixels by default: the model does not work well at low resolution) and the result takes its shape, so a small picture comes back larger. About 19 seconds once the models are loaded. 6 distilled steps, no CFG. On a test asking for night time it kept every figure and object exactly in place but made a blue dusk rather than a dark night: name the light you want (lamps, shadows, darkness). The prompt improver, which would turn a short instruction into a full description of the result, fails on this ComfyUI build, so it is off. Experimental.",
+  "description": "Edit a picture by describing the change, with MiniMax-H3-Image (the same checkpoint as \"Make a very large, detailed picture\" (MiniMax-H3-Image, text to image)). The picture is read as <Picture 1> in the instruction; the model rewrites what the instruction asks for and keeps the rest of the frame. The picture is first scaled to the working size (4 megapixels by default: the model does not work well at low resolution) and the result takes its shape, so a small picture comes back larger. About 19 seconds once the models are loaded. 6 distilled steps, no CFG. On a test asking for night time it kept every figure and object exactly in place but made a blue dusk rather than a dark night: name the light you want (lamps, shadows, darkness). The prompt improver turns a short instruction into a full description of the result; it is off by default and adds about a minute and a half. Experimental.",
   "category": "image-edit",
   "experimental": true,
   "tags": [
@@ -87,7 +87,7 @@
       "nodeId": "61",
       "field": "value",
       "type": "checkbox",
-      "label": "Write a full caption from my prompt first (prompt improver, Qwen 3.5 9B) ⚠ fails on this ComfyUI build (the Qwen 3.5 decode: \"Unsupported Flash Attention tensor strides\", still on 0.45.2), so it is off",
+      "label": "Write a full caption from my prompt first (prompt improver, Qwen 3.5 9B; adds about a minute and a half)",
       "default": false,
       "required": false,
       "order": 2

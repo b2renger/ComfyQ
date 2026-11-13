@@ -471,6 +471,33 @@ console.log('\nrefusing to update ComfyUI over work it would stash');
     ok('checking refuses', (await none.checkComfy()).ok === false);
     ok('updating refuses', (await none.updateComfy()).ok === false);
 
+    // -----------------------------------------------------------------------
+    console.log('\n★ an update re-applies the comfy-kitchen fixes (2026-11-12)');
+    // pip reinstalls comfy-kitchen when ComfyUI's pin moves and drops the local
+    // fix; the step runs the real script path, and its verdict reaches the run.
+    const kitchenRun = (lines, code) => {
+        const k = updaterFor(path.join(TMP, 'does-not-exist'));
+        const calls = [];
+        k._spawn = async (cmd, args, opts) => { calls.push({ cmd, args }); for (const l of lines) opts.run.output.push(l); return code; };
+        const run = { output: [] };
+        return k._reapplyKitchenFixes('py.exe', run).then(c => ({ run, calls, code: c }));
+    };
+    const fresh = await kitchenRun(['2 applied, 0 already in place, 0 missing, 0 FAILED', 'ALL CHECKS PASSED'], 0);
+    ok('it runs fix_comfy_kitchen.py with ComfyUI\'s python, no flags',
+        fresh.calls.length === 1 && fresh.calls[0].cmd === 'py.exe'
+        && fresh.calls[0].args.length === 2 && /fix_comfy_kitchen\.py$/.test(fresh.calls[0].args[1]));
+    ok('the script it runs exists in the repo', fs.existsSync(fresh.calls[0].args[1]));
+    ok('a fix written now asks for a ComfyUI restart', fresh.run.kitchenFixes === 'ok' && fresh.run.kitchenApplied === true);
+    ok('the step label is cleared afterwards', fresh.run.step === null);
+    const already = await kitchenRun(['0 applied, 2 already in place, 0 missing, 0 FAILED'], 0);
+    ok('fixes already in place ask for nothing', already.run.kitchenFixes === 'ok' && already.run.kitchenApplied === false);
+    const refusedFix = await kitchenRun(['0 applied, 0 already in place, 0 missing, 1 FAILED'], 1);
+    ok('a refusal is recorded on the run, not thrown', refusedFix.run.kitchenFixes === 'failed' && refusedFix.code === 1);
+    // The tally is read from the tail: a long update log trimmed from the front
+    // must not hide it.
+    const long = await kitchenRun([...Array(60).fill('noise'), '1 applied, 1 already in place, 0 missing, 0 FAILED'], 0);
+    ok('the tally is found at the end of a long log', long.run.kitchenApplied === true);
+
     try { fs.rmSync(TMP, { recursive: true, force: true }); } catch { /* Windows holds git handles briefly */ }
     console.log(`\n${pass} checks passed\n`);
 })();

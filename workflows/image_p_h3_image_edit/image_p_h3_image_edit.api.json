@@ -291,7 +291,7 @@
       ],
       "max_length": 1536,
       "sampling_mode": "off",
-      "thinking": true,
+      "thinking": false,
       "use_default_template": true,
       "mtp": "auto",
       "clip": [

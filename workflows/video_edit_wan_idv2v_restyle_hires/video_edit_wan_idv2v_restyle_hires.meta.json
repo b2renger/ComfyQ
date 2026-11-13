@@ -3,7 +3,7 @@
   "id": "video_edit_wan_idv2v_restyle_hires",
   "name": "Wan 2.1 ID-V2V — restyle a video from one keyframe",
   "title": "Restyle a video from one frame",
-  "summary": "Repaint the first frame of your clip in any style, upload both, and get the whole clip back in that style at a larger size, with the same faces and movements. Use it for the final version once the side-by-side card has shown the look works.",
+  "summary": "Repaint the first frame of your clip in any style, upload both, and get the whole clip back in that style at a larger size, with the same faces and movements. Use it for the final version once the side-by-side card, \"Test a restyle side by side\" (Wan 2.1 ID-V2V), has shown the look works.",
   "description": "Restyle a video while the people in it keep their face, expression and movement. Upload your source video and a stylized keyframe — the first frame of that same video, repainted in the look you want (make it with an image-edit workflow such as Flux Klein or Qwen Image-Edit, keeping the same framing). The whole clip is re-rendered in the keyframe's style and lighting. Add a short prompt describing what happens in the clip.\n\nOnly the first 81 frames are used (about 3.4 s, read at 24 fps), so trim your video to the moment you want and make sure it is at least that long. The result has no sound.\n\nWidth and height MUST match your video's shape, otherwise the picture gets cropped and the style transfer becomes much weaker: square 960×960, landscape 1280×704, portrait 704×1280 — or for a faster test 640×640, 832×480, 480×832. Bigger sizes look cleaner but take longer. Change the seed to re-roll.\n\nA run takes about 3 minutes at 960×960 (under 1½ minutes at 640×640).",
   "category": "video-edit",
   "tags": [

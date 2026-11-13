@@ -113,7 +113,7 @@
       "sampling_mode.repetition_penalty": 1,
       "sampling_mode.presence_penalty": 0,
       "sampling_mode.seed": 0,
-      "thinking": true,
+      "thinking": false,
       "use_default_template": true,
       "mtp": "auto",
       "clip": [

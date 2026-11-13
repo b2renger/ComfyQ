@@ -11,6 +11,7 @@ import ThemeToggle from './components/ui/ThemeToggle';
 import { SERVER_URL } from './utils/api';
 import { accessHeaders, clearAccessToken } from './utils/access';
 import { Link, useLocation } from 'react-router-dom';
+import { cardLabel } from './utils/cardLabel';
 
 /**
  * StudentLayout Component
@@ -126,7 +127,7 @@ const useStudentTitle = () => {
   const lanes = state.lanes || [];
   const lane = lanes.find(l => l.workflow_id === scopedWorkflowId)
     || lanes.find(l => l.primary) || lanes[0] || null;
-  const model = lane?.title || lane?.name || state.workflow_info?.title || state.workflow_info?.name || '';
+  const model = cardLabel(lane) || cardLabel(state.workflow_info);
   const machine = state.machine?.name || '';
   useEffect(() => {
     const parts = [model, machine].filter(Boolean);

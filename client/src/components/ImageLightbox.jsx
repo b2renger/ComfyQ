@@ -14,6 +14,7 @@ import { SERVER_URL, getImageUrl, getDownloadUrl, getIngredientsUrl, isVideo, is
 import { accessHeaders } from '../utils/access';
 import { liveParamMap, labelMapFromExposed } from '../utils/paramLabels';
 import { isSeedParam } from '../utils/seedParam';
+import { cardLabel } from '../utils/cardLabel';
 import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
 
 const downloadFile = (filename) => {
@@ -311,7 +312,7 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
                                     <label className="text-[10px] text-muted uppercase font-bold tracking-wider">Workflow</label>
                                     <p className="text-sm font-medium text-foreground flex items-center gap-2">
                                         <Wand2 size={14} className="text-primary shrink-0" />
-                                        <span className="truncate" title={wf?.name ? `${wf.name} (${job.workflow_id})` : job.workflow_id}>{wf?.title || wf?.name || job.workflow_id}</span>
+                                        <span className="truncate" title={`${cardLabel(wf, job.workflow_id)} (${job.workflow_id})`}>{cardLabel(wf, job.workflow_id)}</span>
                                     </p>
                                     {wf && wf.category && wf.category !== 'other' && (
                                         <p className="text-[10px] text-muted uppercase tracking-wider">{wf.category}</p>

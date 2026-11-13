@@ -14,6 +14,7 @@ import ImageLightbox from '../components/ImageLightbox';
 import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { getUserColor } from '../utils/userColor';
 import { getDisplayPrompt } from '../utils/jobDisplay';
+import { cardLabel } from '../utils/cardLabel';
 import WorkflowInfoCard from '../components/WorkflowInfoCard';
 
 /**
@@ -90,7 +91,8 @@ const SchedulerPage = () => {
         const scoped = scopedWorkflowId && lanes.find(l => l.workflow_id === scopedWorkflowId);
         return (scoped || lanes.find(l => l.primary) || lanes[0]).workflow_id;
     }, [lanes, scopedWorkflowId, state.workflow_info?.id]);
-    const laneLabel = (l) => l?.title || l?.name || l?.workflow_id || '';
+    // Title and model, always (owner, 2026-11-12): see utils/cardLabel.js.
+    const laneLabel = (l) => cardLabel(l);
     const [showAllLanes, setShowAllLanes] = useState(() => {
         try { return localStorage.getItem('comfyq.showAllLanes') === '1'; } catch { return false; }
     });
@@ -513,7 +515,7 @@ const SchedulerPage = () => {
                                     const body = (
                                         <>
                                             <Layers size={12} className={mine ? 'text-primary' : 'text-muted'} />
-                                            <span className="font-semibold truncate max-w-[16rem]">{laneLabel(l)}</span>
+                                            <span className="font-semibold truncate max-w-[28rem]" title={laneLabel(l)}>{laneLabel(l)}</span>
                                             <span className={running ? 'text-success' : 'text-muted'}>{running ? 'generating' : 'idle'}</span>
                                             <span className="text-muted">· {waiting} waiting{waiting ? ` (~${fmtWait(waitMs)})` : ''}</span>
                                             {mine && <span className="text-[9px] uppercase tracking-wider text-primary font-bold">this tab</span>}
@@ -696,7 +698,7 @@ const SchedulerPage = () => {
                             {(() => {
                                 const ids = Array.from(new Set(state.jobs.map(j => j.workflow_id).filter(Boolean)));
                                 if (ids.length < 2 && modelFilter === 'all') return null;
-                                const nameOf = (id) => workflowsById?.[id]?.title || workflowsById?.[id]?.name || laneLabel(lanes.find(l => l.workflow_id === id)) || id;
+                                const nameOf = (id) => cardLabel(workflowsById?.[id]) || laneLabel(lanes.find(l => l.workflow_id === id)) || id;
                                 const opts = ids.map(id => ({ id, label: nameOf(id), n: state.jobs.filter(j => j.workflow_id === id).length }))
                                     .sort((x, y) => x.label.localeCompare(y.label));
                                 return (

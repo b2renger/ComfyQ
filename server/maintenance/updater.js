@@ -44,6 +44,15 @@ const GIT_TIMEOUT_MS = 3 * 60 * 1000;
 const WAITING_FILE = path.resolve(__dirname, '..', '..', 'tools', 'maintenance', 'comfyui-waiting.json');
 const UPDATE_TIMEOUT_MS = 15 * 60 * 1000;
 const PIP_TIMEOUT_MS = 30 * 60 * 1000;
+// The comfy-kitchen fixes (see tools/maintenance/fix_comfy_kitchen.py), re-applied at
+// the end of every update that can reinstall kitchen.
+const KITCHEN_FIX = path.resolve(__dirname, '..', '..', 'tools', 'maintenance', 'fix_comfy_kitchen.py');
+const KITCHEN_FIX_TIMEOUT_MS = 2 * 60 * 1000;
+const kitchenNote = (run) => (run.kitchenFixes === 'failed'
+    ? ' ⚠ The comfy-kitchen fixes could NOT be re-applied (read the output above): until they are,'
+        + ' the Qwen 3.5 prompt improvers and RelayVSR on square videos fail. Maintenance → Re-apply the'
+        + ' comfy-kitchen fixes says why.'
+    : '');
 
 // ★ git refuses to read a repository another Windows user owns ("detected
 // dubious ownership") — the normal state of a drive cloned onto a new machine.
@@ -472,13 +481,14 @@ class Updater {
                 run.error = `the updater exited with code ${code} — read its output above before retrying`;
                 return;
             }
+            await this._reapplyKitchenFixes(py, run);
             run.status = 'done';
             // ★ Decided on the COMMIT, not the version string. master can move
             // without the version changing, and a release can be re-tagged —
             // the sha is what actually decides what runs.
             run.moved = run.before.head !== run.after.head;
-            run.needsRestart = run.moved;
-            run.verdict = comfyVerdict({ before: was, after: is, moved: run.moved }).text;
+            run.needsRestart = run.moved || !!run.kitchenApplied;
+            run.verdict = comfyVerdict({ before: was, after: is, moved: run.moved }).text + kitchenNote(run);
             run.requirements = this.comfyRequirements();
             invalidateNodePacks();
         })().catch(e => { run.status = 'failed'; run.error = e.message; });
@@ -526,6 +536,7 @@ class Updater {
                 ['-s', '-m', 'pip', 'install', '-r', path.join(this._updateDir(), 'current_requirements.txt')],
                 { cwd: this._updateDir(), timeout: PIP_TIMEOUT_MS, run });
             if (run.stopping) { run.status = 'cancelled'; run.step = null; run.needsRestart = true; return; }
+            if (code === 0) await this._reapplyKitchenFixes(py, run);
             run.status = code === 0 ? 'done' : 'failed';
             run.step = null;
             run.needsRestart = true;
@@ -533,7 +544,7 @@ class Updater {
             else {
                 run.verdict = 'Dependencies installed. Restart ComfyUI, then render one heavy bundle '
                     + 'before trusting the rig — this step can move torch, and the failure that causes '
-                    + 'is silent.';
+                    + 'is silent.' + kitchenNote(run);
             }
         })().catch(e => { run.status = 'failed'; run.error = e.message; });
         return { ok: true };
@@ -871,6 +882,30 @@ class Updater {
     }
 
     /** A spawn whose output goes to a throwaway array rather than the run log. */
+    /**
+     * pip reinstalls comfy-kitchen whenever ComfyUI's pin moves, and that drops
+     * the local fixes (Qwen 3.5 prompt improvers, RelayVSR on square videos). The
+     * Maintenance button exists, but a button nobody remembers after an update is
+     * not a guard: this runs the same script at the moment of the update. It is
+     * idempotent and refuses loudly when kitchen changed; a failure is written
+     * into the run (run.kitchenFixes, the verdict), never a failed update.
+     */
+    async _reapplyKitchenFixes(py, run) {
+        run.step = 're-applying the comfy-kitchen fixes';
+        run.output.push('--- re-applying the comfy-kitchen fixes (tools/maintenance/fix_comfy_kitchen.py)');
+        const code = await this._spawn(py, ['-s', KITCHEN_FIX],
+            { cwd: path.dirname(KITCHEN_FIX), timeout: KITCHEN_FIX_TIMEOUT_MS, run });
+        run.kitchenFixes = code === 0 ? 'ok' : 'failed';
+        // The script's tally line, e.g. '2 applied, 0 already in place, ...': a fix
+        // written now needs a ComfyUI restart even when the update itself moved nothing.
+        // Read from the tail: run.output is capped and trimmed from the front, so an
+        // index taken before the spawn can point past the script's own lines.
+        const tally = run.output.slice(-40).filter(l => /^\d+ applied, \d+ already in place/.test(l)).pop() || '';
+        run.kitchenApplied = /^[1-9]\d* applied,/.test(tally);
+        run.step = null;
+        return code;
+    }
+
     _spawnQuiet(cmd, args, { cwd, timeout, log }) {
         return this._spawn(cmd, args, { cwd, timeout, run: { output: log }, keepChild: false });
     }

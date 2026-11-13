@@ -3,8 +3,8 @@
   "id": "image_edit_flux3_klein_image_edit",
   "name": "FLUX.3 Klein — edit a picture",
   "title": "Edit a picture, slower but finer",
-  "summary": "Describe a change and, if you like, draw a box around the exact thing to change; the rest of the picture stays the same. The most precise edit in the library, and slower than its twin \"Edit a picture in seconds\", which does the same job much faster.",
-  "description": "Edit a picture by describing the change, with Black Forest Labs' FLUX.3 Image Klein base model (50 steps at guidance 3.5). Refer to your picture as <ref_image_0>, and say what must stay the same as well as what changes — or, as Black Forest Labs recommend, describe the finished picture in full with the edit folded in. The AI improver (\"Improve the instruction with AI\") fails on this ComfyUI build, so leave it off and write the instruction in full. The result keeps the shape of your picture. To change one exact thing, draw a box around it over your picture and cite it as <obj_1> in the instruction; say in words what must stay.",
+  "summary": "Describe a change and, if you like, draw a box around the exact thing to change; the rest of the picture stays the same. The most precise edit in the library, and slower than its twin \"Edit a picture in seconds\" (FLUX.3 Klein distilled), which does the same job much faster.",
+  "description": "Edit a picture by describing the change, with Black Forest Labs' FLUX.3 Image Klein base model (50 steps at guidance 3.5). Refer to your picture as <ref_image_0>, and say what must stay the same as well as what changes — or, as Black Forest Labs recommend, describe the finished picture in full with the edit folded in. The AI improver (\"Improve the instruction with AI\") looks at your picture and writes the full instruction for you, but adds about 2 to 3 minutes; otherwise write the instruction in full. The result keeps the shape of your picture. To change one exact thing, draw a box around it over your picture and cite it as <obj_1> in the instruction; say in words what must stay.",
   "category": "image-edit",
   "tags": [
     "flux3",
@@ -90,7 +90,7 @@
       "field": "switch",
       "type": "checkbox",
       "order": 3,
-      "label": "Improve the instruction with AI first (a Qwen 3.5 model looks at the picture and writes a full caption of the result) — slow: adds about 2–3 minutes ⚠ currently fails on this ComfyUI build (0.43.2: \"Unsupported Flash Attention tensor strides\" in the Qwen 3.5 decode) — leave it off",
+      "label": "Improve the instruction with AI first (a Qwen 3.5 model looks at the picture and writes a full caption of the result) — slow: adds about 2–3 minutes",
       "default": false
     },
     {
@@ -143,7 +143,7 @@
     {
       "label": "FLUX.3 prompting basics (Black Forest Labs)",
       "url": "https://docs.bfl.ai/guides/prompting_unified_basics",
-      "tip": "Write the caption in full — the AI improver fails on this ComfyUI build: medium first, then the scene, the light, the camera and where each subject sits."
+      "tip": "Write the caption in full (or let the AI improver write it, about 2 to 3 minutes): medium first, then the scene, the light, the camera and where each subject sits."
     },
     {
       "label": "FLUX.3 layout prompts — placing things with boxes",

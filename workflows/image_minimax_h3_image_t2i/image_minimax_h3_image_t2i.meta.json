@@ -4,7 +4,7 @@
   "name": "MiniMax-H3-Image — text to image",
   "title": "Make a very large, detailed picture",
   "summary": "Describe a picture in detail and get it back large and finely drawn: posters, packaging, photos, diagrams with readable text.",
-  "description": "Generate an image from a text prompt with MiniMax-H3-Image, an open-weights image model whose single checkpoint handles both text-to-image and editing. Generation is distilled to 6 steps with no CFG. It does not work well at low resolution: it is made for about 4 to 20 megapixels and is at its best near 16 MP. At the default 4 MP (2048x2048) a picture takes about 16 seconds once the models are loaded; 16 MP (4096x4096) took 46 seconds, visibly finer, but fills the whole 32 GB graphics card. Describe the whole picture in detail, in English (subject, setting, light, materials, any words to be written in quotes), and write what to avoid into the prompt too: there is no negative prompt. The prompt improver that would write such a description from a short request fails on this ComfyUI build, so it is off. It may add things the prompt does not ask for. Not the same model as the 'MiniMax H3 — text to image' card, which runs the H3 video model on a single frame. Experimental.",
+  "description": "Generate an image from a text prompt with MiniMax-H3-Image, an open-weights image model whose single checkpoint handles both text-to-image and editing. Generation is distilled to 6 steps with no CFG. It does not work well at low resolution: it is made for about 4 to 20 megapixels and is at its best near 16 MP. At the default 4 MP (2048x2048) a picture takes about 16 seconds once the models are loaded; 16 MP (4096x4096) took 46 seconds, visibly finer, but fills the whole 32 GB graphics card. Describe the whole picture in detail, in English (subject, setting, light, materials, any words to be written in quotes), and write what to avoid into the prompt too: there is no negative prompt. The prompt improver writes such a description from a short request; it is off by default and adds about a minute. It may add things the prompt does not ask for. Not the same model as the 'MiniMax H3 — text to image' card, which runs the H3 video model on a single frame. Experimental.",
   "category": "t2i",
   "experimental": true,
   "tags": [
@@ -77,7 +77,7 @@
       "nodeId": "23:22",
       "field": "switch",
       "type": "checkbox",
-      "label": "Write a full caption from my prompt first (prompt improver, Qwen 3.5 9B) ⚠ fails on this ComfyUI build (the Qwen 3.5 decode: \"Unsupported Flash Attention tensor strides\", still on 0.45.2), so it is off",
+      "label": "Write a full caption from my prompt first (prompt improver, Qwen 3.5 9B; adds about a minute)",
       "default": false,
       "required": false,
       "order": 1

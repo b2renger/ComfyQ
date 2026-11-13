@@ -4,7 +4,7 @@
   "name": "P-H3-Image — text to image",
   "title": "Make a large, detailed picture",
   "summary": "Describe the picture in detail and P-H3-Image paints it at 4 megapixels in 8 steps. Strong at photos, film looks, posters and short written words. Its prompt writer does not run on this machine yet, so write the full description yourself.",
-  "description": "Pruna's P-H3-Image: an image model made from MiniMax H3, the film model, run here as a LoRA on H3.\n\nIt renders long, precise descriptions best: write the subject, the setting, the light, the lens and the look, and put any words to be written in quotes. It draws in 8 steps, without a negative prompt, at about 4 megapixels.\n\nIt comes with a prompt upsampler (a Qwen3.5-9B writer) that turns a one-line request into such a description, for the aspect ratio you pick. On this ComfyUI build that writer fails (a bug in the Qwen 3.5 decode, the same one that stops the other prompt improvers), so it is off.\n\nIt loads the 20 GB H3 model and its text encoder, so the first picture after another card is slow.",
+  "description": "Pruna's P-H3-Image: an image model made from MiniMax H3, the film model, run here as a LoRA on H3.\n\nIt renders long, precise descriptions best: write the subject, the setting, the light, the lens and the look, and put any words to be written in quotes. It draws in 8 steps, without a negative prompt, at about 4 megapixels.\n\nIt comes with a prompt upsampler (a Qwen3.5-9B writer) that turns a one-line request into such a description, for the aspect ratio you pick. It is off by default and adds about a minute when switched on.\n\nIt loads the 20 GB H3 model and its text encoder, so the first picture after another card is slow.",
   "category": "t2i",
   "experimental": true,
   "tags": [
@@ -78,7 +78,7 @@
       "nodeId": "29:23",
       "field": "switch",
       "type": "checkbox",
-      "label": "Write the full prompt from my request (prompt upsampler) ⚠ fails on this ComfyUI build (the Qwen 3.5 decode: \"Unsupported Flash Attention tensor strides\"), so it is off",
+      "label": "Write the full prompt from my request (prompt upsampler; adds about a minute)",
       "default": false,
       "required": false,
       "order": 1

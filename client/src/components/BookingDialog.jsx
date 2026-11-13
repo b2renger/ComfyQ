@@ -8,6 +8,7 @@ import { accessHeaders } from '../utils/access';
 import DynamicParamFields, { isSeedParam, randomSeed, isMediaNeeded, clampToBounds } from './DynamicParamFields';
 import WorkflowInfoCard from './WorkflowInfoCard';
 import { acquireIdleHold } from '../utils/idleHold';
+import { cardLabel } from '../utils/cardLabel';
 
 // Param types whose value is an uploaded file (handled via mediaFiles + /upload
 // + recall), as opposed to a plain form value. 'mask' is an image the user
@@ -197,7 +198,7 @@ const BookingDialog = ({ isOpen, onClose, initialTime, onConfirm, initialParams 
         setMediaPreviews(recalledPreviews);
         setUploadError('');
         setRecallNote(switched
-            ? `This machine switched to “${wfInfo?.title || wfInfo?.name || workflowId}” — the form was rebuilt with its settings.`
+            ? `This machine switched to “${cardLabel(wfInfo, workflowId)}” — the form was rebuilt with its settings.`
             : '');
         setScheduledTime(initialTimeRef.current);
 

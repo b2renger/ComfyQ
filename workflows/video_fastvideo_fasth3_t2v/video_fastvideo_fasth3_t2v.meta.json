@@ -3,8 +3,8 @@
   "id": "video_fastvideo_fasth3_t2v",
   "name": "FastVideo FastH3 — text to video with sound (8 steps)",
   "title": "Draft a longer video with sound",
-  "summary": "Another fast text-to-video engine, best for calm, cinematic scenes of up to 12 seconds with several shots, a narrator and music. For short, lively clips the quick video card is faster on this machine.",
-  "description": "Write a scene and get a short film back WITH its soundtrack — dialogue, effects and music are generated together with the picture, in sync.\n\nThis is MiniMax H3 distilled to 8 sampling steps by FastVideo, so it is several times quicker than the full model for a small loss of detail.\n\nDescribe it like a shot list: camera angle and movement, what is in frame, what happens, and then the sound. The model was trained on descriptions that name the audio explicitly — \"we hear footsteps on gravel and distant traffic\" earns you that soundtrack; saying nothing about sound gets you whatever it invents.\n\nDuration is in seconds at 24 fps and is snapped to the model’s own frame grid. Keep clips short: cost grows with length and with resolution.\n\nText to video. The same 8-step checkpoint can also start or end on a picture — that is the \"Start or end on your picture\" card (FastVideo FastH3 — first and/or last frame). For short, lively clips the 4-step MiniMax H3 turbo card is faster on this machine; this one suits calm, cinematic scenes with several shots.",
+  "summary": "Another fast text-to-video engine, best for calm, cinematic scenes of up to 12 seconds with several shots, a narrator and music. For short, lively clips the quick video card, \"Make a quick video with sound\" (MiniMax H3, 4-step turbo), is faster on this machine.",
+  "description": "Write a scene and get a short film back WITH its soundtrack — dialogue, effects and music are generated together with the picture, in sync.\n\nThis is MiniMax H3 distilled to 8 sampling steps by FastVideo, so it is several times quicker than the full model for a small loss of detail.\n\nDescribe it like a shot list: camera angle and movement, what is in frame, what happens, and then the sound. The model was trained on descriptions that name the audio explicitly — \"we hear footsteps on gravel and distant traffic\" earns you that soundtrack; saying nothing about sound gets you whatever it invents.\n\nDuration is in seconds at 24 fps and is snapped to the model’s own frame grid. Keep clips short: cost grows with length and with resolution. The default is 0.9 megapixels (1280x736 in 16:9): a 5-second clip takes about 2 minutes once the models are loaded, and a 10-second one took 5.5 minutes. At 0.4 megapixels (864x480), the size of ComfyUI's template, it is two to three times faster but the fur, leaves and textures come out soft and smeared: use it only for a quick draft of the motion.\n\nText to video. The same 8-step checkpoint can also start or end on a picture — that is the \"Start or end on your picture\" card (FastVideo FastH3 — first and/or last frame). For short, lively clips the 4-step MiniMax H3 turbo card is faster on this machine; this one suits calm, cinematic scenes with several shots.",
   "category": "i2v",
   "tags": [
     "minimax",
@@ -60,7 +60,7 @@
       }
     ]
   },
-  "estimatedDurationSec": 60,
+  "estimatedDurationSec": 116,
   "exposedParameters": [
     {
       "key": "minimaxh3imagetovideo_prompt_105_104",
@@ -111,7 +111,7 @@
       "field": "megapixels",
       "type": "number",
       "label": "Size in megapixels (at 16:9: 0.4 ≈ 864×480, 1.0 ≈ 1376×768)",
-      "default": 0.4,
+      "default": 0.9,
       "min": 0.2,
       "max": 1,
       "step": 0.1,

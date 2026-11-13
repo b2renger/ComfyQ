@@ -4,7 +4,7 @@
   "name": "P-H3-Image — edit a picture",
   "title": "Change a picture by asking",
   "summary": "Upload a picture and say what to change: \"make it night\", \"paint the door red\". Say what must stay as it is, too: its prompt writer, which would do that for you, does not run on this machine yet.",
-  "description": "Pruna's P-H3-Image edits a picture from a request, run here as a LoRA on MiniMax H3.\n\nThe model edits best from a brief that names what to change and what to keep (\"Make it night; keep the people, the building and the framing\"); a bare request can make it redraw the whole scene.\n\nIt comes with a prompt upsampler (a Qwen3.5-9B writer) that looks at the picture and writes that brief. On this ComfyUI build the writer fails (a bug in the Qwen 3.5 decode, the same one that stops the other prompt improvers), so it is off.\n\nThe result has the size of the picture you upload (up to 2048 × 2048). It takes 8 steps, without a negative prompt.",
+  "description": "Pruna's P-H3-Image edits a picture from a request, run here as a LoRA on MiniMax H3.\n\nThe model edits best from a brief that names what to change and what to keep (\"Make it night; keep the people, the building and the framing\"); a bare request can make it redraw the whole scene.\n\nIt comes with a prompt upsampler (a Qwen3.5-9B writer) that looks at the picture and writes that brief. It is off by default and adds about a minute and a half when switched on.\n\nThe result has the size of the picture you upload (up to 2048 × 2048). It takes 8 steps, without a negative prompt.",
   "category": "image-edit",
   "experimental": true,
   "tags": [
@@ -88,7 +88,7 @@
       "nodeId": "23",
       "field": "switch",
       "type": "checkbox",
-      "label": "Write an edit brief from my request (prompt upsampler) ⚠ fails on this ComfyUI build (the Qwen 3.5 decode: \"Unsupported Flash Attention tensor strides\"), so it is off",
+      "label": "Write an edit brief from my request (prompt upsampler; adds about a minute and a half)",
       "default": false,
       "required": false,
       "order": 2

@@ -15,7 +15,7 @@ install. That folder is gone: they now live in the ComfyQ repo, so they travel w
 
 | If you… | Read / run |
 |---|---|
-| **just updated anything** (ComfyUI, a pack, Manager "update all") | **double-click [`REPAIR.bat`](REPAIR.bat)** (or Admin → Maintenance → Maintenance scripts → *Repair the ComfyUI install*) — re-applies the hand-fixes updates silently revert. Then [`fix_custom_node_patches.py`](fix_custom_node_patches.py) (*Re-apply the custom-node fixes* on the same card) for the Qwen-Image 2.1 ControlNet pack, then restart ComfyUI (Admin → Manage ComfyUI → *Restart ComfyUI*, after *Reset to admin* if the machine is serving; or close and relaunch a ComfyUI you started by hand), then hard-refresh the browser (Ctrl+Shift+R) |
+| **just updated anything** (ComfyUI, a pack, Manager "update all") | **double-click [`REPAIR.bat`](REPAIR.bat)** (or Admin → Maintenance → Maintenance scripts → *Repair the ComfyUI install*) — re-applies the hand-fixes updates silently revert. Then [`fix_custom_node_patches.py`](fix_custom_node_patches.py) (*Re-apply the custom-node fixes* on the same card) for the Qwen-Image 2.1 ControlNet pack, and [`fix_comfy_kitchen.py`](fix_comfy_kitchen.py) (*Re-apply the comfy-kitchen fixes*) if ComfyUI was updated by hand rather than from ComfyQ, then restart ComfyUI (Admin → Manage ComfyUI → *Restart ComfyUI*, after *Reset to admin* if the machine is serving; or close and relaunch a ComfyUI you started by hand), then hard-refresh the browser (Ctrl+Shift+R) |
 | want to know *why* this install is fragile, and what was changed | **[`notice.md`](notice.md)** — the full background + checklist |
 | need disk space | Admin → Maintenance → *Prune unused models* (it moves files to `_model_quarantine\`; empty a batch from the *Quarantined models* card to free the space). For the per-model decision sheet see [`model-audit\`](model-audit/README.md); don't use `prune-models.ps1 -Purge` on a drive the panel has quarantined to |
 | plugged this drive into a new machine | the [*Hardware floor*](#-hardware-floor--check-this-before-plugging-the-drive-into-a-new-machine) section below, then [`notice.md`](notice.md) → *"First time on a new machine"*; `Readme.txt` at the root of the drive for Node 24 and `safe.directory` |
@@ -49,6 +49,8 @@ tools\maintenance\
   fix_resolution_combos.py   TRELLIS2 dropdown fix      (called by repair_all)
   portablize_paths.py        TRELLIS2 workflow paths    (called by repair_all)
   fix_custom_node_patches.py Qwen-Image 2.1 ControlNet pack fix (NOT called by repair_all)
+  fix_comfy_kitchen.py       comfy-kitchen fixes: Qwen 3.5 improvers, RelayVSR on square videos
+                             (run by ComfyQ's ComfyUI update itself; --check reports only)
   comfyq_paths.py            where ComfyUI is, read from ComfyQ's config.json
   python-path.js             the same answer for the .bat files, which cannot read JSON
   wipe_for_clone.cjs / seed_examples.cjs / publish_partial_sweep.cjs / recover_sweep.cjs

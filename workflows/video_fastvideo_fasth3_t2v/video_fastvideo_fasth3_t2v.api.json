@@ -18,7 +18,7 @@
   "143": {
     "inputs": {
       "aspect_ratio": "1:1 (Square)",
-      "megapixels": 0.4,
+      "megapixels": 0.9,
       "multiple": 32
     },
     "class_type": "ResolutionSelector",

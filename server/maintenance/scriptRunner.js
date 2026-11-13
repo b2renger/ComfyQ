@@ -61,6 +61,23 @@ const TASKS = [
         steps: [{ kind: 'python', script: 'fix_custom_node_patches.py' }],
     },
     {
+        key: 'kitchen-fixes',
+        label: 'Re-apply the comfy-kitchen fixes',
+        // ★ Also run by the Updater at the end of every ComfyUI update and
+        // dependency install (updater.js, reapplyKitchenFixes): those are the
+        // two moments pip reinstalls comfy-kitchen and drops the fix, and a
+        // button nobody remembers to press after an update is not a guard.
+        blurb: 'comfy-kitchen, the kernel package ComfyUI installs with each update, has two bugs on'
+            + ' this rig (torch 2.8+cu128): every Qwen 3.5 prompt improver fails ("Unsupported Flash'
+            + ' Attention tensor strides"), and RelayVSR fails on square videos. This patches both'
+            + ' in python_embeded. Safe to run twice; it REFUSES if kitchen has changed under the'
+            + ' patch (perhaps fixed upstream). A ComfyUI update runs it by itself afterwards.'
+            + ' ⚠ It modifies site-packages, and ComfyUI must be restarted afterwards.',
+        mutating: true,
+        needsComfy: false,
+        steps: [{ kind: 'python', script: 'fix_comfy_kitchen.py' }],
+    },
+    {
         key: 'install-repair',
         label: 'Repair the ComfyUI install',
         blurb: 'Checks the portable install for the damage this fleet has hit before and'
