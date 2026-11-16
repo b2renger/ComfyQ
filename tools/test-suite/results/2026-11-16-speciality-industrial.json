@@ -1,0 +1,1456 @@
+{
+ "type": "summary",
+ "startedAt": "2026-11-16T08:21:29.876Z",
+ "finishedAt": "2026-11-16T08:30:18.749Z",
+ "state": "done",
+ "machine": {
+  "at": "2026-11-16T08:21:29.910Z",
+  "host": "AN-5090-2",
+  "instance": "AN-5090-2",
+  "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+  "vramTotalGb": 31.82,
+  "comfyui": "0.45.2",
+  "pytorch": "2.8.0+cu128",
+  "python": "3.12.10",
+  "argv": [
+   "--listen",
+   "--port",
+   "--disable-auto-launch",
+   "--windows-standalone-build",
+   "--fast"
+  ],
+  "comfyRoot": "comfyui",
+  "assetsDir": "assets",
+  "scanDirs": [
+   "/_demo_workflows"
+  ],
+  "comfyqCommit": "94fd022",
+  "comfyqBranch": "main"
+ },
+ "suite": {
+  "name": "speciality-industrial",
+  "file": "./tools/test-suite/speciality-industrial.suite.csv",
+  "description": "Industrial design: a product from marker sketch to render, colour and material variants, other views, a 3D model ready for texturing, a turntable and an exploded view. Every run becomes an example for students of this speciality, beside the card's showcase (tools/maintenance/seed_examples.cjs --speciality industrial)."
+ },
+ "summary": {
+  "ran": 11,
+  "succeeded": 11,
+  "failed": 0,
+  "withFlaggedOutput": 0,
+  "noOutput": 0,
+  "distinctModelsOpened": 9,
+  "recorderAvailable": true
+ },
+ "results": [
+  {
+   "id": "image_flux3_klein_distilled_t2i@sketch",
+   "variantOf": "image_flux3_klein_distilled_t2i",
+   "variant": "sketch",
+   "name": "FLUX.3 Klein distilled — fast text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:21:29.916Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_flux3_klein_distilled_t2i_1794817296334_00001_.png",
+     "bytes": 1244583,
+     "kind": "image",
+     "width": 1248,
+     "height": 832,
+     "mode": "RGB",
+     "mean": 222.5,
+     "std": 49.37,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_flux3_klein_distilled_t2i_1794817296334_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-industrial",
+    "stage": "1 — From sketch to product",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "117.value",
+     "from": "the test suite",
+     "value": "Industrial design sketch on white marker paper: a single large three-quarter view of a cordless electric kettle, drawn with confident black fineliner lines, a soft rounded body, a wide curved handle, a short spout and a round charging base, the body shaded with soft grey marker, one accent of coral orange marker on the handle, a few construction ellipses left visible. Nothing else on the page, flat lay, evenly lit."
+    },
+    {
+     "key": "layout",
+     "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+     "type": "textarea",
+     "node": "300.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "improve_prompt",
+     "label": "Improve the prompt with AI first (a Qwen 3.5 model expands it into a full caption) — slow: adds about 3 minutes",
+     "type": "checkbox",
+     "node": "116.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "aspect_ratio",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "19.aspect_ratio",
+     "from": "the test suite",
+     "value": "3:2 (Photo)"
+    },
+    {
+     "key": "megapixels",
+     "label": "Size (megapixels — 1 is about 1024×1024)",
+     "type": "number",
+     "node": "19.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps",
+     "label": "Steps",
+     "type": "number",
+     "node": "107.steps",
+     "from": "the graph default",
+     "value": 16
+    },
+    {
+     "key": "seed",
+     "label": "Seed",
+     "type": "number",
+     "node": "107.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 7,
+   "coldSec": 17,
+   "modelLoadSec": 10,
+   "vramPeakGb": 10.11,
+   "steps": 16,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:21:57.965Z",
+   "wallSec": 28
+  },
+  {
+   "id": "image_qwen_image_2_1_control_canny@render",
+   "variantOf": "image_qwen_image_2_1_control_canny",
+   "variant": "render",
+   "name": "Qwen Image 2.1 - draw from edges (ControlNet canny)",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:21:57.969Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png",
+     "bytes": 882056,
+     "kind": "image",
+     "width": 1248,
+     "height": 832,
+     "mode": "RGBA",
+     "mean": 173.79,
+     "std": 27.24,
+     "min": 17,
+     "max": 254,
+     "alpha": {
+      "mean": 254.38,
+      "std": 0.49,
+      "min": 254,
+      "max": 255
+     },
+     "flags": [],
+     "file": "bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-industrial",
+    "stage": "1 — From sketch to product",
+    "note": null,
+    "inputs": {
+     "loadimage_image_900": {
+      "from": "image_flux3_klein_distilled_t2i@sketch",
+      "source": "output/bench_image_flux3_klein_distilled_t2i_1794817296334_00001_.png",
+      "path": "output/bench_image_flux3_klein_distilled_t2i_1794817296334_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "textencodeqwenimage21_prompt_459_452",
+     "label": "What to draw - the picture supplies the structure, this supplies everything else",
+     "type": "textarea",
+     "node": "459:452.prompt",
+     "from": "the test suite",
+     "value": "Studio product photograph of a cordless electric kettle following the drawing exactly: a soft rounded body in matte warm white polymer, a coral orange soft-touch handle, a brushed steel lid, a thin glowing light ring around the base, standing on its round charging base on a seamless light grey background, soft studio light with a gentle reflection on the table."
+    },
+    {
+     "key": "loadimage_image_900",
+     "label": "Structure image - its shapes are kept, its content is not",
+     "type": "image",
+     "node": "900.image",
+     "from": "output of image_flux3_klein_distilled_t2i@sketch",
+     "value": "comfyq__bc71f94e__bench_image_flux3_klein_distilled_t2i_1794817296334_00001_.png",
+     "sourcePath": "output/bench_image_flux3_klein_distilled_t2i_1794817296334_00001_.png",
+     "staged": "comfyq__bc71f94e__bench_image_flux3_klein_distilled_t2i_1794817296334_00001_.png"
+    },
+    {
+     "key": "controlnet_strength_903",
+     "label": "How closely to follow the structure (1.0 is the trained strength)",
+     "type": "number",
+     "node": "903.strength",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "canny_low_threshold_901",
+     "label": "Edge detail - lower finds more lines",
+     "type": "number",
+     "node": "901.low_threshold",
+     "from": "the graph default",
+     "value": 0.4
+    },
+    {
+     "key": "canny_high_threshold_901",
+     "label": "Edge strength - higher keeps only strong lines",
+     "type": "number",
+     "node": "901.high_threshold",
+     "from": "the graph default",
+     "value": 0.8
+    },
+    {
+     "key": "resolutionselector_aspect_ratio_13",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "13.aspect_ratio",
+     "from": "the test suite",
+     "value": "3:2 (Photo)"
+    },
+    {
+     "key": "resolutionselector_megapixels_13",
+     "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+     "type": "number",
+     "node": "13.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_steps_459_458",
+     "label": "Steps (20 is the default, 25 is quick, 40–50 is Qwen's own setting — slower)",
+     "type": "number",
+     "node": "459:458.steps",
+     "from": "the graph default",
+     "value": 20
+    },
+    {
+     "key": "ksampler_seed_459_458",
+     "label": "Seed",
+     "type": "number",
+     "node": "459:458.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 16,
+   "coldSec": 44,
+   "modelLoadSec": 28,
+   "vramPeakGb": 23.61,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:22:51.583Z",
+   "wallSec": 54
+  },
+  {
+   "id": "image_edit_bernini_r_image_editing@glass-body",
+   "variantOf": "image_edit_bernini_r_image_editing",
+   "variant": "glass-body",
+   "name": "Wan 2.2 Bernini-R — AI image editing",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:22:51.587Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_bernini_r_image_editing_1794817377922_00001_.png",
+     "bytes": 818315,
+     "kind": "image",
+     "width": 1280,
+     "height": 848,
+     "mode": "RGB",
+     "mean": 164.04,
+     "std": 23.72,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_edit_bernini_r_image_editing_1794817377922_00001_.png"
+    },
+    {
+     "kind": "text",
+     "file": "node 76:57:1",
+     "text": "3",
+     "chars": 1,
+     "flags": [],
+     "stray": true
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-industrial",
+    "stage": "1 — From sketch to product",
+    "note": null,
+    "inputs": {
+     "source_image_114": {
+      "from": "image_qwen_image_2_1_control_canny@render",
+      "source": "output/bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png",
+      "path": "output/bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "source_image_114",
+     "label": "Image to edit",
+     "type": "image",
+     "node": "114.image",
+     "from": "output of image_qwen_image_2_1_control_canny@render",
+     "value": "comfyq__b5f17d77__bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png",
+     "sourcePath": "output/bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png",
+     "staged": "comfyq__b5f17d77__bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png"
+    },
+    {
+     "key": "edit_instruction_76_120",
+     "label": "Edit instruction",
+     "type": "textarea",
+     "node": "76:120.value",
+     "from": "the test suite",
+     "value": "Make the body of the kettle clear borosilicate glass, so the water and the steel heating plate inside are visible, and keep the coral handle, the lid and the charging base."
+    },
+    {
+     "key": "task_type_76_54",
+     "label": "Edit type",
+     "type": "select",
+     "node": "76:54.choice",
+     "from": "the graph default",
+     "value": "Image Editing"
+    },
+    {
+     "key": "fast_mode_76_70",
+     "label": "Fast mode (Turbo LoRA — faster, lower quality)",
+     "type": "checkbox",
+     "node": "76:70.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "seed_76_19",
+     "label": "Seed",
+     "type": "number",
+     "node": "76:19.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 23,
+   "coldSec": 51,
+   "modelLoadSec": 28,
+   "vramPeakGb": 27.41,
+   "steps": 3,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:23:53.812Z",
+   "wallSec": 62
+  },
+  {
+   "id": "image_flux2_klein_9b_t2i@lamp",
+   "variantOf": "image_flux2_klein_9b_t2i",
+   "variant": "lamp",
+   "name": "Flux2 Klein 9B — text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:23:53.816Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png",
+     "bytes": 901061,
+     "kind": "image",
+     "width": 1024,
+     "height": 1024,
+     "mode": "RGB",
+     "mean": 236.15,
+     "std": 47.66,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-industrial",
+    "stage": "1 — From sketch to product",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "primitivestringmultiline_value_76",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "76.value",
+     "from": "the test suite",
+     "value": "Product photograph of a minimalist desk lamp on a plain white background: a round weighted base of matte black cast iron, a slim vertical arm of anodised aluminium and a flat round lamp head tilted forward with a soft opal diffuser, a braided black fabric cable curving out behind. Centred, three-quarter front view, soft even studio lighting, a faint shadow under the base."
+    },
+    {
+     "key": "cliptextencode_text_75_67",
+     "label": "Negative prompt",
+     "type": "textarea",
+     "node": "75:67.text",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "randomnoise_noise_seed_75_73",
+     "label": "Seed",
+     "type": "number",
+     "node": "75:73.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    },
+    {
+     "key": "flux2scheduler_steps_75_62",
+     "label": "Steps",
+     "type": "number",
+     "node": "75:62.steps",
+     "from": "the graph default",
+     "value": 20
+    },
+    {
+     "key": "cfgguider_cfg_75_63",
+     "label": "CFG",
+     "type": "number",
+     "node": "75:63.cfg",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "primitiveint_value_75_68",
+     "label": "Width",
+     "type": "number",
+     "node": "75:68.value",
+     "from": "the test suite",
+     "value": 1024
+    },
+    {
+     "key": "primitiveint_value_75_69",
+     "label": "Height",
+     "type": "number",
+     "node": "75:69.value",
+     "from": "the test suite",
+     "value": 1024
+    },
+    {
+     "key": "emptyflux2latentimage_batch_size_75_66",
+     "label": "Batch size",
+     "type": "number",
+     "node": "75:66.batch_size",
+     "from": "the graph default",
+     "value": 1
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 12,
+   "coldSec": 33,
+   "modelLoadSec": 21,
+   "vramPeakGb": 18.3,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:24:35.924Z",
+   "wallSec": 42
+  },
+  {
+   "id": "image_edit_flux3_klein_distilled_image_edit@cmf",
+   "variantOf": "image_edit_flux3_klein_distilled_image_edit",
+   "variant": "cmf",
+   "name": "FLUX.3 Klein distilled — fast picture edit",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:24:35.928Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_flux3_klein_distilled_image_edit_1794817480823_00001_.png",
+     "bytes": 533717,
+     "kind": "image",
+     "width": 1024,
+     "height": 1024,
+     "mode": "RGB",
+     "mean": 237.29,
+     "std": 30.52,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_edit_flux3_klein_distilled_image_edit_1794817480823_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-industrial",
+    "stage": "2 — Colours, materials and views",
+    "note": null,
+    "inputs": {
+     "image": {
+      "from": "image_flux2_klein_9b_t2i@lamp",
+      "source": "output/bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png",
+      "path": "output/bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "image",
+     "label": "Picture to edit",
+     "type": "image",
+     "node": "11.image",
+     "from": "output of image_flux2_klein_9b_t2i@lamp",
+     "value": "comfyq__baabe5bf__bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png",
+     "sourcePath": "output/bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png",
+     "staged": "comfyq__baabe5bf__bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png"
+    },
+    {
+     "key": "prompt",
+     "label": "What to change",
+     "type": "textarea",
+     "node": "301.value",
+     "from": "the test suite",
+     "value": "In <ref_image_0>, change the colours and materials of the lamp: the base in glazed terracotta ceramic, the arm and the lamp head in anodised sage green aluminium, the cable in braided cream fabric. Keep the shape of every part, the angle of the head, the background, the light and the camera exactly the same."
+    },
+    {
+     "key": "layout",
+     "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+     "type": "textarea",
+     "node": "300.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "improve_prompt",
+     "label": "Improve the instruction with AI first (a Qwen 3.5 model looks at the picture and writes a full caption of the result) — slow: adds about 2–3 minutes",
+     "type": "checkbox",
+     "node": "51.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "megapixels",
+     "label": "Working size (megapixels) — the result takes the picture's shape at this size",
+     "type": "number",
+     "node": "17.resolution.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps",
+     "label": "Steps",
+     "type": "number",
+     "node": "7.steps",
+     "from": "the graph default",
+     "value": 16
+    },
+    {
+     "key": "seed",
+     "label": "Seed",
+     "type": "number",
+     "node": "7.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 12,
+   "coldSec": 16,
+   "modelLoadSec": 4,
+   "vramPeakGb": 11.39,
+   "steps": 16,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:25:01.828Z",
+   "wallSec": 26
+  },
+  {
+   "id": "image_edit_qwen_2511_multiple_angles@side",
+   "variantOf": "image_edit_qwen_2511_multiple_angles",
+   "variant": "side",
+   "name": "Qwen Image-Edit 2511 - reshoot from another angle (place the camera)",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:25:01.832Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_qwen_2511_multiple_angles_1794817506368_00001_.png",
+     "bytes": 819198,
+     "kind": "image",
+     "width": 1024,
+     "height": 1024,
+     "mode": "RGB",
+     "mean": 221.79,
+     "std": 46.95,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_edit_qwen_2511_multiple_angles_1794817506368_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-industrial",
+    "stage": "2 — Colours, materials and views",
+    "note": null,
+    "inputs": {
+     "loadimage_image_1": {
+      "from": "image_flux2_klein_9b_t2i@lamp",
+      "source": "output/bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png",
+      "path": "output/bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_1",
+     "label": "The subject to reshoot - one clear photo",
+     "type": "image",
+     "node": "1.image",
+     "from": "output of image_flux2_klein_9b_t2i@lamp",
+     "value": "comfyq__b8dbc97a__bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png",
+     "sourcePath": "output/bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png",
+     "staged": "comfyq__b8dbc97a__bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png"
+    },
+    {
+     "key": "cameraangle_221",
+     "label": "Where the camera stands",
+     "type": "camera",
+     "node": "221.horizontal_angle",
+     "from": "the test suite",
+     "value": "{\"horizontal\": 90, \"vertical\": 0, \"zoom\": 5}"
+    },
+    {
+     "key": "primitiveboolean_value_219_168",
+     "label": "Fast mode (4-step adapter - seconds instead of over two minutes)",
+     "type": "checkbox",
+     "node": "219:168.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "loraloadermodelonly_strength_model_219_220",
+     "label": "Adapter strength (lower it if the subject drifts)",
+     "type": "number",
+     "node": "219:220.strength_model",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_seed_219_169",
+     "label": "Seed - keep it fixed across angles to build a consistent turnaround",
+     "type": "number",
+     "node": "219:169.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 6,
+   "coldSec": 43,
+   "modelLoadSec": 37,
+   "vramPeakGb": 27.54,
+   "steps": 4,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [
+     "use_sage_attention"
+    ],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:25:53.717Z",
+   "wallSec": 52
+  },
+  {
+   "id": "image_moss_image_t2i@exploded-view",
+   "variantOf": "image_moss_image_t2i",
+   "variant": "exploded-view",
+   "name": "MOSS-Image SFT — text to image, with an optional box layout",
+   "category": "t2i",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:25:53.721Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_moss_image_t2i_1794817558280_00001_.png",
+     "bytes": 774240,
+     "kind": "image",
+     "width": 832,
+     "height": 1248,
+     "mode": "RGB",
+     "mean": 213.06,
+     "std": 72.04,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_moss_image_t2i_1794817558280_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "flux2-vae_small.safetensors",
+    "moss_image_sft_int8_convrot.safetensors",
+    "qwen3.5_9b_w4a8_gptq.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-industrial",
+    "stage": "2 — Colours, materials and views",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt_117",
+     "label": "Prompt — a detailed caption of the whole picture",
+     "type": "textarea",
+     "node": "117.value",
+     "from": "the test suite",
+     "value": "Technical exploded-view illustration of a portable Bluetooth speaker on a white background: the parts float apart along one vertical axis, from top to bottom a grey fabric top cap, a ring of control buttons, a round speaker driver, a green circuit board, a cylindrical battery, an aluminium body tube and a rubber base. Each part has a thin leader line to a small label in black sans-serif capitals: 'CAP', 'BUTTONS', 'DRIVER', 'PCB', 'BATTERY', 'BODY', 'BASE'. Clean product rendering, soft shadows, three-quarter view."
+    },
+    {
+     "key": "layout_24",
+     "label": "Layout — optional boxes (use Compose layout)",
+     "type": "textarea",
+     "node": "24.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "character_boxes_27",
+     "label": "Boxes that are characters (numbers, e.g. 1, 3 — set by the composer)",
+     "type": "text",
+     "node": "27.character_boxes",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "enhance_prompt_116",
+     "label": "Improve my prompt with AI (slower: adds about a minute and a half)",
+     "type": "checkbox",
+     "node": "116.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "aspect_ratio_19",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "19.aspect_ratio",
+     "from": "the test suite",
+     "value": "2:3 (Portrait Photo)"
+    },
+    {
+     "key": "megapixels_19",
+     "label": "Size in megapixels (1, 1.5 or 2 recommended)",
+     "type": "number",
+     "node": "19.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "negative_105",
+     "label": "Negative prompt",
+     "type": "textarea",
+     "node": "105.text",
+     "from": "the graph default",
+     "value": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact"
+    },
+    {
+     "key": "slg_124",
+     "label": "Skip-layer guidance (sharper detail; can over-bake anime styles)",
+     "type": "checkbox",
+     "node": "124.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "steps_107",
+     "label": "Steps (25 fast · 50 official)",
+     "type": "number",
+     "node": "107.steps",
+     "from": "the graph default",
+     "value": 25
+    },
+    {
+     "key": "cfg_107",
+     "label": "Guidance (CFG — 2.5 fast · 3 official)",
+     "type": "number",
+     "node": "107.cfg",
+     "from": "the graph default",
+     "value": 2.5
+    },
+    {
+     "key": "seed_107",
+     "label": "Seed",
+     "type": "number",
+     "node": "107.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 23,
+   "coldSec": 37,
+   "modelLoadSec": 14,
+   "vramPeakGb": 11.02,
+   "steps": 25,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:26:40.055Z",
+   "wallSec": 46
+  },
+  {
+   "id": "3d_pixal3d_trellis2_image_to_model@lamp-3d",
+   "variantOf": "3d_pixal3d_trellis2_image_to_model",
+   "variant": "lamp-3d",
+   "name": "Pixal3D / TRELLIS.2 (built-in nodes) — image to PBR-textured 3D model",
+   "category": "3d",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:26:40.059Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_3d_pixal3d_trellis2_image_to_model_1794817604594_00001.glb",
+     "bytes": 45606420,
+     "kind": "model3d",
+     "flags": [],
+     "format": "glb",
+     "file": "bench_3d_pixal3d_trellis2_image_to_model_1794817604594_00001.glb"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "birefnet.safetensors",
+    "dino_v3_l_naf_fp32.safetensors",
+    "moge_2_vitl_normal_fp16.safetensors",
+    "pixal3d_int8_convrot.safetensors",
+    "trellis_2_shape_vae_bf16.safetensors",
+    "trellis_2_texture_vae_bf16.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-industrial",
+    "stage": "3 — Into 3D",
+    "note": null,
+    "inputs": {
+     "loadimage_image_122": {
+      "from": "image_flux2_klein_9b_t2i@lamp",
+      "source": "output/bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png",
+      "path": "output/bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_122",
+     "label": "Object image (whole subject in frame)",
+     "type": "image",
+     "node": "122.image",
+     "from": "output of image_flux2_klein_9b_t2i@lamp",
+     "value": "comfyq__b2dfa681__bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png",
+     "sourcePath": "output/bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png",
+     "staged": "comfyq__b2dfa681__bench_image_flux2_klein_9b_t2i_1794817438380_00001_.png"
+    },
+    {
+     "key": "primitiveboolean_value_316",
+     "label": "Use TRELLIS.2 instead of Pixal3D",
+     "type": "checkbox",
+     "node": "316.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "comfyswitchnode_switch_248",
+     "label": "Auto-remove background (turn off only for a transparent PNG)",
+     "type": "checkbox",
+     "node": "248.switch",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "trellis2upsamplestage_target_resolution_94",
+     "label": "Shape detail (voxel resolution — higher = finer, more memory & time)",
+     "type": "number",
+     "node": "94.target_resolution",
+     "from": "the graph default",
+     "value": 1536
+    },
+    {
+     "key": "decimatemesh_target_face_count_186",
+     "label": "Target face count (polygon budget of the final mesh)",
+     "type": "number",
+     "node": "186.target_face_count",
+     "from": "the graph default",
+     "value": 700000
+    },
+    {
+     "key": "primitiveint_value_288",
+     "label": "Texture resolution (colour, metallic and roughness maps)",
+     "type": "number",
+     "node": "288.value",
+     "from": "the graph default",
+     "value": 4096
+    },
+    {
+     "key": "ksampler_seed_3",
+     "label": "Seed",
+     "type": "number",
+     "node": "3.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 69,
+   "coldSec": 73,
+   "modelLoadSec": 5,
+   "vramPeakGb": 10.56,
+   "steps": 5,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:28:02.301Z",
+   "wallSec": 82
+  },
+  {
+   "id": "3d_mesh_remesh_decimate@lamp-lowpoly",
+   "variantOf": "3d_mesh_remesh_decimate",
+   "variant": "lamp-lowpoly",
+   "name": "Remesh & decimate - 3D model to clean low-poly",
+   "category": "3d",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:28:02.305Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_3d_mesh_remesh_decimate_1794817686893_00001_.glb",
+     "bytes": 17824504,
+     "kind": "model3d",
+     "flags": [],
+     "format": "glb",
+     "file": "bench_3d_mesh_remesh_decimate_1794817686893_00001_.glb"
+    },
+    {
+     "kind": "text",
+     "file": "node 8",
+     "text": "Vertices:   406,050 (406.1K)\nFaces:      695,188 (695.2K)\nAttributes: uvs, normals, tangents, texture 4096×4096, metallic_roughness 4096×4096, normal_map 2048×2048",
+     "chars": 163,
+     "flags": []
+    },
+    {
+     "kind": "text",
+     "file": "node 15",
+     "text": "Vertices:   1,002\nFaces:      1,994\nAttributes: normals, texture 4096×4096, metallic_roughness 4096×4096, normal_map 2048×2048",
+     "chars": 126,
+     "flags": []
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-industrial",
+    "stage": "3 — Into 3D",
+    "note": null,
+    "inputs": {
+     "load3dadvanced_model_file_6": {
+      "from": "3d_pixal3d_trellis2_image_to_model@lamp-3d",
+      "source": "output/bench_3d_pixal3d_trellis2_image_to_model_1794817604594_00001.glb",
+      "path": "output/bench_3d_pixal3d_trellis2_image_to_model_1794817604594_00001.glb"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "load3dadvanced_model_file_6",
+     "label": "3D model (GLB, GLTF, OBJ or STL)",
+     "type": "model3d",
+     "node": "6.model_file",
+     "from": "output of 3d_pixal3d_trellis2_image_to_model@lamp-3d",
+     "value": "comfyq__babfc6df__bench_3d_pixal3d_trellis2_image_to_model_1794817604594_00001.glb",
+     "sourcePath": "output/bench_3d_pixal3d_trellis2_image_to_model_1794817604594_00001.glb",
+     "staged": "comfyq__babfc6df__bench_3d_pixal3d_trellis2_image_to_model_1794817604594_00001.glb"
+    },
+    {
+     "key": "primitiveint_value_2",
+     "label": "Target triangle count",
+     "type": "number",
+     "node": "2.value",
+     "from": "the graph default",
+     "value": 2000
+    },
+    {
+     "key": "primitiveboolean_value_3",
+     "label": "Watertight remesh (rebuild as one closed shell)",
+     "type": "checkbox",
+     "node": "3.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "primitiveint_value_4",
+     "label": "Smoothing passes (watertight remesh only)",
+     "type": "number",
+     "node": "4.value",
+     "from": "the graph default",
+     "value": 2
+    },
+    {
+     "key": "primitivefloat_value_5",
+     "label": "Sharp-edge angle (degrees, 180 = fully smooth)",
+     "type": "number",
+     "node": "5.value",
+     "from": "the graph default",
+     "value": 90
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 2,
+   "coldSec": 2,
+   "modelLoadSec": 1,
+   "vramPeakGb": 0.02,
+   "steps": 1,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:28:13.139Z",
+   "wallSec": 11
+  },
+  {
+   "id": "3d_mesh_uv_unwrap@lamp-uv",
+   "variantOf": "3d_mesh_uv_unwrap",
+   "variant": "lamp-uv",
+   "name": "UV unwrap & bake AO - prepare a model for texturing",
+   "category": "3d",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:28:13.142Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_3d_mesh_uv_unwrap_1794817696608_00001_.glb",
+     "bytes": 62576,
+     "kind": "model3d",
+     "flags": [],
+     "format": "glb",
+     "file": "bench_3d_mesh_uv_unwrap_1794817696608_00001_.glb"
+    },
+    {
+     "path": "output/bench_3d_mesh_uv_unwrap_1794817696608_00002_.png",
+     "bytes": 113547,
+     "kind": "image",
+     "width": 2048,
+     "height": 2048,
+     "mode": "RGB",
+     "mean": 92.21,
+     "std": 69.95,
+     "min": 0,
+     "max": 213,
+     "flags": [],
+     "file": "bench_3d_mesh_uv_unwrap_1794817696608_00002_.png"
+    },
+    {
+     "path": "output/bench_3d_mesh_uv_unwrap_1794817696608_00003_.png",
+     "bytes": 1305096,
+     "kind": "image",
+     "width": 2048,
+     "height": 2048,
+     "mode": "RGB",
+     "mean": 243.43,
+     "std": 15.38,
+     "min": 110,
+     "max": 255,
+     "flags": [],
+     "file": "bench_3d_mesh_uv_unwrap_1794817696608_00003_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-industrial",
+    "stage": "3 — Into 3D",
+    "note": null,
+    "inputs": {
+     "load3dadvanced_model_file_6": {
+      "from": "3d_mesh_remesh_decimate@lamp-lowpoly",
+      "source": "output/bench_3d_mesh_remesh_decimate_1794817686893_00001_.glb",
+      "path": "output/bench_3d_mesh_remesh_decimate_1794817686893_00001_.glb"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "load3dadvanced_model_file_6",
+     "label": "3D model (GLB, GLTF, OBJ or STL)",
+     "type": "model3d",
+     "node": "6.model_file",
+     "from": "output of 3d_mesh_remesh_decimate@lamp-lowpoly",
+     "value": "comfyq__bc9407e2__bench_3d_mesh_remesh_decimate_1794817686893_00001_.glb",
+     "sourcePath": "output/bench_3d_mesh_remesh_decimate_1794817686893_00001_.glb",
+     "staged": "comfyq__bc9407e2__bench_3d_mesh_remesh_decimate_1794817686893_00001_.glb"
+    },
+    {
+     "key": "primitiveint_value_2",
+     "label": "Atlas resolution (px)",
+     "type": "number",
+     "node": "2.value",
+     "from": "the graph default",
+     "value": 2048
+    },
+    {
+     "key": "unwrapmesh_segmenter_8",
+     "label": "Island splitting",
+     "type": "select",
+     "node": "8.segmenter",
+     "from": "the graph default",
+     "value": "pec"
+    },
+    {
+     "key": "primitiveint_value_3",
+     "label": "Padding between islands (px)",
+     "type": "number",
+     "node": "3.value",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "primitiveint_value_4",
+     "label": "AO rays per texel",
+     "type": "number",
+     "node": "4.value",
+     "from": "the graph default",
+     "value": 64
+    },
+    {
+     "key": "primitivefloat_value_5",
+     "label": "AO strength",
+     "type": "number",
+     "node": "5.value",
+     "from": "the graph default",
+     "value": 1
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 9,
+   "coldSec": 9,
+   "modelLoadSec": 0,
+   "vramPeakGb": 1.94,
+   "steps": 1000,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:28:30.752Z",
+   "wallSec": 18
+  },
+  {
+   "id": "video_ltx2_5_i2v@turntable",
+   "variantOf": "video_ltx2_5_i2v",
+   "variant": "turntable",
+   "name": "LTX 2.5 — image to video + audio",
+   "category": "i2v",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:28:30.756Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_ltx2_5_i2v_1794817714186_00001_.mp4",
+     "bytes": 757589,
+     "kind": "video",
+     "frames": 121,
+     "fps": 24,
+     "width": 1280,
+     "height": 704,
+     "samples": [
+      {
+       "mean": 168.29,
+       "std": 30.14,
+       "min": 10,
+       "max": 254,
+       "at": 0
+      },
+      {
+       "mean": 166.08,
+       "std": 27.01,
+       "min": 8,
+       "max": 252,
+       "at": 60
+      },
+      {
+       "mean": 166.43,
+       "std": 28.76,
+       "min": 7,
+       "max": 251,
+       "at": 119
+      }
+     ],
+     "mean": 166.93,
+     "std": 30.14,
+     "flags": [],
+     "file": "bench_video_ltx2_5_i2v_1794817714186_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-industrial",
+    "stage": "4 — Presenting it",
+    "note": null,
+    "inputs": {
+     "loadimage_image_395": {
+      "from": "image_qwen_image_2_1_control_canny@render",
+      "source": "output/bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png",
+      "path": "output/bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_395",
+     "label": "Start image (first frame)",
+     "type": "image",
+     "node": "395.image",
+     "from": "output of image_qwen_image_2_1_control_canny@render",
+     "value": "comfyq__b044c1a4__bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png",
+     "sourcePath": "output/bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png",
+     "staged": "comfyq__b044c1a4__bench_image_qwen_image_2_1_control_canny_1794817322523_00001.png"
+    },
+    {
+     "key": "primitivestringmultiline_value_398_376",
+     "label": "Prompt (motion / camera / sound)",
+     "type": "textarea",
+     "node": "398:376.value",
+     "from": "the test suite",
+     "value": "Use the provided start image as the first frame. The kettle turns slowly on a hidden turntable, a smooth half turn that shows its rounded side and the coral handle from behind, then the light ring at its base glows a little brighter. The camera stays perfectly still, the soft studio light and the grey background do not change. A quiet studio ambience and one soft click as the light ring brightens. No text, no black frames."
+    },
+    {
+     "key": "primitiveboolean_value_398_383",
+     "label": "Enhance prompt with AI (slower)",
+     "type": "checkbox",
+     "node": "398:383.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "primitiveint_value_410",
+     "label": "Width (px, multiple of 64 — your image is center-cropped to this shape)",
+     "type": "number",
+     "node": "410.value",
+     "from": "the graph default",
+     "value": 1280
+    },
+    {
+     "key": "primitiveint_value_411",
+     "label": "Height (px, multiple of 64)",
+     "type": "number",
+     "node": "411.value",
+     "from": "the graph default",
+     "value": 704
+    },
+    {
+     "key": "primitiveint_value_398_362",
+     "label": "Duration (seconds)",
+     "type": "number",
+     "node": "398:362.value",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "primitiveint_value_398_361",
+     "label": "Frame rate (fps)",
+     "type": "number",
+     "node": "398:361.value",
+     "from": "the graph default",
+     "value": 24
+    },
+    {
+     "key": "randomnoise_noise_seed_398_339",
+     "label": "Seed",
+     "type": "number",
+     "node": "398:339.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 51,
+   "coldSec": 100,
+   "modelLoadSec": 49,
+   "vramPeakGb": 29.45,
+   "steps": 3,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:30:18.749Z",
+   "wallSec": 108
+  }
+ ]
+}

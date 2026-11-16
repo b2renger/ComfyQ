@@ -1,0 +1,1443 @@
+{
+ "type": "summary",
+ "startedAt": "2026-11-16T08:50:59.191Z",
+ "finishedAt": "2026-11-16T09:00:13.071Z",
+ "state": "done",
+ "machine": {
+  "at": "2026-11-16T08:50:59.225Z",
+  "host": "AN-5090-2",
+  "instance": "AN-5090-2",
+  "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+  "vramTotalGb": 31.82,
+  "comfyui": "0.45.2",
+  "pytorch": "2.8.0+cu128",
+  "python": "3.12.10",
+  "argv": [
+   "--listen",
+   "--port",
+   "--disable-auto-launch",
+   "--windows-standalone-build",
+   "--fast"
+  ],
+  "comfyRoot": "comfyui",
+  "assetsDir": "assets",
+  "scanDirs": [
+   "/_demo_workflows"
+  ],
+  "comfyqCommit": "94fd022",
+  "comfyqBranch": "main"
+ },
+ "suite": {
+  "name": "speciality-uxui",
+  "file": "./tools/test-suite/speciality-uxui.suite.csv",
+  "description": "UX/UI design: a paper wireframe turned into a screen, an app screen with exact text, its dark mode and theme animation, the screen on a phone, alt text, a dashboard and a user test. Every run becomes an example for students of this speciality, beside the card's showcase (tools/maintenance/seed_examples.cjs --speciality uxui)."
+ },
+ "summary": {
+  "ran": 10,
+  "succeeded": 10,
+  "failed": 0,
+  "withFlaggedOutput": 0,
+  "noOutput": 0,
+  "distinctModelsOpened": 4,
+  "recorderAvailable": true
+ },
+ "results": [
+  {
+   "id": "image_flux3_klein_distilled_t2i@wireframe",
+   "variantOf": "image_flux3_klein_distilled_t2i",
+   "variant": "wireframe",
+   "name": "FLUX.3 Klein distilled — fast text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:50:59.231Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_flux3_klein_distilled_t2i_1794819068812_00001_.png",
+     "bytes": 1456064,
+     "kind": "image",
+     "width": 880,
+     "height": 1184,
+     "mode": "RGB",
+     "mean": 216.55,
+     "std": 51.91,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_flux3_klein_distilled_t2i_1794819068812_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-uxui",
+    "stage": "1 — From wireframe to screen",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "117.value",
+     "from": "the test suite",
+     "value": "Hand-drawn low-fidelity wireframe of one mobile app screen on white dotted paper, black felt-tip pen: the outline of a phone in portrait, inside it a header bar with a menu icon and the title 'Bike Share', a large rounded rectangle for a map with three location pins, a search field, two big rounded buttons side by side labelled 'Scan' and 'Rent', and a bottom navigation bar with four simple icons. Clean confident lines, light grey shading on the buttons, flat lay, evenly lit."
+    },
+    {
+     "key": "layout",
+     "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+     "type": "textarea",
+     "node": "300.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "improve_prompt",
+     "label": "Improve the prompt with AI first (a Qwen 3.5 model expands it into a full caption) — slow: adds about 3 minutes",
+     "type": "checkbox",
+     "node": "116.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "aspect_ratio",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "19.aspect_ratio",
+     "from": "the test suite",
+     "value": "3:4 (Portrait Standard)"
+    },
+    {
+     "key": "megapixels",
+     "label": "Size (megapixels — 1 is about 1024×1024)",
+     "type": "number",
+     "node": "19.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps",
+     "label": "Steps",
+     "type": "number",
+     "node": "107.steps",
+     "from": "the graph default",
+     "value": 16
+    },
+    {
+     "key": "seed",
+     "label": "Seed",
+     "type": "number",
+     "node": "107.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 7,
+   "coldSec": 17,
+   "modelLoadSec": 10,
+   "vramPeakGb": 10.11,
+   "steps": 16,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:51:30.351Z",
+   "wallSec": 31
+  },
+  {
+   "id": "image_qwen_image_2_1_control_canny@hi-fi",
+   "variantOf": "image_qwen_image_2_1_control_canny",
+   "variant": "hi-fi",
+   "name": "Qwen Image 2.1 - draw from edges (ControlNet canny)",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:51:30.355Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2_1_control_canny_1794819094909_00001.png",
+     "bytes": 974200,
+     "kind": "image",
+     "width": 896,
+     "height": 1184,
+     "mode": "RGBA",
+     "mean": 242.49,
+     "std": 24.36,
+     "min": 33,
+     "max": 255,
+     "alpha": {
+      "mean": 254.96,
+      "std": 0.19,
+      "min": 249,
+      "max": 255
+     },
+     "flags": [],
+     "file": "bench_image_qwen_image_2_1_control_canny_1794819094909_00001.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-uxui",
+    "stage": "1 — From wireframe to screen",
+    "note": null,
+    "inputs": {
+     "loadimage_image_900": {
+      "from": "image_flux3_klein_distilled_t2i@wireframe",
+      "source": "output/bench_image_flux3_klein_distilled_t2i_1794819068812_00001_.png",
+      "path": "output/bench_image_flux3_klein_distilled_t2i_1794819068812_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "textencodeqwenimage21_prompt_459_452",
+     "label": "What to draw - the picture supplies the structure, this supplies everything else",
+     "type": "textarea",
+     "node": "459:452.prompt",
+     "from": "the test suite",
+     "value": "High-fidelity mobile app screen of a bike-sharing app following the wireframe exactly: a white header with a menu icon and the title 'Bike Share' in bold dark sans-serif, a large rounded map card in soft greens and greys with three teal location pins, a rounded search field with a magnifier icon, two large rounded teal buttons labelled 'Scan' and 'Rent' in white, and a bottom navigation bar with four line icons, the first one active in teal. Flat modern interface, crisp edges, generous spacing, light theme, shown flat on a white background."
+    },
+    {
+     "key": "loadimage_image_900",
+     "label": "Structure image - its shapes are kept, its content is not",
+     "type": "image",
+     "node": "900.image",
+     "from": "output of image_flux3_klein_distilled_t2i@wireframe",
+     "value": "comfyq__bd6b63b4__bench_image_flux3_klein_distilled_t2i_1794819068812_00001_.png",
+     "sourcePath": "output/bench_image_flux3_klein_distilled_t2i_1794819068812_00001_.png",
+     "staged": "comfyq__bd6b63b4__bench_image_flux3_klein_distilled_t2i_1794819068812_00001_.png"
+    },
+    {
+     "key": "controlnet_strength_903",
+     "label": "How closely to follow the structure (1.0 is the trained strength)",
+     "type": "number",
+     "node": "903.strength",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "canny_low_threshold_901",
+     "label": "Edge detail - lower finds more lines",
+     "type": "number",
+     "node": "901.low_threshold",
+     "from": "the graph default",
+     "value": 0.4
+    },
+    {
+     "key": "canny_high_threshold_901",
+     "label": "Edge strength - higher keeps only strong lines",
+     "type": "number",
+     "node": "901.high_threshold",
+     "from": "the graph default",
+     "value": 0.8
+    },
+    {
+     "key": "resolutionselector_aspect_ratio_13",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "13.aspect_ratio",
+     "from": "the test suite",
+     "value": "3:4 (Portrait Standard)"
+    },
+    {
+     "key": "resolutionselector_megapixels_13",
+     "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+     "type": "number",
+     "node": "13.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_steps_459_458",
+     "label": "Steps (20 is the default, 25 is quick, 40–50 is Qwen's own setting — slower)",
+     "type": "number",
+     "node": "459:458.steps",
+     "from": "the graph default",
+     "value": 20
+    },
+    {
+     "key": "ksampler_seed_459_458",
+     "label": "Seed",
+     "type": "number",
+     "node": "459:458.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 17,
+   "coldSec": 46,
+   "modelLoadSec": 29,
+   "vramPeakGb": 23.61,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:52:25.262Z",
+   "wallSec": 55
+  },
+  {
+   "id": "image_ideogram4_t2i@onboarding",
+   "variantOf": "image_ideogram4_t2i",
+   "variant": "onboarding",
+   "name": "Ideogram 4.0 — text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:52:25.267Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png",
+     "bytes": 511084,
+     "kind": "image",
+     "width": 768,
+     "height": 1376,
+     "mode": "RGB",
+     "mean": 217.83,
+     "std": 64.52,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_ideogram4_t2i_1794819151541_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "ideogram4_fp8_scaled.safetensors",
+    "ideogram4_unconditional_fp8_scaled.safetensors",
+    "qwen3vl_8b_fp8_scaled.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-uxui",
+    "stage": "1 — From wireframe to screen",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt_json_98_24",
+     "label": "Prompt (structured JSON)",
+     "type": "textarea",
+     "node": "98:24.text",
+     "from": "the test suite",
+     "value": "{\n    \"high_level_description\": \"A clean, friendly onboarding screen of a plant-care mobile app in light mode: a large flat illustration of a monstera plant in a terracotta pot, a bold headline, a short line of body text, three pagination dots and a wide green button, shown flat as a screen design.\",\n    \"style_description\": {\n        \"aesthetics\": \"Modern flat mobile UI design, rounded corners, generous white space, crisp vector illustration with soft organic shapes.\",\n        \"lighting\": \"Flat, even screen lighting with no shadows except a soft shadow under the button.\",\n        \"photo\": \"A flat screen design export, pixel-sharp, no device frame.\",\n        \"medium\": \"Digital user interface design\",\n        \"color_palette\": [\n            \"#FFFFFF\",\n            \"#1F7A4D\",\n            \"#E8F3EC\",\n            \"#C8643B\",\n            \"#1A1A1A\"\n        ]\n    },\n    \"compositional_deconstruction\": {\n        \"background\": \"A plain white screen background with a very pale green rounded blob behind the illustration.\",\n        \"elements\": [\n            {\n                \"type\": \"obj\",\n                \"bbox\": [\n                    30,\n                    60,\n                    70,\n                    940\n                ],\n                \"desc\": \"A thin status bar at the very top with the time '9:41' on the left and battery and signal icons on the right, in dark grey.\",\n                \"color_palette\": [\n                    \"#1A1A1A\"\n                ]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [\n                    120,\n                    150,\n                    520,\n                    850\n                ],\n                \"desc\": \"A large flat illustration of a monstera plant with three big split leaves in deep green, standing in a terracotta pot, with two small water drops floating beside it.\",\n                \"color_palette\": [\n                    \"#1F7A4D\",\n                    \"#C8643B\",\n                    \"#E8F3EC\"\n                ]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [\n                    580,\n                    90,\n                    680,\n                    910\n                ],\n                \"desc\": \"The headline 'Water at the right time' in a bold rounded sans-serif, dark grey, centred, on two lines.\",\n                \"color_palette\": [\n                    \"#1A1A1A\"\n                ]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [\n                    690,\n                    120,\n                    760,\n                    880\n                ],\n                \"desc\": \"Body text 'Bloom reminds you when each plant is thirsty.' in a regular grey sans-serif, centred.\",\n                \"color_palette\": [\n                    \"#6B6B6B\"\n                ]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [\n                    790,\n                    440,\n                    810,\n                    560\n                ],\n                \"desc\": \"Three small pagination dots, the first one filled green and wider, the other two pale grey.\",\n                \"color_palette\": [\n                    \"#1F7A4D\",\n                    \"#D9D9D9\"\n                ]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [\n                    850,\n                    90,\n                    920,\n                    910\n                ],\n                \"desc\": \"A wide rounded green button with the label 'Get started' in white bold sans-serif, centred.\",\n                \"color_palette\": [\n                    \"#1F7A4D\",\n                    \"#FFFFFF\"\n                ]\n            }\n        ]\n    }\n}"
+    },
+    {
+     "key": "aspect_ratio_37",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "37.aspect_ratio",
+     "from": "the test suite",
+     "value": "9:16 (Portrait Widescreen)"
+    },
+    {
+     "key": "megapixels_37",
+     "label": "Megapixels",
+     "type": "number",
+     "node": "37.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "quality_98_156",
+     "label": "Quality preset",
+     "type": "select",
+     "node": "98:156.choice",
+     "from": "the graph default",
+     "value": "Default"
+    },
+    {
+     "key": "cfg_98_155",
+     "label": "Guidance (CFG)",
+     "type": "number",
+     "node": "98:155.cfg",
+     "from": "the graph default",
+     "value": 7
+    },
+    {
+     "key": "noise_seed_98_18",
+     "label": "Seed",
+     "type": "number",
+     "node": "98:18.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 21,
+   "coldSec": 50,
+   "modelLoadSec": 29,
+   "vramPeakGb": 25.9,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [
+     "use_sage_attention"
+    ],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:53:26.280Z",
+   "wallSec": 61
+  },
+  {
+   "id": "image_edit_flux3_klein_distilled_image_edit@dark-mode",
+   "variantOf": "image_edit_flux3_klein_distilled_image_edit",
+   "variant": "dark-mode",
+   "name": "FLUX.3 Klein distilled — fast picture edit",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:53:26.285Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_flux3_klein_distilled_image_edit_1794819211363_00001_.png",
+     "bytes": 480950,
+     "kind": "image",
+     "width": 752,
+     "height": 1360,
+     "mode": "RGB",
+     "mean": 56.87,
+     "std": 80.25,
+     "min": 0,
+     "max": 254,
+     "flags": [],
+     "file": "bench_image_edit_flux3_klein_distilled_image_edit_1794819211363_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-uxui",
+    "stage": "2 — Variants and mockups",
+    "note": null,
+    "inputs": {
+     "image": {
+      "from": "image_ideogram4_t2i@onboarding",
+      "source": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png",
+      "path": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "image",
+     "label": "Picture to edit",
+     "type": "image",
+     "node": "11.image",
+     "from": "output of image_ideogram4_t2i@onboarding",
+     "value": "comfyq__bc1fef20__bench_image_ideogram4_t2i_1794819151541_00001_.png",
+     "sourcePath": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png",
+     "staged": "comfyq__bc1fef20__bench_image_ideogram4_t2i_1794819151541_00001_.png"
+    },
+    {
+     "key": "prompt",
+     "label": "What to change",
+     "type": "textarea",
+     "node": "301.value",
+     "from": "the test suite",
+     "value": "In <ref_image_0>, convert the app screen to dark mode: a near-black background, the headline and body text in off-white, the status bar in light grey, the button in the same green with white text, the illustration kept in its colours but slightly brighter so it reads well on dark. Keep every text, its position, its size and the layout exactly the same."
+    },
+    {
+     "key": "layout",
+     "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+     "type": "textarea",
+     "node": "300.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "improve_prompt",
+     "label": "Improve the instruction with AI first (a Qwen 3.5 model looks at the picture and writes a full caption of the result) — slow: adds about 2–3 minutes",
+     "type": "checkbox",
+     "node": "51.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "megapixels",
+     "label": "Working size (megapixels) — the result takes the picture's shape at this size",
+     "type": "number",
+     "node": "17.resolution.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps",
+     "label": "Steps",
+     "type": "number",
+     "node": "7.steps",
+     "from": "the graph default",
+     "value": 16
+    },
+    {
+     "key": "seed",
+     "label": "Seed",
+     "type": "number",
+     "node": "7.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 12,
+   "coldSec": 15,
+   "modelLoadSec": 3,
+   "vramPeakGb": 11.39,
+   "steps": 16,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:53:51.433Z",
+   "wallSec": 25
+  },
+  {
+   "id": "image_flux2_klein_9b_t2i@phone-in-hand",
+   "variantOf": "image_flux2_klein_9b_t2i",
+   "variant": "phone-in-hand",
+   "name": "Flux2 Klein 9B — text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:53:51.437Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_flux2_klein_9b_t2i_1794819235976_00001_.png",
+     "bytes": 1395391,
+     "kind": "image",
+     "width": 832,
+     "height": 1216,
+     "mode": "RGB",
+     "mean": 142.29,
+     "std": 94.58,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_flux2_klein_9b_t2i_1794819235976_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-uxui",
+    "stage": "2 — Variants and mockups",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "primitivestringmultiline_value_76",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "76.value",
+     "from": "the test suite",
+     "value": "Photograph of a person's hand holding a modern smartphone upright over a wooden café table, the phone's screen bright and plain white, a cup of coffee and a notebook blurred in the background, soft natural window light, shallow depth of field."
+    },
+    {
+     "key": "cliptextencode_text_75_67",
+     "label": "Negative prompt",
+     "type": "textarea",
+     "node": "75:67.text",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "randomnoise_noise_seed_75_73",
+     "label": "Seed",
+     "type": "number",
+     "node": "75:73.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    },
+    {
+     "key": "flux2scheduler_steps_75_62",
+     "label": "Steps",
+     "type": "number",
+     "node": "75:62.steps",
+     "from": "the graph default",
+     "value": 20
+    },
+    {
+     "key": "cfgguider_cfg_75_63",
+     "label": "CFG",
+     "type": "number",
+     "node": "75:63.cfg",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "primitiveint_value_75_68",
+     "label": "Width",
+     "type": "number",
+     "node": "75:68.value",
+     "from": "the test suite",
+     "value": 832
+    },
+    {
+     "key": "primitiveint_value_75_69",
+     "label": "Height",
+     "type": "number",
+     "node": "75:69.value",
+     "from": "the test suite",
+     "value": 1216
+    },
+    {
+     "key": "emptyflux2latentimage_batch_size_75_66",
+     "label": "Batch size",
+     "type": "number",
+     "node": "75:66.batch_size",
+     "from": "the graph default",
+     "value": 1
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 12,
+   "coldSec": 33,
+   "modelLoadSec": 21,
+   "vramPeakGb": 18.3,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:54:34.025Z",
+   "wallSec": 43
+  },
+  {
+   "id": "image_qwen_image_2_1_image_edit@screen-on-phone",
+   "variantOf": "image_qwen_image_2_1_image_edit",
+   "variant": "screen-on-phone",
+   "name": "Qwen Image 2.1 — image edit with references",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:54:34.029Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2_1_image_edit_1794819278648_00001.png",
+     "bytes": 1472204,
+     "kind": "image",
+     "width": 832,
+     "height": 1216,
+     "mode": "RGBA",
+     "mean": 133.13,
+     "std": 89.26,
+     "min": 0,
+     "max": 255,
+     "alpha": {
+      "mean": 254.83,
+      "std": 0.38,
+      "min": 246,
+      "max": 255
+     },
+     "flags": [],
+     "file": "bench_image_qwen_image_2_1_image_edit_1794819278648_00001.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-uxui",
+    "stage": "2 — Variants and mockups",
+    "note": null,
+    "inputs": {
+     "loadimage_image_470": {
+      "from": "image_flux2_klein_9b_t2i@phone-in-hand",
+      "source": "output/bench_image_flux2_klein_9b_t2i_1794819235976_00001_.png",
+      "path": "output/bench_image_flux2_klein_9b_t2i_1794819235976_00001_.png"
+     },
+     "loadimage_image_475": {
+      "from": "image_ideogram4_t2i@onboarding",
+      "source": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png",
+      "path": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "textencodeqwenimage21_prompt_459_474",
+     "label": "What to change, or what to draw (name your pictures as <image1>, <image2>, …)",
+     "type": "textarea",
+     "node": "459:474.prompt",
+     "from": "the test suite",
+     "value": "Put the app screen from <image2> on the screen of the phone in <image1>, fitted exactly to the screen with the same perspective and a slight glass reflection. Keep the hand, the phone, the café table and the light of <image1> unchanged."
+    },
+    {
+     "key": "loadimage_image_470",
+     "label": "Image 1 — the picture to edit, or leave empty to generate from the prompt alone",
+     "type": "image",
+     "node": "470.image",
+     "from": "output of image_flux2_klein_9b_t2i@phone-in-hand",
+     "value": "comfyq__b1ab6b2c__bench_image_flux2_klein_9b_t2i_1794819235976_00001_.png",
+     "sourcePath": "output/bench_image_flux2_klein_9b_t2i_1794819235976_00001_.png",
+     "staged": "comfyq__b1ab6b2c__bench_image_flux2_klein_9b_t2i_1794819235976_00001_.png"
+    },
+    {
+     "key": "loadimage_image_475",
+     "label": "Image 2 — optional reference (<image2>)",
+     "type": "image",
+     "node": "475.image",
+     "from": "output of image_ideogram4_t2i@onboarding",
+     "value": "comfyq__b1ab6b2c__bench_image_ideogram4_t2i_1794819151541_00001_.png",
+     "sourcePath": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png",
+     "staged": "comfyq__b1ab6b2c__bench_image_ideogram4_t2i_1794819151541_00001_.png"
+    },
+    {
+     "key": "loadimage_image_476",
+     "label": "Image 3 — optional reference (<image3>)",
+     "type": "image",
+     "node": "476.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_477",
+     "label": "Image 4 — optional reference (<image4>)",
+     "type": "image",
+     "node": "477.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_478",
+     "label": "Image 5 — optional reference (<image5>)",
+     "type": "image",
+     "node": "478.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_479",
+     "label": "Image 6 — optional reference (<image6>)",
+     "type": "image",
+     "node": "479.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_480",
+     "label": "Image 7 — optional reference (<image7>)",
+     "type": "image",
+     "node": "480.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_481",
+     "label": "Image 8 — optional reference (<image8>)",
+     "type": "image",
+     "node": "481.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_482",
+     "label": "Image 9 — optional reference (<image9>)",
+     "type": "image",
+     "node": "482.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_483",
+     "label": "Image 10 — optional reference (<image10>)",
+     "type": "image",
+     "node": "483.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_484",
+     "label": "Image 11 — optional reference (<image11>)",
+     "type": "image",
+     "node": "484.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_485",
+     "label": "Image 12 — optional reference (<image12>)",
+     "type": "image",
+     "node": "485.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_486",
+     "label": "Image 13 — optional reference (<image13>)",
+     "type": "image",
+     "node": "486.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_487",
+     "label": "Image 14 — optional reference (<image14>)",
+     "type": "image",
+     "node": "487.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_488",
+     "label": "Image 15 — optional reference (<image15>)",
+     "type": "image",
+     "node": "488.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_489",
+     "label": "Image 16 — optional reference (<image16>)",
+     "type": "image",
+     "node": "489.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "resolutionselector_aspect_ratio_13",
+     "label": "Aspect ratio — only used when you upload NO picture (with Image 1, the result follows it)",
+     "type": "select",
+     "node": "13.aspect_ratio",
+     "from": "the test suite",
+     "value": "2:3 (Portrait Photo)"
+    },
+    {
+     "key": "resolutionselector_megapixels_13",
+     "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K) — only used when you upload NO picture (with Image 1, the result follows it)",
+     "type": "number",
+     "node": "13.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_steps_459_458",
+     "label": "Steps (25 is quick, 40–50 is Qwen’s own setting)",
+     "type": "number",
+     "node": "459:458.steps",
+     "from": "calibration",
+     "value": 25
+    },
+    {
+     "key": "ksampler_seed_459_458",
+     "label": "Seed",
+     "type": "number",
+     "node": "459:458.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 16,
+   "coldSec": 25,
+   "modelLoadSec": 8,
+   "vramPeakGb": 21.26,
+   "steps": 25,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:55:08.019Z",
+   "wallSec": 34
+  },
+  {
+   "id": "image_moss_image_t2i@dashboard",
+   "variantOf": "image_moss_image_t2i",
+   "variant": "dashboard",
+   "name": "MOSS-Image SFT — text to image, with an optional box layout",
+   "category": "t2i",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:55:08.023Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_moss_image_t2i_1794819313001_00001_.png",
+     "bytes": 854559,
+     "kind": "image",
+     "width": 1360,
+     "height": 768,
+     "mode": "RGB",
+     "mean": 247.66,
+     "std": 19.9,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_moss_image_t2i_1794819313001_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-uxui",
+    "stage": "2 — Variants and mockups",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt_117",
+     "label": "Prompt — a detailed caption of the whole picture",
+     "type": "textarea",
+     "node": "117.value",
+     "from": "the test suite",
+     "value": "Desktop web dashboard design for an energy-monitoring app, light theme, shown flat: a left sidebar with the logo 'VOLTA' and five menu items, a top bar with a search field and a round user avatar, a large line chart titled 'Energy use this week', three summary cards reading '312 kWh', '-18 %' and '46 EUR', and a table of devices on the right. Clean flat design, rounded cards, teal and coral accents, crisp sans-serif type."
+    },
+    {
+     "key": "layout_24",
+     "label": "Layout — optional boxes (use Compose layout)",
+     "type": "textarea",
+     "node": "24.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "character_boxes_27",
+     "label": "Boxes that are characters (numbers, e.g. 1, 3 — set by the composer)",
+     "type": "text",
+     "node": "27.character_boxes",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "enhance_prompt_116",
+     "label": "Improve my prompt with AI (slower: adds about a minute and a half)",
+     "type": "checkbox",
+     "node": "116.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "aspect_ratio_19",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "19.aspect_ratio",
+     "from": "the test suite",
+     "value": "16:9 (Widescreen)"
+    },
+    {
+     "key": "megapixels_19",
+     "label": "Size in megapixels (1, 1.5 or 2 recommended)",
+     "type": "number",
+     "node": "19.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "negative_105",
+     "label": "Negative prompt",
+     "type": "textarea",
+     "node": "105.text",
+     "from": "the graph default",
+     "value": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact"
+    },
+    {
+     "key": "slg_124",
+     "label": "Skip-layer guidance (sharper detail; can over-bake anime styles)",
+     "type": "checkbox",
+     "node": "124.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "steps_107",
+     "label": "Steps (25 fast · 50 official)",
+     "type": "number",
+     "node": "107.steps",
+     "from": "the graph default",
+     "value": 25
+    },
+    {
+     "key": "cfg_107",
+     "label": "Guidance (CFG — 2.5 fast · 3 official)",
+     "type": "number",
+     "node": "107.cfg",
+     "from": "the graph default",
+     "value": 2.5
+    },
+    {
+     "key": "seed_107",
+     "label": "Seed",
+     "type": "number",
+     "node": "107.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 23,
+   "coldSec": 37,
+   "modelLoadSec": 14,
+   "vramPeakGb": 11.02,
+   "steps": 25,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:55:54.832Z",
+   "wallSec": 47
+  },
+  {
+   "id": "video_ltx2_5_flf2v@theme-switch",
+   "variantOf": "video_ltx2_5_flf2v",
+   "variant": "theme-switch",
+   "name": "LTX 2.5 — first & last frame to video + audio",
+   "category": "i2v",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:55:54.836Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_ltx2_5_flf2v_1794819359409_00001_.mp4",
+     "bytes": 991481,
+     "kind": "video",
+     "frames": 121,
+     "fps": 24,
+     "width": 704,
+     "height": 1280,
+     "samples": [
+      {
+       "mean": 215.31,
+       "std": 63.8,
+       "min": 0,
+       "max": 255,
+       "at": 0
+      },
+      {
+       "mean": 56.17,
+       "std": 80.51,
+       "min": 0,
+       "max": 255,
+       "at": 60
+      },
+      {
+       "mean": 56.12,
+       "std": 81.16,
+       "min": 0,
+       "max": 255,
+       "at": 119
+      }
+     ],
+     "mean": 109.2,
+     "std": 81.16,
+     "flags": [],
+     "file": "bench_video_ltx2_5_flf2v_1794819359409_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-uxui",
+    "stage": "3 — Motion, accessibility and testing",
+    "note": null,
+    "inputs": {
+     "loadimage_image_31": {
+      "from": "image_ideogram4_t2i@onboarding",
+      "source": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png",
+      "path": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png"
+     },
+     "loadimage_image_39": {
+      "from": "image_edit_flux3_klein_distilled_image_edit@dark-mode",
+      "source": "output/bench_image_edit_flux3_klein_distilled_image_edit_1794819211363_00001_.png",
+      "path": "output/bench_image_edit_flux3_klein_distilled_image_edit_1794819211363_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_31",
+     "label": "First frame",
+     "type": "image",
+     "node": "31.image",
+     "from": "output of image_ideogram4_t2i@onboarding",
+     "value": "comfyq__b9cf3773__bench_image_ideogram4_t2i_1794819151541_00001_.png",
+     "sourcePath": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png",
+     "staged": "comfyq__b9cf3773__bench_image_ideogram4_t2i_1794819151541_00001_.png"
+    },
+    {
+     "key": "loadimage_image_39",
+     "label": "Last frame",
+     "type": "image",
+     "node": "39.image",
+     "from": "output of image_edit_flux3_klein_distilled_image_edit@dark-mode",
+     "value": "comfyq__b9cf3773__bench_image_edit_flux3_klein_distilled_image_edit_1794819211363_00001_.png",
+     "sourcePath": "output/bench_image_edit_flux3_klein_distilled_image_edit_1794819211363_00001_.png",
+     "staged": "comfyq__b9cf3773__bench_image_edit_flux3_klein_distilled_image_edit_1794819211363_00001_.png"
+    },
+    {
+     "key": "primitivestringmultiline_value_251_252",
+     "label": "Prompt (motion + sound)",
+     "type": "textarea",
+     "node": "251:252.value",
+     "from": "the test suite",
+     "value": "Use the provided start image as the first frame and the provided end image as the final frame anchor. A smooth interface animation of the app switching from light mode to dark mode: the dark background wipes down from the top of the screen like a curtain, the text and the button stay perfectly still and change colour as the wipe passes them, the illustration dims gently. A flat screen recording with no camera movement and no hand, one soft click when the switch happens. No text changes, no black frames."
+    },
+    {
+     "key": "primitiveboolean_value_251_250",
+     "label": "Enhance prompt with AI (slower)",
+     "type": "checkbox",
+     "node": "251:250.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "primitiveint_value_251_215",
+     "label": "Width (px, multiple of 64)",
+     "type": "number",
+     "node": "251:215.value",
+     "from": "the test suite",
+     "value": 704
+    },
+    {
+     "key": "primitiveint_value_251_216",
+     "label": "Height (px, multiple of 64)",
+     "type": "number",
+     "node": "251:216.value",
+     "from": "the test suite",
+     "value": 1280
+    },
+    {
+     "key": "primitiveint_value_251_198",
+     "label": "Duration (seconds)",
+     "type": "number",
+     "node": "251:198.value",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "primitiveint_value_251_205",
+     "label": "Frame rate (fps)",
+     "type": "number",
+     "node": "251:205.value",
+     "from": "the graph default",
+     "value": 24
+    },
+    {
+     "key": "randomnoise_noise_seed_251_196",
+     "label": "Seed",
+     "type": "number",
+     "node": "251:196.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 67,
+   "coldSec": 117,
+   "modelLoadSec": 50,
+   "vramPeakGb": 29.24,
+   "steps": 8,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:58:01.924Z",
+   "wallSec": 127
+  },
+  {
+   "id": "describe_gemma4_image_description@alt-text",
+   "variantOf": "describe_gemma4_image_description",
+   "variant": "alt-text",
+   "name": "Gemma 4 — describe an image (caption)",
+   "category": "description",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:58:01.925Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "kind": "text",
+     "file": "node 4",
+     "text": "Here is the accessibility review for the provided screen:\n\n**1. Alt text:**\nThis is an introductory splash screen featuring an illustration of a vibrant potted plant. The screen explains that Bloom reminds users when their plants need watering.\n\n**2. Text on screen:**\n9:41\nWater at the right time\nBloom reminds you when each plant is thirsty.\nGet started\n\n**3. Accessibility:**\n* **Text Size/Contrast:** No immediate issues noted regarding font size or contrast based on the image alone; however, ensure the body text (\"Bloom reminds you...\") meets WCAG AA contrast ratio against the white background.\n* **Tap Target Size:** The \"Get started\" button appears adequately sized for touch targets.\n* **Color Blindness:** No critical elements rely *solely* on color for conveying information (e.g., the progress dots use both color and shape/position).",
+     "chars": 848,
+     "flags": []
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "gemma4_e4b_it_fp8_scaled.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-uxui",
+    "stage": "3 — Motion, accessibility and testing",
+    "note": null,
+    "inputs": {
+     "source_image_2": {
+      "from": "image_ideogram4_t2i@onboarding",
+      "source": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png",
+      "path": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "source_image_2",
+     "label": "Source image",
+     "type": "image",
+     "node": "2.image",
+     "from": "output of image_ideogram4_t2i@onboarding",
+     "value": "comfyq__b1b53909__bench_image_ideogram4_t2i_1794819151541_00001_.png",
+     "sourcePath": "output/bench_image_ideogram4_t2i_1794819151541_00001_.png",
+     "staged": "comfyq__b1b53909__bench_image_ideogram4_t2i_1794819151541_00001_.png"
+    },
+    {
+     "key": "instruction_1",
+     "label": "Instruction",
+     "type": "textarea",
+     "node": "1.prompt",
+     "from": "the test suite",
+     "value": "You are an accessibility reviewer for a mobile app. Look at this screen and answer in three numbered sections.\n1. Alt text: one or two sentences a screen reader would say for this screen.\n2. Text on screen: copy every piece of text exactly as written, in reading order.\n3. Accessibility: list any text that may be too small or too low in contrast, any button that may be too small to tap, and anything a colour-blind user could miss, each with a one-line fix."
+    },
+    {
+     "key": "seed_1",
+     "label": "Seed",
+     "type": "number",
+     "node": "1.sampling_mode.seed",
+     "from": "the test suite",
+     "value": 0
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 23,
+   "coldSec": 34,
+   "modelLoadSec": 11,
+   "vramPeakGb": 10.56,
+   "steps": 2048,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:58:46.593Z",
+   "wallSec": 45
+  },
+  {
+   "id": "video_minimax_h3_t2v_turbo@user-test",
+   "variantOf": "video_minimax_h3_t2v_turbo",
+   "variant": "user-test",
+   "name": "MiniMax H3 — text to video + audio (4-step turbo)",
+   "category": "i2v",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:58:46.594Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_minimax_h3_t2v_turbo_1794819531122_00001_.mp4",
+     "bytes": 867028,
+     "kind": "video",
+     "frames": 124,
+     "fps": 24,
+     "width": 864,
+     "height": 480,
+     "samples": [
+      {
+       "mean": 120.74,
+       "std": 84.41,
+       "min": 0,
+       "max": 255,
+       "at": 0
+      },
+      {
+       "mean": 121.75,
+       "std": 84.89,
+       "min": 0,
+       "max": 253,
+       "at": 62
+      },
+      {
+       "mean": 119.97,
+       "std": 85.03,
+       "min": 0,
+       "max": 254,
+       "at": 122
+      }
+     ],
+     "mean": 120.82,
+     "std": 85.03,
+     "flags": [],
+     "file": "bench_video_minimax_h3_t2v_turbo_1794819531122_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-uxui",
+    "stage": "3 — Motion, accessibility and testing",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "minimaxh3imagetovideo_prompt_11",
+     "label": "Prompt (scene / action / camera / sound)",
+     "type": "textarea",
+     "node": "11.prompt",
+     "from": "the test suite",
+     "value": "[Shot 1] Medium shot in a bright usability lab, static camera. A young woman sits at a white table holding a smartphone, trying a new app while thinking aloud; she frowns, taps the screen twice, then smiles. A researcher beside her takes notes on a laptop. She says: 'Oh, the Rent button was hidden at the bottom. Now I see it.' We hear her voice, soft taps on the glass, typing on the laptop and a quiet office ambience."
+    },
+    {
+     "key": "primitiveboolean_value_3",
+     "label": "Fast mode (4-step turbo LoRA)",
+     "type": "checkbox",
+     "node": "3.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "minimaxh3imagetovideo_width_11",
+     "label": "Width",
+     "type": "number",
+     "node": "11.width",
+     "from": "calibration",
+     "value": 864
+    },
+    {
+     "key": "minimaxh3imagetovideo_height_11",
+     "label": "Height",
+     "type": "number",
+     "node": "11.height",
+     "from": "calibration",
+     "value": 480
+    },
+    {
+     "key": "minimaxh3imagetovideo_length_11",
+     "label": "Length (frames — 124 is about 5 s at 24 fps)",
+     "type": "number",
+     "node": "11.length",
+     "from": "calibration",
+     "value": 124
+    },
+    {
+     "key": "randomnoise_noise_seed_15",
+     "label": "Seed",
+     "type": "number",
+     "node": "15.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 34,
+   "coldSec": 78,
+   "modelLoadSec": 43,
+   "vramPeakGb": 29.11,
+   "steps": 4,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:00:13.068Z",
+   "wallSec": 86
+  }
+ ]
+}

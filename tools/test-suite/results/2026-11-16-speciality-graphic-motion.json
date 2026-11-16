@@ -1,0 +1,1524 @@
+{
+ "type": "summary",
+ "startedAt": "2026-11-16T09:00:15.999Z",
+ "finishedAt": "2026-11-16T09:18:44.688Z",
+ "state": "done",
+ "machine": {
+  "at": "2026-11-16T09:00:16.030Z",
+  "host": "AN-5090-2",
+  "instance": "AN-5090-2",
+  "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+  "vramTotalGb": 31.82,
+  "comfyui": "0.45.2",
+  "pytorch": "2.8.0+cu128",
+  "python": "3.12.10",
+  "argv": [
+   "--listen",
+   "--port",
+   "--disable-auto-launch",
+   "--windows-standalone-build",
+   "--fast"
+  ],
+  "comfyRoot": "comfyui",
+  "assetsDir": "assets",
+  "scanDirs": [
+   "/_demo_workflows"
+  ],
+  "comfyqCommit": "94fd022",
+  "comfyqBranch": "main"
+ },
+ "suite": {
+  "name": "speciality-graphic-motion",
+  "file": "./tools/test-suite/speciality-graphic-motion.suite.csv",
+  "description": "Graphic and motion design: a typographic poster and its campaign, a translated version, a magazine cover, an infographic, a billboard, print upscaling, a motion poster, a social loop and an ident with its sound. Every run becomes an example for students of this speciality, beside the card's showcase (tools/maintenance/seed_examples.cjs --speciality graphic-motion)."
+ },
+ "summary": {
+  "ran": 12,
+  "succeeded": 12,
+  "failed": 0,
+  "withFlaggedOutput": 0,
+  "noOutput": 0,
+  "distinctModelsOpened": 7,
+  "recorderAvailable": true
+ },
+ "results": [
+  {
+   "id": "image_ideogram4_t2i@festival-poster",
+   "variantOf": "image_ideogram4_t2i",
+   "variant": "festival-poster",
+   "name": "Ideogram 4.0 — text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T09:00:16.034Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png",
+     "bytes": 1360420,
+     "kind": "image",
+     "width": 848,
+     "height": 1264,
+     "mode": "RGB",
+     "mean": 128.11,
+     "std": 103.69,
+     "min": 1,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_ideogram4_t2i_1794819620928_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "1 — Print",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt_json_98_24",
+     "label": "Prompt (structured JSON)",
+     "type": "textarea",
+     "node": "98:24.text",
+     "from": "the test suite",
+     "value": "{\n    \"high_level_description\": \"A bold typographic poster for a light festival in Lyon: huge stacked white letters spelling 'LUMIÈRE' over a deep night-blue background crossed by beams of coloured light, with the dates and the place in a smaller sans-serif.\",\n    \"style_description\": {\n        \"aesthetics\": \"Swiss-style typographic poster, strict grid, oversized condensed sans-serif lettering, flat colour with luminous gradient beams.\",\n        \"lighting\": \"Glowing light beams in magenta, cyan and gold crossing the dark background like stage spotlights.\",\n        \"photo\": \"Flat printed poster, offset print texture, slight grain.\",\n        \"medium\": \"Typographic poster design\",\n        \"color_palette\": [\n            \"#0B1640\",\n            \"#FFFFFF\",\n            \"#FF3D8B\",\n            \"#2BD9FE\",\n            \"#FFC23D\"\n        ]\n    },\n    \"compositional_deconstruction\": {\n        \"background\": \"A deep night-blue background with three diagonal beams of coloured light, magenta, cyan and gold, crossing from the bottom corners towards the top.\",\n        \"elements\": [\n            {\n                \"type\": \"obj\",\n                \"bbox\": [\n                    60,\n                    70,\n                    120,\n                    930\n                ],\n                \"desc\": \"Small white capitals 'FESTIVAL' in a wide-tracked sans-serif at the top left.\",\n                \"color_palette\": [\n                    \"#FFFFFF\"\n                ]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [\n                    130,\n                    60,\n                    640,\n                    940\n                ],\n                \"desc\": \"The word 'LUMIÈRE' in enormous bold condensed white capitals, stacked and filling the width, the accent on the È clearly visible.\",\n                \"color_palette\": [\n                    \"#FFFFFF\"\n                ]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [\n                    700,\n                    70,\n                    800,\n                    930\n                ],\n                \"desc\": \"The dates '12—14 JUIN 2027' in bold gold capitals.\",\n                \"color_palette\": [\n                    \"#FFC23D\"\n                ]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [\n                    820,\n                    70,\n                    880,\n                    930\n                ],\n                \"desc\": \"The line 'LYON · ENTRÉE LIBRE' in white capitals.\",\n                \"color_palette\": [\n                    \"#FFFFFF\"\n                ]\n            },\n            {\n                \"type\": \"obj\",\n                \"bbox\": [\n                    900,\n                    70,\n                    950,\n                    400\n                ],\n                \"desc\": \"A small white logo of a stylised lightbulb made of three lines at the bottom left.\",\n                \"color_palette\": [\n                    \"#FFFFFF\"\n                ]\n            }\n        ]\n    }\n}"
+    },
+    {
+     "key": "aspect_ratio_37",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "37.aspect_ratio",
+     "from": "the test suite",
+     "value": "2:3 (Portrait Photo)"
+    },
+    {
+     "key": "megapixels_37",
+     "label": "Megapixels",
+     "type": "number",
+     "node": "37.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "quality_98_156",
+     "label": "Quality preset",
+     "type": "select",
+     "node": "98:156.choice",
+     "from": "the graph default",
+     "value": "Default"
+    },
+    {
+     "key": "cfg_98_155",
+     "label": "Guidance (CFG)",
+     "type": "number",
+     "node": "98:155.cfg",
+     "from": "the graph default",
+     "value": 7
+    },
+    {
+     "key": "noise_seed_98_18",
+     "label": "Seed",
+     "type": "number",
+     "node": "98:18.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 21,
+   "coldSec": 49,
+   "modelLoadSec": 28,
+   "vramPeakGb": 25.9,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [
+     "use_sage_attention"
+    ],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:01:14.999Z",
+   "wallSec": 59
+  },
+  {
+   "id": "image_edit_flux3_klein_distilled_image_edit@english",
+   "variantOf": "image_edit_flux3_klein_distilled_image_edit",
+   "variant": "english",
+   "name": "FLUX.3 Klein distilled — fast picture edit",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T09:01:15.003Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_flux3_klein_distilled_image_edit_1794819679551_00001_.png",
+     "bytes": 1443704,
+     "kind": "image",
+     "width": 832,
+     "height": 1248,
+     "mode": "RGB",
+     "mean": 130.64,
+     "std": 103.56,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_edit_flux3_klein_distilled_image_edit_1794819679551_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "1 — Print",
+    "note": null,
+    "inputs": {
+     "image": {
+      "from": "image_ideogram4_t2i@festival-poster",
+      "source": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png",
+      "path": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "image",
+     "label": "Picture to edit",
+     "type": "image",
+     "node": "11.image",
+     "from": "output of image_ideogram4_t2i@festival-poster",
+     "value": "comfyq__beb62e22__bench_image_ideogram4_t2i_1794819620928_00001_.png",
+     "sourcePath": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png",
+     "staged": "comfyq__beb62e22__bench_image_ideogram4_t2i_1794819620928_00001_.png"
+    },
+    {
+     "key": "prompt",
+     "label": "What to change",
+     "type": "textarea",
+     "node": "301.value",
+     "from": "the test suite",
+     "value": "In <ref_image_0>, translate the French text into English: '12—14 JUIN 2027' becomes '12—14 JUNE 2027' and 'LYON · ENTRÉE LIBRE' becomes 'LYON · FREE ENTRY'. Keep 'FESTIVAL' and 'LUMIÈRE', the typefaces, the colours, the sizes, the light beams and the layout exactly the same."
+    },
+    {
+     "key": "layout",
+     "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+     "type": "textarea",
+     "node": "300.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "improve_prompt",
+     "label": "Improve the instruction with AI first (a Qwen 3.5 model looks at the picture and writes a full caption of the result) — slow: adds about 2–3 minutes",
+     "type": "checkbox",
+     "node": "51.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "megapixels",
+     "label": "Working size (megapixels) — the result takes the picture's shape at this size",
+     "type": "number",
+     "node": "17.resolution.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps",
+     "label": "Steps",
+     "type": "number",
+     "node": "7.steps",
+     "from": "the graph default",
+     "value": 16
+    },
+    {
+     "key": "seed",
+     "label": "Seed",
+     "type": "number",
+     "node": "7.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 12,
+   "coldSec": 24,
+   "modelLoadSec": 12,
+   "vramPeakGb": 11.39,
+   "steps": 16,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:01:48.564Z",
+   "wallSec": 34
+  },
+  {
+   "id": "image_krea2_turbo_style_reference@campaign",
+   "variantOf": "image_krea2_turbo_style_reference",
+   "variant": "campaign",
+   "name": "Krea 2 Turbo — generate in the style of 1–2 pictures",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T09:01:48.568Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_krea2_turbo_style_reference_1794819713135_00001_.png",
+     "bytes": 1678212,
+     "kind": "image",
+     "width": 840,
+     "height": 1256,
+     "mode": "RGB",
+     "mean": 117.41,
+     "std": 73.12,
+     "min": 0,
+     "max": 253,
+     "flags": [],
+     "file": "bench_image_krea2_turbo_style_reference_1794819713135_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "krea2_style_reference.safetensors",
+    "krea2_turbo_int8_convrot.safetensors",
+    "qwen3vl_4b_fp8_scaled.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "1 — Print",
+    "note": null,
+    "inputs": {
+     "loadimage_image_69": {
+      "from": "image_ideogram4_t2i@festival-poster",
+      "source": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png",
+      "path": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "primitivestringmultiline_value_30_19",
+     "label": "Prompt — what to draw (the style comes from the references)",
+     "type": "textarea",
+     "node": "30:19.value",
+     "from": "the test suite",
+     "value": "a poster for a summer night market by the river, paper lanterns floating over a crowd of stalls"
+    },
+    {
+     "key": "loadimage_image_69",
+     "label": "Style reference 1",
+     "type": "image",
+     "node": "69.image",
+     "from": "output of image_ideogram4_t2i@festival-poster",
+     "value": "comfyq__b2c259bc__bench_image_ideogram4_t2i_1794819620928_00001_.png",
+     "sourcePath": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png",
+     "staged": "comfyq__b2c259bc__bench_image_ideogram4_t2i_1794819620928_00001_.png"
+    },
+    {
+     "key": "loadimage_image_77",
+     "label": "Style reference 2 — optional",
+     "type": "image",
+     "node": "77.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loadimage_image_78",
+     "label": "Style reference 3 — optional, beyond the 1–2 the LoRA was trained on",
+     "type": "image",
+     "node": "78.image",
+     "from": "calibration",
+     "value": null
+    },
+    {
+     "key": "loraloadermodelonly_strength_model_30_15",
+     "label": "Style strength (1.0 tested; lower if the subject distorts)",
+     "type": "number",
+     "node": "30:15.strength_model",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "primitiveboolean_value_30_24",
+     "label": "Enhance prompt with AI",
+     "type": "checkbox",
+     "node": "30:24.value",
+     "from": "calibration",
+     "value": false
+    },
+    {
+     "key": "resolutionselector_aspect_ratio_71",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "71.aspect_ratio",
+     "from": "the test suite",
+     "value": "2:3 (Portrait Photo)"
+    },
+    {
+     "key": "resolutionselector_megapixels_71",
+     "label": "Size in megapixels (1 = 1024×1024)",
+     "type": "number",
+     "node": "71.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "basicscheduler_steps_30_60",
+     "label": "Steps (8 is the Turbo setting)",
+     "type": "number",
+     "node": "30:60.steps",
+     "from": "the graph default",
+     "value": 8
+    },
+    {
+     "key": "randomnoise_noise_seed_30_63",
+     "label": "Seed",
+     "type": "number",
+     "node": "30:63.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 15,
+   "coldSec": 39,
+   "modelLoadSec": 24,
+   "vramPeakGb": 21.1,
+   "steps": 8,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:02:36.470Z",
+   "wallSec": 48
+  },
+  {
+   "id": "utility_pid_image_upscale@poster-print",
+   "variantOf": "utility_pid_image_upscale",
+   "variant": "poster-print",
+   "name": "PiD — image upscale ×4 (up to 33 MP)",
+   "category": "i2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T09:02:36.474Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_utility_pid_image_upscale_1794819761134_00001_.png",
+     "bytes": 24850599,
+     "kind": "image",
+     "width": 3392,
+     "height": 5056,
+     "mode": "RGB",
+     "mean": 129.46,
+     "std": 103.15,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_utility_pid_image_upscale_1794819761134_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "1 — Print",
+    "note": null,
+    "inputs": {
+     "loadimage_image_1": {
+      "from": "image_ideogram4_t2i@festival-poster",
+      "source": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png",
+      "path": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_1",
+     "label": "Image to upscale",
+     "type": "image",
+     "node": "1.image",
+     "from": "output of image_ideogram4_t2i@festival-poster",
+     "value": "comfyq__b52f9b82__bench_image_ideogram4_t2i_1794819620928_00001_.png",
+     "sourcePath": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png",
+     "staged": "comfyq__b52f9b82__bench_image_ideogram4_t2i_1794819620928_00001_.png"
+    },
+    {
+     "key": "latenttiledpiddecode_seed_7",
+     "label": "Seed (re-rolls the fine detail)",
+     "type": "number",
+     "node": "7.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 6,
+   "coldSec": 19,
+   "modelLoadSec": 14,
+   "vramPeakGb": 12.32,
+   "steps": 2,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:03:05.451Z",
+   "wallSec": 29
+  },
+  {
+   "id": "image_moss_image_t2i@magazine-cover",
+   "variantOf": "image_moss_image_t2i",
+   "variant": "magazine-cover",
+   "name": "MOSS-Image SFT — text to image, with an optional box layout",
+   "category": "t2i",
+   "experimental": true,
+   "startedAt": "2026-11-16T09:03:05.461Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_moss_image_t2i_1794819789993_00001_.png",
+     "bytes": 1211262,
+     "kind": "image",
+     "width": 880,
+     "height": 1184,
+     "mode": "RGB",
+     "mean": 117.84,
+     "std": 80.37,
+     "min": 1,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_moss_image_t2i_1794819789993_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "1 — Print",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt_117",
+     "label": "Prompt — a detailed caption of the whole picture",
+     "type": "textarea",
+     "node": "117.value",
+     "from": "the test suite",
+     "value": "Cover of a design magazine: the masthead 'FORMA' in huge black serif capitals across the top, a portrait photograph of a young ceramicist holding a bowl in soft window light filling the page, the cover line 'THE NEW CRAFT' in bold white sans-serif on the left, the smaller lines 'Clay, code and the hand' and 'Issue 12 · Spring 2027' below it, and a small barcode in the bottom right corner. Clean editorial layout, generous margins."
+    },
+    {
+     "key": "layout_24",
+     "label": "Layout — optional boxes (use Compose layout)",
+     "type": "textarea",
+     "node": "24.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "character_boxes_27",
+     "label": "Boxes that are characters (numbers, e.g. 1, 3 — set by the composer)",
+     "type": "text",
+     "node": "27.character_boxes",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "enhance_prompt_116",
+     "label": "Improve my prompt with AI (slower: adds about a minute and a half)",
+     "type": "checkbox",
+     "node": "116.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "aspect_ratio_19",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "19.aspect_ratio",
+     "from": "the test suite",
+     "value": "3:4 (Portrait Standard)"
+    },
+    {
+     "key": "megapixels_19",
+     "label": "Size in megapixels (1, 1.5 or 2 recommended)",
+     "type": "number",
+     "node": "19.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "negative_105",
+     "label": "Negative prompt",
+     "type": "textarea",
+     "node": "105.text",
+     "from": "the graph default",
+     "value": "nsfw, worst quality, bad anatomy, watermark, jpeg artifact"
+    },
+    {
+     "key": "slg_124",
+     "label": "Skip-layer guidance (sharper detail; can over-bake anime styles)",
+     "type": "checkbox",
+     "node": "124.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "steps_107",
+     "label": "Steps (25 fast · 50 official)",
+     "type": "number",
+     "node": "107.steps",
+     "from": "the graph default",
+     "value": 25
+    },
+    {
+     "key": "cfg_107",
+     "label": "Guidance (CFG — 2.5 fast · 3 official)",
+     "type": "number",
+     "node": "107.cfg",
+     "from": "the graph default",
+     "value": 2.5
+    },
+    {
+     "key": "seed_107",
+     "label": "Seed",
+     "type": "number",
+     "node": "107.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 23,
+   "coldSec": 36,
+   "modelLoadSec": 14,
+   "vramPeakGb": 11.02,
+   "steps": 25,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:03:51.103Z",
+   "wallSec": 46
+  },
+  {
+   "id": "image_qwen_image_2_1_t2i@infographic",
+   "variantOf": "image_qwen_image_2_1_t2i",
+   "variant": "infographic",
+   "name": "Qwen Image 2.1 — text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T09:03:51.107Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2_1_t2i_1794819835673_00001.png",
+     "bytes": 923641,
+     "kind": "image",
+     "width": 896,
+     "height": 1184,
+     "mode": "RGBA",
+     "mean": 224.76,
+     "std": 64.82,
+     "min": 0,
+     "max": 255,
+     "alpha": {
+      "mean": 254.97,
+      "std": 0.18,
+      "min": 245,
+      "max": 255
+     },
+     "flags": [],
+     "file": "bench_image_qwen_image_2_1_t2i_1794819835673_00001.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "1 — Print",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "textencodeqwenimage21_prompt_459_452",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "459:452.prompt",
+     "from": "the test suite",
+     "value": "Flat vector infographic poster titled 'WHERE DOES A BOTTLE GO?' at the top, explaining the recycling of a glass bottle in five numbered steps arranged in a circle: '1 COLLECT' with a green bottle bank, '2 SORT' with a conveyor belt, '3 CRUSH' with a crusher and glass shards, '4 MELT' with a glowing furnace, '5 SHAPE' with new bottles. Thick arrows join the steps. A limited palette of deep green, sand beige and black on off-white, bold geometric sans-serif type, generous margins."
+    },
+    {
+     "key": "resolutionselector_aspect_ratio_13",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "13.aspect_ratio",
+     "from": "the test suite",
+     "value": "3:4 (Portrait Standard)"
+    },
+    {
+     "key": "resolutionselector_megapixels_13",
+     "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+     "type": "number",
+     "node": "13.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_steps_459_458",
+     "label": "Steps (25 is quick, 40–50 is Qwen's own setting)",
+     "type": "number",
+     "node": "459:458.steps",
+     "from": "calibration",
+     "value": 25
+    },
+    {
+     "key": "ksampler_seed_459_458",
+     "label": "Seed",
+     "type": "number",
+     "node": "459:458.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 15,
+   "coldSec": 34,
+   "modelLoadSec": 18,
+   "vramPeakGb": 15.33,
+   "steps": 25,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:04:33.937Z",
+   "wallSec": 43
+  },
+  {
+   "id": "image_minimax_h3_image_t2i@billboard",
+   "variantOf": "image_minimax_h3_image_t2i",
+   "variant": "billboard",
+   "name": "MiniMax-H3-Image — text to image",
+   "category": "t2i",
+   "experimental": true,
+   "startedAt": "2026-11-16T09:04:33.941Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_minimax_h3_image_t2i_1794819878843_00001_.png",
+     "bytes": 5240783,
+     "kind": "image",
+     "width": 3136,
+     "height": 1344,
+     "mode": "RGB",
+     "mean": 145.51,
+     "std": 62.03,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_minimax_h3_image_t2i_1794819878843_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "1 — Print",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt_23_24",
+     "label": "Prompt — describe the whole picture in detail",
+     "type": "textarea",
+     "node": "23:24.value",
+     "from": "the test suite",
+     "value": "A large outdoor billboard design for a city campaign encouraging people to look up at the architecture around them. On the left two thirds, a photograph looking straight up between old stone buildings with ornate cornices towards a bright blue sky, a flock of swifts crossing it. On the right third, a solid warm yellow panel with the headline 'SLOW DOWN. LOOK UP.' in heavy black condensed sans-serif capitals on two lines, and below it the smaller line 'Lyon Architecture Days · 3—5 October' in black. A thin black frame around the whole design. Crisp print quality, no billboard structure visible, the design fills the image."
+    },
+    {
+     "key": "improver_23_22",
+     "label": "Write a full caption from my prompt first (prompt improver, Qwen 3.5 9B; adds about a minute)",
+     "type": "checkbox",
+     "node": "23:22.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "aspect_ratio_14",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "14.aspect_ratio",
+     "from": "the test suite",
+     "value": "21:9 (Ultrawide)"
+    },
+    {
+     "key": "megapixels_14",
+     "label": "Size in megapixels (4 to 16; best near 16, slower)",
+     "type": "number",
+     "node": "14.megapixels",
+     "from": "the graph default",
+     "value": 4
+    },
+    {
+     "key": "seed_23_7",
+     "label": "Seed",
+     "type": "number",
+     "node": "23:7.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 10,
+   "coldSec": 63,
+   "modelLoadSec": 53,
+   "vramPeakGb": 29.43,
+   "steps": 6,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:05:46.177Z",
+   "wallSec": 72
+  },
+  {
+   "id": "video_ltx2_5_i2v@motion-poster",
+   "variantOf": "video_ltx2_5_i2v",
+   "variant": "motion-poster",
+   "name": "LTX 2.5 — image to video + audio",
+   "category": "i2v",
+   "experimental": false,
+   "startedAt": "2026-11-16T09:05:46.181Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_ltx2_5_i2v_1794819952632_00001_.mp4",
+     "bytes": 935369,
+     "kind": "video",
+     "frames": 121,
+     "fps": 24,
+     "width": 704,
+     "height": 1088,
+     "samples": [
+      {
+       "mean": 128.53,
+       "std": 103.34,
+       "min": 1,
+       "max": 255,
+       "at": 0
+      },
+      {
+       "mean": 124.5,
+       "std": 107.67,
+       "min": 0,
+       "max": 255,
+       "at": 60
+      },
+      {
+       "mean": 131.77,
+       "std": 101.59,
+       "min": 0,
+       "max": 255,
+       "at": 119
+      }
+     ],
+     "mean": 128.27,
+     "std": 107.67,
+     "flags": [],
+     "file": "bench_video_ltx2_5_i2v_1794819952632_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "2 — Motion",
+    "note": null,
+    "inputs": {
+     "loadimage_image_395": {
+      "from": "image_ideogram4_t2i@festival-poster",
+      "source": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png",
+      "path": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_395",
+     "label": "Start image (first frame)",
+     "type": "image",
+     "node": "395.image",
+     "from": "output of image_ideogram4_t2i@festival-poster",
+     "value": "comfyq__b2011520__bench_image_ideogram4_t2i_1794819620928_00001_.png",
+     "sourcePath": "output/bench_image_ideogram4_t2i_1794819620928_00001_.png",
+     "staged": "comfyq__b2011520__bench_image_ideogram4_t2i_1794819620928_00001_.png"
+    },
+    {
+     "key": "primitivestringmultiline_value_398_376",
+     "label": "Prompt (motion / camera / sound)",
+     "type": "textarea",
+     "node": "398:376.value",
+     "from": "the test suite",
+     "value": "Use the provided start image as the first frame. The poster comes alive as a motion poster: the camera stays perfectly still, the beams of coloured light sweep slowly across the background like searchlights, a few specks of light float upward, while every letter stays sharp, still and unchanged. A soft synth pad and a warm low bass note. No text changes, no black frames."
+    },
+    {
+     "key": "primitiveboolean_value_398_383",
+     "label": "Enhance prompt with AI (slower)",
+     "type": "checkbox",
+     "node": "398:383.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "primitiveint_value_410",
+     "label": "Width (px, multiple of 64 — your image is center-cropped to this shape)",
+     "type": "number",
+     "node": "410.value",
+     "from": "the test suite",
+     "value": 704
+    },
+    {
+     "key": "primitiveint_value_411",
+     "label": "Height (px, multiple of 64)",
+     "type": "number",
+     "node": "411.value",
+     "from": "the test suite",
+     "value": 1088
+    },
+    {
+     "key": "primitiveint_value_398_362",
+     "label": "Duration (seconds)",
+     "type": "number",
+     "node": "398:362.value",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "primitiveint_value_398_361",
+     "label": "Frame rate (fps)",
+     "type": "number",
+     "node": "398:361.value",
+     "from": "the graph default",
+     "value": 24
+    },
+    {
+     "key": "randomnoise_noise_seed_398_339",
+     "label": "Seed",
+     "type": "number",
+     "node": "398:339.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 46,
+   "coldSec": 95,
+   "modelLoadSec": 49,
+   "vramPeakGb": 29.45,
+   "steps": 3,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:07:32.056Z",
+   "wallSec": 106
+  },
+  {
+   "id": "image_flux3_klein_distilled_t2i@shapes",
+   "variantOf": "image_flux3_klein_distilled_t2i",
+   "variant": "shapes",
+   "name": "FLUX.3 Klein distilled — fast text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T09:07:32.056Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_flux3_klein_distilled_t2i_1794820058606_00001_.png",
+     "bytes": 953358,
+     "kind": "image",
+     "width": 1024,
+     "height": 1024,
+     "mode": "RGB",
+     "mean": 198.14,
+     "std": 62.74,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_flux3_klein_distilled_t2i_1794820058606_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "2 — Motion",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "117.value",
+     "from": "the test suite",
+     "value": "Flat abstract motion-design frame: bold geometric shapes, a large coral circle, a mustard yellow half-moon, a deep blue square turned 45 degrees and a few thin black lines, arranged in a balanced Bauhaus-inspired composition on an off-white background. Flat colours, no gradients, no shadows, no text."
+    },
+    {
+     "key": "layout",
+     "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+     "type": "textarea",
+     "node": "300.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "improve_prompt",
+     "label": "Improve the prompt with AI first (a Qwen 3.5 model expands it into a full caption) — slow: adds about 3 minutes",
+     "type": "checkbox",
+     "node": "116.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "aspect_ratio",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "19.aspect_ratio",
+     "from": "the test suite",
+     "value": "1:1 (Square)"
+    },
+    {
+     "key": "megapixels",
+     "label": "Size (megapixels — 1 is about 1024×1024)",
+     "type": "number",
+     "node": "19.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps",
+     "label": "Steps",
+     "type": "number",
+     "node": "107.steps",
+     "from": "the graph default",
+     "value": 16
+    },
+    {
+     "key": "seed",
+     "label": "Seed",
+     "type": "number",
+     "node": "107.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 7,
+   "coldSec": 18,
+   "modelLoadSec": 11,
+   "vramPeakGb": 10.11,
+   "steps": 16,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:08:00.567Z",
+   "wallSec": 29
+  },
+  {
+   "id": "video_minimax_h3_seamless_loop_fasth3@social-loop",
+   "variantOf": "video_minimax_h3_seamless_loop_fasth3",
+   "variant": "social-loop",
+   "name": "FastH3-Omni — seamless looping video with sound (8 steps)",
+   "category": "i2v",
+   "experimental": true,
+   "startedAt": "2026-11-16T09:08:00.572Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_minimax_h3_seamless_loop_fasth3_1794820085122_00001_.mp4",
+     "bytes": 801286,
+     "kind": "video",
+     "frames": 204,
+     "fps": 48,
+     "width": 896,
+     "height": 896,
+     "samples": [
+      {
+       "mean": 204.3,
+       "std": 63.03,
+       "min": 0,
+       "max": 255,
+       "at": 0
+      },
+      {
+       "mean": 201.86,
+       "std": 68.57,
+       "min": 0,
+       "max": 255,
+       "at": 102
+      },
+      {
+       "mean": 204.02,
+       "std": 63.52,
+       "min": 0,
+       "max": 255,
+       "at": 202
+      }
+     ],
+     "mean": 203.39,
+     "std": 68.57,
+     "flags": [],
+     "file": "bench_video_minimax_h3_seamless_loop_fasth3_1794820085122_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "2 — Motion",
+    "note": null,
+    "inputs": {
+     "ref_image_7": {
+      "from": "image_flux3_klein_distilled_t2i@shapes",
+      "source": "output/bench_image_flux3_klein_distilled_t2i_1794820058606_00001_.png",
+      "path": "output/bench_image_flux3_klein_distilled_t2i_1794820058606_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "prompt_8",
+     "label": "Prompt — a state that keeps going, not a sequence of events",
+     "type": "textarea",
+     "node": "8.value",
+     "from": "the test suite",
+     "value": "Locked-off static camera, no pan, no zoom. A flat Bauhaus-inspired motion graphic on an off-white background: the coral circle rolls slowly left and right, the mustard half-moon turns around its centre, the blue square gently grows and shrinks, and the thin black lines slide along their own direction, all moving in a smooth steady rhythm like a looping social media animation. Flat colours, no text. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: soft clicks and pops in time with the motion.\n\nnon_diegetic_music: a light minimal electronic beat."
+    },
+    {
+     "key": "ref_image_7",
+     "label": "Reference picture (optional) — call it <Picture 1> in the prompt",
+     "type": "image",
+     "node": "7.image",
+     "from": "output of image_flux3_klein_distilled_t2i@shapes",
+     "value": "comfyq__bd9a8bc3__bench_image_flux3_klein_distilled_t2i_1794820058606_00001_.png",
+     "sourcePath": "output/bench_image_flux3_klein_distilled_t2i_1794820058606_00001_.png",
+     "staged": "comfyq__bd9a8bc3__bench_image_flux3_klein_distilled_t2i_1794820058606_00001_.png"
+    },
+    {
+     "key": "length_9",
+     "label": "Loop length in frames (107 = 4.25 s, 158 = 6.4 s, 209 = 8.5 s, 260 = 10.6 s, 311 = 12.75 s) — longer takes proportionally longer",
+     "type": "select",
+     "node": "9.length",
+     "from": "the graph default",
+     "value": 107
+    },
+    {
+     "key": "width_9",
+     "label": "Width (px)",
+     "type": "number",
+     "node": "9.width",
+     "from": "the test suite",
+     "value": 896
+    },
+    {
+     "key": "height_9",
+     "label": "Height (px)",
+     "type": "number",
+     "node": "9.height",
+     "from": "the test suite",
+     "value": 896
+    },
+    {
+     "key": "views_3",
+     "label": "Clean sound at the loop point: 2 = on (about 1.8× slower), 1 = off (the sound can garble at the joint)",
+     "type": "select",
+     "node": "3.views",
+     "from": "the graph default",
+     "value": 2
+    },
+    {
+     "key": "multiplier_23",
+     "label": "Smoothing — frame interpolation across the whole loop: 2 = 48 fps, 3 = 72 fps, 4 = 96 fps",
+     "type": "select",
+     "node": "23.multiplier",
+     "from": "the graph default",
+     "value": 2
+    },
+    {
+     "key": "seed_10",
+     "label": "Seed — the seed decides a lot on loops; try several",
+     "type": "number",
+     "node": "10.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 360,
+   "coldSec": 427,
+   "modelLoadSec": 67,
+   "vramPeakGb": 29.48,
+   "steps": 8,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:15:17.094Z",
+   "wallSec": 437
+  },
+  {
+   "id": "video_pika_h3_flex_t2v@ident",
+   "variantOf": "video_pika_h3_flex_t2v",
+   "variant": "ident",
+   "name": "Pika H3 Flex — text to video with sound (6 steps)",
+   "category": "i2v",
+   "experimental": true,
+   "startedAt": "2026-11-16T09:15:17.098Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_pika_h3_flex_t2v_1794820523538_00001_.mp4",
+     "bytes": 402324,
+     "kind": "video",
+     "frames": 124,
+     "fps": 24,
+     "width": 1344,
+     "height": 768,
+     "samples": [
+      {
+       "mean": 15.33,
+       "std": 0.18,
+       "min": 14,
+       "max": 15,
+       "at": 0
+      },
+      {
+       "mean": 17.85,
+       "std": 19.04,
+       "min": 0,
+       "max": 210,
+       "at": 62
+      },
+      {
+       "mean": 33.73,
+       "std": 63.71,
+       "min": 0,
+       "max": 255,
+       "at": 122
+      }
+     ],
+     "mean": 22.3,
+     "std": 63.71,
+     "flags": [],
+     "file": "bench_video_pika_h3_flex_t2v_1794820523538_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "minimax_h3_video_vae_int8_convrot.safetensors",
+    "pika_h3_flex_fl2va_v1_bf16.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "2 — Motion",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt_231",
+     "label": "Prompt — the shot, what happens when, and the sound",
+     "type": "textarea",
+     "node": "231.prompt",
+     "from": "the test suite",
+     "value": "integrated_multimodal_description: [Shot 1] Flat 2D motion graphics, clean vector shapes, a channel ident on a deep navy background. A small coral dot drops in from the top, bounces once in the centre with squash and stretch, then splits into three dots that slide apart horizontally. At about one and a half seconds thin mustard lines draw themselves between the dots, forming a triangle that turns a quarter turn. At about three seconds the triangle snaps into a bold white wordmark reading 'ATELIER' in a geometric sans-serif, the letters popping in one by one. The last second holds still on the wordmark with a subtle glow.\n\noverall_soundscape: a soft pop as the dot bounces, three light ticks as the dots split, a rising swoosh as the lines draw, a crisp click for each letter.\n\nnon_diegetic_music: a short upbeat synth sting that resolves on the final hold."
+    },
+    {
+     "key": "duration_233",
+     "label": "Duration in seconds",
+     "type": "number",
+     "node": "233.value",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "aspect_ratio_115",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "115.aspect_ratio",
+     "from": "the graph default",
+     "value": "16:9 (Widescreen)"
+    },
+    {
+     "key": "megapixels_115",
+     "label": "Size in megapixels (0.4 ≈ 480p, 1.0 ≈ 768p)",
+     "type": "number",
+     "node": "115.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "seed_229",
+     "label": "Seed",
+     "type": "number",
+     "node": "229.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 140,
+   "coldSec": 174,
+   "modelLoadSec": 34,
+   "vramPeakGb": 29.22,
+   "steps": 6,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:18:22.357Z",
+   "wallSec": 185
+  },
+  {
+   "id": "audio_stable_audio_3_medium@sting",
+   "variantOf": "audio_stable_audio_3_medium",
+   "variant": "sting",
+   "name": "Stable Audio 3 Medium — text to audio",
+   "category": "audio",
+   "experimental": false,
+   "startedAt": "2026-11-16T09:18:22.361Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_audio_stable_audio_3_medium_1794820708493_00001.mp3",
+     "bytes": 221123,
+     "kind": "audio",
+     "seconds": 6.04,
+     "sampleRate": 44100,
+     "channels": 2,
+     "peak": 0.89809,
+     "rms": 0.10574,
+     "flags": [],
+     "file": "bench_audio_stable_audio_3_medium_1794820708493_00001.mp3"
+    },
+    {
+     "kind": "text",
+     "file": "node 52:42",
+     "text": "6",
+     "chars": 1,
+     "flags": [],
+     "stray": true
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "stable_audio_3_medium.safetensors",
+    "t5gemma_b_b_ul2.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-graphic-motion",
+    "stage": "2 — Motion",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "description_52_31",
+     "label": "Description",
+     "type": "textarea",
+     "node": "52:31.value",
+     "from": "the test suite",
+     "value": "Short logo sting for the video ident of a design studio: a soft bubbly pop, three light rising marimba notes, a bright airy swoosh and a final warm synth chord with a short shimmering tail. Clean, modern, upbeat."
+    },
+    {
+     "key": "category_52_43",
+     "label": "Category",
+     "type": "select",
+     "node": "52:43.choice",
+     "from": "the test suite",
+     "value": "SFX"
+    },
+    {
+     "key": "enhance_prompt_52_35",
+     "label": "Enhance prompt with AI (a small Qwen 3.5 model rewrites your description first; adds about 15 seconds)",
+     "type": "checkbox",
+     "node": "52:35.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "duration_seconds_52_36",
+     "label": "Duration (seconds)",
+     "type": "number",
+     "node": "52:36.value",
+     "from": "the test suite",
+     "value": 6
+    },
+    {
+     "key": "steps_52_3",
+     "label": "Steps",
+     "type": "number",
+     "node": "52:3.steps",
+     "from": "the graph default",
+     "value": 8
+    },
+    {
+     "key": "seed_52_3",
+     "label": "Seed",
+     "type": "number",
+     "node": "52:3.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 3,
+   "coldSec": 12,
+   "modelLoadSec": 9,
+   "vramPeakGb": 5.71,
+   "steps": 8,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T09:18:44.687Z",
+   "wallSec": 22
+  }
+ ]
+}

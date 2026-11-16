@@ -1,0 +1,1493 @@
+{
+ "type": "summary",
+ "startedAt": "2026-11-16T07:55:46.352Z",
+ "finishedAt": "2026-11-16T08:10:50.022Z",
+ "state": "done",
+ "machine": {
+  "at": "2026-11-16T07:55:46.387Z",
+  "host": "AN-5090-2",
+  "instance": "AN-5090-2",
+  "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+  "vramTotalGb": 31.82,
+  "comfyui": "0.45.2",
+  "pytorch": "2.8.0+cu128",
+  "python": "3.12.10",
+  "argv": [
+   "--listen",
+   "--port",
+   "--disable-auto-launch",
+   "--windows-standalone-build",
+   "--fast"
+  ],
+  "comfyRoot": "comfyui",
+  "assetsDir": "assets",
+  "scanDirs": [
+   "/_demo_workflows"
+  ],
+  "comfyqCommit": "94fd022",
+  "comfyqBranch": "main"
+ },
+ "suite": {
+  "name": "speciality-scenography",
+  "file": "./tools/test-suite/speciality-scenography.suite.csv",
+  "description": "Scenography: a theatre set from the model box to the stage, its lighting cues, an exhibition and a projected backdrop. Every run becomes an example for students of this speciality, beside the card's showcase (tools/maintenance/seed_examples.cjs --speciality scenography)."
+ },
+ "summary": {
+  "ran": 11,
+  "succeeded": 11,
+  "failed": 0,
+  "withFlaggedOutput": 0,
+  "noOutput": 0,
+  "distinctModelsOpened": 31,
+  "recorderAvailable": true
+ },
+ "results": [
+  {
+   "id": "image_flux3_klein_distilled_t2i@model-box",
+   "variantOf": "image_flux3_klein_distilled_t2i",
+   "variant": "model-box",
+   "name": "FLUX.3 Klein distilled — fast text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T07:55:46.391Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+     "bytes": 1585560,
+     "kind": "image",
+     "width": 1360,
+     "height": 768,
+     "mode": "RGB",
+     "mean": 101.99,
+     "std": 70.1,
+     "min": 0,
+     "max": 254,
+     "flags": [],
+     "file": "bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "flux2-vae.safetensors",
+    "flux3_image_klein_sd_int8_convrot.safetensors",
+    "qwen3vl_4b_int8_convrot.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-scenography",
+    "stage": "1 — The model box",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "117.value",
+     "from": "the test suite",
+     "value": "Photograph of a scenographer's 1:25 scale model box of a theatre set, built from white foam board and grey card, standing on a workshop table. Inside the black open-fronted box: a steep raked stage floor of pale plywood, a monumental curved staircase of white card rising from stage left towards a tall narrow doorway cut into a back wall of torn grey paper, three tiny unpainted figurines of actors standing centre stage for scale, a single wooden chair at the front edge of the stage, and thin balsa battens hanging from the top of the box. The model is lit by a small torch from the front right, casting long sharp shadows of the figurines across the rake. Shot straight on at audience eye level, centred, shallow depth of field, the edge of a green cutting mat and a scalpel visible at the bottom of the frame."
+    },
+    {
+     "key": "layout",
+     "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+     "type": "textarea",
+     "node": "300.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "improve_prompt",
+     "label": "Improve the prompt with AI first (a Qwen 3.5 model expands it into a full caption) — slow: adds about 3 minutes",
+     "type": "checkbox",
+     "node": "116.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "aspect_ratio",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "19.aspect_ratio",
+     "from": "the test suite",
+     "value": "16:9 (Widescreen)"
+    },
+    {
+     "key": "megapixels",
+     "label": "Size (megapixels — 1 is about 1024×1024)",
+     "type": "number",
+     "node": "19.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps",
+     "label": "Steps",
+     "type": "number",
+     "node": "107.steps",
+     "from": "the graph default",
+     "value": 16
+    },
+    {
+     "key": "seed",
+     "label": "Seed",
+     "type": "number",
+     "node": "107.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 15,
+   "coldSec": 28,
+   "modelLoadSec": 13,
+   "vramPeakGb": 10.23,
+   "steps": 16,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T07:56:22.866Z",
+   "wallSec": 36
+  },
+  {
+   "id": "image_edit_minimax_h3_image_edit@cue-night",
+   "variantOf": "image_edit_minimax_h3_image_edit",
+   "variant": "cue-night",
+   "name": "MiniMax-H3-Image — edit a picture",
+   "category": "image-edit",
+   "experimental": true,
+   "startedAt": "2026-11-16T07:56:22.871Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_minimax_h3_image_edit_1794815787420_00001_.png",
+     "bytes": 4248260,
+     "kind": "image",
+     "width": 2720,
+     "height": 1536,
+     "mode": "RGB",
+     "mean": 47.99,
+     "std": 48.96,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_edit_minimax_h3_image_edit_1794815787420_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "minimax_h3_image_pruned_int8_convrot.safetensors",
+    "minimax_h3_image_vae_fp16.safetensors",
+    "qwen3vl_32b_minimax_h3_int8_convrot.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-scenography",
+    "stage": "1 — The model box",
+    "note": null,
+    "inputs": {
+     "loadimage_image_45": {
+      "from": "image_flux3_klein_distilled_t2i@model-box",
+      "source": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+      "path": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_45",
+     "label": "Picture to edit",
+     "type": "image",
+     "node": "45.image",
+     "from": "output of image_flux3_klein_distilled_t2i@model-box",
+     "value": "comfyq__ba10f18f__bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+     "sourcePath": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+     "staged": "comfyq__ba10f18f__bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png"
+    },
+    {
+     "key": "instruction_43",
+     "label": "What to change — call your picture <Picture 1>, and say what to keep",
+     "type": "textarea",
+     "node": "43.value",
+     "from": "the test suite",
+     "value": "Relight the scale model in <Picture 1> as a night scene of a performance: a deep blue wash over the whole set, one hard warm white spotlight from above falling only on the three figurines centre stage, a thin line of amber light glowing from under the tall doorway, light haze in the air catching the beam. The rest of the box falls into darkness. Keep the model, its staircase, the figurines, the chair and the camera exactly the same."
+    },
+    {
+     "key": "improver_61",
+     "label": "Write a full caption from my prompt first (prompt improver, Qwen 3.5 9B; adds about a minute and a half)",
+     "type": "checkbox",
+     "node": "61.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "megapixels_56",
+     "label": "Working size in megapixels (4 to 16; best near 16, slower)",
+     "type": "number",
+     "node": "56.resize_type.megapixels",
+     "from": "the graph default",
+     "value": 4
+    },
+    {
+     "key": "seed_38",
+     "label": "Seed",
+     "type": "number",
+     "node": "38.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 22,
+   "coldSec": 77,
+   "modelLoadSec": 55,
+   "vramPeakGb": 29.05,
+   "steps": 6,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T07:57:48.752Z",
+   "wallSec": 86
+  },
+  {
+   "id": "image_edit_flux3_klein_distilled_image_edit@cue-dawn",
+   "variantOf": "image_edit_flux3_klein_distilled_image_edit",
+   "variant": "cue-dawn",
+   "name": "FLUX.3 Klein distilled — fast picture edit",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T07:57:48.756Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_flux3_klein_distilled_image_edit_1794815875176_00001_.png",
+     "bytes": 1662978,
+     "kind": "image",
+     "width": 1360,
+     "height": 768,
+     "mode": "RGB",
+     "mean": 108.85,
+     "std": 73.8,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_edit_flux3_klein_distilled_image_edit_1794815875176_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-scenography",
+    "stage": "1 — The model box",
+    "note": null,
+    "inputs": {
+     "image": {
+      "from": "image_flux3_klein_distilled_t2i@model-box",
+      "source": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+      "path": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "image",
+     "label": "Picture to edit",
+     "type": "image",
+     "node": "11.image",
+     "from": "output of image_flux3_klein_distilled_t2i@model-box",
+     "value": "comfyq__b7deb4d4__bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+     "sourcePath": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+     "staged": "comfyq__b7deb4d4__bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png"
+    },
+    {
+     "key": "prompt",
+     "label": "What to change",
+     "type": "textarea",
+     "node": "301.value",
+     "from": "the test suite",
+     "value": "In <ref_image_0>, light the same scale model as a dawn scene: soft pale pink and gold light raking in low from stage left between the balsa battens, casting long striped shadows across the raked floor and up the staircase, a cool lavender light on the back wall. Keep the model box, the staircase, the figurines, the chair and the framing exactly as they are."
+    },
+    {
+     "key": "layout",
+     "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+     "type": "textarea",
+     "node": "300.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "improve_prompt",
+     "label": "Improve the instruction with AI first (a Qwen 3.5 model looks at the picture and writes a full caption of the result) — slow: adds about 2–3 minutes",
+     "type": "checkbox",
+     "node": "51.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "megapixels",
+     "label": "Working size (megapixels) — the result takes the picture's shape at this size",
+     "type": "number",
+     "node": "17.resolution.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps",
+     "label": "Steps",
+     "type": "number",
+     "node": "7.steps",
+     "from": "the graph default",
+     "value": 16
+    },
+    {
+     "key": "seed",
+     "label": "Seed",
+     "type": "number",
+     "node": "7.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 12,
+   "coldSec": 18,
+   "modelLoadSec": 6,
+   "vramPeakGb": 11.39,
+   "steps": 16,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T07:58:17.842Z",
+   "wallSec": 29
+  },
+  {
+   "id": "image_edit_qwen_2511_multiple_angles@balcony",
+   "variantOf": "image_edit_qwen_2511_multiple_angles",
+   "variant": "balcony",
+   "name": "Qwen Image-Edit 2511 - reshoot from another angle (place the camera)",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T07:58:17.846Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_qwen_2511_multiple_angles_1794815902377_00001_.png",
+     "bytes": 1528990,
+     "kind": "image",
+     "width": 1392,
+     "height": 752,
+     "mode": "RGB",
+     "mean": 96.69,
+     "std": 70.08,
+     "min": 0,
+     "max": 245,
+     "flags": [],
+     "file": "bench_image_edit_qwen_2511_multiple_angles_1794815902377_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "qwen-image-edit-2511-lightning-4steps-v1.0-bf16.safetensors",
+    "qwen-image-edit-2511-multiple-angles-lora.safetensors",
+    "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+    "qwen_image_edit_2511_int8_convrot.safetensors",
+    "qwen_image_vae.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-scenography",
+    "stage": "1 — The model box",
+    "note": null,
+    "inputs": {
+     "loadimage_image_1": {
+      "from": "image_flux3_klein_distilled_t2i@model-box",
+      "source": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+      "path": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_1",
+     "label": "The subject to reshoot - one clear photo",
+     "type": "image",
+     "node": "1.image",
+     "from": "output of image_flux3_klein_distilled_t2i@model-box",
+     "value": "comfyq__bbb18d91__bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+     "sourcePath": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+     "staged": "comfyq__bbb18d91__bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png"
+    },
+    {
+     "key": "cameraangle_221",
+     "label": "Where the camera stands",
+     "type": "camera",
+     "node": "221.horizontal_angle",
+     "from": "the test suite",
+     "value": "{\"horizontal\": 30, \"vertical\": 45, \"zoom\": 5}"
+    },
+    {
+     "key": "primitiveboolean_value_219_168",
+     "label": "Fast mode (4-step adapter - seconds instead of over two minutes)",
+     "type": "checkbox",
+     "node": "219:168.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "loraloadermodelonly_strength_model_219_220",
+     "label": "Adapter strength (lower it if the subject drifts)",
+     "type": "number",
+     "node": "219:220.strength_model",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_seed_219_169",
+     "label": "Seed - keep it fixed across angles to build a consistent turnaround",
+     "type": "number",
+     "node": "219:169.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 6,
+   "coldSec": 45,
+   "modelLoadSec": 38,
+   "vramPeakGb": 27.54,
+   "steps": 4,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [
+     "use_sage_attention"
+    ],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T07:59:11.600Z",
+   "wallSec": 54
+  },
+  {
+   "id": "image_qwen_image_2_1_control_depth@built-set",
+   "variantOf": "image_qwen_image_2_1_control_depth",
+   "variant": "built-set",
+   "name": "Qwen Image 2.1 - draw from depth (ControlNet depth)",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T07:59:11.601Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2_1_control_depth_1794815956145_00001.png",
+     "bytes": 1162554,
+     "kind": "image",
+     "width": 1376,
+     "height": 768,
+     "mode": "RGBA",
+     "mean": 63.76,
+     "std": 79.43,
+     "min": 0,
+     "max": 253,
+     "alpha": {
+      "mean": 254.84,
+      "std": 0.37,
+      "min": 254,
+      "max": 255
+     },
+     "flags": [],
+     "file": "bench_image_qwen_image_2_1_control_depth_1794815956145_00001.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "da3_large.safetensors",
+    "qwen-image-2.1-fun-controlnet-union.safetensors",
+    "qwen3vl_8b_int8_convrot.safetensors",
+    "qwen_image_2.1_int8_convrot.safetensors",
+    "qwen_image_2.1_vae_bf16.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-scenography",
+    "stage": "2 — From the model to the stage",
+    "note": null,
+    "inputs": {
+     "loadimage_image_900": {
+      "from": "image_flux3_klein_distilled_t2i@model-box",
+      "source": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+      "path": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "textencodeqwenimage21_prompt_459_452",
+     "label": "What to draw - the picture supplies the structure, this supplies everything else",
+     "type": "textarea",
+     "node": "459:452.prompt",
+     "from": "the test suite",
+     "value": "Production photograph of the finished theatre set on a real stage during a dress rehearsal, seen from the stalls: a steep raked stage floor of pale sanded wood, a monumental curved white plaster staircase rising from stage left to a tall narrow doorway in a towering back wall of torn grey paper, three actors in long dark coats standing centre stage, a single wooden chair at the front edge of the stage, rows of lighting battens hanging above. A warm theatrical spotlight on the actors, the auditorium dark around the edges of the frame."
+    },
+    {
+     "key": "loadimage_image_900",
+     "label": "Structure image - its shapes are kept, its content is not",
+     "type": "image",
+     "node": "900.image",
+     "from": "output of image_flux3_klein_distilled_t2i@model-box",
+     "value": "comfyq__bf1146d3__bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+     "sourcePath": "output/bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png",
+     "staged": "comfyq__bf1146d3__bench_image_flux3_klein_distilled_t2i_1794815749823_00001_.png"
+    },
+    {
+     "key": "controlnet_strength_903",
+     "label": "How closely to follow the structure (1.0 is the trained strength)",
+     "type": "number",
+     "node": "903.strength",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "resolutionselector_aspect_ratio_13",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "13.aspect_ratio",
+     "from": "the test suite",
+     "value": "16:9 (Widescreen)"
+    },
+    {
+     "key": "resolutionselector_megapixels_13",
+     "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+     "type": "number",
+     "node": "13.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_steps_459_458",
+     "label": "Steps (20 is the default, 25 is quick, 40–50 is Qwen's own setting — slower)",
+     "type": "number",
+     "node": "459:458.steps",
+     "from": "the graph default",
+     "value": 20
+    },
+    {
+     "key": "ksampler_seed_459_458",
+     "label": "Seed",
+     "type": "number",
+     "node": "459:458.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 36,
+   "coldSec": 52,
+   "modelLoadSec": 16,
+   "vramPeakGb": 24.35,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:00:12.536Z",
+   "wallSec": 61
+  },
+  {
+   "id": "video_ltx2_5_i2v@cue-change",
+   "variantOf": "video_ltx2_5_i2v",
+   "variant": "cue-change",
+   "name": "LTX 2.5 — image to video + audio",
+   "category": "i2v",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:00:12.537Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_ltx2_5_i2v_1794816018926_00001_.mp4",
+     "bytes": 1105684,
+     "kind": "video",
+     "frames": 121,
+     "fps": 24,
+     "width": 1280,
+     "height": 704,
+     "samples": [
+      {
+       "mean": 47.55,
+       "std": 49.19,
+       "min": 0,
+       "max": 253,
+       "at": 0
+      },
+      {
+       "mean": 32.18,
+       "std": 51.43,
+       "min": 0,
+       "max": 253,
+       "at": 60
+      },
+      {
+       "mean": 55.18,
+       "std": 58.75,
+       "min": 0,
+       "max": 253,
+       "at": 119
+      }
+     ],
+     "mean": 44.97,
+     "std": 58.75,
+     "flags": [],
+     "file": "bench_video_ltx2_5_i2v_1794816018926_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+    "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+    "ltx-2.5-audio-vae-bf16.safetensors",
+    "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+    "ltx-2.5-video-vae-bf16.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-scenography",
+    "stage": "2 — From the model to the stage",
+    "note": null,
+    "inputs": {
+     "loadimage_image_395": {
+      "from": "image_edit_minimax_h3_image_edit@cue-night",
+      "source": "output/bench_image_edit_minimax_h3_image_edit_1794815787420_00001_.png",
+      "path": "output/bench_image_edit_minimax_h3_image_edit_1794815787420_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_395",
+     "label": "Start image (first frame)",
+     "type": "image",
+     "node": "395.image",
+     "from": "output of image_edit_minimax_h3_image_edit@cue-night",
+     "value": "comfyq__b9bc359c__bench_image_edit_minimax_h3_image_edit_1794815787420_00001_.png",
+     "sourcePath": "output/bench_image_edit_minimax_h3_image_edit_1794815787420_00001_.png",
+     "staged": "comfyq__b9bc359c__bench_image_edit_minimax_h3_image_edit_1794815787420_00001_.png"
+    },
+    {
+     "key": "primitivestringmultiline_value_398_376",
+     "label": "Prompt (motion / camera / sound)",
+     "type": "textarea",
+     "node": "398:376.value",
+     "from": "the test suite",
+     "value": "Use the provided start image as the first frame. The camera pushes in very slowly towards the scale model at audience eye level. Haze drifts through the warm spotlight beam. After two seconds the lighting cue changes: the deep blue wash fades down and the amber light under the doorway grows brighter until it floods the staircase, while the spotlight on the three figurines dims. The figurines and the model stay completely still. A quiet theatre ambience, the soft hum of the lamps and one low rising cello note. No text, no black frames."
+    },
+    {
+     "key": "primitiveboolean_value_398_383",
+     "label": "Enhance prompt with AI (slower)",
+     "type": "checkbox",
+     "node": "398:383.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "primitiveint_value_410",
+     "label": "Width (px, multiple of 64 — your image is center-cropped to this shape)",
+     "type": "number",
+     "node": "410.value",
+     "from": "the graph default",
+     "value": 1280
+    },
+    {
+     "key": "primitiveint_value_411",
+     "label": "Height (px, multiple of 64)",
+     "type": "number",
+     "node": "411.value",
+     "from": "the graph default",
+     "value": 704
+    },
+    {
+     "key": "primitiveint_value_398_362",
+     "label": "Duration (seconds)",
+     "type": "number",
+     "node": "398:362.value",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "primitiveint_value_398_361",
+     "label": "Frame rate (fps)",
+     "type": "number",
+     "node": "398:361.value",
+     "from": "the graph default",
+     "value": 24
+    },
+    {
+     "key": "randomnoise_noise_seed_398_339",
+     "label": "Seed",
+     "type": "number",
+     "node": "398:339.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 52,
+   "coldSec": 105,
+   "modelLoadSec": 53,
+   "vramPeakGb": 29.45,
+   "steps": 3,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:02:09.192Z",
+   "wallSec": 117
+  },
+  {
+   "id": "image_qwen_image_2_1_t2i@exhibition",
+   "variantOf": "image_qwen_image_2_1_t2i",
+   "variant": "exhibition",
+   "name": "Qwen Image 2.1 — text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:02:09.194Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2_1_t2i_1794816135482_00001.png",
+     "bytes": 1315208,
+     "kind": "image",
+     "width": 1376,
+     "height": 768,
+     "mode": "RGBA",
+     "mean": 30.51,
+     "std": 39.78,
+     "min": 0,
+     "max": 255,
+     "alpha": {
+      "mean": 254.94,
+      "std": 0.23,
+      "min": 251,
+      "max": 255
+     },
+     "flags": [],
+     "file": "bench_image_qwen_image_2_1_t2i_1794816135482_00001.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-scenography",
+    "stage": "3 — Exhibitions, events and backdrops",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "textencodeqwenimage21_prompt_459_452",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "459:452.prompt",
+     "from": "the test suite",
+     "value": "Wide photograph of a museum exhibition about deep-sea creatures, designed as an immersive scenography: a dark blue room, a giant translucent jellyfish sculpture of glowing fabric hanging from the ceiling in the centre, three free-standing curved display walls in deep teal with lit vitrines holding glass models of plankton, a wall on the right printed with the exhibition title 'ABYSS' in tall white capital letters, wayfinding numbers '01', '02' and '03' painted on the floor, small groups of visitors walking between the walls and a child pressing her hands against a vitrine. Cool blue light from the sculpture, warm spotlights inside the vitrines."
+    },
+    {
+     "key": "resolutionselector_aspect_ratio_13",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "13.aspect_ratio",
+     "from": "the test suite",
+     "value": "16:9 (Widescreen)"
+    },
+    {
+     "key": "resolutionselector_megapixels_13",
+     "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+     "type": "number",
+     "node": "13.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_steps_459_458",
+     "label": "Steps (25 is quick, 40–50 is Qwen's own setting)",
+     "type": "number",
+     "node": "459:458.steps",
+     "from": "calibration",
+     "value": 25
+    },
+    {
+     "key": "ksampler_seed_459_458",
+     "label": "Seed",
+     "type": "number",
+     "node": "459:458.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 15,
+   "coldSec": 19,
+   "modelLoadSec": 4,
+   "vramPeakGb": 15.36,
+   "steps": 25,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:02:39.395Z",
+   "wallSec": 30
+  },
+  {
+   "id": "image_qwen_image_2512_360_panorama@festival-stage",
+   "variantOf": "image_qwen_image_2512_360_panorama",
+   "variant": "festival-stage",
+   "name": "Qwen-Image 2512 — 360° panorama / HDRI from a description",
+   "category": "t2i",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:02:39.399Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2512_360_panorama_1794816164134_00001.exr",
+     "bytes": 49340800,
+     "kind": "other",
+     "flags": [],
+     "file": "bench_image_qwen_image_2512_360_panorama_1794816164134_00001.exr"
+    },
+    {
+     "path": "output/bench_image_qwen_image_2512_360_panorama_1794816164134_00002.png",
+     "bytes": 15366908,
+     "kind": "image",
+     "width": 4096,
+     "height": 2048,
+     "mode": "RGB",
+     "mean": 148.08,
+     "std": 48.62,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_qwen_image_2512_360_panorama_1794816164134_00002.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "qwen-360-diffusion-2512-int8-bf16-v2.safetensors",
+    "qwen-image-2512-lightning-4steps-v1.0-fp32.safetensors",
+    "qwen_image_2512_fp8_e4m3fn.safetensors",
+    "realesrgan_x4plus.pth"
+   ],
+   "suite": {
+    "name": "speciality-scenography",
+    "stage": "3 — Exhibitions, events and backdrops",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "place_2",
+     "label": "The place — what surrounds the camera (and the camera, e.g. “sharp realistic photograph”)",
+     "type": "textarea",
+     "node": "2.value",
+     "from": "the test suite",
+     "value": "the middle of the audience lawn of a temporary open-air festival stage built in a vineyard: a wooden stage with a curved canopy of white stretched fabric on slender black steel masts, two towers of stage lights and loudspeakers on either side, rows of folding chairs and straw bales facing the stage, strings of festoon bulbs crossing overhead, a small bar in a converted shipping container, and rows of vines climbing the gentle hills all around"
+    },
+    {
+     "key": "time_of_day_3",
+     "label": "Time of day",
+     "type": "select",
+     "node": "3.value",
+     "from": "the graph default",
+     "value": 4
+    },
+    {
+     "key": "season_4",
+     "label": "Season",
+     "type": "select",
+     "node": "4.value",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "clouds_5",
+     "label": "Sky (the exact clouds follow the season)",
+     "type": "select",
+     "node": "5.value",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "camera_height_6",
+     "label": "Camera height",
+     "type": "select",
+     "node": "6.value",
+     "from": "the graph default",
+     "value": 0
+    },
+    {
+     "key": "seam_fix_9",
+     "label": "Repair the left/right seam (a second pass over the join)",
+     "type": "checkbox",
+     "node": "9.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "seam_denoise_10",
+     "label": "Seam repair strength (0.5–0.7)",
+     "type": "number",
+     "node": "10.value",
+     "from": "the graph default",
+     "value": 0.6
+    },
+    {
+     "key": "quality_mode_11",
+     "label": "Quality mode — no Lightning LoRA, several times slower",
+     "type": "checkbox",
+     "node": "11.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "steps_8",
+     "label": "Steps in fast mode (8 recommended, 6–10)",
+     "type": "number",
+     "node": "8.value",
+     "from": "the graph default",
+     "value": 8
+    },
+    {
+     "key": "quality_steps_12",
+     "label": "Steps in quality mode (25–40)",
+     "type": "number",
+     "node": "12.value",
+     "from": "the graph default",
+     "value": 30
+    },
+    {
+     "key": "quality_cfg_13",
+     "label": "Guidance in quality mode (CFG 2.5–4)",
+     "type": "number",
+     "node": "13.value",
+     "from": "the graph default",
+     "value": 3
+    },
+    {
+     "key": "negative_49",
+     "label": "Negative prompt (only used in quality mode)",
+     "type": "textarea",
+     "node": "49.text",
+     "from": "the graph default",
+     "value": "illustration, cartoon, drawing, painting, anime, 3d render, cgi, video game, flat colors, cel shading, smooth plastic surfaces, oversaturated, blurry, text, watermark, frame"
+    },
+    {
+     "key": "seed_7",
+     "label": "Seed",
+     "type": "number",
+     "node": "7.value",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 1,
+   "warmSec": 26,
+   "coldSec": 62,
+   "modelLoadSec": 36,
+   "vramPeakGb": 27.33,
+   "steps": 15,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:03:50.899Z",
+   "wallSec": 72
+  },
+  {
+   "id": "image_flux3_klein_distilled_t2i@backdrop",
+   "variantOf": "image_flux3_klein_distilled_t2i",
+   "variant": "backdrop",
+   "name": "FLUX.3 Klein distilled — fast text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:03:50.903Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_flux3_klein_distilled_t2i_1794816236943_00001_.png",
+     "bytes": 1966069,
+     "kind": "image",
+     "width": 1360,
+     "height": 768,
+     "mode": "RGB",
+     "mean": 101.41,
+     "std": 46.61,
+     "min": 1,
+     "max": 244,
+     "flags": [],
+     "file": "bench_image_flux3_klein_distilled_t2i_1794816236943_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-scenography",
+    "stage": "3 — Exhibitions, events and backdrops",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "117.value",
+     "from": "the test suite",
+     "value": "A painted theatre backdrop of a stormy sky over a dark sea, broad brushstrokes of deep indigo, slate grey and white, a band of pale gold light breaking through the clouds on the horizon, painted in distemper on canvas, seen flat and straight on, filling the whole frame, no frame and no stage visible."
+    },
+    {
+     "key": "layout",
+     "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+     "type": "textarea",
+     "node": "300.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "improve_prompt",
+     "label": "Improve the prompt with AI first (a Qwen 3.5 model expands it into a full caption) — slow: adds about 3 minutes",
+     "type": "checkbox",
+     "node": "116.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "aspect_ratio",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "19.aspect_ratio",
+     "from": "the test suite",
+     "value": "16:9 (Widescreen)"
+    },
+    {
+     "key": "megapixels",
+     "label": "Size (megapixels — 1 is about 1024×1024)",
+     "type": "number",
+     "node": "19.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps",
+     "label": "Steps",
+     "type": "number",
+     "node": "107.steps",
+     "from": "the graph default",
+     "value": 16
+    },
+    {
+     "key": "seed",
+     "label": "Seed",
+     "type": "number",
+     "node": "107.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 6,
+   "coldSec": 18,
+   "modelLoadSec": 11,
+   "vramPeakGb": 10.11,
+   "steps": 16,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:04:19.177Z",
+   "wallSec": 28
+  },
+  {
+   "id": "video_minimax_h3_seamless_loop_fasth3@backdrop-loop",
+   "variantOf": "video_minimax_h3_seamless_loop_fasth3",
+   "variant": "backdrop-loop",
+   "name": "FastH3-Omni — seamless looping video with sound (8 steps)",
+   "category": "i2v",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:04:19.181Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_minimax_h3_seamless_loop_fasth3_1794816263717_00001_.mp4",
+     "bytes": 2863903,
+     "kind": "video",
+     "frames": 204,
+     "fps": 48,
+     "width": 1024,
+     "height": 576,
+     "samples": [
+      {
+       "mean": 102.25,
+       "std": 48.61,
+       "min": 0,
+       "max": 251,
+       "at": 0
+      },
+      {
+       "mean": 113.17,
+       "std": 60.96,
+       "min": 0,
+       "max": 253,
+       "at": 102
+      },
+      {
+       "mean": 103.48,
+       "std": 49.16,
+       "min": 1,
+       "max": 252,
+       "at": 202
+      }
+     ],
+     "mean": 106.3,
+     "std": 60.96,
+     "flags": [],
+     "file": "bench_video_minimax_h3_seamless_loop_fasth3_1794816263717_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "fasth3_omniref_8step_pruned_int8_convrot.safetensors",
+    "minimax_h3_audio_vae_fp32.safetensors",
+    "minimax_h3_video_vae_fp16.safetensors",
+    "qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-scenography",
+    "stage": "3 — Exhibitions, events and backdrops",
+    "note": null,
+    "inputs": {
+     "ref_image_7": {
+      "from": "image_flux3_klein_distilled_t2i@backdrop",
+      "source": "output/bench_image_flux3_klein_distilled_t2i_1794816236943_00001_.png",
+      "path": "output/bench_image_flux3_klein_distilled_t2i_1794816236943_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "prompt_8",
+     "label": "Prompt — a state that keeps going, not a sequence of events",
+     "type": "textarea",
+     "node": "8.value",
+     "from": "the test suite",
+     "value": "Locked-off static camera, no pan, no zoom. A painted stormy sky over a dark sea, projected as a theatre backdrop. The clouds roll slowly from left to right, the band of gold light on the horizon breathes gently brighter and dimmer, the waves below rise and fall in a slow steady rhythm. Painted texture throughout. Continuous, smooth, unbroken motion throughout.\n\noverall_soundscape: distant wind and a slow swell of waves.\n\nnon_diegetic_music: N/A"
+    },
+    {
+     "key": "ref_image_7",
+     "label": "Reference picture (optional) — call it <Picture 1> in the prompt",
+     "type": "image",
+     "node": "7.image",
+     "from": "output of image_flux3_klein_distilled_t2i@backdrop",
+     "value": "comfyq__b0abe931__bench_image_flux3_klein_distilled_t2i_1794816236943_00001_.png",
+     "sourcePath": "output/bench_image_flux3_klein_distilled_t2i_1794816236943_00001_.png",
+     "staged": "comfyq__b0abe931__bench_image_flux3_klein_distilled_t2i_1794816236943_00001_.png"
+    },
+    {
+     "key": "length_9",
+     "label": "Loop length in frames (107 = 4.25 s, 158 = 6.4 s, 209 = 8.5 s, 260 = 10.6 s, 311 = 12.75 s) — longer takes proportionally longer",
+     "type": "select",
+     "node": "9.length",
+     "from": "the graph default",
+     "value": 107
+    },
+    {
+     "key": "width_9",
+     "label": "Width (px)",
+     "type": "number",
+     "node": "9.width",
+     "from": "the graph default",
+     "value": 1024
+    },
+    {
+     "key": "height_9",
+     "label": "Height (px)",
+     "type": "number",
+     "node": "9.height",
+     "from": "the graph default",
+     "value": 576
+    },
+    {
+     "key": "views_3",
+     "label": "Clean sound at the loop point: 2 = on (about 1.8× slower), 1 = off (the sound can garble at the joint)",
+     "type": "select",
+     "node": "3.views",
+     "from": "the graph default",
+     "value": 2
+    },
+    {
+     "key": "multiplier_23",
+     "label": "Smoothing — frame interpolation across the whole loop: 2 = 48 fps, 3 = 72 fps, 4 = 96 fps",
+     "type": "select",
+     "node": "23.multiplier",
+     "from": "the graph default",
+     "value": 2
+    },
+    {
+     "key": "seed_10",
+     "label": "Seed — the seed decides a lot on loops; try several",
+     "type": "number",
+     "node": "10.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 250,
+   "coldSec": 310,
+   "modelLoadSec": 60,
+   "vramPeakGb": 29.48,
+   "steps": 8,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:09:39.024Z",
+   "wallSec": 320
+  },
+  {
+   "id": "video_minimax_h3_t2v_turbo@performance",
+   "variantOf": "video_minimax_h3_t2v_turbo",
+   "variant": "performance",
+   "name": "MiniMax H3 — text to video + audio (4-step turbo)",
+   "category": "i2v",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:09:39.025Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_minimax_h3_t2v_turbo_1794816585377_00001_.mp4",
+     "bytes": 744751,
+     "kind": "video",
+     "frames": 124,
+     "fps": 24,
+     "width": 864,
+     "height": 480,
+     "samples": [
+      {
+       "mean": 31.9,
+       "std": 45.03,
+       "min": 0,
+       "max": 255,
+       "at": 0
+      },
+      {
+       "mean": 39.56,
+       "std": 52.3,
+       "min": 0,
+       "max": 255,
+       "at": 62
+      },
+      {
+       "mean": 41.39,
+       "std": 55.21,
+       "min": 0,
+       "max": 255,
+       "at": 122
+      }
+     ],
+     "mean": 37.62,
+     "std": 55.21,
+     "flags": [],
+     "file": "bench_video_minimax_h3_t2v_turbo_1794816585377_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "minimax_h3_fl2v_turbo_4step_v1.0_768p_comfyui_bf16.safetensors",
+    "minimax_h3_fl2va_pruned_int8_convrot.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-scenography",
+    "stage": "3 — Exhibitions, events and backdrops",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "minimaxh3imagetovideo_prompt_11",
+     "label": "Prompt (scene / action / camera / sound)",
+     "type": "textarea",
+     "node": "11.prompt",
+     "from": "the test suite",
+     "value": "[Shot 1] Wide shot from the back of a dark theatre, static camera. On stage, a dancer in a long white dress moves slowly through a forest of thin hanging ropes, lit from above by a single cold white spotlight, haze rising around her. The ropes sway as she passes through them. We hear the creak of the stage floor, the soft swish of the ropes and a single sustained piano note in a silent auditorium."
+    },
+    {
+     "key": "primitiveboolean_value_3",
+     "label": "Fast mode (4-step turbo LoRA)",
+     "type": "checkbox",
+     "node": "3.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "minimaxh3imagetovideo_width_11",
+     "label": "Width",
+     "type": "number",
+     "node": "11.width",
+     "from": "calibration",
+     "value": 864
+    },
+    {
+     "key": "minimaxh3imagetovideo_height_11",
+     "label": "Height",
+     "type": "number",
+     "node": "11.height",
+     "from": "calibration",
+     "value": 480
+    },
+    {
+     "key": "minimaxh3imagetovideo_length_11",
+     "label": "Length (frames — 124 is about 5 s at 24 fps)",
+     "type": "number",
+     "node": "11.length",
+     "from": "calibration",
+     "value": 124
+    },
+    {
+     "key": "randomnoise_noise_seed_15",
+     "label": "Seed",
+     "type": "number",
+     "node": "15.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 29,
+   "coldSec": 60,
+   "modelLoadSec": 30,
+   "vramPeakGb": 29.11,
+   "steps": 4,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:10:50.018Z",
+   "wallSec": 71
+  }
+ ]
+}

@@ -1,0 +1,1303 @@
+{
+ "type": "summary",
+ "startedAt": "2026-11-16T08:30:21.325Z",
+ "finishedAt": "2026-11-16T08:50:56.293Z",
+ "state": "done",
+ "machine": {
+  "at": "2026-11-16T08:30:21.360Z",
+  "host": "AN-5090-2",
+  "instance": "AN-5090-2",
+  "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+  "vramTotalGb": 31.82,
+  "comfyui": "0.45.2",
+  "pytorch": "2.8.0+cu128",
+  "python": "3.12.10",
+  "argv": [
+   "--listen",
+   "--port",
+   "--disable-auto-launch",
+   "--windows-standalone-build",
+   "--fast"
+  ],
+  "comfyRoot": "comfyui",
+  "assetsDir": "assets",
+  "scanDirs": [
+   "/_demo_workflows"
+  ],
+  "comfyqCommit": "94fd022",
+  "comfyqBranch": "main"
+ },
+ "suite": {
+  "name": "speciality-transportation",
+  "file": "./tools/test-suite/speciality-transportation.suite.csv",
+  "description": "Transportation design: a car from side-view sketch to render, colourways and views, a city car in 3D, a bus concept, a cabin in 360° and driving footage. Every run becomes an example for students of this speciality, beside the card's showcase (tools/maintenance/seed_examples.cjs --speciality transportation)."
+ },
+ "summary": {
+  "ran": 10,
+  "succeeded": 10,
+  "failed": 0,
+  "withFlaggedOutput": 0,
+  "noOutput": 0,
+  "distinctModelsOpened": 4,
+  "recorderAvailable": true
+ },
+ "results": [
+  {
+   "id": "image_flux3_klein_distilled_t2i@sketch",
+   "variantOf": "image_flux3_klein_distilled_t2i",
+   "variant": "sketch",
+   "name": "FLUX.3 Klein distilled — fast text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:30:21.365Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_flux3_klein_distilled_t2i_1794817827541_00001_.png",
+     "bytes": 1499368,
+     "kind": "image",
+     "width": 1360,
+     "height": 768,
+     "mode": "RGB",
+     "mean": 181.23,
+     "std": 60.35,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_flux3_klein_distilled_t2i_1794817827541_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-transportation",
+    "stage": "1 — Sketch and render",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "117.value",
+     "from": "the test suite",
+     "value": "Automotive design sketch on light grey paper: the side view of a low, sleek two-seat electric sports coupe drawn with a confident black ballpoint line, a long wheelbase, very short overhangs, a fastback roofline flowing into a cut-off tail and oversized wheels, the body shaded with grey marker and white pencil highlights along the shoulder line, a dark ground shadow under the car. One car, centred, nothing else on the page, evenly lit flat scan."
+    },
+    {
+     "key": "layout",
+     "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+     "type": "textarea",
+     "node": "300.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "improve_prompt",
+     "label": "Improve the prompt with AI first (a Qwen 3.5 model expands it into a full caption) — slow: adds about 3 minutes",
+     "type": "checkbox",
+     "node": "116.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "aspect_ratio",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "19.aspect_ratio",
+     "from": "the test suite",
+     "value": "16:9 (Widescreen)"
+    },
+    {
+     "key": "megapixels",
+     "label": "Size (megapixels — 1 is about 1024×1024)",
+     "type": "number",
+     "node": "19.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps",
+     "label": "Steps",
+     "type": "number",
+     "node": "107.steps",
+     "from": "the graph default",
+     "value": 16
+    },
+    {
+     "key": "seed",
+     "label": "Seed",
+     "type": "number",
+     "node": "107.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 7,
+   "coldSec": 17,
+   "modelLoadSec": 10,
+   "vramPeakGb": 10.11,
+   "steps": 16,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:30:49.327Z",
+   "wallSec": 28
+  },
+  {
+   "id": "image_qwen_image_2_1_control_canny@render",
+   "variantOf": "image_qwen_image_2_1_control_canny",
+   "variant": "render",
+   "name": "Qwen Image 2.1 - draw from edges (ControlNet canny)",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:30:49.331Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png",
+     "bytes": 919713,
+     "kind": "image",
+     "width": 1376,
+     "height": 768,
+     "mode": "RGBA",
+     "mean": 49.37,
+     "std": 48.13,
+     "min": 0,
+     "max": 250,
+     "alpha": {
+      "mean": 254.92,
+      "std": 0.27,
+      "min": 253,
+      "max": 255
+     },
+     "flags": [],
+     "file": "bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-transportation",
+    "stage": "1 — Sketch and render",
+    "note": null,
+    "inputs": {
+     "loadimage_image_900": {
+      "from": "image_flux3_klein_distilled_t2i@sketch",
+      "source": "output/bench_image_flux3_klein_distilled_t2i_1794817827541_00001_.png",
+      "path": "output/bench_image_flux3_klein_distilled_t2i_1794817827541_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "textencodeqwenimage21_prompt_459_452",
+     "label": "What to draw - the picture supplies the structure, this supplies everything else",
+     "type": "textarea",
+     "node": "459:452.prompt",
+     "from": "the test suite",
+     "value": "Studio photograph of a low sleek two-seat electric sports coupe in side view, following the drawing exactly: liquid metallic silver paint, a tinted glass canopy, black multi-spoke aero wheels, a thin red light bar across the tail, on a polished dark studio floor with a soft reflection, one large softbox above, a dark grey background."
+    },
+    {
+     "key": "loadimage_image_900",
+     "label": "Structure image - its shapes are kept, its content is not",
+     "type": "image",
+     "node": "900.image",
+     "from": "output of image_flux3_klein_distilled_t2i@sketch",
+     "value": "comfyq__b3dcd475__bench_image_flux3_klein_distilled_t2i_1794817827541_00001_.png",
+     "sourcePath": "output/bench_image_flux3_klein_distilled_t2i_1794817827541_00001_.png",
+     "staged": "comfyq__b3dcd475__bench_image_flux3_klein_distilled_t2i_1794817827541_00001_.png"
+    },
+    {
+     "key": "controlnet_strength_903",
+     "label": "How closely to follow the structure (1.0 is the trained strength)",
+     "type": "number",
+     "node": "903.strength",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "canny_low_threshold_901",
+     "label": "Edge detail - lower finds more lines",
+     "type": "number",
+     "node": "901.low_threshold",
+     "from": "the graph default",
+     "value": 0.4
+    },
+    {
+     "key": "canny_high_threshold_901",
+     "label": "Edge strength - higher keeps only strong lines",
+     "type": "number",
+     "node": "901.high_threshold",
+     "from": "the graph default",
+     "value": 0.8
+    },
+    {
+     "key": "resolutionselector_aspect_ratio_13",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "13.aspect_ratio",
+     "from": "the test suite",
+     "value": "16:9 (Widescreen)"
+    },
+    {
+     "key": "resolutionselector_megapixels_13",
+     "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+     "type": "number",
+     "node": "13.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_steps_459_458",
+     "label": "Steps (20 is the default, 25 is quick, 40–50 is Qwen's own setting — slower)",
+     "type": "number",
+     "node": "459:458.steps",
+     "from": "the graph default",
+     "value": 20
+    },
+    {
+     "key": "ksampler_seed_459_458",
+     "label": "Seed",
+     "type": "number",
+     "node": "459:458.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 17,
+   "coldSec": 45,
+   "modelLoadSec": 28,
+   "vramPeakGb": 23.61,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:31:43.110Z",
+   "wallSec": 54
+  },
+  {
+   "id": "image_edit_minimax_h3_image_edit@colourway",
+   "variantOf": "image_edit_minimax_h3_image_edit",
+   "variant": "colourway",
+   "name": "MiniMax-H3-Image — edit a picture",
+   "category": "image-edit",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:31:43.114Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_minimax_h3_image_edit_1794817909555_00001_.png",
+     "bytes": 5667629,
+     "kind": "image",
+     "width": 2720,
+     "height": 1504,
+     "mode": "RGB",
+     "mean": 162.75,
+     "std": 78.07,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_edit_minimax_h3_image_edit_1794817909555_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-transportation",
+    "stage": "1 — Sketch and render",
+    "note": null,
+    "inputs": {
+     "loadimage_image_45": {
+      "from": "image_qwen_image_2_1_control_canny@render",
+      "source": "output/bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png",
+      "path": "output/bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_45",
+     "label": "Picture to edit",
+     "type": "image",
+     "node": "45.image",
+     "from": "output of image_qwen_image_2_1_control_canny@render",
+     "value": "comfyq__b78ca6dc__bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png",
+     "sourcePath": "output/bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png",
+     "staged": "comfyq__b78ca6dc__bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png"
+    },
+    {
+     "key": "instruction_43",
+     "label": "What to change — call your picture <Picture 1>, and say what to keep",
+     "type": "textarea",
+     "node": "43.value",
+     "from": "the test suite",
+     "value": "Repaint the car in <Picture 1> in a matte deep olive green with bronze wheels and place it on a sunlit desert salt flat at golden hour, with long shadows and a pale sky. Keep the car's shape, every line of its body and the side view exactly the same."
+    },
+    {
+     "key": "improver_61",
+     "label": "Write a full caption from my prompt first (prompt improver, Qwen 3.5 9B; adds about a minute and a half)",
+     "type": "checkbox",
+     "node": "61.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "megapixels_56",
+     "label": "Working size in megapixels (4 to 16; best near 16, slower)",
+     "type": "number",
+     "node": "56.resize_type.megapixels",
+     "from": "the graph default",
+     "value": 4
+    },
+    {
+     "key": "seed_38",
+     "label": "Seed",
+     "type": "number",
+     "node": "38.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 20,
+   "coldSec": 77,
+   "modelLoadSec": 57,
+   "vramPeakGb": 29.15,
+   "steps": 6,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:33:10.881Z",
+   "wallSec": 88
+  },
+  {
+   "id": "image_edit_qwen_2511_multiple_angles@rear-three-quarter",
+   "variantOf": "image_edit_qwen_2511_multiple_angles",
+   "variant": "rear-three-quarter",
+   "name": "Qwen Image-Edit 2511 - reshoot from another angle (place the camera)",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:33:10.885Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_qwen_2511_multiple_angles_1794817997008_00001_.png",
+     "bytes": 907722,
+     "kind": "image",
+     "width": 1392,
+     "height": 752,
+     "mode": "RGB",
+     "mean": 51.29,
+     "std": 48.76,
+     "min": 0,
+     "max": 249,
+     "flags": [],
+     "file": "bench_image_edit_qwen_2511_multiple_angles_1794817997008_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-transportation",
+    "stage": "1 — Sketch and render",
+    "note": null,
+    "inputs": {
+     "loadimage_image_1": {
+      "from": "image_qwen_image_2_1_control_canny@render",
+      "source": "output/bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png",
+      "path": "output/bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_1",
+     "label": "The subject to reshoot - one clear photo",
+     "type": "image",
+     "node": "1.image",
+     "from": "output of image_qwen_image_2_1_control_canny@render",
+     "value": "comfyq__b82948fa__bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png",
+     "sourcePath": "output/bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png",
+     "staged": "comfyq__b82948fa__bench_image_qwen_image_2_1_control_canny_1794817853872_00001.png"
+    },
+    {
+     "key": "cameraangle_221",
+     "label": "Where the camera stands",
+     "type": "camera",
+     "node": "221.horizontal_angle",
+     "from": "the test suite",
+     "value": "{\"horizontal\": 135, \"vertical\": 15, \"zoom\": 5}"
+    },
+    {
+     "key": "primitiveboolean_value_219_168",
+     "label": "Fast mode (4-step adapter - seconds instead of over two minutes)",
+     "type": "checkbox",
+     "node": "219:168.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "loraloadermodelonly_strength_model_219_220",
+     "label": "Adapter strength (lower it if the subject drifts)",
+     "type": "number",
+     "node": "219:220.strength_model",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_seed_219_169",
+     "label": "Seed - keep it fixed across angles to build a consistent turnaround",
+     "type": "number",
+     "node": "219:169.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 6,
+   "coldSec": 43,
+   "modelLoadSec": 37,
+   "vramPeakGb": 27.54,
+   "steps": 4,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [
+     "use_sage_attention"
+    ],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:34:04.537Z",
+   "wallSec": 54
+  },
+  {
+   "id": "image_minimax_h3_t2i@bus",
+   "variantOf": "image_minimax_h3_t2i",
+   "variant": "bus",
+   "name": "MiniMax H3 — text to image",
+   "category": "t2i",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:34:04.541Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_minimax_h3_t2i_1794818049066_00001_.png",
+     "bytes": 1656865,
+     "kind": "image",
+     "width": 1376,
+     "height": 768,
+     "mode": "RGB",
+     "mean": 78.27,
+     "std": 62.19,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_minimax_h3_t2i_1794818049066_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-transportation",
+    "stage": "2 — Other vehicles",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt_112",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "112.text",
+     "from": "the test suite",
+     "value": "Cinematic film still, a futuristic electric city bus concept at night in the rain, low three-quarter front view from the kerb: a long single-deck bus with a fully glazed front that wraps up into the roof, a continuous thin white light strip around the body, a destination display reading 'LINE 7 — PORT' in amber, passengers silhouetted inside under warm light, wet asphalt reflecting the neon of the city, shallow depth of field, anamorphic lens flare."
+    },
+    {
+     "key": "fast_mode_200",
+     "label": "Fast mode — 8-step turbo LoRA (off: base model, slower, a little more detail)",
+     "type": "checkbox",
+     "node": "200.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "aspect_ratio_79",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "79.aspect_ratio",
+     "from": "the test suite",
+     "value": "16:9 (Widescreen)"
+    },
+    {
+     "key": "megapixels_79",
+     "label": "Size in megapixels (1.0 ≈ 1344×768 at 16:9)",
+     "type": "number",
+     "node": "79.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps_201",
+     "label": "Steps with Fast mode off (30 default, 50 for the most detail)",
+     "type": "number",
+     "node": "201.value",
+     "from": "the graph default",
+     "value": 30
+    },
+    {
+     "key": "seed_115",
+     "label": "Seed",
+     "type": "number",
+     "node": "115.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 11,
+   "coldSec": 54,
+   "modelLoadSec": 43,
+   "vramPeakGb": 29.69,
+   "steps": 8,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:35:07.585Z",
+   "wallSec": 63
+  },
+  {
+   "id": "image_flux2_klein_9b_t2i@city-car",
+   "variantOf": "image_flux2_klein_9b_t2i",
+   "variant": "city-car",
+   "name": "Flux2 Klein 9B — text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:35:07.589Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_flux2_klein_9b_t2i_1794818112547_00001_.png",
+     "bytes": 1027756,
+     "kind": "image",
+     "width": 1024,
+     "height": 1024,
+     "mode": "RGB",
+     "mean": 201.18,
+     "std": 66.36,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_flux2_klein_9b_t2i_1794818112547_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-transportation",
+    "stage": "2 — Other vehicles",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "primitivestringmultiline_value_76",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "76.value",
+     "from": "the test suite",
+     "value": "Product photograph of a compact electric city car concept on a plain white background, three-quarter front view: a short, tall, rounded body shaped like a pebble, a huge single windscreen, sliding doors, pastel mint paint with a white roof, small round headlights and black aero wheel covers. Centred, soft studio light, a soft shadow under the car."
+    },
+    {
+     "key": "cliptextencode_text_75_67",
+     "label": "Negative prompt",
+     "type": "textarea",
+     "node": "75:67.text",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "randomnoise_noise_seed_75_73",
+     "label": "Seed",
+     "type": "number",
+     "node": "75:73.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    },
+    {
+     "key": "flux2scheduler_steps_75_62",
+     "label": "Steps",
+     "type": "number",
+     "node": "75:62.steps",
+     "from": "the graph default",
+     "value": 20
+    },
+    {
+     "key": "cfgguider_cfg_75_63",
+     "label": "CFG",
+     "type": "number",
+     "node": "75:63.cfg",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "primitiveint_value_75_68",
+     "label": "Width",
+     "type": "number",
+     "node": "75:68.value",
+     "from": "the test suite",
+     "value": 1024
+    },
+    {
+     "key": "primitiveint_value_75_69",
+     "label": "Height",
+     "type": "number",
+     "node": "75:69.value",
+     "from": "the test suite",
+     "value": 1024
+    },
+    {
+     "key": "emptyflux2latentimage_batch_size_75_66",
+     "label": "Batch size",
+     "type": "number",
+     "node": "75:66.batch_size",
+     "from": "the graph default",
+     "value": 1
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 12,
+   "coldSec": 32,
+   "modelLoadSec": 20,
+   "vramPeakGb": 18.3,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:35:49.559Z",
+   "wallSec": 42
+  },
+  {
+   "id": "3d_pixal3d_trellis2_image_to_model@city-car-3d",
+   "variantOf": "3d_pixal3d_trellis2_image_to_model",
+   "variant": "city-car-3d",
+   "name": "Pixal3D / TRELLIS.2 (built-in nodes) — image to PBR-textured 3D model",
+   "category": "3d",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:35:49.563Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_3d_pixal3d_trellis2_image_to_model_1794818154139_00001.glb",
+     "bytes": 51210320,
+     "kind": "model3d",
+     "flags": [],
+     "format": "glb",
+     "file": "bench_3d_pixal3d_trellis2_image_to_model_1794818154139_00001.glb"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-transportation",
+    "stage": "2 — Other vehicles",
+    "note": null,
+    "inputs": {
+     "loadimage_image_122": {
+      "from": "image_flux2_klein_9b_t2i@city-car",
+      "source": "output/bench_image_flux2_klein_9b_t2i_1794818112547_00001_.png",
+      "path": "output/bench_image_flux2_klein_9b_t2i_1794818112547_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_122",
+     "label": "Object image (whole subject in frame)",
+     "type": "image",
+     "node": "122.image",
+     "from": "output of image_flux2_klein_9b_t2i@city-car",
+     "value": "comfyq__b7651213__bench_image_flux2_klein_9b_t2i_1794818112547_00001_.png",
+     "sourcePath": "output/bench_image_flux2_klein_9b_t2i_1794818112547_00001_.png",
+     "staged": "comfyq__b7651213__bench_image_flux2_klein_9b_t2i_1794818112547_00001_.png"
+    },
+    {
+     "key": "primitiveboolean_value_316",
+     "label": "Use TRELLIS.2 instead of Pixal3D",
+     "type": "checkbox",
+     "node": "316.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "comfyswitchnode_switch_248",
+     "label": "Auto-remove background (turn off only for a transparent PNG)",
+     "type": "checkbox",
+     "node": "248.switch",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "trellis2upsamplestage_target_resolution_94",
+     "label": "Shape detail (voxel resolution — higher = finer, more memory & time)",
+     "type": "number",
+     "node": "94.target_resolution",
+     "from": "the graph default",
+     "value": 1536
+    },
+    {
+     "key": "decimatemesh_target_face_count_186",
+     "label": "Target face count (polygon budget of the final mesh)",
+     "type": "number",
+     "node": "186.target_face_count",
+     "from": "the graph default",
+     "value": 700000
+    },
+    {
+     "key": "primitiveint_value_288",
+     "label": "Texture resolution (colour, metallic and roughness maps)",
+     "type": "number",
+     "node": "288.value",
+     "from": "the graph default",
+     "value": 4096
+    },
+    {
+     "key": "ksampler_seed_3",
+     "label": "Seed",
+     "type": "number",
+     "node": "3.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 350,
+   "coldSec": 354,
+   "modelLoadSec": 4,
+   "vramPeakGb": 14.32,
+   "steps": 5,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:41:52.794Z",
+   "wallSec": 363
+  },
+  {
+   "id": "image_qwen_image_2512_360_panorama@cabin",
+   "variantOf": "image_qwen_image_2512_360_panorama",
+   "variant": "cabin",
+   "name": "Qwen-Image 2512 — 360° panorama / HDRI from a description",
+   "category": "t2i",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:41:52.798Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2512_360_panorama_1794818517339_00001.exr",
+     "bytes": 44049388,
+     "kind": "other",
+     "flags": [],
+     "file": "bench_image_qwen_image_2512_360_panorama_1794818517339_00001.exr"
+    },
+    {
+     "path": "output/bench_image_qwen_image_2512_360_panorama_1794818517339_00002.png",
+     "bytes": 12997850,
+     "kind": "image",
+     "width": 4096,
+     "height": 2048,
+     "mode": "RGB",
+     "mean": 125.99,
+     "std": 55.47,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_qwen_image_2512_360_panorama_1794818517339_00002.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-transportation",
+    "stage": "2 — Other vehicles",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "place_2",
+     "label": "The place — what surrounds the camera (and the camera, e.g. “sharp realistic photograph”)",
+     "type": "textarea",
+     "node": "2.value",
+     "from": "the test suite",
+     "value": "inside the cabin of a driverless electric minibus: a small lounge with four facing seats in pale grey wool around a round table, no steering wheel and no driver's seat, a panoramic glass roof, large side windows onto a tree-lined city street, a light wood floor and soft ambient strip lighting along the ceiling"
+    },
+    {
+     "key": "time_of_day_3",
+     "label": "Time of day",
+     "type": "select",
+     "node": "3.value",
+     "from": "the graph default",
+     "value": 4
+    },
+    {
+     "key": "season_4",
+     "label": "Season",
+     "type": "select",
+     "node": "4.value",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "clouds_5",
+     "label": "Sky (the exact clouds follow the season)",
+     "type": "select",
+     "node": "5.value",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "camera_height_6",
+     "label": "Camera height",
+     "type": "select",
+     "node": "6.value",
+     "from": "the graph default",
+     "value": 0
+    },
+    {
+     "key": "seam_fix_9",
+     "label": "Repair the left/right seam (a second pass over the join)",
+     "type": "checkbox",
+     "node": "9.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "seam_denoise_10",
+     "label": "Seam repair strength (0.5–0.7)",
+     "type": "number",
+     "node": "10.value",
+     "from": "the graph default",
+     "value": 0.6
+    },
+    {
+     "key": "quality_mode_11",
+     "label": "Quality mode — no Lightning LoRA, several times slower",
+     "type": "checkbox",
+     "node": "11.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "steps_8",
+     "label": "Steps in fast mode (8 recommended, 6–10)",
+     "type": "number",
+     "node": "8.value",
+     "from": "the graph default",
+     "value": 8
+    },
+    {
+     "key": "quality_steps_12",
+     "label": "Steps in quality mode (25–40)",
+     "type": "number",
+     "node": "12.value",
+     "from": "the graph default",
+     "value": 30
+    },
+    {
+     "key": "quality_cfg_13",
+     "label": "Guidance in quality mode (CFG 2.5–4)",
+     "type": "number",
+     "node": "13.value",
+     "from": "the graph default",
+     "value": 3
+    },
+    {
+     "key": "negative_49",
+     "label": "Negative prompt (only used in quality mode)",
+     "type": "textarea",
+     "node": "49.text",
+     "from": "the graph default",
+     "value": "illustration, cartoon, drawing, painting, anime, 3d render, cgi, video game, flat colors, cel shading, smooth plastic surfaces, oversaturated, blurry, text, watermark, frame"
+    },
+    {
+     "key": "seed_7",
+     "label": "Seed",
+     "type": "number",
+     "node": "7.value",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 1,
+   "warmSec": 25,
+   "coldSec": 55,
+   "modelLoadSec": 30,
+   "vramPeakGb": 27.33,
+   "steps": 15,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:42:57.804Z",
+   "wallSec": 65
+  },
+  {
+   "id": "video_ltx2_5_i2v@drive",
+   "variantOf": "video_ltx2_5_i2v",
+   "variant": "drive",
+   "name": "LTX 2.5 — image to video + audio",
+   "category": "i2v",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:42:57.808Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_ltx2_5_i2v_1794818583870_00001_.mp4",
+     "bytes": 2526982,
+     "kind": "video",
+     "frames": 121,
+     "fps": 24,
+     "width": 1280,
+     "height": 704,
+     "samples": [
+      {
+       "mean": 156.78,
+       "std": 74.92,
+       "min": 0,
+       "max": 254,
+       "at": 0
+      },
+      {
+       "mean": 168.35,
+       "std": 66.6,
+       "min": 0,
+       "max": 254,
+       "at": 60
+      },
+      {
+       "mean": 192.14,
+       "std": 27.56,
+       "min": 4,
+       "max": 241,
+       "at": 119
+      }
+     ],
+     "mean": 172.42,
+     "std": 74.92,
+     "flags": [],
+     "file": "bench_video_ltx2_5_i2v_1794818583870_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-transportation",
+    "stage": "3 — In motion",
+    "note": null,
+    "inputs": {
+     "loadimage_image_395": {
+      "from": "image_edit_minimax_h3_image_edit@colourway",
+      "source": "output/bench_image_edit_minimax_h3_image_edit_1794817909555_00001_.png",
+      "path": "output/bench_image_edit_minimax_h3_image_edit_1794817909555_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_395",
+     "label": "Start image (first frame)",
+     "type": "image",
+     "node": "395.image",
+     "from": "output of image_edit_minimax_h3_image_edit@colourway",
+     "value": "comfyq__bdbc7c68__bench_image_edit_minimax_h3_image_edit_1794817909555_00001_.png",
+     "sourcePath": "output/bench_image_edit_minimax_h3_image_edit_1794817909555_00001_.png",
+     "staged": "comfyq__bdbc7c68__bench_image_edit_minimax_h3_image_edit_1794817909555_00001_.png"
+    },
+    {
+     "key": "primitivestringmultiline_value_398_376",
+     "label": "Prompt (motion / camera / sound)",
+     "type": "textarea",
+     "node": "398:376.value",
+     "from": "the test suite",
+     "value": "Use the provided start image as the first frame. The car pulls away slowly across the salt flat, its wheels turning, a fine trail of white dust rising behind it, the camera tracking alongside at the same speed so the car stays in frame while the distant mountains slide past. Golden-hour light glints along the bodywork. The quiet whine of an electric motor and the crunch of salt under the tyres. No text, no black frames."
+    },
+    {
+     "key": "primitiveboolean_value_398_383",
+     "label": "Enhance prompt with AI (slower)",
+     "type": "checkbox",
+     "node": "398:383.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "primitiveint_value_410",
+     "label": "Width (px, multiple of 64 — your image is center-cropped to this shape)",
+     "type": "number",
+     "node": "410.value",
+     "from": "the graph default",
+     "value": 1280
+    },
+    {
+     "key": "primitiveint_value_411",
+     "label": "Height (px, multiple of 64)",
+     "type": "number",
+     "node": "411.value",
+     "from": "the graph default",
+     "value": 704
+    },
+    {
+     "key": "primitiveint_value_398_362",
+     "label": "Duration (seconds)",
+     "type": "number",
+     "node": "398:362.value",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "primitiveint_value_398_361",
+     "label": "Frame rate (fps)",
+     "type": "number",
+     "node": "398:361.value",
+     "from": "the graph default",
+     "value": 24
+    },
+    {
+     "key": "randomnoise_noise_seed_398_339",
+     "label": "Seed",
+     "type": "number",
+     "node": "398:339.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 52,
+   "coldSec": 101,
+   "modelLoadSec": 49,
+   "vramPeakGb": 29.45,
+   "steps": 3,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:44:49.658Z",
+   "wallSec": 112
+  },
+  {
+   "id": "video_minimax_h3_t2v_2k@coastal-road",
+   "variantOf": "video_minimax_h3_t2v_2k",
+   "variant": "coastal-road",
+   "name": "MiniMax H3 — text to video + audio in 2K (turbo draft + Open-H3-Regenerate-2K)",
+   "category": "i2v",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:44:49.662Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_minimax_h3_t2v_2k_1794818695912_00001_.mp4",
+     "bytes": 22619751,
+     "kind": "video",
+     "frames": 124,
+     "fps": 24,
+     "width": 1920,
+     "height": 1088,
+     "samples": [
+      {
+       "mean": 96.58,
+       "std": 78.88,
+       "min": 0,
+       "max": 253,
+       "at": 0
+      },
+      {
+       "mean": 77.41,
+       "std": 71.86,
+       "min": 0,
+       "max": 254,
+       "at": 62
+      },
+      {
+       "mean": 62.06,
+       "std": 46.02,
+       "min": 0,
+       "max": 254,
+       "at": 122
+      }
+     ],
+     "mean": 78.68,
+     "std": 78.88,
+     "flags": [],
+     "file": "bench_video_minimax_h3_t2v_2k_1794818695912_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "minimax_h3_latent_upscaler_3d_conv_v1_bf16.safetensors",
+    "minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+    "open_h3_regenerate_2k_bf16.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-transportation",
+    "stage": "3 — In motion",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "minimaxh3imagetovideo_prompt_11",
+     "label": "Prompt (scene / action / camera / sound)",
+     "type": "textarea",
+     "node": "11.prompt",
+     "from": "the test suite",
+     "value": "A low tracking shot alongside a sleek silver electric sports coupe driving along a winding coastal road at sunset, the sea glittering far below the cliffs, the camera keeping pace beside the front wheel, then rising slowly to reveal the whole car and the road ahead. We hear the soft electric whine of the motor, the tyres on the asphalt and the wind."
+    },
+    {
+     "key": "size_31",
+     "label": "Size",
+     "type": "select",
+     "node": "31.width",
+     "from": "the graph default",
+     "value": 1920
+    },
+    {
+     "key": "randomnoise_noise_seed_15",
+     "label": "Seed",
+     "type": "number",
+     "node": "15.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 307,
+   "coldSec": 355,
+   "modelLoadSec": 48,
+   "vramPeakGb": 29.56,
+   "steps": 3,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:50:56.292Z",
+   "wallSec": 367
+  }
+ ]
+}

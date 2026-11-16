@@ -1,0 +1,1412 @@
+{
+ "type": "summary",
+ "startedAt": "2026-11-16T08:10:53.325Z",
+ "finishedAt": "2026-11-16T08:21:26.202Z",
+ "state": "done",
+ "machine": {
+  "at": "2026-11-16T08:10:53.359Z",
+  "host": "AN-5090-2",
+  "instance": "AN-5090-2",
+  "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+  "vramTotalGb": 31.82,
+  "comfyui": "0.45.2",
+  "pytorch": "2.8.0+cu128",
+  "python": "3.12.10",
+  "argv": [
+   "--listen",
+   "--port",
+   "--disable-auto-launch",
+   "--windows-standalone-build",
+   "--fast"
+  ],
+  "comfyRoot": "comfyui",
+  "assetsDir": "assets",
+  "scanDirs": [
+   "/_demo_workflows"
+  ],
+  "comfyqCommit": "94fd022",
+  "comfyqBranch": "main"
+ },
+ "suite": {
+  "name": "speciality-interior",
+  "file": "./tools/test-suite/speciality-interior.suite.csv",
+  "description": "Interior architecture: one empty loft furnished, re-imagined, relit and walked through, with a material board and a 360° lobby. Every run becomes an example for students of this speciality, beside the card's showcase (tools/maintenance/seed_examples.cjs --speciality interior)."
+ },
+ "summary": {
+  "ran": 11,
+  "succeeded": 11,
+  "failed": 0,
+  "withFlaggedOutput": 0,
+  "noOutput": 0,
+  "distinctModelsOpened": 9,
+  "recorderAvailable": true
+ },
+ "results": [
+  {
+   "id": "image_flux2_klein_9b_t2i@empty-loft",
+   "variantOf": "image_flux2_klein_9b_t2i",
+   "variant": "empty-loft",
+   "name": "Flux2 Klein 9B — text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:10:53.365Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png",
+     "bytes": 1566850,
+     "kind": "image",
+     "width": 1344,
+     "height": 768,
+     "mode": "RGB",
+     "mean": 129.26,
+     "std": 61.61,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "flux-2-klein-base-9b-fp8.safetensors",
+    "qwen_3_8b_fp8mixed.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-interior",
+    "stage": "1 — The empty space",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "primitivestringmultiline_value_76",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "76.value",
+     "from": "the test suite",
+     "value": "Real estate photograph of an empty loft apartment before renovation: a large open room with a raw polished concrete floor, exposed red brick walls, a row of three tall black steel-framed factory windows on the left letting in soft afternoon daylight, white painted steel columns, exposed ventilation ducts under the ceiling, nothing on the walls and no furniture. Wide-angle shot from the doorway at eye level, straight vertical lines."
+    },
+    {
+     "key": "cliptextencode_text_75_67",
+     "label": "Negative prompt",
+     "type": "textarea",
+     "node": "75:67.text",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "randomnoise_noise_seed_75_73",
+     "label": "Seed",
+     "type": "number",
+     "node": "75:73.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    },
+    {
+     "key": "flux2scheduler_steps_75_62",
+     "label": "Steps",
+     "type": "number",
+     "node": "75:62.steps",
+     "from": "the graph default",
+     "value": 20
+    },
+    {
+     "key": "cfgguider_cfg_75_63",
+     "label": "CFG",
+     "type": "number",
+     "node": "75:63.cfg",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "primitiveint_value_75_68",
+     "label": "Width",
+     "type": "number",
+     "node": "75:68.value",
+     "from": "the test suite",
+     "value": 1344
+    },
+    {
+     "key": "primitiveint_value_75_69",
+     "label": "Height",
+     "type": "number",
+     "node": "75:69.value",
+     "from": "the test suite",
+     "value": 768
+    },
+    {
+     "key": "emptyflux2latentimage_batch_size_75_66",
+     "label": "Batch size",
+     "type": "number",
+     "node": "75:66.batch_size",
+     "from": "the graph default",
+     "value": 1
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 12,
+   "coldSec": 32,
+   "modelLoadSec": 20,
+   "vramPeakGb": 18.3,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:11:35.408Z",
+   "wallSec": 42
+  },
+  {
+   "id": "image_edit_flux2_klein_9b_image_edit@furnished",
+   "variantOf": "image_edit_flux2_klein_9b_image_edit",
+   "variant": "furnished",
+   "name": "Flux2 Klein 9B — image edit",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:11:35.412Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+     "bytes": 1756230,
+     "kind": "image",
+     "width": 1344,
+     "height": 768,
+     "mode": "RGB",
+     "mean": 121.57,
+     "std": 62.16,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-interior",
+    "stage": "2 — Proposals for the same space",
+    "note": null,
+    "inputs": {
+     "loadimage_image_76": {
+      "from": "image_flux2_klein_9b_t2i@empty-loft",
+      "source": "output/bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png",
+      "path": "output/bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_76",
+     "label": "Source image",
+     "type": "image",
+     "node": "76.image",
+     "from": "output of image_flux2_klein_9b_t2i@empty-loft",
+     "value": "comfyq__b245f3a6__bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png",
+     "sourcePath": "output/bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png",
+     "staged": "comfyq__b245f3a6__bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png"
+    },
+    {
+     "key": "flux2scheduler_steps_75_62",
+     "label": "Steps",
+     "type": "number",
+     "node": "75:62.steps",
+     "from": "the graph default",
+     "value": 20
+    },
+    {
+     "key": "randomnoise_noise_seed_75_73",
+     "label": "Seed",
+     "type": "number",
+     "node": "75:73.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    },
+    {
+     "key": "cliptextencode_text_75_74",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "75:74.text",
+     "from": "the test suite",
+     "value": "Furnish this loft as a warm Japandi living room, keeping the room, its windows, columns, brick walls, floor and the camera exactly the same: a low oak sofa with linen cushions facing the windows, a round travertine coffee table, a large jute rug, a tall paper floor lamp, a long oak sideboard against the brick wall with a few ceramics, two olive trees in clay pots near the windows and sheer linen curtains. Calm natural afternoon light."
+    },
+    {
+     "key": "cliptextencode_text_75_67",
+     "label": "Negative prompt",
+     "type": "textarea",
+     "node": "75:67.text",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "emptyflux2latentimage_batch_size_75_66",
+     "label": "Batch size",
+     "type": "number",
+     "node": "75:66.batch_size",
+     "from": "the graph default",
+     "value": 1
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 26,
+   "coldSec": 31,
+   "modelLoadSec": 5,
+   "vramPeakGb": 19.62,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:12:15.867Z",
+   "wallSec": 40
+  },
+  {
+   "id": "image_qwen_image_2_1_control_depth@cafe",
+   "variantOf": "image_qwen_image_2_1_control_depth",
+   "variant": "cafe",
+   "name": "Qwen Image 2.1 - draw from depth (ControlNet depth)",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:12:15.871Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2_1_control_depth_1794816740475_00001.png",
+     "bytes": 1893604,
+     "kind": "image",
+     "width": 1376,
+     "height": 768,
+     "mode": "RGBA",
+     "mean": 82.53,
+     "std": 58.14,
+     "min": 0,
+     "max": 253,
+     "alpha": {
+      "mean": 254.86,
+      "std": 0.35,
+      "min": 252,
+      "max": 255
+     },
+     "flags": [],
+     "file": "bench_image_qwen_image_2_1_control_depth_1794816740475_00001.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-interior",
+    "stage": "2 — Proposals for the same space",
+    "note": null,
+    "inputs": {
+     "loadimage_image_900": {
+      "from": "image_flux2_klein_9b_t2i@empty-loft",
+      "source": "output/bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png",
+      "path": "output/bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "textencodeqwenimage21_prompt_459_452",
+     "label": "What to draw - the picture supplies the structure, this supplies everything else",
+     "type": "textarea",
+     "node": "459:452.prompt",
+     "from": "the test suite",
+     "value": "The same loft converted into a busy specialty coffee shop, seen from the doorway: a long counter of green terrazzo with a copper espresso machine along the brick wall, small round marble tables and bentwood chairs by the tall steel windows, pendant lights in amber glass, plants hanging from the ducts, customers working on laptops and a barista pouring milk. Warm afternoon light."
+    },
+    {
+     "key": "loadimage_image_900",
+     "label": "Structure image - its shapes are kept, its content is not",
+     "type": "image",
+     "node": "900.image",
+     "from": "output of image_flux2_klein_9b_t2i@empty-loft",
+     "value": "comfyq__b4c49b08__bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png",
+     "sourcePath": "output/bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png",
+     "staged": "comfyq__b4c49b08__bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png"
+    },
+    {
+     "key": "controlnet_strength_903",
+     "label": "How closely to follow the structure (1.0 is the trained strength)",
+     "type": "number",
+     "node": "903.strength",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "resolutionselector_aspect_ratio_13",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "13.aspect_ratio",
+     "from": "the test suite",
+     "value": "16:9 (Widescreen)"
+    },
+    {
+     "key": "resolutionselector_megapixels_13",
+     "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+     "type": "number",
+     "node": "13.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_steps_459_458",
+     "label": "Steps (20 is the default, 25 is quick, 40–50 is Qwen's own setting — slower)",
+     "type": "number",
+     "node": "459:458.steps",
+     "from": "the graph default",
+     "value": 20
+    },
+    {
+     "key": "ksampler_seed_459_458",
+     "label": "Seed",
+     "type": "number",
+     "node": "459:458.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 36,
+   "coldSec": 46,
+   "modelLoadSec": 10,
+   "vramPeakGb": 24.35,
+   "steps": 20,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:13:11.243Z",
+   "wallSec": 55
+  },
+  {
+   "id": "image_edit_minimax_h3_image_edit@evening",
+   "variantOf": "image_edit_minimax_h3_image_edit",
+   "variant": "evening",
+   "name": "MiniMax-H3-Image — edit a picture",
+   "category": "image-edit",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:13:11.247Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_minimax_h3_image_edit_1794816797691_00001_.png",
+     "bytes": 4934123,
+     "kind": "image",
+     "width": 2688,
+     "height": 1536,
+     "mode": "RGB",
+     "mean": 49.55,
+     "std": 45.77,
+     "min": 0,
+     "max": 254,
+     "flags": [],
+     "file": "bench_image_edit_minimax_h3_image_edit_1794816797691_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-interior",
+    "stage": "2 — Proposals for the same space",
+    "note": null,
+    "inputs": {
+     "loadimage_image_45": {
+      "from": "image_edit_flux2_klein_9b_image_edit@furnished",
+      "source": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+      "path": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_45",
+     "label": "Picture to edit",
+     "type": "image",
+     "node": "45.image",
+     "from": "output of image_edit_flux2_klein_9b_image_edit@furnished",
+     "value": "comfyq__b5fa9bd6__bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+     "sourcePath": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+     "staged": "comfyq__b5fa9bd6__bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png"
+    },
+    {
+     "key": "instruction_43",
+     "label": "What to change — call your picture <Picture 1>, and say what to keep",
+     "type": "textarea",
+     "node": "43.value",
+     "from": "the test suite",
+     "value": "Turn <Picture 1> into the same room on a winter evening: deep blue dusk outside the windows, the paper floor lamp and two small table lamps switched on, casting warm pools of light and soft shadows on the brick wall, the corners of the room dim. Keep every piece of furniture, its place and the camera exactly the same."
+    },
+    {
+     "key": "improver_61",
+     "label": "Write a full caption from my prompt first (prompt improver, Qwen 3.5 9B; adds about a minute and a half)",
+     "type": "checkbox",
+     "node": "61.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "megapixels_56",
+     "label": "Working size in megapixels (4 to 16; best near 16, slower)",
+     "type": "number",
+     "node": "56.resize_type.megapixels",
+     "from": "the graph default",
+     "value": 4
+    },
+    {
+     "key": "seed_38",
+     "label": "Seed",
+     "type": "number",
+     "node": "38.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 21,
+   "coldSec": 79,
+   "modelLoadSec": 58,
+   "vramPeakGb": 29.18,
+   "steps": 6,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:14:41.150Z",
+   "wallSec": 90
+  },
+  {
+   "id": "image_flux3_klein_distilled_t2i@armchair",
+   "variantOf": "image_flux3_klein_distilled_t2i",
+   "variant": "armchair",
+   "name": "FLUX.3 Klein distilled — fast text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:14:41.154Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_flux3_klein_distilled_t2i_1794816887664_00001_.png",
+     "bytes": 1303555,
+     "kind": "image",
+     "width": 1024,
+     "height": 1024,
+     "mode": "RGB",
+     "mean": 181.82,
+     "std": 60.54,
+     "min": 0,
+     "max": 246,
+     "flags": [],
+     "file": "bench_image_flux3_klein_distilled_t2i_1794816887664_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-interior",
+    "stage": "2 — Proposals for the same space",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "prompt",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "117.value",
+     "from": "the test suite",
+     "value": "Studio product photograph of a lounge armchair: a curved shell of bent ash plywood with a deep seat upholstered in rust-orange bouclé wool, on four slim splayed solid ash legs, three-quarter front view, centred on a seamless light grey background, soft even studio light and a gentle shadow under the chair."
+    },
+    {
+     "key": "layout",
+     "label": "Layout — optional boxes (use Compose layout; cite box N in the prompt as <obj_N>)",
+     "type": "textarea",
+     "node": "300.value",
+     "from": "the graph default",
+     "value": ""
+    },
+    {
+     "key": "improve_prompt",
+     "label": "Improve the prompt with AI first (a Qwen 3.5 model expands it into a full caption) — slow: adds about 3 minutes",
+     "type": "checkbox",
+     "node": "116.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "aspect_ratio",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "19.aspect_ratio",
+     "from": "the test suite",
+     "value": "1:1 (Square)"
+    },
+    {
+     "key": "megapixels",
+     "label": "Size (megapixels — 1 is about 1024×1024)",
+     "type": "number",
+     "node": "19.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "steps",
+     "label": "Steps",
+     "type": "number",
+     "node": "107.steps",
+     "from": "the graph default",
+     "value": 16
+    },
+    {
+     "key": "seed",
+     "label": "Seed",
+     "type": "number",
+     "node": "107.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 6,
+   "coldSec": 17,
+   "modelLoadSec": 11,
+   "vramPeakGb": 10.11,
+   "steps": 16,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:15:09.921Z",
+   "wallSec": 29
+  },
+  {
+   "id": "image_edit_bernini_r_image_editing_with_reference@armchair-in-room",
+   "variantOf": "image_edit_bernini_r_image_editing_with_reference",
+   "variant": "armchair-in-room",
+   "name": "Wan 2.2 Bernini-R — image editing with a reference image",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:15:09.925Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_bernini_r_image_editing_with_reference_1794816914464_00001_.png",
+     "bytes": 1385690,
+     "kind": "image",
+     "width": 1280,
+     "height": 728,
+     "mode": "RGB",
+     "mean": 119.68,
+     "std": 61.54,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_edit_bernini_r_image_editing_with_reference_1794816914464_00001_.png"
+    },
+    {
+     "kind": "text",
+     "file": "node 76:57:1",
+     "text": "3",
+     "chars": 1,
+     "flags": [],
+     "stray": true
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "lightx2v_t2v_14b_cfg_step_distill_v2_lora_rank64_bf16.safetensors",
+    "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+    "wan2.2_bernini_r_high_noise_fp8_scaled.safetensors",
+    "wan2.2_bernini_r_low_noise_fp8_scaled.safetensors",
+    "wan2_1_vae_bf16.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-interior",
+    "stage": "2 — Proposals for the same space",
+    "note": null,
+    "inputs": {
+     "source_image_114": {
+      "from": "image_edit_flux2_klein_9b_image_edit@furnished",
+      "source": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+      "path": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png"
+     },
+     "reference_image_104": {
+      "from": "image_flux3_klein_distilled_t2i@armchair",
+      "source": "output/bench_image_flux3_klein_distilled_t2i_1794816887664_00001_.png",
+      "path": "output/bench_image_flux3_klein_distilled_t2i_1794816887664_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "source_image_114",
+     "label": "Image to edit",
+     "type": "image",
+     "node": "114.image",
+     "from": "output of image_edit_flux2_klein_9b_image_edit@furnished",
+     "value": "comfyq__b6486c3b__bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+     "sourcePath": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+     "staged": "comfyq__b6486c3b__bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png"
+    },
+    {
+     "key": "reference_image_104",
+     "label": "Reference image",
+     "type": "image",
+     "node": "104.image",
+     "from": "output of image_flux3_klein_distilled_t2i@armchair",
+     "value": "comfyq__b6486c3b__bench_image_flux3_klein_distilled_t2i_1794816887664_00001_.png",
+     "sourcePath": "output/bench_image_flux3_klein_distilled_t2i_1794816887664_00001_.png",
+     "staged": "comfyq__b6486c3b__bench_image_flux3_klein_distilled_t2i_1794816887664_00001_.png"
+    },
+    {
+     "key": "edit_instruction_76_120",
+     "label": "Edit instruction",
+     "type": "textarea",
+     "node": "76:120.value",
+     "from": "the test suite",
+     "value": "Replace the sofa in the picture with the armchair from the reference image, placed in the same spot and facing the windows, matching the light, the scale and the perspective of the room."
+    },
+    {
+     "key": "task_type_76_54",
+     "label": "Edit type",
+     "type": "select",
+     "node": "76:54.choice",
+     "from": "the graph default",
+     "value": "Image Editing"
+    },
+    {
+     "key": "fast_mode_76_70",
+     "label": "Fast mode (Turbo LoRA — faster, lower quality)",
+     "type": "checkbox",
+     "node": "76:70.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "seed_76_19",
+     "label": "Seed",
+     "type": "number",
+     "node": "76:19.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 24,
+   "coldSec": 51,
+   "modelLoadSec": 26,
+   "vramPeakGb": 27.66,
+   "steps": 3,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:16:09.778Z",
+   "wallSec": 60
+  },
+  {
+   "id": "image_edit_qwen_2511_multiple_angles@side-view",
+   "variantOf": "image_edit_qwen_2511_multiple_angles",
+   "variant": "side-view",
+   "name": "Qwen Image-Edit 2511 - reshoot from another angle (place the camera)",
+   "category": "image-edit",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:16:09.782Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_edit_qwen_2511_multiple_angles_1794816974339_00001_.png",
+     "bytes": 1255305,
+     "kind": "image",
+     "width": 1328,
+     "height": 800,
+     "mode": "RGB",
+     "mean": 138.34,
+     "std": 77.13,
+     "min": 0,
+     "max": 254,
+     "flags": [],
+     "file": "bench_image_edit_qwen_2511_multiple_angles_1794816974339_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-interior",
+    "stage": "2 — Proposals for the same space",
+    "note": null,
+    "inputs": {
+     "loadimage_image_1": {
+      "from": "image_edit_flux2_klein_9b_image_edit@furnished",
+      "source": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+      "path": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_1",
+     "label": "The subject to reshoot - one clear photo",
+     "type": "image",
+     "node": "1.image",
+     "from": "output of image_edit_flux2_klein_9b_image_edit@furnished",
+     "value": "comfyq__b4e4399d__bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+     "sourcePath": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+     "staged": "comfyq__b4e4399d__bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png"
+    },
+    {
+     "key": "cameraangle_221",
+     "label": "Where the camera stands",
+     "type": "camera",
+     "node": "221.horizontal_angle",
+     "from": "the test suite",
+     "value": "{\"horizontal\": 90, \"vertical\": 0, \"zoom\": 5}"
+    },
+    {
+     "key": "primitiveboolean_value_219_168",
+     "label": "Fast mode (4-step adapter - seconds instead of over two minutes)",
+     "type": "checkbox",
+     "node": "219:168.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "loraloadermodelonly_strength_model_219_220",
+     "label": "Adapter strength (lower it if the subject drifts)",
+     "type": "number",
+     "node": "219:220.strength_model",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_seed_219_169",
+     "label": "Seed - keep it fixed across angles to build a consistent turnaround",
+     "type": "number",
+     "node": "219:169.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 6,
+   "coldSec": 43,
+   "modelLoadSec": 37,
+   "vramPeakGb": 27.54,
+   "steps": 4,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [
+     "use_sage_attention"
+    ],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:17:01.630Z",
+   "wallSec": 52
+  },
+  {
+   "id": "image_qwen_image_2_1_t2i@material-board",
+   "variantOf": "image_qwen_image_2_1_t2i",
+   "variant": "material-board",
+   "name": "Qwen Image 2.1 — text to image",
+   "category": "t2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:17:01.634Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2_1_t2i_1794817026175_00001.png",
+     "bytes": 1640296,
+     "kind": "image",
+     "width": 1184,
+     "height": 896,
+     "mode": "RGBA",
+     "mean": 193.37,
+     "std": 52.25,
+     "min": 0,
+     "max": 253,
+     "alpha": {
+      "mean": 254.88,
+      "std": 0.32,
+      "min": 252,
+      "max": 255
+     },
+     "flags": [],
+     "file": "bench_image_qwen_image_2_1_t2i_1794817026175_00001.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-interior",
+    "stage": "3 — Materials and atmosphere",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "textencodeqwenimage21_prompt_459_452",
+     "label": "Prompt",
+     "type": "textarea",
+     "node": "459:452.prompt",
+     "from": "the test suite",
+     "value": "Overhead flat lay photograph of an interior designer's material board on a white desk: a square sample of pale oak flooring, a slab of green terrazzo, a folded swatch of natural linen, a swatch of rust-orange bouclé wool, a short brass profile, a rough handmade clay tile, a sprig of dried olive leaves, a colour card in sage green and a handwritten label reading 'LOFT 04 — JAPANDI' in black ink. Soft daylight from the left, gentle shadows, everything neatly arranged in a grid."
+    },
+    {
+     "key": "resolutionselector_aspect_ratio_13",
+     "label": "Aspect ratio",
+     "type": "select",
+     "node": "13.aspect_ratio",
+     "from": "the test suite",
+     "value": "4:3 (Standard)"
+    },
+    {
+     "key": "resolutionselector_megapixels_13",
+     "label": "Size in megapixels (1 = 1024×1024, 4 = native 2K)",
+     "type": "number",
+     "node": "13.megapixels",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "ksampler_steps_459_458",
+     "label": "Steps (25 is quick, 40–50 is Qwen's own setting)",
+     "type": "number",
+     "node": "459:458.steps",
+     "from": "calibration",
+     "value": 25
+    },
+    {
+     "key": "ksampler_seed_459_458",
+     "label": "Seed",
+     "type": "number",
+     "node": "459:458.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 15,
+   "coldSec": 33,
+   "modelLoadSec": 18,
+   "vramPeakGb": 15.33,
+   "steps": 25,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:17:43.883Z",
+   "wallSec": 42
+  },
+  {
+   "id": "utility_pid_image_upscale@material-board-print",
+   "variantOf": "utility_pid_image_upscale",
+   "variant": "material-board-print",
+   "name": "PiD — image upscale ×4 (up to 33 MP)",
+   "category": "i2i",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:17:43.883Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_utility_pid_image_upscale_1794817068657_00001_.png",
+     "bytes": 25310093,
+     "kind": "image",
+     "width": 4736,
+     "height": 3584,
+     "mode": "RGB",
+     "mean": 192.78,
+     "std": 54.55,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_utility_pid_image_upscale_1794817068657_00001_.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [
+    "gemma_2_2b_it_elm_bf16.safetensors",
+    "pid_1.5_qwenimage_1024_to_4096_4step_bf16.safetensors"
+   ],
+   "suite": {
+    "name": "speciality-interior",
+    "stage": "3 — Materials and atmosphere",
+    "note": null,
+    "inputs": {
+     "loadimage_image_1": {
+      "from": "image_qwen_image_2_1_t2i@material-board",
+      "source": "output/bench_image_qwen_image_2_1_t2i_1794817026175_00001.png",
+      "path": "output/bench_image_qwen_image_2_1_t2i_1794817026175_00001.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_1",
+     "label": "Image to upscale",
+     "type": "image",
+     "node": "1.image",
+     "from": "output of image_qwen_image_2_1_t2i@material-board",
+     "value": "comfyq__b8453a6c__bench_image_qwen_image_2_1_t2i_1794817026175_00001.png",
+     "sourcePath": "output/bench_image_qwen_image_2_1_t2i_1794817026175_00001.png",
+     "staged": "comfyq__b8453a6c__bench_image_qwen_image_2_1_t2i_1794817026175_00001.png"
+    },
+    {
+     "key": "latenttiledpiddecode_seed_7",
+     "label": "Seed (re-rolls the fine detail)",
+     "type": "number",
+     "node": "7.seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 6,
+   "coldSec": 19,
+   "modelLoadSec": 14,
+   "vramPeakGb": 12.32,
+   "steps": 2,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:18:13.101Z",
+   "wallSec": 29
+  },
+  {
+   "id": "image_qwen_image_2512_360_panorama@hotel-lobby",
+   "variantOf": "image_qwen_image_2512_360_panorama",
+   "variant": "hotel-lobby",
+   "name": "Qwen-Image 2512 — 360° panorama / HDRI from a description",
+   "category": "t2i",
+   "experimental": true,
+   "startedAt": "2026-11-16T08:18:13.108Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_image_qwen_image_2512_360_panorama_1794817097641_00001.exr",
+     "bytes": 50644548,
+     "kind": "other",
+     "flags": [],
+     "file": "bench_image_qwen_image_2512_360_panorama_1794817097641_00001.exr"
+    },
+    {
+     "path": "output/bench_image_qwen_image_2512_360_panorama_1794817097641_00002.png",
+     "bytes": 14919737,
+     "kind": "image",
+     "width": 4096,
+     "height": 2048,
+     "mode": "RGB",
+     "mean": 139.02,
+     "std": 56.22,
+     "min": 0,
+     "max": 255,
+     "flags": [],
+     "file": "bench_image_qwen_image_2512_360_panorama_1794817097641_00002.png"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-interior",
+    "stage": "3 — Materials and atmosphere",
+    "note": null,
+    "inputs": {}
+   },
+   "ingredients": [
+    {
+     "key": "place_2",
+     "label": "The place — what surrounds the camera (and the camera, e.g. “sharp realistic photograph”)",
+     "type": "textarea",
+     "node": "2.value",
+     "from": "the test suite",
+     "value": "the centre of a calm boutique hotel lobby with a double-height ceiling: a reception desk of green marble, a wall of vertical oak slats, low velvet armchairs around a round wool rug, a sculptural spiral staircase in white plaster, tall arched windows onto a city street, large potted fig trees and warm brass pendant lights"
+    },
+    {
+     "key": "time_of_day_3",
+     "label": "Time of day",
+     "type": "select",
+     "node": "3.value",
+     "from": "the graph default",
+     "value": 4
+    },
+    {
+     "key": "season_4",
+     "label": "Season",
+     "type": "select",
+     "node": "4.value",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "clouds_5",
+     "label": "Sky (the exact clouds follow the season)",
+     "type": "select",
+     "node": "5.value",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "camera_height_6",
+     "label": "Camera height",
+     "type": "select",
+     "node": "6.value",
+     "from": "the graph default",
+     "value": 0
+    },
+    {
+     "key": "seam_fix_9",
+     "label": "Repair the left/right seam (a second pass over the join)",
+     "type": "checkbox",
+     "node": "9.value",
+     "from": "the graph default",
+     "value": true
+    },
+    {
+     "key": "seam_denoise_10",
+     "label": "Seam repair strength (0.5–0.7)",
+     "type": "number",
+     "node": "10.value",
+     "from": "the graph default",
+     "value": 0.6
+    },
+    {
+     "key": "quality_mode_11",
+     "label": "Quality mode — no Lightning LoRA, several times slower",
+     "type": "checkbox",
+     "node": "11.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "steps_8",
+     "label": "Steps in fast mode (8 recommended, 6–10)",
+     "type": "number",
+     "node": "8.value",
+     "from": "the graph default",
+     "value": 8
+    },
+    {
+     "key": "quality_steps_12",
+     "label": "Steps in quality mode (25–40)",
+     "type": "number",
+     "node": "12.value",
+     "from": "the graph default",
+     "value": 30
+    },
+    {
+     "key": "quality_cfg_13",
+     "label": "Guidance in quality mode (CFG 2.5–4)",
+     "type": "number",
+     "node": "13.value",
+     "from": "the graph default",
+     "value": 3
+    },
+    {
+     "key": "negative_49",
+     "label": "Negative prompt (only used in quality mode)",
+     "type": "textarea",
+     "node": "49.text",
+     "from": "the graph default",
+     "value": "illustration, cartoon, drawing, painting, anime, 3d render, cgi, video game, flat colors, cel shading, smooth plastic surfaces, oversaturated, blurry, text, watermark, frame"
+    },
+    {
+     "key": "seed_7",
+     "label": "Seed",
+     "type": "number",
+     "node": "7.value",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 1,
+   "warmSec": 25,
+   "coldSec": 55,
+   "modelLoadSec": 30,
+   "vramPeakGb": 27.33,
+   "steps": 15,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:19:17.187Z",
+   "wallSec": 64
+  },
+  {
+   "id": "video_ltx2_5_flf2v@before-after",
+   "variantOf": "video_ltx2_5_flf2v",
+   "variant": "before-after",
+   "name": "LTX 2.5 — first & last frame to video + audio",
+   "category": "i2v",
+   "experimental": false,
+   "startedAt": "2026-11-16T08:19:17.191Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_ltx2_5_flf2v_1794817163252_00001_.mp4",
+     "bytes": 2370792,
+     "kind": "video",
+     "frames": 121,
+     "fps": 24,
+     "width": 1280,
+     "height": 704,
+     "samples": [
+      {
+       "mean": 123.59,
+       "std": 61.53,
+       "min": 0,
+       "max": 255,
+       "at": 0
+      },
+      {
+       "mean": 85.03,
+       "std": 52.68,
+       "min": 0,
+       "max": 253,
+       "at": 60
+      },
+      {
+       "mean": 115.02,
+       "std": 62.08,
+       "min": 0,
+       "max": 255,
+       "at": 119
+      }
+     ],
+     "mean": 107.88,
+     "std": 62.08,
+     "flags": [],
+     "file": "bench_video_ltx2_5_flf2v_1794817163252_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "speciality-interior",
+    "stage": "4 — Before and after",
+    "note": null,
+    "inputs": {
+     "loadimage_image_31": {
+      "from": "image_flux2_klein_9b_t2i@empty-loft",
+      "source": "output/bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png",
+      "path": "output/bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png"
+     },
+     "loadimage_image_39": {
+      "from": "image_edit_flux2_klein_9b_image_edit@furnished",
+      "source": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+      "path": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadimage_image_31",
+     "label": "First frame",
+     "type": "image",
+     "node": "31.image",
+     "from": "output of image_flux2_klein_9b_t2i@empty-loft",
+     "value": "comfyq__b8b17156__bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png",
+     "sourcePath": "output/bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png",
+     "staged": "comfyq__b8b17156__bench_image_flux2_klein_9b_t2i_1794816658349_00001_.png"
+    },
+    {
+     "key": "loadimage_image_39",
+     "label": "Last frame",
+     "type": "image",
+     "node": "39.image",
+     "from": "output of image_edit_flux2_klein_9b_image_edit@furnished",
+     "value": "comfyq__b8b17156__bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+     "sourcePath": "output/bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png",
+     "staged": "comfyq__b8b17156__bench_image_edit_flux2_klein_9b_image_edit_1794816700053_00001_.png"
+    },
+    {
+     "key": "primitivestringmultiline_value_251_252",
+     "label": "Prompt (motion + sound)",
+     "type": "textarea",
+     "node": "251:252.value",
+     "from": "the test suite",
+     "value": "Use the provided start image as the first frame and the provided end image as the final frame anchor. A before-and-after transformation of the loft with the camera completely still. Starting from the empty concrete room, the furniture appears piece by piece like a time-lapse: the jute rug unrolls across the floor, the oak sofa and its cushions slide into place facing the windows, the coffee table, the floor lamp and the sideboard appear, the olive trees grow up in their pots and the linen curtains fall from the top of the windows. The afternoon light stays the same throughout. Soft sounds of furniture being set down and a calm piano melody."
+    },
+    {
+     "key": "primitiveboolean_value_251_250",
+     "label": "Enhance prompt with AI (slower)",
+     "type": "checkbox",
+     "node": "251:250.value",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "primitiveint_value_251_215",
+     "label": "Width (px, multiple of 64)",
+     "type": "number",
+     "node": "251:215.value",
+     "from": "the graph default",
+     "value": 1280
+    },
+    {
+     "key": "primitiveint_value_251_216",
+     "label": "Height (px, multiple of 64)",
+     "type": "number",
+     "node": "251:216.value",
+     "from": "the graph default",
+     "value": 704
+    },
+    {
+     "key": "primitiveint_value_251_198",
+     "label": "Duration (seconds)",
+     "type": "number",
+     "node": "251:198.value",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "primitiveint_value_251_205",
+     "label": "Frame rate (fps)",
+     "type": "number",
+     "node": "251:205.value",
+     "from": "the graph default",
+     "value": 24
+    },
+    {
+     "key": "randomnoise_noise_seed_251_196",
+     "label": "Seed",
+     "type": "number",
+     "node": "251:196.noise_seed",
+     "from": "the test suite",
+     "value": 7
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 67,
+   "coldSec": 118,
+   "modelLoadSec": 51,
+   "vramPeakGb": 29.24,
+   "steps": 8,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "runtimeKept": "manual timings restored",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-16T08:21:26.199Z",
+   "wallSec": 129
+  }
+ ]
+}
