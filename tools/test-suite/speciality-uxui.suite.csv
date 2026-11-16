@@ -1,0 +1,117 @@
+id,workflow,stage,caption,keepRuntime,prompt,image,image2,model3d,seed,aspect_ratio,resolutionselector_aspect_ratio_13,aspect_ratio_37,primitiveint_value_75_68,primitiveint_value_75_69,aspect_ratio_19,primitiveint_value_251_215,primitiveint_value_251_216
+"# UX/UI design: a paper wireframe turned into a screen, an app screen with exact text, its dark mode and theme animation, the screen on a phone, alt text, a dashboard and a user test. Every run becomes an example for students of this speciality, beside the card's showcase (tools/maintenance/seed_examples.cjs --speciality uxui)."
+image_flux3_klein_distilled_t2i@wireframe,image_flux3_klein_distilled_t2i,1 — From wireframe to screen,"A paper wireframe of a bike-sharing app, felt tip on dotted paper, made from words as a stand-in for a photo of your own sketch. The next example turns it into a screen.",yes,"Hand-drawn low-fidelity wireframe of one mobile app screen on white dotted paper, black felt-tip pen: the outline of a phone in portrait, inside it a header bar with a menu icon and the title 'Bike Share', a large rounded rectangle for a map with three location pins, a search field, two big rounded buttons side by side labelled 'Scan' and 'Rent', and a bottom navigation bar with four simple icons. Clean confident lines, light grey shading on the buttons, flat lay, evenly lit.",,,,7,3:4 (Portrait Standard),,,,,,,
+image_qwen_image_2_1_control_canny@hi-fi,image_qwen_image_2_1_control_canny,,"From wireframe to high-fidelity screen in one step: the title 'Bike Share', the map with its three pins, the search field, the 'Scan' and 'Rent' buttons and the bottom bar are exactly where the sketch put them, now in a clean teal design. Lay it beside the wireframe and compare.",yes,"High-fidelity mobile app screen of a bike-sharing app following the wireframe exactly: a white header with a menu icon and the title 'Bike Share' in bold dark sans-serif, a large rounded map card in soft greens and greys with three teal location pins, a rounded search field with a magnifier icon, two large rounded teal buttons labelled 'Scan' and 'Rent' in white, and a bottom navigation bar with four line icons, the first one active in teal. Flat modern interface, crisp edges, generous spacing, light theme, shown flat on a white background.",image_flux3_klein_distilled_t2i@wireframe,,,7,,3:4 (Portrait Standard),,,,,,
+image_ideogram4_t2i@onboarding,image_ideogram4_t2i,,"An onboarding screen designed with every element placed in a box: the status bar '9:41', the plant illustration, the headline 'Water at the right time', the line 'Bloom reminds you when each plant is thirsty.', three dots and a 'Get started' button. Every word is spelled exactly as asked.",yes,"{
+    ""high_level_description"": ""A clean, friendly onboarding screen of a plant-care mobile app in light mode: a large flat illustration of a monstera plant in a terracotta pot, a bold headline, a short line of body text, three pagination dots and a wide green button, shown flat as a screen design."",
+    ""style_description"": {
+        ""aesthetics"": ""Modern flat mobile UI design, rounded corners, generous white space, crisp vector illustration with soft organic shapes."",
+        ""lighting"": ""Flat, even screen lighting with no shadows except a soft shadow under the button."",
+        ""photo"": ""A flat screen design export, pixel-sharp, no device frame."",
+        ""medium"": ""Digital user interface design"",
+        ""color_palette"": [
+            ""#FFFFFF"",
+            ""#1F7A4D"",
+            ""#E8F3EC"",
+            ""#C8643B"",
+            ""#1A1A1A""
+        ]
+    },
+    ""compositional_deconstruction"": {
+        ""background"": ""A plain white screen background with a very pale green rounded blob behind the illustration."",
+        ""elements"": [
+            {
+                ""type"": ""obj"",
+                ""bbox"": [
+                    30,
+                    60,
+                    70,
+                    940
+                ],
+                ""desc"": ""A thin status bar at the very top with the time '9:41' on the left and battery and signal icons on the right, in dark grey."",
+                ""color_palette"": [
+                    ""#1A1A1A""
+                ]
+            },
+            {
+                ""type"": ""obj"",
+                ""bbox"": [
+                    120,
+                    150,
+                    520,
+                    850
+                ],
+                ""desc"": ""A large flat illustration of a monstera plant with three big split leaves in deep green, standing in a terracotta pot, with two small water drops floating beside it."",
+                ""color_palette"": [
+                    ""#1F7A4D"",
+                    ""#C8643B"",
+                    ""#E8F3EC""
+                ]
+            },
+            {
+                ""type"": ""obj"",
+                ""bbox"": [
+                    580,
+                    90,
+                    680,
+                    910
+                ],
+                ""desc"": ""The headline 'Water at the right time' in a bold rounded sans-serif, dark grey, centred, on two lines."",
+                ""color_palette"": [
+                    ""#1A1A1A""
+                ]
+            },
+            {
+                ""type"": ""obj"",
+                ""bbox"": [
+                    690,
+                    120,
+                    760,
+                    880
+                ],
+                ""desc"": ""Body text 'Bloom reminds you when each plant is thirsty.' in a regular grey sans-serif, centred."",
+                ""color_palette"": [
+                    ""#6B6B6B""
+                ]
+            },
+            {
+                ""type"": ""obj"",
+                ""bbox"": [
+                    790,
+                    440,
+                    810,
+                    560
+                ],
+                ""desc"": ""Three small pagination dots, the first one filled green and wider, the other two pale grey."",
+                ""color_palette"": [
+                    ""#1F7A4D"",
+                    ""#D9D9D9""
+                ]
+            },
+            {
+                ""type"": ""obj"",
+                ""bbox"": [
+                    850,
+                    90,
+                    920,
+                    910
+                ],
+                ""desc"": ""A wide rounded green button with the label 'Get started' in white bold sans-serif, centred."",
+                ""color_palette"": [
+                    ""#1F7A4D"",
+                    ""#FFFFFF""
+                ]
+            }
+        ]
+    }
+}",,,,7,,,9:16 (Portrait Widescreen),,,,,
+image_edit_flux3_klein_distilled_image_edit@dark-mode,image_edit_flux3_klein_distilled_image_edit,2 — Variants and mockups,"The same screen converted to dark mode by asking: a near-black background and light text, with every word, position and size unchanged. The illustration keeps its light background shape, which a designer would probably darken too.",yes,"In <ref_image_0>, convert the app screen to dark mode: a near-black background, the headline and body text in off-white, the status bar in light grey, the button in the same green with white text, the illustration kept in its colours but slightly brighter so it reads well on dark. Keep every text, its position, its size and the layout exactly the same.",image_ideogram4_t2i@onboarding,,,7,,,,,,,,
+image_flux2_klein_9b_t2i@phone-in-hand,image_flux2_klein_9b_t2i,,"A photograph of a hand holding a phone with a blank white screen in a café: a blank mockup, made to receive the app screen in the next example.",yes,"Photograph of a person's hand holding a modern smartphone upright over a wooden café table, the phone's screen bright and plain white, a cup of coffee and a notebook blurred in the background, soft natural window light, shallow depth of field.",,,,7,,,,832,1216,,,
+image_qwen_image_2_1_image_edit@screen-on-phone,image_qwen_image_2_1_image_edit,,"A mockup in seconds: the onboarding screen placed on the phone in the hand photo, fitted to the glass with the right perspective, the hand and the café unchanged. Write <image1> and <image2> in the instruction to say which picture is which.",yes,"Put the app screen from <image2> on the screen of the phone in <image1>, fitted exactly to the screen with the same perspective and a slight glass reflection. Keep the hand, the phone, the café table and the light of <image1> unchanged.",image_flux2_klein_9b_t2i@phone-in-hand,image_ideogram4_t2i@onboarding,,7,,2:3 (Portrait Photo),,,,,,
+image_moss_image_t2i@dashboard,image_moss_image_t2i,,"A desktop dashboard from one description: the logo 'VOLTA', the chart 'Energy use this week' and the cards '312 kWh', '-18 %' and '46 EUR' are exactly as asked. The small menu and table labels are invented words: generated interfaces get large text right and small text wrong, so treat them as layout studies.",yes,"Desktop web dashboard design for an energy-monitoring app, light theme, shown flat: a left sidebar with the logo 'VOLTA' and five menu items, a top bar with a search field and a round user avatar, a large line chart titled 'Energy use this week', three summary cards reading '312 kWh', '-18 %' and '46 EUR', and a table of devices on the right. Clean flat design, rounded cards, teal and coral accents, crisp sans-serif type.",,,,7,,,,,,16:9 (Widescreen),,
+video_ltx2_5_flf2v@theme-switch,video_ltx2_5_flf2v,"3 — Motion, accessibility and testing","An animation between the light and the dark screens. The prompt said the dark background should wipe down 'like a curtain', and the model drew a real fabric curtain falling over the screen: a video model reads a comparison literally. The pagination dots flicker on the way, and the click asked for came out silent.",yes,"Use the provided start image as the first frame and the provided end image as the final frame anchor. A smooth interface animation of the app switching from light mode to dark mode: the dark background wipes down from the top of the screen like a curtain, the text and the button stay perfectly still and change colour as the wipe passes them, the illustration dims gently. A flat screen recording with no camera movement and no hand, one soft click when the switch happens. No text changes, no black frames.",image_ideogram4_t2i@onboarding,image_edit_flux3_klein_distilled_image_edit@dark-mode,,7,,,,,,,704,1280
+describe_gemma4_image_description@alt-text,describe_gemma4_image_description,,"Gemma reads the onboarding screen as an accessibility reviewer: alt text a screen reader could speak, every piece of text copied exactly ('9:41', the headline, the line, 'Get started'), and a short check of contrast, tap size and colour use. Its review is generic; the transcription is the reliable part.",yes,"You are an accessibility reviewer for a mobile app. Look at this screen and answer in three numbered sections.
+1. Alt text: one or two sentences a screen reader would say for this screen.
+2. Text on screen: copy every piece of text exactly as written, in reading order.
+3. Accessibility: list any text that may be too small or too low in contrast, any button that may be too small to tap, and anything a colour-blind user could miss, each with a one-line fix.",image_ideogram4_t2i@onboarding,,,0,,,,,,,,
+video_minimax_h3_t2v_turbo@user-test,video_minimax_h3_t2v_turbo,,"A usability test acted out in five seconds, with sound: a participant frowns at her phone, taps, then smiles, while a researcher takes notes. Listen for her line about the hidden Rent button: a quick way to storyboard a test session or a persona scenario.",yes,"[Shot 1] Medium shot in a bright usability lab, static camera. A young woman sits at a white table holding a smartphone, trying a new app while thinking aloud; she frowns, taps the screen twice, then smiles. A researcher beside her takes notes on a laptop. She says: 'Oh, the Rent button was hidden at the bottom. Now I see it.' We hear her voice, soft taps on the glass, typing on the laptop and a quiet office ambience.",,,,7,,,,,,,,

@@ -30,12 +30,21 @@
  * inputs instead (routes/jobs.js) — one copy on disk however many examples
  * share it.
  *
- * Usage: node seed_examples.cjs [--dry] [--only a,b] [--replace]
+ * Usage: node seed_examples.cjs [--dry] [--only a,b] [--replace] [--speciality <key>]
  *
  *  --replace  first delete the `examples` jobs of every bundle about to be
  *             seeded, so a re-run REPLACES that bundle's example instead of
  *             adding a second one. Only the job rows go: their inputs stay staged
  *             (another example may share one) and their outputs stay on disk.
+ *             The showcase never deletes a speciality's examples.
+ *  --speciality <key>  seed the examples of a field of study instead of the
+ *             showcase: every clean run of tools/test-suite/speciality-<key>.suite.csv,
+ *             read from server/data/specialities/<key>/ (run-suite --data-dir), a
+ *             card's second and third runs included. They sit BESIDE the card's
+ *             showcase example, marked created_by "speciality:<key>". With
+ *             --replace, the speciality's earlier examples go first (all of them:
+ *             an example does not record which run made it, so --only cannot
+ *             narrow a replace here, and the two are refused together).
  */
 const fs = require('fs');
 const path = require('path');
@@ -53,11 +62,17 @@ const INP = path.join(COMFY, 'input');
 // --help) stops it before anything is touched.
 {
     const args = process.argv.slice(2);
-    const bad = args.filter((a, i) => a.startsWith('-') && !['--dry', '--replace', '--only'].includes(a) && !a.startsWith('--only='));
+    const bad = args.filter((a, i) => a.startsWith('-') && !['--dry', '--replace', '--only', '--speciality'].includes(a) && !a.startsWith('--only='));
     const onlyAt = args.indexOf('--only');
-    if (bad.length || (onlyAt >= 0 && (!args[onlyAt + 1] || args[onlyAt + 1].startsWith('-')))) {
-        console.error(bad.length ? `Unknown option ${bad.join(', ')}. Nothing was written.` : '--only needs a list of bundles. Nothing was written.');
-        console.error('Usage: node tools/maintenance/seed_examples.cjs [--dry] [--only a,b] [--replace]');
+    const specAt = args.indexOf('--speciality');
+    const why = bad.length ? `Unknown option ${bad.join(', ')}.`
+        : onlyAt >= 0 && (!args[onlyAt + 1] || args[onlyAt + 1].startsWith('-')) ? '--only needs a list of bundles.'
+        : specAt >= 0 && !/^[a-z][a-z-]*$/.test(args[specAt + 1] || '') ? '--speciality needs a key (scenography, interior, ...).'
+        : specAt >= 0 && args.includes('--replace') && (onlyAt >= 0 || args.some(a => a.startsWith('--only='))) ? '--replace with --speciality replaces the whole speciality; it cannot be narrowed with --only.'
+        : null;
+    if (why) {
+        console.error(why + ' Nothing was written.');
+        console.error('Usage: node tools/maintenance/seed_examples.cjs [--dry] [--only a,b] [--replace] [--speciality <key>]');
         process.exit(1);
     }
 }
@@ -71,10 +86,19 @@ const onlyArg = (process.argv.find(a => a.startsWith('--only=')) || '').slice('-
     || (process.argv.includes('--only') ? process.argv[process.argv.indexOf('--only') + 1] : '');
 const ONLY = onlyArg ? new Set(onlyArg.split(',').map(s => s.trim()).filter(Boolean)) : null;
 const REPLACE = process.argv.includes('--replace');
+// A field of study (tools/test-suite/speciality-<key>.suite.csv), or null for the showcase.
+const SPECIALITY = process.argv.includes('--speciality') ? process.argv[process.argv.indexOf('--speciality') + 1] : null;
+const CREATED_BY = SPECIALITY ? `speciality:${SPECIALITY}` : 'library-sweep';
+if (SPECIALITY && !fs.existsSync(path.join(REPO, 'tools', 'test-suite', `speciality-${SPECIALITY}.suite.csv`))) {
+    console.error(`no suite tools/test-suite/speciality-${SPECIALITY}.suite.csv. Nothing was written.`);
+    process.exit(1);
+}
 
 // The run the sweep published is the showcase: one row per bundle, merged over
 // previous runs, which is exactly the 61-row picture the report serves.
-const latest = path.join(REPO, 'server', 'data', 'library-sweep-latest.json');
+const latest = SPECIALITY
+    ? path.join(REPO, 'server', 'data', 'specialities', SPECIALITY, 'library-sweep-latest.json')
+    : path.join(REPO, 'server', 'data', 'library-sweep-latest.json');
 if (!fs.existsSync(latest)) { console.error('no published sweep at ' + latest); process.exit(1); }
 const pub = JSON.parse(fs.readFileSync(latest, 'utf8'));
 const rows = pub.results || pub.rows || [];
@@ -98,7 +122,9 @@ const captionFor = (r) => {
     if (!name) return null;
     if (!suiteRuns.has(name)) {
         const m = new Map();
-        try { for (const run of loadSuite(name).runs) if (!run.variant) m.set(run.workflow, run); }
+        // Keyed by run id: a card's own run is its card id, so the showcase reads
+        // it as before, and a speciality's `card@variant` runs are found too.
+        try { for (const run of loadSuite(name).runs) m.set(run.id, run); }
         catch { /* the suite file is gone: keep the run's own notes */ }
         suiteRuns.set(name, m);
     }
@@ -145,7 +171,7 @@ const insert = db && db.prepare(
     + 'started_at,finished_at,prompt_id,prompt,param_values,input_files,outputs,progress,'
     + 'current_node,error_reason,error_phase,created_by,created_at,batch_label) '
     + "VALUES (@id,@user_id,@workflow_id,NULL,'completed',@at,@at,@fin,NULL,@prompt,"
-    + "@param_values,'[]',@outputs,@progress,NULL,NULL,NULL,'library-sweep',@at,@caption)");
+    + "@param_values,'[]',@outputs,@progress,NULL,NULL,NULL,@created_by,@at,@caption)");
 
 let made = 0, noOutput = 0, failedRow = 0, replaced = 0;
 const lostInputs = [];
@@ -154,22 +180,30 @@ const skipped = [];
 // A value a report from before 2026-11-09 cut short, made whole only when that
 // can be known (exampleRules.wholeValue): three of four long prompts would
 // otherwise have been seeded with the card's default prompt.
-const wholeOf = (r, ing) => wholeValue(ing, literalOf(r.id, ing.node));
+const wholeOf = (r, ing) => wholeValue(ing, literalOf(r.variantOf || r.id, ing.node));
 const cutBeyondRepair = (r) => (r.ingredients || []).filter(ing => ing.truncated && wholeOf(r, ing) === null);
 
 // Replace rather than add: drop the example of every bundle this run seeds,
 // decided BEFORE inserting so a bundle whose new row fails is not left empty
 // for nothing -- it keeps its old example. A row with a value cut beyond repair
 // is not seeded, so its old example stays too.
-const seeding = rows.filter(r => !r.variantOf && (!ONLY || ONLY.has(r.id)) && r.ok && (r.outputs || []).length
+// A speciality seeds every run of its suite, a card's variants included: each
+// one is an example made for that field.
+const seedsRow = (r) => (SPECIALITY || !r.variantOf) && (!ONLY || ONLY.has(r.id));
+const seeding = rows.filter(r => seedsRow(r) && r.ok && (r.outputs || []).length
     && !cutBeyondRepair(r).length).map(r => r.id);
 if (REPLACE && seeding.length && !DRY) {
-    const del = db.prepare("DELETE FROM jobs WHERE user_id = ? AND workflow_id = ?");
-    for (const id of seeding) replaced += del.run(USER, id).changes;
+    if (SPECIALITY) {
+        replaced += db.prepare('DELETE FROM jobs WHERE user_id = ? AND created_by = ?').run(USER, CREATED_BY).changes;
+    } else {
+        // ★ The showcase only: a card's speciality examples sit beside it and are
+        // replaced by their own --speciality run, never by this one.
+        const del = db.prepare("DELETE FROM jobs WHERE user_id = ? AND workflow_id = ? AND (created_by IS NULL OR created_by NOT LIKE 'speciality:%')");
+        for (const id of seeding) replaced += del.run(USER, id).changes;
+    }
 }
 for (const r of rows) {
-    if (r.variantOf) continue;     // a test-only run: it never replaces a card's example
-    if (ONLY && !ONLY.has(r.id)) continue;
+    if (!seedsRow(r)) continue;    // a showcase variant is a test-only run: it never becomes an example
     if (!r.ok) { failedRow++; skipped.push(r.id + (r.skipped ? ' (a test-suite input was missing)' : ' (the sweep run failed)')); continue; }
     const cut = cutBeyondRepair(r);
     if (cut.length) {
@@ -236,7 +270,8 @@ for (const r of rows) {
     if (caption && r.suite?.note && caption !== r.suite.note) captionsChanged.push(r.id);
     if (!DRY) {
         insert.run({
-            id: crypto.randomUUID(), user_id: USER, workflow_id: r.id,
+            id: crypto.randomUUID(), user_id: USER, workflow_id: r.variantOf || r.id,
+            created_by: CREATED_BY,
             at, fin, prompt,
             param_values: JSON.stringify(params),
             outputs: JSON.stringify(outputs),
@@ -255,7 +290,7 @@ if (captionsChanged.length) {
     console.log('captions    %d corrected in the suite file since their run: %s',
         captionsChanged.length, captionsChanged.join(', '));
 }
-console.log('examples    %d jobs written as user "%s"', made, USER);
+console.log('examples    %d jobs written as user "%s"%s', made, USER, SPECIALITY ? ` for the speciality ${SPECIALITY}` : '');
 console.log('inputs      %d media files staged durably (%d distinct sources)', stageN, stagedCache.size);
 if (lostInputs.length) {
     console.log('            ⚠ %d input(s) had no original to re-stage and were left out of their example:',

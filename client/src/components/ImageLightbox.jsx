@@ -15,6 +15,7 @@ import { accessHeaders } from '../utils/access';
 import { liveParamMap, labelMapFromExposed } from '../utils/paramLabels';
 import { isSeedParam } from '../utils/seedParam';
 import { cardLabel } from '../utils/cardLabel';
+import { specialityLabel } from '../utils/specialities';
 import { getDisplayPrompt, getPrimaryDownloadFilename, getGenerationMs, formatDuration, getJobText } from '../utils/jobDisplay';
 
 const downloadFile = (filename) => {
@@ -270,7 +271,9 @@ const ImageLightbox = ({ isOpen, onClose, job, onReuse, activeWorkflowId }) => {
                             meant to show — the point of looking at it. */}
                         {job.user_id === 'examples' && job.batch_label && (
                             <div className="p-3 rounded-xl border border-primary/30 bg-primary/10 space-y-1">
-                                <label className="text-[10px] text-primary uppercase font-bold tracking-wider">What this example shows</label>
+                                <label className="text-[10px] text-primary uppercase font-bold tracking-wider">
+                                    {job.speciality ? `An example for ${specialityLabel(job.speciality)}` : 'What this example shows'}
+                                </label>
                                 <p className="text-sm text-foreground leading-relaxed">{job.batch_label}</p>
                             </div>
                         )}

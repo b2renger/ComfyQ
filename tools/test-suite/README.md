@@ -33,6 +33,7 @@ them into the `examples` jobs students can browse in **All jobs**.
 | file | what it is |
 |---|---|
 | [`library.suite.csv`](library.suite.csv) | every workflow in the library, in five stages with a showcase example each, then the comparisons and the options (rebuilt 2026-11-04 from per-family research). Since 2026-11-09 a batch table ([docs/batch-format.md](../../docs/batch-format.md)): open, edit, save and run it from the admin panel's **Batches** tab, nothing to upload. One row per run; its id is the card, or `card@variant`; the suite's own columns are `stage`, `caption` and `keepRuntime`; an input is `file:NAME`, with steps when it is prepared (`file:clip.mp4 \| frame(0) \| crop(0, 0.16, 1, 0.91)`), or `empty` to leave it empty on purpose. The JSON it replaced is in git history |
+| `speciality-<key>.suite.csv` | one suite per field the school teaches (2026-11-16): [scenography](speciality-scenography.suite.csv), [interior architecture](speciality-interior.suite.csv), [industrial design](speciality-industrial.suite.csv), [transportation design](speciality-transportation.suite.csv), [UX/UI design](speciality-uxui.suite.csv), [graphic and motion design](speciality-graphic-motion.suite.csv). Not every card, but the projects a student of that field would do: see *Speciality suites* below |
 | [`to_table.cjs`](to_table.cjs) | writes a JSON suite as a table and proves the table reads back the same, run by run (`node tools/test-suite/to_table.cjs <name>`; refuses to overwrite a table) |
 | [`run-suite.cjs`](run-suite.cjs) | runs a suite from the command line |
 | [`suiteAssets.cjs`](suiteAssets.cjs) | lists every assets-folder file a suite names and which are missing, so `--check` and `--dry` can show them before the GPU is booked (tested by `suiteAssets.test.cjs`) |
@@ -95,6 +96,36 @@ graph stay as they are, which is what a booking gets, so "Use these settings" on
 example gives back the same result. ComfyUI's cache cannot answer a repeat: every
 run starts with a `/free`, which empties it. A plain sweep, with no suite, still
 randomises every seed.
+
+## Speciality suites
+
+The library suite shows what each card is best at; a speciality suite shows the
+cards on the projects of one field of study, so a scenography student opens a
+model box relit for a cue and a UX student a paper wireframe turned into a screen.
+Each is a short project told in stages: a starting picture made from words, then
+the edits, the other views, the 3D model and the video made FROM it.
+
+- **A row may take an earlier row's result** (`image: image_flux3_klein_distilled_t2i@model-box`,
+  `#2` for its second output): the row it names must be above it, because a suite
+  runs in the order written. The library suite does not chain, so each of its runs
+  stands alone; a speciality is a chain on purpose.
+- **Rows are `card@topic`**, so one card can appear twice, and **every row keeps
+  `runtime.json`** (`keepRuntime`, checked by `suitePlan.test.js`): the library suite
+  owns calibration.
+- **Every row needs a caption**, written after looking at its result
+  (`suitePlan.test.js` fails until then): each run becomes an example.
+- **Run each into its own report**, never the library's:
+
+```bash
+node tools/test-suite/run-suite.cjs speciality-scenography --data-dir server/data/specialities/scenography
+node tools/maintenance/seed_examples.cjs --speciality scenography --replace
+```
+
+The examples are seeded BESIDE the cards' showcase (`created_by` = `speciality:<key>`),
+and the showcase's own `--replace` never removes them. Students see them as
+*Examples by speciality* on each card, their own field first, and can keep only
+their field's examples in All jobs (*Examples for*, remembered in the browser).
+The keys and labels are in [client/src/utils/specialities.js](../../client/src/utils/specialities.js).
 
 ## The file
 

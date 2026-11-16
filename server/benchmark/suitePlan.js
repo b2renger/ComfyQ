@@ -151,6 +151,7 @@ function suiteFromTable(text, registry, { name, file } = {}) {
     const stages = [];
     let stage = null;
     const runs = [];
+    const rowOf = new Map(plan.jobs.map(j => [j.key, j.row]));
     for (const job of [...plan.jobs].sort((a, b) => a.row - b.row)) {
         if (job.key !== job.id) { loadErrors.push(`row ${job.row} (${job.id}): a suite row is one run; repeat and folder: make several`); continue; }
         const workflow = job.workflowId;
@@ -171,7 +172,16 @@ function suiteFromTable(text, registry, { name, file } = {}) {
                 : `asset:${a.file}`;
         }
         for (const k of job.emptyInputs) params[k] = null;
-        if (job.deps.length) loadErrors.push(`row ${job.row} (${job.id}): a suite row takes files, not another row's result`);
+        // Another row's result (`hero`, `hero#2`): a suite runs in the order written,
+        // so it must be a row ABOVE. The sweep finds it by run id in this run's
+        // results, else in the report it writes to (librarySweep._suiteOutput);
+        // `#n` counts that run's outputs of the input's kind.
+        for (const d of job.deps) {
+            if (!d.sourceKey) { loadErrors.push(`row ${job.row} (${job.id}): a suite row takes files or an earlier row's result, not an existing job`); continue; }
+            const up = rowOf.get(d.sourceKey);
+            if (!(up < job.row)) { loadErrors.push(`row ${job.row} (${job.id}): it takes the result of ${d.sourceKey}, which must be a row above it (a suite runs in the order written)`); continue; }
+            params[d.paramKey] = { from: [d.sourceKey], kind: d.kind, pick: d.outputIndex || 0 };
+        }
         runs.push({
             workflow,
             variant,
@@ -249,8 +259,13 @@ function validateSuite(suite, registry) {
                 if (m.empty && p.required !== false && !p.whenEmpty) warnings.push(`${where}: "${key}" left empty but it is not optional`);
                 for (const id of (m.from || [])) {
                     if (id.startsWith('asset:')) continue;            // a file, checked when the run starts
-                    if (!registry.get(id)) { errors.push(`${where}: "${key}" reads from "${id}", which is not in the library`); continue; }
-                    const j = suite.runs.findIndex(r => r.workflow === id);
+                    // `id` is a card, or a run of one (`card@variant`): the sweep finds
+                    // the output by run id (librarySweep._suiteOutput).
+                    const card = id.split('@')[0];
+                    if (!registry.get(card)) { errors.push(`${where}: "${key}" reads from "${id}", which is not in the library`); continue; }
+                    const j = id.includes('@')
+                        ? suite.runs.findIndex(r => r.id === id)
+                        : suite.runs.findIndex(r => r.workflow === id);
                     if (j === -1) warnings.push(`${where}: "${key}" reads from "${id}", which this suite never runs — the last report's output will be used`);
                     else if (j > i) errors.push(`${where}: "${key}" reads from "${id}", which runs LATER in the suite`);
                 }

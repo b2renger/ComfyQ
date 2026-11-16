@@ -423,7 +423,13 @@ class RealtimeBus {
             batch_id: job.batchId,
             batch_label: job.batchLabel,
             workflow_id: job.workflowId,
-            error_reason: job.errorReason
+            error_reason: job.errorReason,
+            // An example made for a field of study (the speciality suites,
+            // tools/test-suite/speciality-*.suite.csv), seeded beside the card's
+            // showcase with created_by "speciality:<key>". Null for the showcase
+            // and for every booked job.
+            speciality: job.userId === 'examples' && /^speciality:/.test(job.createdBy || '')
+                ? job.createdBy.slice('speciality:'.length) : null
         };
     }
 
@@ -512,8 +518,9 @@ class RealtimeBus {
             ? (entry.summary.estimatedDurationSec * 1000) : 60000;
         const workerStatus = this.worker.getStatus();
         const systemStatus = workerStatus.state === 'idle' || workerStatus.state === 'busy' ? 'ready' : workerStatus.state;
-        // The library's examples (user "examples", one per card, seeded from the
-        // test suite) always travel, however many jobs a class has booked since:
+        // The library's examples (user "examples": the showcase, one per card,
+        // seeded from the test suite, plus the speciality examples beside it,
+        // fewer than a few hundred in all) always travel, however many jobs a class has booked since:
         // the cards' "See an example" and the All jobs → examples filter read
         // them from here, and they are few (one per workflow).
         const recent = this.queue.listRecent(BROADCAST_JOB_LIMIT);

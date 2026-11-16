@@ -15,6 +15,7 @@ import ConfirmDialog from '../components/ui/ConfirmDialog';
 import { getUserColor } from '../utils/userColor';
 import { getDisplayPrompt } from '../utils/jobDisplay';
 import { cardLabel } from '../utils/cardLabel';
+import { SPECIALITIES, loadSpeciality, saveSpeciality, orderSpecialityExamples } from '../utils/specialities';
 import WorkflowInfoCard from '../components/WorkflowInfoCard';
 
 /**
@@ -102,6 +103,11 @@ const SchedulerPage = () => {
     });
     // The results grid can be narrowed to one model too ('all' = every job).
     const [modelFilter, setModelFilter] = useState('all');
+    // The student's field of study, remembered in this browser: it puts that
+    // field's examples first on each card and hides other fields' examples in
+    // All jobs ('' = every field). Showcase examples and people's jobs always show.
+    const [speciality, setSpecialityState] = useState(loadSpeciality);
+    const setSpeciality = useCallback((k) => { setSpecialityState(k); saveSpeciality(k); }, []);
     // Each job's bar is as long as ITS model takes, not the main lane's.
     const durationMsOf = useCallback((job) => {
         const sec = workflowsById?.[job.workflow_id]?.estimatedDurationSec
@@ -153,6 +159,7 @@ const SchedulerPage = () => {
                 if (activeTab === 'mine' && job.user_id !== username) return false;
                 if (modelFilter !== 'all' && job.workflow_id !== modelFilter) return false;
                 if (activeTab === 'all' && userFilter !== 'all' && job.user_id !== userFilter) return false;
+                if (speciality && job.speciality && job.speciality !== speciality) return false;
                 if (q) {
                     // Search the resolved display prompt so jobs whose headline
                     // `prompt` was empty (LTX-style with positive_prompt) still
@@ -164,14 +171,14 @@ const SchedulerPage = () => {
                 return true;
             })
             .sort((a, b) => b.time_slot - a.time_slot);
-    }, [state.jobs, activeTab, userFilter, searchQuery, username, modelFilter]);
+    }, [state.jobs, activeTab, userFilter, searchQuery, username, modelFilter, speciality]);
 
     // How many cards are mounted at once. A workshop's history runs into the
     // hundreds and every card carries media, so mounting them all is what made
     // the grid slow to open and heavy to scroll; the rest follow as the student
     // reaches the bottom.
     const [cardLimit, setCardLimit] = useState(CARD_PAGE);
-    useEffect(() => { setCardLimit(CARD_PAGE); }, [activeTab, userFilter, searchQuery, modelFilter]);
+    useEffect(() => { setCardLimit(CARD_PAGE); }, [activeTab, userFilter, searchQuery, modelFilter, speciality]);
     const shownJobs = useMemo(() => visibleJobs.slice(0, cardLimit), [visibleJobs, cardLimit]);
     const hasMoreCards = visibleJobs.length > shownJobs.length;
     const [moreRef, moreInView] = useInView({ rootMargin: '600px' });
@@ -199,7 +206,12 @@ const SchedulerPage = () => {
 
     // The card's example job (user "examples", seeded from the test suite).
     const exampleFor = useCallback((workflowId) => (state.jobs || []).find(j =>
-        j.user_id === 'examples' && j.workflow_id === workflowId && j.status === 'completed') || null, [state.jobs]);
+        j.user_id === 'examples' && j.workflow_id === workflowId && j.status === 'completed' && !j.speciality) || null, [state.jobs]);
+    // The card's examples made for a field of study, the student's own first.
+    const specialityExamplesFor = useCallback((workflowId) => orderSpecialityExamples((state.jobs || []).filter(j =>
+        j.user_id === 'examples' && j.workflow_id === workflowId && j.status === 'completed' && j.speciality), speciality),
+    [state.jobs, speciality]);
+    const hasSpecialityExamples = useMemo(() => (state.jobs || []).some(j => j.speciality), [state.jobs]);
 
     const openJob = useCallback((job) => {
         setSelectedJob(job);
@@ -541,7 +553,8 @@ const SchedulerPage = () => {
                             the booking form is opened. */}
                         {servedModels.map((wf, i) => (
                             <WorkflowInfoCard key={wf.id || i} wf={wf} className="mt-2 max-w-2xl"
-                                example={exampleFor(wf.id)} onOpenExample={setLightboxJob} />
+                                example={exampleFor(wf.id)} onOpenExample={setLightboxJob}
+                                specialityExamples={specialityExamplesFor(wf.id)} />
                         ))}
                     </div>
                     <div className="flex items-center space-x-2 sm:space-x-4">
@@ -716,6 +729,22 @@ const SchedulerPage = () => {
                                     </div>
                                 );
                             })()}
+                            {activeTab === 'all' && hasSpecialityExamples && (
+                                <label className="flex items-center gap-2 text-xs text-muted" title="Your field of study: its examples come first on each card, and other fields' examples are hidden here">
+                                    Examples for
+                                    <select
+                                        value={speciality}
+                                        onChange={(e) => setSpeciality(e.target.value)}
+                                        className="bg-surface border border-border rounded-md px-2 py-1.5 text-xs text-white"
+                                    >
+                                        <option value="">every speciality</option>
+                                        {SPECIALITIES.map(s => {
+                                            const count = state.jobs.filter(j => j.speciality === s.key).length;
+                                            return <option key={s.key} value={s.key}>{s.label}{count ? ` — ${count}` : ''}</option>;
+                                        })}
+                                    </select>
+                                </label>
+                            )}
                             {activeTab === 'all' && (() => {
                                 const users = Array.from(new Set(state.jobs.map(j => j.user_id))).sort();
                                 return (

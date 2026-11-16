@@ -13,7 +13,9 @@ import PromptGuideLinks from './PromptGuideLinks';
 //   5. the technical description, folded away under "How it works".
 // Shared by the scheduling page and the booking form so the two cannot drift.
 // `wf` = { name, title?, summary?, description?, category?, promptGuides?, busy? }.
-const WorkflowInfoCard = ({ wf, label = 'Active workflow', className = '', compact = false, example = null, onOpenExample = null }) => {
+// `specialityExamples`: this card's examples made for a field of study, already
+// ordered and labelled (utils/specialities.js orderSpecialityExamples).
+const WorkflowInfoCard = ({ wf, label = 'Active workflow', className = '', compact = false, example = null, onOpenExample = null, specialityExamples = [] }) => {
     if (!wf) return null;
     const title = wf.title || wf.name;
     const showName = wf.name && wf.name !== title;
@@ -41,6 +43,23 @@ const WorkflowInfoCard = ({ wf, label = 'Active workflow', className = '', compa
                         {example.batch_label && <span className="text-muted"> — {example.batch_label}</span>}
                     </span>
                 </button>
+            )}
+            {/* Examples made for the school's fields of study, beside the showcase:
+                a scenographer and a UX designer each see this card used on their
+                own kind of project. */}
+            {specialityExamples.length > 0 && onOpenExample && (
+                <div className="flex flex-wrap items-center gap-1.5 text-[11px]">
+                    <span className="text-muted">Examples by speciality:</span>
+                    {specialityExamples.map(({ job, label: name, mine }) => (
+                        <button key={job.id} type="button" onClick={() => onOpenExample(job)}
+                            title={job.batch_label || name}
+                            className={`px-2 py-0.5 rounded-full border transition-colors ${mine
+                                ? 'border-primary bg-primary/15 text-primary font-semibold'
+                                : 'border-border text-foreground hover:border-primary/50'}`}>
+                            {name}
+                        </button>
+                    ))}
+                </div>
             )}
             <PromptGuideLinks guides={wf.promptGuides} />
             {wf.description && (

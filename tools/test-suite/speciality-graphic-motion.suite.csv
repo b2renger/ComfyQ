@@ -1,0 +1,107 @@
+id,workflow,stage,caption,keepRuntime,prompt,image,image2,model3d,seed,aspect_ratio_37,resolutionselector_aspect_ratio_71,aspect_ratio_19,resolutionselector_aspect_ratio_13,aspect_ratio_14,primitiveint_value_410,primitiveint_value_411,aspect_ratio,width_9,height_9,duration_seconds_52_36,description_52_31
+"# Graphic and motion design: a typographic poster and its campaign, a translated version, a magazine cover, an infographic, a billboard, print upscaling, a motion poster, a social loop and an ident with its sound. Every run becomes an example for students of this speciality, beside the card's showcase (tools/maintenance/seed_examples.cjs --speciality graphic-motion)."
+image_ideogram4_t2i@festival-poster,image_ideogram4_t2i,1 — Print,"A typographic festival poster where every element was placed in a box: 'FESTIVAL', 'LUMIÈRE' with its grave accent, '12—14 JUIN 2027' in gold and 'LYON · ENTRÉE LIBRE', over beams of coloured light. All the words are exact; it split LUMIÈRE over two lines on its own. The rest of this speciality starts from this poster.",yes,"{
+    ""high_level_description"": ""A bold typographic poster for a light festival in Lyon: huge stacked white letters spelling 'LUMIÈRE' over a deep night-blue background crossed by beams of coloured light, with the dates and the place in a smaller sans-serif."",
+    ""style_description"": {
+        ""aesthetics"": ""Swiss-style typographic poster, strict grid, oversized condensed sans-serif lettering, flat colour with luminous gradient beams."",
+        ""lighting"": ""Glowing light beams in magenta, cyan and gold crossing the dark background like stage spotlights."",
+        ""photo"": ""Flat printed poster, offset print texture, slight grain."",
+        ""medium"": ""Typographic poster design"",
+        ""color_palette"": [
+            ""#0B1640"",
+            ""#FFFFFF"",
+            ""#FF3D8B"",
+            ""#2BD9FE"",
+            ""#FFC23D""
+        ]
+    },
+    ""compositional_deconstruction"": {
+        ""background"": ""A deep night-blue background with three diagonal beams of coloured light, magenta, cyan and gold, crossing from the bottom corners towards the top."",
+        ""elements"": [
+            {
+                ""type"": ""obj"",
+                ""bbox"": [
+                    60,
+                    70,
+                    120,
+                    930
+                ],
+                ""desc"": ""Small white capitals 'FESTIVAL' in a wide-tracked sans-serif at the top left."",
+                ""color_palette"": [
+                    ""#FFFFFF""
+                ]
+            },
+            {
+                ""type"": ""obj"",
+                ""bbox"": [
+                    130,
+                    60,
+                    640,
+                    940
+                ],
+                ""desc"": ""The word 'LUMIÈRE' in enormous bold condensed white capitals, stacked and filling the width, the accent on the È clearly visible."",
+                ""color_palette"": [
+                    ""#FFFFFF""
+                ]
+            },
+            {
+                ""type"": ""obj"",
+                ""bbox"": [
+                    700,
+                    70,
+                    800,
+                    930
+                ],
+                ""desc"": ""The dates '12—14 JUIN 2027' in bold gold capitals."",
+                ""color_palette"": [
+                    ""#FFC23D""
+                ]
+            },
+            {
+                ""type"": ""obj"",
+                ""bbox"": [
+                    820,
+                    70,
+                    880,
+                    930
+                ],
+                ""desc"": ""The line 'LYON · ENTRÉE LIBRE' in white capitals."",
+                ""color_palette"": [
+                    ""#FFFFFF""
+                ]
+            },
+            {
+                ""type"": ""obj"",
+                ""bbox"": [
+                    900,
+                    70,
+                    950,
+                    400
+                ],
+                ""desc"": ""A small white logo of a stylised lightbulb made of three lines at the bottom left."",
+                ""color_palette"": [
+                    ""#FFFFFF""
+                ]
+            }
+        ]
+    }
+}",,,,7,2:3 (Portrait Photo),,,,,,,,,,,
+image_edit_flux3_klein_distilled_image_edit@english,image_edit_flux3_klein_distilled_image_edit,,"The poster translated by asking: 'JUIN' became 'JUNE' and 'ENTRÉE LIBRE' became 'FREE ENTRY', while the typefaces, the colours, the sizes and the light beams stay exactly as they were. A fast way to adapt a design to another language.",yes,"In <ref_image_0>, translate the French text into English: '12—14 JUIN 2027' becomes '12—14 JUNE 2027' and 'LYON · ENTRÉE LIBRE' becomes 'LYON · FREE ENTRY'. Keep 'FESTIVAL' and 'LUMIÈRE', the typefaces, the colours, the sizes, the light beams and the layout exactly the same.",image_ideogram4_t2i@festival-poster,,,7,,,,,,,,,,,,
+image_krea2_turbo_style_reference@campaign,image_krea2_turbo_style_reference,,"A second poster for the same campaign, a night market by the river, drawn in the style of the first one. The colours and the glow carry over, but the lettering of the reference was copied too, as garbled words: ask for the style only, and set the type yourself.",yes,"a poster for a summer night market by the river, paper lanterns floating over a crowd of stalls",image_ideogram4_t2i@festival-poster,,,7,,2:3 (Portrait Photo),,,,,,,,,,
+utility_pid_image_upscale@poster-print,utility_pid_image_upscale,,The poster enlarged four times (3392×5056) for printing at large size. Zoom to 100% on the edges of the letters and the light beams: they stay sharp rather than blurry.,yes,,image_ideogram4_t2i@festival-poster,,,7,,,,,,,,,,,,
+image_moss_image_t2i@magazine-cover,image_moss_image_t2i,,"A magazine cover from one description: the masthead 'FORMA', a portrait of a ceramicist, the cover line 'THE NEW CRAFT', the smaller lines 'Clay, code and the hand' and 'Issue 12 · Spring 2027', and a barcode. Every line of text is spelled as asked.",yes,"Cover of a design magazine: the masthead 'FORMA' in huge black serif capitals across the top, a portrait photograph of a young ceramicist holding a bowl in soft window light filling the page, the cover line 'THE NEW CRAFT' in bold white sans-serif on the left, the smaller lines 'Clay, code and the hand' and 'Issue 12 · Spring 2027' below it, and a small barcode in the bottom right corner. Clean editorial layout, generous margins.",,,,7,,,3:4 (Portrait Standard),,,,,,,,,
+image_qwen_image_2_1_t2i@infographic,image_qwen_image_2_1_t2i,,"An infographic on the recycling of a glass bottle: the title 'WHERE DOES A BOTTLE GO?', a circle of steps with icons, labels and arrows in green and sand. Check the numbering: it added a sixth, unlabelled step of bottles and gave two steps the number 4. Generated diagrams need checking before they are printed.",yes,"Flat vector infographic poster titled 'WHERE DOES A BOTTLE GO?' at the top, explaining the recycling of a glass bottle in five numbered steps arranged in a circle: '1 COLLECT' with a green bottle bank, '2 SORT' with a conveyor belt, '3 CRUSH' with a crusher and glass shards, '4 MELT' with a glowing furnace, '5 SHAPE' with new bottles. Thick arrows join the steps. A limited palette of deep green, sand beige and black on off-white, bold geometric sans-serif type, generous margins.",,,,7,,,,3:4 (Portrait Standard),,,,,,,,
+image_minimax_h3_image_t2i@billboard,image_minimax_h3_image_t2i,,"A billboard for a city campaign at 4 megapixels (3136×1344): a photo looking up between old buildings at a flight of swifts, and a yellow panel with 'SLOW DOWN. LOOK UP.' and 'Lyon Architecture Days · 3—5 October'. Every word is exact and the type is crisp enough to print large.",yes,"A large outdoor billboard design for a city campaign encouraging people to look up at the architecture around them. On the left two thirds, a photograph looking straight up between old stone buildings with ornate cornices towards a bright blue sky, a flock of swifts crossing it. On the right third, a solid warm yellow panel with the headline 'SLOW DOWN. LOOK UP.' in heavy black condensed sans-serif capitals on two lines, and below it the smaller line 'Lyon Architecture Days · 3—5 October' in black. A thin black frame around the whole design. Crisp print quality, no billboard structure visible, the design fills the image.",,,,7,,,,,21:9 (Ultrawide),,,,,,,
+video_ltx2_5_i2v@motion-poster,video_ltx2_5_i2v,2 — Motion,The festival poster turned into a motion poster: the beams of light sweep slowly across the background while the lettering stays still and sharp for all five seconds. With a soft synth pad. Ready for a screen in a station or on social media.,yes,"Use the provided start image as the first frame. The poster comes alive as a motion poster: the camera stays perfectly still, the beams of coloured light sweep slowly across the background like searchlights, a few specks of light float upward, while every letter stays sharp, still and unchanged. A soft synth pad and a warm low bass note. No text changes, no black frames.",image_ideogram4_t2i@festival-poster,,,7,,,,,,704,1088,,,,,
+image_flux3_klein_distilled_t2i@shapes,image_flux3_klein_distilled_t2i,,"A flat Bauhaus-style composition of shapes (a coral circle, a mustard half-moon, a blue square, thin lines), made as the first frame of the loop that follows.",yes,"Flat abstract motion-design frame: bold geometric shapes, a large coral circle, a mustard yellow half-moon, a deep blue square turned 45 degrees and a few thin black lines, arranged in a balanced Bauhaus-inspired composition on an off-white background. Flat colours, no gradients, no shadows, no text.",,,,7,,,,,,,,1:1 (Square),,,,
+video_minimax_h3_seamless_loop_fasth3@social-loop,video_minimax_h3_seamless_loop_fasth3,,"The composition set in endless motion: the square turns and grows, the half-moon swings round, the lines bend, and the last frame meets the first, so it loops forever on a social feed. With clicks and a light beat.",yes,"Locked-off static camera, no pan, no zoom. A flat Bauhaus-inspired motion graphic on an off-white background: the coral circle rolls slowly left and right, the mustard half-moon turns around its centre, the blue square gently grows and shrinks, and the thin black lines slide along their own direction, all moving in a smooth steady rhythm like a looping social media animation. Flat colours, no text. Continuous, smooth, unbroken motion throughout.
+
+overall_soundscape: soft clicks and pops in time with the motion.
+
+non_diegetic_music: a light minimal electronic beat.",image_flux3_klein_distilled_t2i@shapes,,,7,,,,,,,,,896,896,,
+video_pika_h3_flex_t2v@ident,video_pika_h3_flex_t2v,,"A five-second channel ident written as a shot list: a coral dot drops in and bounces, splits into three dots, lines draw a triangle between them, and it all snaps into the wordmark 'ATELIER'. Each beat lands where the prompt put it, and the sound effects and the sting follow the motion.",yes,"integrated_multimodal_description: [Shot 1] Flat 2D motion graphics, clean vector shapes, a channel ident on a deep navy background. A small coral dot drops in from the top, bounces once in the centre with squash and stretch, then splits into three dots that slide apart horizontally. At about one and a half seconds thin mustard lines draw themselves between the dots, forming a triangle that turns a quarter turn. At about three seconds the triangle snaps into a bold white wordmark reading 'ATELIER' in a geometric sans-serif, the letters popping in one by one. The last second holds still on the wordmark with a subtle glow.
+
+overall_soundscape: a soft pop as the dot bounces, three light ticks as the dots split, a rising swoosh as the lines draw, a crisp click for each letter.
+
+non_diegetic_music: a short upbeat synth sting that resolves on the final hold.",,,,7,,,,,,,,,,,,
+audio_stable_audio_3_medium@sting,audio_stable_audio_3_medium,,"A sound sting for the ident, asked for in words: a pop, a few marimba notes, a swoosh and a final chord. The file lasts six seconds but the sound is in the first three, then it fades to silence: trim it to fit. Listen for whether each element asked for is there.",yes,,,,,7,,,,,,,,,,,6,"Short logo sting for the video ident of a design studio: a soft bubbly pop, three light rising marimba notes, a bright airy swoosh and a final warm synth chord with a short shimmering tail. Clean, modern, upbeat."

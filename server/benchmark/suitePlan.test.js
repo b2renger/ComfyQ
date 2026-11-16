@@ -345,5 +345,51 @@ const entry = { id: 'edit', effective: { exposedParameters: [
         assert.deepStrictEqual(chained, [], 'a run must read only from the assets folder');
     }
 
+    // --- a table suite may take an earlier row's result (2026-11-16) ----------
+    // The speciality suites chain: a sketch made from words is what the edit,
+    // the 3D card and the video card read. A row names the run id of a row ABOVE
+    // it; the sweep finds that run's output by id (librarySweep._suiteOutput).
+    const { WorkflowRegistry: Registry } = require('../workflows/workflowRegistry');
+    const real = new Registry(path.resolve(__dirname, '..', '..', 'workflows'));
+    real.discover();
+    {
+        const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'comfyq-suite-'));
+        const write = (name, text) => { const f = path.join(tmp, name); fs.writeFileSync(f, text); return f; };
+        const t2i = 'image_flux3_klein_distilled_t2i';
+        const edit = 'image_edit_minimax_h3_image_edit';
+        const editKey = real.get(edit).effective.exposedParameters.find(p => p.type === 'image').key;
+        const textKey = real.get(t2i).effective.exposedParameters.find(p => p.type === 'textarea').key;
+        const ok = loadSuite(write('chain.suite.csv',
+            `id,workflow,${textKey},${editKey},keepRuntime\n`
+            + `${t2i}@sketch,${t2i},a chair,,yes\n`
+            + `${edit},${edit},,${t2i}@sketch#2,yes\n`), real);
+        assert.deepStrictEqual(ok.loadErrors, [], 'a reference to a row above loads');
+        const run = ok.runs.find(r => r.id === edit);
+        assert.deepStrictEqual(run.params[editKey], { from: [`${t2i}@sketch`], kind: 'image', pick: 1 },
+            'the reference becomes a `from` on that run id, #2 picking the second output');
+        assert.deepStrictEqual(parseMediaSpec(run.params[editKey]).from, [`${t2i}@sketch`], 'and the sweep reads it as one');
+        const below = loadSuite(write('below.suite.csv',
+            `id,workflow,${textKey},${editKey},keepRuntime\n`
+            + `${edit},${edit},,${t2i}@sketch,yes\n`
+            + `${t2i}@sketch,${t2i},a chair,,yes\n`), real);
+        assert.ok(below.loadErrors.some(e => /must be a row above/.test(e)), 'a reference to a row below is refused: a suite runs in the order written');
+        try { fs.rmSync(tmp, { recursive: true, force: true }); } catch { /* temp */ }
+    }
+
+    // --- the speciality suites fit the library and never calibrate -----------
+    // They make examples for a field of study; the library suite owns runtime.json.
+    {
+        const dir = path.resolve(__dirname, '..', '..', 'tools', 'test-suite');
+        const files = fs.readdirSync(dir).filter(f => /^speciality-[a-z-]+\.suite\.csv$/.test(f));
+        for (const f of files) {
+            const s = loadSuite(f.replace(/\.suite\.csv$/, ''));
+            const c = validateSuite(s, real);
+            assert.deepStrictEqual(c.errors, [], `${f} no longer fits the library:\n  ${c.errors.join('\n  ')}`);
+            const calibrating = s.runs.filter(r => !r.keepRuntime).map(r => r.id);
+            assert.deepStrictEqual(calibrating, [], `${f}: these runs would rewrite runtime.json (set keepRuntime): ${calibrating.join(', ')}`);
+            assert.ok(s.runs.every(r => r.note), `${f}: every run has a caption, since every run becomes an example`);
+        }
+    }
+
     console.log('suitePlan: all checks passed');
 })().catch(e => { console.error(e); process.exit(1); });
