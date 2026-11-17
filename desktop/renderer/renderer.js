@@ -218,6 +218,13 @@ function jobsFor(p, wf) {
     return { running: jobs.runningAll.filter(mine), scheduled: scheduled.filter(mine) };
 }
 
+// "Title · Model", the way a card is named everywhere in ComfyQ (cardLabel in the
+// client): students pick by use case, but the model is always named too.
+function wfLabel(wf) {
+    const title = (wf && (wf.title || wf.name)) || 'a workflow';
+    return wf && wf.name && wf.name !== title ? `${title} · ${wf.name}` : title;
+}
+
 // One card per served model. A machine can run several at once (each in its own
 // lane with its own queue), and the model is chosen HERE — clicking a card opens
 // the scheduler for that model alone (…/user?workflow=<id>), so the booking form
@@ -230,8 +237,12 @@ function cardHtml(p, selfIps, wf) {
     // then the plain URL opens whatever that machine is serving.
     const wfQuery = wf && wf.id ? `/user?workflow=${encodeURIComponent(wf.id)}` : '';
     const url = ip ? `http://${ip}:${uiPort}${wfQuery}` : '';
-    const adminUrl = ip ? `http://${ip}:${uiPort}/admin` : '';
     const isServing = kind === 'serving';
+    // The link to hand out is the student page of THIS card's lane, the same URL
+    // a click opens, never the admin panel (owner, 2026-11-17). A machine that
+    // serves nothing has no student page, so it gets no link.
+    const studentUrl = isServing ? url : '';
+    const label = wfLabel(wf);
     const isAdmin = p.mode === 'admin';
     const isSelf = (p.ips || []).some(x => (selfIps || []).includes(x));
 
@@ -282,8 +293,8 @@ function cardHtml(p, selfIps, wf) {
     const sourceTag = p._source === 'added' ? ' · added by IP'
         : p._source === 'scan' ? ' · found by search' : '';
 
-    const copyBtn = adminUrl
-        ? `<button class="copy-btn" data-copy="${esc(adminUrl)}" title="Copy admin panel link">
+    const copyBtn = studentUrl
+        ? `<button class="copy-btn" data-copy="${esc(studentUrl)}" data-label="${esc(label)}" title="${esc(`Copy the student link for ${label}`)}">
                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
            </button>` : '';
 
@@ -593,7 +604,7 @@ appEl.addEventListener('click', (e) => {
     const copy = e.target.closest && e.target.closest('.copy-btn[data-copy]');
     if (copy) {
         Promise.resolve(window.fleet.copyText(copy.getAttribute('data-copy')))
-            .then(() => showToast('Admin panel link copied'))
+            .then(() => showToast(`Student link copied: ${copy.getAttribute('data-label') || 'this workflow'}`))
             .catch(() => showToast('Could not copy'));
         return;
     }

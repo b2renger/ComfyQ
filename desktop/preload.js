@@ -4,7 +4,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('fleet', {
     // Subscribe to peer-list updates pushed from the UDP listener / poller.
     onPeers: (cb) => ipcRenderer.on('peers', (_e, data) => cb(data)),
-    // Copy text (e.g. a machine's admin-panel link) to the clipboard.
+    // Copy text (a card's student link) to the clipboard.
     copyText: (text) => ipcRenderer.invoke('copy-text', text),
     // Static peers (unicast poll) — for networks that block broadcast/multicast.
     getStaticPeers: () => ipcRenderer.invoke('get-static-peers'),

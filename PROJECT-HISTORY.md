@@ -4,6 +4,11 @@ The dated log of the project: every decision, bug, measurement and the reason be
 
 Entries are records of their date. Numbers and behaviours in them may be out of date, and a later entry or a `⚠ superseded` note says so. Links to removed bundles are records too. Everything below was moved from CLAUDE.md on 2026-11-06, verbatim.
 
+## 2026-11-17: Discovery's copy button gives the student link of the card's lane
+
+- **Owner:** "the link given is not supposed to be the link of the admin panel … It is supposed to give the link to the student page with the right model (be careful about which card is for which lane)". The copy button beside a card's address copied `http://<ip>:5173/admin` on every card, whatever its model; clicking the card already opened the right lane (`/user?workflow=<id>`).
+- Now the button copies that same URL, built from the card's own `servedWorkflows` entry (one per lane, `statusSnapshot.servedWorkflows`), so the link copied and the tab a click opens are the same lane. Tooltip and toast name it "Title · Model" (`wfLabel` in [desktop/renderer/renderer.js](desktop/renderer/renderer.js), the client's `cardLabel` rule). A machine serving nothing has no student page and shows no button; Discovery no longer links to any admin panel. Test in [desktop/discovery.test.js](desktop/discovery.test.js): two lanes on one machine, each card copies its own workflow's link, equal to its `data-url`; fails on the old renderer. Unreleased (desktop at v2.1.0).
+
 ## Latest progress (2026-11-16: speciality suites, 65 examples beside the showcase)
 
 - **Owner:** "build test suites for the speciality we teach … scenography, interior architecture, industrial design (physical objects), transportation design, UX/UI design and finally graphic and motion design. Not all workflows need examples from these specialities but we want specific examples students can relate to." Chosen when asked: the examples sit **beside the showcase** (a student's own field first), and all six suites run at once.

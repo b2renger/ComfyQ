@@ -135,6 +135,27 @@ function loadRenderer() {
         }
     });
 
+    await test('renderer: each card copies the student link of its own lane, never the admin panel', () => {
+        const p = serving({
+            servedWorkflows: [{ id: 'flux', name: 'FLUX.3', title: 'Make a picture' }, { id: 'sam', name: 'SAM 3', title: 'Cut out an object' }],
+            jobs: { scheduled: [] }
+        });
+        const copied = (html) => (html.match(/class="copy-btn" data-copy="([^"]*)"/) || [])[1];
+        const flux = r.cardHtml(p, [], p.servedWorkflows[0]);
+        const sam = r.cardHtml(p, [], p.servedWorkflows[1]);
+        assert.strictEqual(copied(flux), 'http://10.10.17.9:5173/user?workflow=flux');
+        assert.strictEqual(copied(sam), 'http://10.10.17.9:5173/user?workflow=sam');
+        for (const html of [flux, sam]) {
+            assert.ok(!/\/admin/.test(html), 'a card still links to the admin panel');
+            // The link copied and the tab a click opens are the same lane.
+            assert.strictEqual(copied(html), (html.match(/data-url="([^"]*)"/) || [])[1]);
+        }
+        assert.ok(flux.includes('title="Copy the student link for Make a picture · FLUX.3"'), 'the button does not name the card and its model');
+        assert.ok(sam.includes('data-label="Cut out an object · SAM 3"'));
+        const idle = serving({ mode: 'admin', servedWorkflows: [] });
+        assert.strictEqual(copied(r.cardHtml(idle, [], {})), undefined, 'a machine serving nothing still offers a link');
+    });
+
     await test('renderer: a job starting on one model rebuilds the cards (signature changes)', () => {
         const before = twoLanes({ running: null, runningAll: [], scheduled: [job('s2', 'dan', 'sam')] });
         const after = twoLanes({ running: job('s2', 'dan', 'sam', { startedAt: 1 }), runningAll: [job('s2', 'dan', 'sam', { startedAt: 1 })], scheduled: [] });
