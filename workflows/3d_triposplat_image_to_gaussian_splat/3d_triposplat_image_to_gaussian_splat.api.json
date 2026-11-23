@@ -50,6 +50,8 @@
       "min_component": 500,
       "min_opacity": 0.02,
       "color_sharpen": 2,
+      "solid": true,
+      "fill": 20,
       "splat": [
         "88:55",
         0

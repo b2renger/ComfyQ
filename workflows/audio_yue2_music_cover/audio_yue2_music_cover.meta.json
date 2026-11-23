@@ -18,7 +18,6 @@
   "thumbnail": null,
   "author": "b2renger",
   "version": "1.0.0",
-  "experimental": true,
   "workflowFile": "audio_yue2_music_cover.api.json",
   "apiFormat": true,
   "requirements": {

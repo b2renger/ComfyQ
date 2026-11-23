@@ -1,0 +1,246 @@
+{
+  "1": {
+    "inputs": {
+      "file": ""
+    },
+    "class_type": "LoadVideo",
+    "_meta": {
+      "title": "Load Video",
+      "cnr_id": "comfy-core",
+      "ver": "0.45.2"
+    }
+  },
+  "2": {
+    "inputs": {
+      "video": [
+        "202",
+        0
+      ]
+    },
+    "class_type": "GetVideoComponents",
+    "_meta": {
+      "title": "Get Video Components",
+      "cnr_id": "comfy-core",
+      "ver": "0.45.2"
+    }
+  },
+  "4": {
+    "inputs": {
+      "unet_name": "relayvsr_x4_int8_convrot.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": {
+      "title": "Load Diffusion Model",
+      "cnr_id": "comfy-core",
+      "ver": "0.45.2"
+    }
+  },
+  "5": {
+    "inputs": {
+      "model": [
+        "4",
+        0
+      ],
+      "images": [
+        "304",
+        0
+      ]
+    },
+    "class_type": "RelayVSRConditioning",
+    "_meta": {
+      "title": "RelayVSRConditioning",
+      "cnr_id": "comfy-core",
+      "ver": "0.45.2"
+    }
+  },
+  "6": {
+    "inputs": {
+      "seed": 42,
+      "steps": 1,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "4",
+        0
+      ],
+      "positive": [
+        "5",
+        0
+      ],
+      "negative": [
+        "5",
+        0
+      ],
+      "latent_image": [
+        "5",
+        1
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "KSampler",
+      "cnr_id": "comfy-core",
+      "ver": "0.45.2"
+    }
+  },
+  "7": {
+    "inputs": {
+      "vae_name": "relayvsr_flash_vae_x4_fp32.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "Load VAE",
+      "cnr_id": "comfy-core",
+      "ver": "0.45.2"
+    }
+  },
+  "104": {
+    "inputs": {
+      "detail": 1,
+      "vae": [
+        "7",
+        0
+      ],
+      "samples": [
+        "6",
+        0
+      ],
+      "images": [
+        "304",
+        0
+      ]
+    },
+    "class_type": "VSRDecode",
+    "_meta": {
+      "title": "VSR Decode",
+      "cnr_id": "comfy-core",
+      "ver": "0.45.2"
+    }
+  },
+  "105": {
+    "inputs": {
+      "fps": [
+        "2",
+        2
+      ],
+      "bit_depth": "auto",
+      "color_space": "sRGB",
+      "chroma_subsampling": "auto",
+      "codec": "none",
+      "images": [
+        "104",
+        0
+      ],
+      "audio": [
+        "2",
+        1
+      ]
+    },
+    "class_type": "CreateVideo",
+    "_meta": {
+      "title": "Create Video",
+      "cnr_id": "comfy-core",
+      "ver": "0.45.2"
+    }
+  },
+  "106": {
+    "inputs": {
+      "filename_prefix": "video/RelayVSR_x4",
+      "format": "auto",
+      "format.codec": "auto",
+      "codec": "auto",
+      "video": [
+        "105",
+        0
+      ]
+    },
+    "class_type": "SaveVideo",
+    "_meta": {
+      "title": "Save Video",
+      "cnr_id": "comfy-core",
+      "ver": "0.45.2"
+    }
+  },
+  "202": {
+    "inputs": {
+      "start_time": 0,
+      "duration": 5,
+      "strict_duration": false,
+      "video": [
+        "1",
+        0
+      ]
+    },
+    "class_type": "Video Slice",
+    "_meta": {
+      "title": "Trim Video",
+      "cnr_id": "comfy-core",
+      "ver": "0.45.2"
+    }
+  },
+  "301": {
+    "inputs": {
+      "image": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "Input size"
+    }
+  },
+  "302": {
+    "inputs": {
+      "expression": "max(a, b) > 960",
+      "values.a": [
+        "301",
+        0
+      ],
+      "values.b": [
+        "301",
+        1
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "Larger than 960?"
+    }
+  },
+  "303": {
+    "inputs": {
+      "longer_edge": 960,
+      "images": [
+        "2",
+        0
+      ]
+    },
+    "class_type": "ResizeImagesByLongerEdge",
+    "_meta": {
+      "title": "Scale down to 960"
+    }
+  },
+  "304": {
+    "inputs": {
+      "switch": [
+        "302",
+        2
+      ],
+      "on_false": [
+        "2",
+        0
+      ],
+      "on_true": [
+        "303",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "Frames to enlarge"
+    }
+  }
+}

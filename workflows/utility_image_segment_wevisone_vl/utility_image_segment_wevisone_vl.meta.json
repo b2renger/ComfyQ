@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "utility_image_segment_wevisone_vl",
+  "name": "WeVisOne-VL 2B — text-prompted image segmentation",
+  "title": "Cut out a named thing from a picture",
+  "summary": "Give it a picture and type the name of something in it; you get that thing cut out on a transparent background, its black-and-white matte, and the picture with a box around each one it found.",
+  "description": "Cut something out of a picture by naming it. WeVisOne-VL, a small vision-language model built into ComfyUI since 0.45, finds what your words name and answers with a box and an alpha matte for each one; this card saves three pictures: the cut-out (the source with everything else transparent, a PNG), the matte (white where the thing is), and the source with the boxes drawn, so you can see what it understood.\n\nUse a short noun phrase (\"human\", \"the red car\", \"chair\"): a full sentence makes it ramble. Every instance it finds is cut out together. Experimental.",
+  "category": "preprocessor",
+  "tags": [
+    "wevisone",
+    "segmentation",
+    "matte",
+    "background-removal",
+    "image"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "utility_image_segment_wevisone_vl.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 6,
+    "models": [
+      {
+        "type": "clip",
+        "file": "wevisone_vl_2b_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/WeVisOne-VL/resolve/main/text_encoders/wevisone_vl_2b_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/WeVisOne-VL"
+      }
+    ]
+  },
+  "estimatedDurationSec": 10,
+  "exposedParameters": [
+    {
+      "key": "source_image_10",
+      "nodeId": "10",
+      "field": "image",
+      "type": "image",
+      "label": "Picture",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "query_11",
+      "nodeId": "11",
+      "field": "query",
+      "type": "text",
+      "label": "What to cut out (a short noun phrase)",
+      "default": "human",
+      "required": true,
+      "order": 1
+    }
+  ],
+  "warmupParams": {}
+}

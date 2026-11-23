@@ -6,7 +6,6 @@
   "summary": "Upload up to four pictures — a character, an object, a place — and write the scene; they appear together in a new 5-second film with voices and sound. The fast version.",
   "description": "Give it up to four pictures — a character, a product, a place — and get a short film with its own soundtrack in which they appear. The model reuses what is in the pictures and invents the performance, the camera and the sound.\n\nPictures are numbered in the order of the upload slots, so fill them from the top: the second slot is <Picture 2>, and so on. An empty slot is removed from the graph.\n\nWrite the prompt in the model's sections, as in the default: **subject_definitions** (\"<Subject 1> is the plane in <Picture 1>: …\"), a one-line **summary**, **retention_analysis** (what must stay the same), **detailed_description** with one line per [Shot] and its timestamp, then **overall_soundscape** and **non_diegetic_music**. Naming the sounds is what gets a deliberate soundtrack.\n\nThis is FastVideo's FastH3 OmniRef, MiniMax H3 distilled to 8 steps for reference-to-video. Plain text-to-video works but is not its strength — use the FastH3 text-to-video card for that.",
   "category": "i2v",
-  "experimental": true,
   "tags": [
     "minimax",
     "h3",

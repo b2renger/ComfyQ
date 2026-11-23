@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "id": "utility_relayvsr_video_x4_upscale",
+  "name": "RelayVSR — video upscale 4x",
+  "title": "Enlarge a small video four times, in one pass",
+  "summary": "Give it a small video clip and get it back four times as wide and four times as tall, in one pass; the sound and the frame rate are kept. For low-resolution clips: anything over 960 pixels wide is scaled down to 960 first, so the result is at most 4K.",
+  "description": "Upscale a video exactly 4x with RelayVSR, built into ComfyUI since 0.45: the 4x sibling of *Enlarge a video twice, in one pass · RelayVSR 2x*, with the x4 weight pair from Comfy-Org (the factor comes from the weights, not from a setting). A large Wan-based model paints reference latents for keyframes (one every 15 frames) in one sampling step, and a light \"Flash\" decoder carries them across every frame.\n\nMade for small clips (480p or so): a 4-second 864x480 clip made by the H3 turbo card came back 3456x1920 in about 80 seconds, all 96 frames at 24 fps with the sound, using about 12 GB of graphics memory, with hair, faces and fabric clearly sharper than a plain enlargement. Frames whose longer side is over 960 pixels are scaled down to 960 before the upscale, so a 1080p or 4K upload comes back as 4K (3840 wide), not 8K. Only the part of the clip between \"Start at\" and \"Length\" is upscaled (5 seconds at most). \"Detail kept\" sets how much of the detail the decoder adds over a plain bicubic enlargement is kept (1 = all of it). Experimental.",
+  "category": "preprocessor",
+  "tags": [
+    "relayvsr",
+    "upscale",
+    "super-resolution",
+    "video",
+    "wan",
+    "4x"
+  ],
+  "thumbnail": null,
+  "author": "Template - ComfyUI",
+  "version": "1.0.0",
+  "workflowFile": "utility_relayvsr_video_x4_upscale.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 8,
+    "models": [
+      {
+        "type": "unet",
+        "file": "relayvsr_x4_int8_convrot.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/RelayVSR/resolve/main/diffusion_models/relayvsr_x4_int8_convrot.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/RelayVSR"
+      },
+      {
+        "type": "vae",
+        "file": "relayvsr_flash_vae_x4_fp32.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/RelayVSR/resolve/main/vae/relayvsr_flash_vae_x4_fp32.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/RelayVSR"
+      }
+    ]
+  },
+  "estimatedDurationSec": 80,
+  "exposedParameters": [
+    {
+      "key": "source_video_1",
+      "nodeId": "1",
+      "field": "file",
+      "type": "video",
+      "label": "Video to enlarge (a small one: anything wider than 960 px is first scaled down to 960)",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "start_202",
+      "nodeId": "202",
+      "field": "start_time",
+      "type": "number",
+      "label": "Start at (seconds)",
+      "default": 0,
+      "min": 0,
+      "max": 3600,
+      "step": 0.1,
+      "required": false,
+      "order": 1
+    },
+    {
+      "key": "length_202",
+      "nodeId": "202",
+      "field": "duration",
+      "type": "number",
+      "label": "Length to enlarge (seconds)",
+      "default": 5,
+      "min": 1,
+      "max": 5,
+      "step": 0.5,
+      "required": false,
+      "order": 2
+    },
+    {
+      "key": "detail_104",
+      "nodeId": "104",
+      "field": "detail",
+      "type": "number",
+      "label": "Detail kept (1 = all the detail the model adds)",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "required": false,
+      "order": 3
+    },
+    {
+      "key": "seed_6",
+      "nodeId": "6",
+      "field": "seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 42,
+      "min": 0,
+      "max": 999999999999999,
+      "step": 1,
+      "required": false,
+      "order": 4
+    }
+  ],
+  "warmupParams": {
+    "source_video_1": "asset:suite-inputs/video_minimax_h3_t2v_turbo.mp4"
+  }
+}

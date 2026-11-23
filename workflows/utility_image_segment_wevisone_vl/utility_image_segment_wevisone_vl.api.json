@@ -1,0 +1,149 @@
+{
+  "1": {
+    "inputs": {
+      "clip_name": "wevisone_vl_2b_int8_convrot.safetensors",
+      "type": "stable_diffusion",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "Load CLIP",
+      "cnr_id": "comfy-core",
+      "ver": "0.46.2"
+    }
+  },
+  "10": {
+    "inputs": {
+      "image": ""
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "Load Image",
+      "cnr_id": "comfy-core",
+      "ver": "0.46.2"
+    }
+  },
+  "11": {
+    "inputs": {
+      "task": "segmentation",
+      "query": "human",
+      "individual_masks": false,
+      "max_length": 4096,
+      "clip": [
+        "1",
+        0
+      ],
+      "image": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "WeVisOneDetect",
+    "_meta": {
+      "title": "WeVisOne-VL Detect",
+      "cnr_id": "comfy-core",
+      "ver": "0.46.2"
+    }
+  },
+  "37": {
+    "inputs": {
+      "mask": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "InvertMask",
+    "_meta": {
+      "title": "Invert Mask",
+      "cnr_id": "comfy-core",
+      "ver": "0.46.2"
+    }
+  },
+  "38": {
+    "inputs": {
+      "image": [
+        "10",
+        0
+      ],
+      "alpha": [
+        "37",
+        0
+      ]
+    },
+    "class_type": "JoinImageWithAlpha",
+    "_meta": {
+      "title": "Join Image with Alpha",
+      "cnr_id": "comfy-core",
+      "ver": "0.46.2"
+    }
+  },
+  "42": {
+    "inputs": {
+      "bboxes": [
+        "11",
+        1
+      ],
+      "image": [
+        "10",
+        0
+      ]
+    },
+    "class_type": "DrawBBoxes",
+    "_meta": {
+      "title": "Draw BBoxes",
+      "cnr_id": "comfy-core",
+      "ver": "0.46.2"
+    }
+  },
+  "50": {
+    "inputs": {
+      "filename_prefix": "image/wevisone_cutout",
+      "images": [
+        "38",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Cut-out"
+    }
+  },
+  "51": {
+    "inputs": {
+      "mask": [
+        "11",
+        0
+      ]
+    },
+    "class_type": "MaskToImage",
+    "_meta": {
+      "title": "Matte as a picture"
+    }
+  },
+  "52": {
+    "inputs": {
+      "filename_prefix": "image/wevisone_matte",
+      "images": [
+        "51",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "Matte"
+    }
+  },
+  "53": {
+    "inputs": {
+      "filename_prefix": "image/wevisone_boxes",
+      "images": [
+        "42",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "What it found"
+    }
+  }
+}
