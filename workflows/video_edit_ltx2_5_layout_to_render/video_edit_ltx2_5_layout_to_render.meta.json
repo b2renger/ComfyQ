@@ -1,0 +1,194 @@
+{
+  "schemaVersion": 1,
+  "id": "video_edit_ltx2_5_layout_to_render",
+  "name": "LTX 2.5 Layout to Render — 3D layout to finished shot (two passes + audio)",
+  "title": "Turn a 3D layout animation into a finished shot",
+  "summary": "Upload a grey 3D layout animation and one picture of its first frame as it should look; you get the finished shot with the layout's camera move and the placement of every object, in the look of your picture, with sound.",
+  "description": "Lightricks' Layout-to-Render IC-LoRA for LTX 2.5: the layout video (a grey clay render or blocky playblast) gives the camera path and where things are; the look still gives the palette, the light and the materials, and becomes the opening frame. The successor of *Turn a rough 3D render photoreal · LTX 2.3 3DReal*, trained by Lightricks on LTX 2.5 itself, with no trigger word.\n\nThe look still matters most: make it from the layout's first frame with an image-edit card. The grey frame itself gives a grey result. Describe the finished shot in one or two sentences that match the still, without the words \"clay\", \"3D\" or \"Unreal\".\n\nTwo passes, as on Lightricks' workflow: 8 steps at 960×544, then a 2× pass to 1920×1088. Only the start of the clip is used (\"Clip length used\", 5 s), at its own frame rate; the frame count snaps to 8k+1. Experimental.",
+  "category": "video-edit",
+  "experimental": true,
+  "tags": [
+    "ltx",
+    "ltx2.5",
+    "ic-lora",
+    "layout",
+    "3d-to-real",
+    "vid2vid",
+    "distilled",
+    "video",
+    "audio"
+  ],
+  "promptGuides": [
+    {
+      "label": "LTX IC-LoRA guide — Lightricks",
+      "url": "https://docs.ltx.io/open-source-model/usage-guides/ic-lo-ra",
+      "tip": "The trigger word 3DREAL is added for you: describe the photoreal look you want — materials, lighting, lens, atmosphere — and the sound; the layout and motion come from your render."
+    },
+    {
+      "label": "LTX prompting guide",
+      "url": "https://docs.ltx.io/open-source-model/usage-guides/prompting-guide"
+    },
+    {
+      "label": "3DREAL LoRA (fal) — trigger word and settings",
+      "url": "https://huggingface.co/fal/LTX-2.3-3DREAL-LoRA",
+      "tip": "The trigger word 3DREAL is added for you: describe the real materials and light you want."
+    }
+  ],
+  "thumbnail": null,
+  "author": "Lightricks (Layout-to-Render IC-LoRA)",
+  "version": "1.0.0",
+  "workflowFile": "video_edit_ltx2_5_layout_to_render.api.json",
+  "apiFormat": true,
+  "requirements": {
+    "minVRAM": 24,
+    "models": [
+      {
+        "type": "unet",
+        "file": "ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/diffusion_models/ltx-2.5-22b-distilled-transformer-comfy-int8-convrot.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.5",
+        "gated": true
+      },
+      {
+        "type": "clip",
+        "file": "gemma4_e2b_it_bf16.safetensors",
+        "url": "https://huggingface.co/Comfy-Org/gemma-4/resolve/main/text_encoders/gemma4_e2b_it_bf16.safetensors",
+        "source": "https://huggingface.co/Comfy-Org/gemma-4"
+      },
+      {
+        "type": "clip",
+        "file": "gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/text_encoders/gemma4-12b-with-proj-ltx-2.5-comfy-int8-convrot.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.5",
+        "gated": true
+      },
+      {
+        "type": "vae",
+        "file": "ltx-2.5-audio-vae-bf16.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/vae/ltx-2.5-audio-vae-bf16.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.5",
+        "gated": true
+      },
+      {
+        "type": "vae",
+        "file": "ltx-2.5-video-vae-bf16.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/vae/ltx-2.5-video-vae-bf16.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.5",
+        "gated": true
+      },
+      {
+        "type": "lora",
+        "file": "ltx-2.5-22b-ic-lora-layout-to-render-1.0.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5-22b-IC-LoRA-Layout-To-Render/resolve/main/ltx-2.5-22b-ic-lora-layout-to-render-1.0.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.5-22b-IC-LoRA-Layout-To-Render",
+        "gated": true
+      },
+      {
+        "type": "other",
+        "file": "ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+        "url": "https://huggingface.co/Lightricks/LTX-2.5/resolve/main/latent_upscale_models/ltx-2.5-latent-spatial-upscaler-x2-bf16-1.0.safetensors",
+        "source": "https://huggingface.co/Lightricks/LTX-2.5",
+        "gated": true
+      }
+    ]
+  },
+  "estimatedDurationSec": 180,
+  "exposedParameters": [
+    {
+      "key": "loadvideo_file_5001",
+      "nodeId": "5001",
+      "field": "file",
+      "type": "video",
+      "label": "Layout video (a grey clay render or blocky playblast from Blender, Unreal…; 24 fps is best)",
+      "default": "",
+      "required": true,
+      "order": 0
+    },
+    {
+      "key": "loadimage_image_2004",
+      "nodeId": "2004",
+      "field": "image",
+      "type": "image",
+      "label": "Look still (the first frame as it should look: make it from the layout's first frame with an image card, never the grey frame itself)",
+      "default": "",
+      "required": true,
+      "order": 2
+    },
+    {
+      "key": "primitivestringmultiline_value_5508",
+      "nodeId": "5508",
+      "field": "value",
+      "type": "textarea",
+      "label": "Prompt (one or two sentences describing the finished shot, matching the look still)",
+      "default": "A cinematic, photorealistic shot: physically-based materials, natural light and soft shadows, real textures, subtle depth of field and smooth natural motion.",
+      "required": true,
+      "order": 3
+    },
+    {
+      "key": "comfyswitchnode_switch_5556",
+      "nodeId": "5556",
+      "field": "switch",
+      "type": "checkbox",
+      "label": "Enhance prompt with AI",
+      "default": false,
+      "required": false,
+      "order": 4
+    },
+    {
+      "key": "ltxaddvideoicloraguide_strength_5012",
+      "nodeId": "5012",
+      "field": "strength",
+      "type": "number",
+      "label": "Layout strength (how strictly the layout's camera and placement are followed)",
+      "default": 1,
+      "min": 0,
+      "max": 1,
+      "step": 0.05,
+      "required": false,
+      "order": 5
+    },
+    {
+      "key": "resizeimagemasknode_resize_type_shorter_size_5026",
+      "nodeId": "5026",
+      "field": "resize_type.shorter_size",
+      "type": "number",
+      "label": "Working size (shorter side of the first pass; the result is twice this)",
+      "default": 544,
+      "min": 256,
+      "max": 640,
+      "step": 32,
+      "required": false,
+      "order": 6
+    },
+    {
+      "key": "video_slice_duration_9900",
+      "nodeId": "9900",
+      "field": "duration",
+      "type": "number",
+      "label": "Clip length used (seconds, max 10 — only the start of your video is processed)",
+      "default": 5,
+      "min": 1,
+      "max": 10,
+      "step": 0.5,
+      "required": false,
+      "order": 7
+    },
+    {
+      "key": "randomnoise_noise_seed_4832",
+      "nodeId": "4832",
+      "field": "noise_seed",
+      "type": "number",
+      "label": "Seed",
+      "default": 0,
+      "min": 0,
+      "max": 4294967295,
+      "step": 1,
+      "required": false,
+      "order": 8
+    }
+  ],
+  "warmupParams": {
+    "loadvideo_file_5001": "asset:rough3Drender.mp4",
+    "loadimage_image_2004": "asset:rough3Drender_reference.png"
+  }
+}

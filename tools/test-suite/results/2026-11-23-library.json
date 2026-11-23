@@ -1,10 +1,10 @@
 {
  "type": "summary",
- "startedAt": "2026-11-23T10:33:37.099Z",
- "finishedAt": "2026-11-23T10:36:38.623Z",
+ "startedAt": "2026-11-23T15:31:40.447Z",
+ "finishedAt": "2026-11-23T15:35:45.625Z",
  "state": "done",
  "machine": {
-  "at": "2026-11-23T10:33:37.131Z",
+  "at": "2026-11-23T15:31:40.480Z",
   "host": "AN-5090-2",
   "instance": "AN-5090-2",
   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
@@ -24,7 +24,7 @@
   "scanDirs": [
    "/_demo_workflows"
   ],
-  "comfyqCommit": "eef1121",
+  "comfyqCommit": "16ceb86",
   "comfyqBranch": "main"
  },
  "suite": {
@@ -33,8 +33,8 @@
   "description": "Every workflow in the library, each with an example chosen from research into what its model is actually good at (model cards, papers, official prompting guides, ComfyUI template notes) — a smoke test that doubles as the library's showcase. Pictures made from words feed the edits, the 3D cards, the captioner and the videos; real photos and real footage are used where a card's power only shows on them (restoring damage, copying a dancer's moves). Each run's note says what to look at. Settings are each card's defaults except prompts, inputs and choices that leave the cost about the same (an aspect ratio, a size at about the same pixel count, a LoRA, colour-correction or time-of-day choice, an optional input switched off); a run that changes the cost keeps its calibrated timing (keepRuntime)."
  },
  "summary": {
-  "ran": 116,
-  "succeeded": 116,
+  "ran": 117,
+  "succeeded": 117,
   "failed": 0,
   "withFlaggedOutput": 1,
   "noOutput": 0,
@@ -11139,6 +11139,159 @@
    "wallSec": 88
   },
   {
+   "id": "video_edit_ltx2_5_layout_to_render",
+   "name": "LTX 2.5 Layout to Render — 3D layout to finished shot (two passes + audio)",
+   "category": "video-edit",
+   "experimental": true,
+   "startedAt": "2026-11-23T15:31:40.493Z",
+   "ok": true,
+   "error": null,
+   "outputs": [
+    {
+     "path": "output/bench_video_edit_ltx2_5_layout_to_render_1795447907186_00001_.mp4",
+     "bytes": 2976420,
+     "kind": "video",
+     "frames": 145,
+     "fps": 30,
+     "width": 1984,
+     "height": 1088,
+     "samples": [
+      {
+       "mean": 78.65,
+       "std": 52.86,
+       "min": 1,
+       "max": 238,
+       "at": 0
+      },
+      {
+       "mean": 73.39,
+       "std": 53.83,
+       "min": 0,
+       "max": 238,
+       "at": 72
+      },
+      {
+       "mean": 78.7,
+       "std": 51.6,
+       "min": 1,
+       "max": 236,
+       "at": 143
+      }
+     ],
+     "mean": 76.91,
+     "std": 53.83,
+     "flags": [],
+     "file": "bench_video_edit_ltx2_5_layout_to_render_1795447907186_00001_.mp4"
+    }
+   ],
+   "flagged": [],
+   "observedModels": [],
+   "suite": {
+    "name": "library",
+    "stage": "5 — Editing a video",
+    "note": "A grey layout animation and one stormy still of its first frame become the cargo ship in a storm at 1984×1088: the layout's push-in and its cut at 3.77 s are kept, and the still's dark palette holds across the cut.",
+    "inputs": {
+     "loadimage_image_2004": {
+      "asset": "rough3Drender_reference.png"
+     },
+     "loadvideo_file_5001": {
+      "asset": "rough3Drender.mp4"
+     }
+    }
+   },
+   "ingredients": [
+    {
+     "key": "loadvideo_file_5001",
+     "label": "Layout video (a grey clay render or blocky playblast from Blender, Unreal…; 24 fps is best)",
+     "type": "video",
+     "node": "5001.file",
+     "from": "named by the test suite",
+     "value": "comfyq__b8791633__rough3Drender.mp4",
+     "sourcePath": "assets/rough3Drender.mp4",
+     "staged": "comfyq__b8791633__rough3Drender.mp4"
+    },
+    {
+     "key": "loadimage_image_2004",
+     "label": "Look still (the first frame as it should look: make it from the layout's first frame with an image card, never the grey frame itself)",
+     "type": "image",
+     "node": "2004.image",
+     "from": "named by the test suite",
+     "value": "comfyq__b8791633__rough3Drender_reference.png",
+     "sourcePath": "assets/rough3Drender_reference.png",
+     "staged": "comfyq__b8791633__rough3Drender_reference.png"
+    },
+    {
+     "key": "primitivestringmultiline_value_5508",
+     "label": "Prompt (one or two sentences describing the finished shot, matching the look still)",
+     "type": "textarea",
+     "node": "5508.value",
+     "from": "the test suite",
+     "value": "Make it photorealistic. A weathered cargo ship stacked with rusty red, blue and grey shipping containers ploughs through a stormy grey sea under low, heavy clouds. The camera glides close along the wall of containers, then the view cuts back to a wide shot of the whole ship as cold spray bursts over the bow and rain streaks across the frame. Sound: howling wind, heavy waves slamming the steel hull, rain drumming on metal and the long low blast of the ship's horn."
+    },
+    {
+     "key": "comfyswitchnode_switch_5556",
+     "label": "Enhance prompt with AI",
+     "type": "checkbox",
+     "node": "5556.switch",
+     "from": "the graph default",
+     "value": false
+    },
+    {
+     "key": "ltxaddvideoicloraguide_strength_5012",
+     "label": "Layout strength (how strictly the layout's camera and placement are followed)",
+     "type": "number",
+     "node": "5012.strength",
+     "from": "the graph default",
+     "value": 1
+    },
+    {
+     "key": "resizeimagemasknode_resize_type_shorter_size_5026",
+     "label": "Working size (shorter side of the first pass; the result is twice this)",
+     "type": "number",
+     "node": "5026.resize_type.shorter_size",
+     "from": "the graph default",
+     "value": 544
+    },
+    {
+     "key": "video_slice_duration_9900",
+     "label": "Clip length used (seconds, max 10 — only the start of your video is processed)",
+     "type": "number",
+     "node": "9900.duration",
+     "from": "the graph default",
+     "value": 5
+    },
+    {
+     "key": "randomnoise_noise_seed_4832",
+     "label": "Seed",
+     "type": "number",
+     "node": "4832.noise_seed",
+     "from": "calibration",
+     "value": 154625086
+    }
+   ],
+   "seedsRandomized": 0,
+   "warmSec": 185,
+   "coldSec": 233,
+   "modelLoadSec": 48,
+   "vramPeakGb": 29.86,
+   "steps": 3,
+   "gpu": "NVIDIA GeForce RTX 5090 : cudaMallocAsync",
+   "recorderAvailable": true,
+   "perf": {
+    "argv": [
+     "--listen",
+     "--port",
+     "--disable-auto-launch",
+     "--windows-standalone-build",
+     "--fast"
+    ],
+    "bundleDisables": [],
+    "notMasked": []
+   },
+   "finishedAt": "2026-11-23T15:35:45.623Z",
+   "wallSec": 245
+  },
+  {
    "id": "video_edit_minimax_h3_fun_controlnet_canny",
    "name": "MiniMax H3 ControlNet (canny) — restyle a video from its outlines + audio",
    "category": "video-edit",
@@ -16289,5 +16442,5 @@
    "wallSec": 92
   }
  ],
- "mergedFrom": 3
+ "mergedFrom": 1
 }
